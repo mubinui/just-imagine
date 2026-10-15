@@ -1,5 +1,4 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import type * as GenAiModule from '@google/genai';
 import type { LiveCallbacks, SessionRecord } from '../src/contracts';
 import type * as GenAI from '@google/genai';
 const mocks = vi.hoisted(() => ({ connect: vi.fn() }));
