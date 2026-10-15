@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { type WorldListResponse, type ChildResponse } from '@just-imagine/protocol';
 import { FIXTURE_WORLDS } from '@just-imagine/fixtures/browser';
 import { api } from '../lib/api';
-import { getVoice, releaseVoice } from '../lib/voice';
+import { getVoice } from '../lib/voice';
+import { env } from '../lib/env';
 import { s } from '../lib/strings/en';
 export function Gallery() {
   const [worlds, setWorlds] = useState<WorldListResponse['worlds']>([]),
@@ -25,7 +26,7 @@ export function Gallery() {
     const key = Object.entries(FIXTURE_WORLDS).find(([, doc]) => doc.worldId === id)?.[0];
     if (key) sessionStorage.setItem('ji-fixture', key);
     sessionStorage.setItem('ji-world', id);
-    releaseVoice();
+    if (getVoice().session && !env.fake) getVoice().send({ type: 'openWorld', worldId: id });
     void getVoice()
       .unlockAudio()
       .then(() => router.push('/studio'))

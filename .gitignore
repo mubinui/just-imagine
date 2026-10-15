@@ -26,3 +26,6 @@ infra/terraform/.terraform/
 !*.tfvars.example
 
 services/builder/reports/
+
+# impeccable review captures are evidence, not source
+apps/web/.impeccable/review/

@@ -52,7 +52,7 @@ describe('Firestore API ownership and limits', () => {
   it('does not read another owner world', async () => {
     // A malformed foreign doc must never be returned to the requesting parent.
     await db().doc(paths.world('w_foreign')).set({ ownerUid: 'other' });
-    await expect(store.getWorld('parent', 'w_foreign')).rejects.toBeDefined();
+    await expect(store.getWorld('parent', 'w_foreign')).rejects.toMatchObject({ status: 404 });
   });
   it('deletes profile subcollections and its worlds and sessions', async () => {
     const child = await store.createChild('parent', {
@@ -66,7 +66,11 @@ describe('Firestore API ownership and limits', () => {
     await db().doc('worlds/w_delete').set({ ownerUid: 'parent', childId: child.id });
     await db().doc('worlds/w_delete/versions/1').set({ test: true });
     await db().doc('sessions/s_delete').set({ uid: 'parent', childId: child.id });
+    await db()
+      .doc('builderJobs/j_child_delete')
+      .set({ uid: 'parent', childId: child.id, worldId: 'w_delete', status: 'running' });
     await store.deleteChild('parent', child.id);
+    expect((await db().doc('builderJobs/j_child_delete').get()).exists).toBe(false);
     expect((await db().doc(paths.child('parent', child.id)).get()).exists).toBe(false);
     expect((await db().collection('worlds').get()).empty).toBe(true);
     expect((await db().collection('sessions').get()).empty).toBe(true);

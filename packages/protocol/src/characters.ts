@@ -115,3 +115,43 @@ export const DEFAULT_CHARACTER: CharacterId = 'bhombol';
 export function guidesFor(band: AgeBand): CharacterConfig[] {
   return Object.values(CHARACTERS).filter((c) => c.kind === 'guide' && c.bands.includes(band));
 }
+
+// Only child destinations are accepted; model output never becomes an arbitrary URL.
+export const ChildDestinationSchema = z.enum(['play', 'studio', 'gallery']);
+export type ChildDestination = z.infer<typeof ChildDestinationSchema>;
+export const CHILD_DESTINATIONS: Record<ChildDestination, string> = {
+  play: '/play',
+  studio: '/studio',
+  gallery: '/gallery',
+};
+export const PresetCompanionSchema = z.strictObject({
+  kind: z.literal('preset'),
+  characterId: CompanionIdSchema,
+  name: z.string().trim().min(1).max(24),
+});
+export const CompanionSchema = z.discriminatedUnion('kind', [
+  PresetCompanionSchema,
+  z.strictObject({
+    kind: z.literal('chibi'),
+    characterId: CompanionIdSchema,
+    name: z.string().trim().min(1).max(24),
+    image: z
+      .string()
+      .max(180000)
+      .regex(/^data:image\/webp;base64,[A-Za-z0-9+/]+=*$/),
+    createdAt: z.number().int().nonnegative(),
+  }),
+]);
+export type Companion = z.infer<typeof CompanionSchema>;
+export const CreateCompanionBodySchema = z.strictObject({
+  name: z.string().trim().min(1).max(24),
+  characterId: CompanionIdSchema,
+  consent: z.literal(true),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  photo: z
+    .string()
+    .min(4)
+    .max(5600000)
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/),
+});
+export type CreateCompanionBody = z.infer<typeof CreateCompanionBodySchema>;

@@ -123,3 +123,56 @@ test('coalesces slider transport, preserves values during asset updates, and res
     .first()
     .press('ArrowUp');
 });
+
+test('landing gravity experiment responds to choices and opens the explorer picker', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const ball = page.locator('.gravity-ball');
+  const initial = await ball.getAttribute('transform');
+  await page.getByRole('button', { name: 'Moon', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Moon', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.locator('.gravity-reading')).toContainText('1.62 m/s²');
+  await expect.poll(() => ball.getAttribute('transform')).not.toBe(initial);
+  await page.getByRole('button', { name: 'Earth', exact: true }).click();
+  await expect(page.locator('.gravity-reading')).toContainText('9.81 m/s²');
+  await page.getByRole('link', { name: 'Start imagining', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Who’s imagining today?' })).toBeVisible();
+});
+
+test('an earned local bounce discovery survives the trip to parent space', async ({ page }) => {
+  await page.goto('/play');
+  await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
+  await page.getByRole('button', { name: 'bounce', exact: true }).click();
+  await page.waitForTimeout(900);
+  const box = await page.locator('canvas').boundingBox();
+  if (!box) throw new Error('World canvas has no bounds');
+  const point = (x: number, y: number) => ({
+    x: box.x + (box.width * x) / 16,
+    y: box.y + (box.height * y) / 9,
+  });
+  const dragon = point(5, 1.8),
+    release = point(9, 3);
+  await page.mouse.move(dragon.x, dragon.y);
+  await page.mouse.down();
+  await page.mouse.move(release.x, release.y, { steps: 30 });
+  await page.waitForTimeout(400);
+  await page.mouse.up();
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() =>
+          JSON.parse(localStorage.getItem('ji-discoveries:c_fixture') || '[]').map(
+            (card: { concept: string }) => card.concept,
+          ),
+        ),
+      { timeout: 8000 },
+    )
+    .toContain('bounce');
+  await expect(page.getByRole('button', { name: 'bounce', exact: true })).toHaveCount(0);
+  await page.goto('/parent/dashboard');
+  await expect(page.locator('.parent-discovery').first()).toBeVisible();
+});

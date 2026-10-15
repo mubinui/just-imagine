@@ -1,5 +1,9 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
-import { generatedSceneJsonSchema, patchOpsJsonSchema } from '@just-imagine/scene-schema';
+import {
+  generatedSceneJsonSchema,
+  patchOpsJsonSchema,
+  toGeminiJsonSchema,
+} from '@just-imagine/scene-schema';
 import type { GenerateJson } from './pipeline';
 export const SAFETY_SETTINGS = [
   HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -12,20 +16,22 @@ export class VertexModels {
   constructor(
     private config: {
       project: string;
+      apiKey?: string;
       sceneModel: string;
       fastModel: string;
       heroModel: string;
       propModel: string;
     },
   ) {
-    this.client = new GoogleGenAI({
-      vertexai: true,
-      project: config.project,
-      location: 'us-central1',
-    });
+    this.client = new GoogleGenAI(
+      config.apiKey
+        ? { apiKey: config.apiKey }
+        : { vertexai: true, project: config.project, location: 'us-central1' },
+    );
   }
   // Bound session state so one model outage does not permanently downgrade every child.
   private failedSceneSessions = new Set<string>();
+  private jsonModeModels = new Set<string>();
   generate: GenerateJson = async (prompt, kind, sessionId) => {
     const preferred =
       kind === 'scene' && !(sessionId && this.failedSceneSessions.has(sessionId))
@@ -48,27 +54,49 @@ export class VertexModels {
     prompt: string,
     kind: 'scene' | 'patch',
   ): Promise<unknown> {
-    const response = await this.client.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseJsonSchema: kind === 'scene' ? generatedSceneJsonSchema() : patchOpsJsonSchema(),
-        safetySettings: SAFETY_SETTINGS,
-        httpOptions: { timeout: 6000 },
-      },
-    });
+    const schema = kind === 'scene' ? generatedSceneJsonSchema() : patchOpsJsonSchema();
+    const key = `${model}:${kind}`;
+    const request = (structured: boolean) =>
+      this.client.models.generateContent({
+        model,
+        contents: structured
+          ? prompt
+          : `${prompt}\nOutput JSON contract (follow exactly): ${JSON.stringify(schema)}`,
+        config: {
+          responseMimeType: 'application/json',
+          ...(structured ? { responseJsonSchema: toGeminiJsonSchema(schema) } : {}),
+          safetySettings: SAFETY_SETTINGS,
+          httpOptions: { timeout: 60000 },
+        },
+      });
+    let response;
+    if (this.jsonModeModels.has(key)) response = await request(false);
+    else {
+      try {
+        response = await request(true);
+      } catch (error) {
+        // Gemini rejects some deeply nested union schemas at request validation.
+        // JSON mode still passes through the same strict DSL and physics validators.
+        if (!error || typeof error !== 'object' || !('status' in error) || error.status !== 400)
+          throw error;
+        this.jsonModeModels.add(key);
+        response = await request(false);
+      }
+    }
     if (!response.text) throw new Error('Model returned no structured response');
     return JSON.parse(response.text) as unknown;
   }
-  async image(prompt: string, hero: boolean): Promise<Buffer> {
+  async image(prompt: string, hero: boolean, backdrop = false): Promise<Buffer> {
     const response = await this.client.models.generateContent({
       model: hero ? this.config.heroModel : this.config.propModel,
       contents: prompt,
       config: {
         responseModalities: ['IMAGE', 'TEXT'],
+        imageConfig: backdrop
+          ? { aspectRatio: '16:9', imageSize: '2K' }
+          : { aspectRatio: '1:1', imageSize: '1K' },
         safetySettings: SAFETY_SETTINGS,
-        httpOptions: { timeout: 20000 },
+        httpOptions: { timeout: 60000 },
       },
     });
     const image = response.candidates
@@ -94,7 +122,7 @@ export class VertexModels {
       config: {
         responseMimeType: 'application/json',
         safetySettings: SAFETY_SETTINGS,
-        httpOptions: { timeout: 8000 },
+        httpOptions: { timeout: 15000 },
       },
     });
     const verdict = JSON.parse(response.text ?? '{}') as { safe?: unknown; matches?: unknown };

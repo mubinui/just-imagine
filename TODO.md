@@ -1,81 +1,51 @@
 # Implementation todo
 
-Based on [Plan 0](docs/superpowers/plans/2026-10-15-plan-0-foundation.md) and the [master plan](docs/superpowers/plans/2026-10-15-just-imagine-master.md).
+Current handoff: [CHECKPOINT.md](CHECKPOINT.md). Historical evidence and scoped reports: [docs/handoff/](docs/handoff/). Source coverage is distinct from staging/release acceptance.
 
-## First implementation batch
+## Implemented locally
 
-- [x] 1. Scaffold pnpm/Turborepo and shared TypeScript/ESLint configuration.
-- [x] 2. Implement the Scene DSL v1 schema and limits.
-- [x] 3. Add generated-scene validation and conversion to persisted scenes.
-- [x] 4. Add the material reference table and content blocklist.
-- [x] 5. Implement deterministic physics and reference validation.
-- [x] 6. Apply JSON Patch atomically and validate the resulting scene.
-- [x] 7. Export model JSON schemas and reject unsupported document versions.
-- [x] 17a. Add lab variables, visuals, challenges, and validation.
-- [x] Verify the first batch with tests, type checking, lint, and formatting.
+- [x] Plan 0: workspace/config, Scene DSL/physics validation, protocol/REST, fixtures/fake gateway, Firebase core, quotas and CI source.
+- [x] A1: Pixi/Rapier engine, interactions/rules/dials, variables/visuals/challenges, progressive assets, lifecycle and review regressions.
+- [x] A2: PCM capture/playback, unlock/barge-in/reconnect, character adapter and six fallback character presentations.
+- [x] A3: auth, profile picker, Studio/gallery, parent management, accessibility and browser flows.
+- [x] B1: authenticated Live gateway, tools, pacing/quotas, summaries, session lease/metering and model adapter.
+- [x] B2: scene/patch builder, safe image/collider pipeline, caching/progressive publishing, prompts/evals and extra Labs.
+- [x] B3: account/profile/world API, test billing/webhooks, durable deletion/retry/writer fences.
+- [x] B4: Terraform/Docker/CI/Cloud Build source, telemetry/dashboard/alerts/CDN option, load and evaluation scripts.
+- [x] Close the initial engine/backend/web lifecycle and concurrency review findings with regressions.
+- [x] Keep approved cream/forest palette and apply Impeccable judge-facing polish.
+- [x] Add playable landing gravity experiment, refined explorer/parent flows, and honest empty states.
+- [x] Integrate local dragon/cloud/meadow art with provenance; preserve teammate's Studio.
+- [x] Persist preview Discovery Cards per child and remove them with child/account deletion.
+- [x] Fix direction-review soft-body/flick/spawned rendering/facing/collider issues.
+- [x] Fix backend schema adapter, patch repair, quota wrap-up, operational failure diagnostics, deletion jobs and foreign-world404.
+- [x] Run the original seven browser flows and scoped package verification for these changes.
+- [x] Refine all six SVG characters, stable selection sizing, responsive Studio geometry and accessible compact controls.
+- [x] Complete the five-viewport interaction regression and record character/layout evidence.
+- [x] Enrich all six preview worlds with appropriate art, larger objects, explicit play actions, readable measurements and real simulation feedback.
+- [x] Fix tap/drag dispatch, preserve settings on retry, verify hollow-cup collisions and repeated fraction recombination.
+- [x] Pass 9 browser flows, 45 engine tests and 17 web tests; capture six worlds on desktop and mobile.
+- [x] Finish full-workspace verification and final fixed-step engine checks; record exact evidence in CHECKPOINT.
 
-## Second implementation batch
+- [x] Add optional parent-photo companion service and ready-made friend setup with personal names.
+- [x] Preserve the companion/voice session across child screens and add bounded Gemini navigation tools.
+- [x] Verify photo ownership, input limits, attempt limits, concurrent/deletion fences, and same-session navigation.
 
-- [x] 8. Define plan limits, age bands, characters, spells, and WebSocket contracts.
-- [x] 9. Define builder jobs, Firestore documents, and the world-source interface.
-- [x] 10. Define the REST contract.
-- [x] 11. Add validated sample worlds and synthetic audio helpers.
-- [x] 17b. Add and validate the projectile lab fixture with the other fixture worlds.
-- [x] 12. Implement the fake world source.
-- [x] 13. Implement the scripted fake WebSocket gateway.
-- [x] 18. Add the curated Discovery Card concept bank.
-- [x] Verify protocol and fixtures together with the existing scene package.
+## Remaining implementation / acceptance work
 
-## Remaining foundation work
+- [ ] Connect Gemini credentials and verify real parent photo→chibi generation, generated-art quality and Gemini3.8Live microphone/navigation behavior.
+- [ ] Implement the Docker Compose/local service adapters discussed in the local full-stack feasibility check.
 
-- [x] 14. Add Firebase Admin, authentication, typed document helpers, and IDs.
-- [x] 15. Add transactional quotas and the kill switch; test with emulators.
-- [x] 16. Add CI source and verify foundation packages locally.
-- [ ] Complete the Plan 0 exit checks and configure the required CI check on GitHub.
+- [ ] Review bounded backend follow-through in `docs/handoff/backend-direction-fixes.md`: safe parallel moderation/tool gating, Live transport lifecycle coverage, permanent/transient task classification and asset failure diagnostics.
+- [ ] Implement explicit buoyant-flag behavior and automatic splitting for breakable materials; density-based buoyancy alone does not cover the spec.
+- [ ] Decide whether richer measurement visuals/replay API are required for the submission; see engine direction report.
+- [ ] Supply final Rive assets and recorded reaction clips; verify browser/device playback and character state-machine inputs.
+- [ ] Provision staging Firebase/GCP/Vertex/ADC and verify actual model availability/configuration.
+- [ ] Exercise real voice→generated world→interaction→summary, reconnect/handoff, quotas and deletion end-to-end.
+- [ ] Configure Stripe TEST price/keys/webhook and run real test checkout, reconciliation, portal and cancellation.
+- [ ] Apply Terraform and verify IAM/URLs, App Hosting env, CDN/DNS/certificate, monitoring notification channels.
+- [ ] Configure required GitHub CI and separate approval-controlled staging/production image promotion.
+- [ ] Run credentialed model evaluations,200-session load and device speech-latency/frame-rate acceptance.
+- [ ] Complete child usability sessions and production policy/release review.
 
-## After foundation
-
-- [ ] A1. Browser simulation engine.
-- [ ] A2. Characters and browser audio.
-- [ ] A3. Child Studio and parent web app.
-- [ ] B1. Conversation gateway.
-- [ ] B2. World builder and asset pipeline.
-- [ ] B3. Accounts, billing, and SaaS API.
-- [ ] B4. Infrastructure, deployment, and operations.
-
-## Implementation decisions
-
-- Start with Plan 0; the web plan depends on its shared contracts and fixtures.
-- Keep the existing README and planning documents; track actual progress here.
-- Treat the plan's code blocks as examples to verify against the design spec.
-- Share the lab variable limit between persisted and generated schemas so model output cannot bypass it.
-- Add the projectile fixture when the fixtures package exists (Task 11); Task 17's earlier ordering otherwise targets missing files.
-- Keep commits, pushes, pull requests, and remote configuration separate from this local implementation batch.
-- Corrected the examples' floating-point mass-boundary comparison, rotation-aware bounds, prediction indexes, polygon requirements, inherited material references, patch input checks, lab reward references, and invalid migration versions; regression tests cover these cases.
-- Share tier, identifier, date, and quota-limit schemas across the new protocol boundaries; reject malformed control messages and invalid path segments.
-- Provide `@just-imagine/fixtures/browser` for browser consumers and `/gateway` for Node consumers, with a direct Zod dependency for scenario and script validation.
-- Keep the hero asset in the final progressive update and support injected clocks and cancellation. Synthetic tone frames are paced at 20 ms; the gateway listens on loopback, handles malformed JSON, enforces one hello, and cleans up on close or process shutdown.
-- Correct the projectile fixture's rubber restitution to the material table's minimum and qualify the educational copy about buoyancy, balance, acceleration, and projectile range.
-- Use the JSON Patch library's default export for native Node ESM compatibility; a subprocess test reproduces the original import failure and verifies patch application.
-
-## Verification
-
-- Tests were run before implementation and failed for missing modules; additional regression tests were observed failing before their fixes.
-- The scene package currently has 84 passing tests across 10 test files.
-- Protocol has 45 passing tests; fixtures has 35. All 164 tests pass across 24 test files, including real WebSocket traffic, the native CLI, and graceful SIGTERM shutdown.
-- Frozen offline installation, formatting, lint, and type checks pass across the workspace. Package test suites were run separately so WebSocket integration tests could run with local TCP access.
-- Scene schemas, protocol, and `fixtures/browser` bundle for the browser without Node polyfills.
-- Local runtime: Node 25.8.0. The workspace declares Node >=22.12.0 and pins pnpm 10.34.7.
-
-## Full-development follow-through
-
-- [x] Implement all seven application/service package entry points.
-- [x] Verify real/fake Next builds and four local browser flows.
-- [x] Create durable account/child/world deletion jobs and writer fences.
-- [x] Make patch commits and session metering idempotent.
-- [ ] Finish engine and web/audio review fixes.
-- [ ] Finish builder asset processing, evaluations, and operational telemetry.
-- [ ] Run whole-workspace lint/typecheck/tests/build and final review.
-- [ ] Credentialed staging models/payments/load test and real-device acceptance.
-
-`CHECKPOINT.md` and `docs/handoff/` contain current evidence and known gaps; unchecked release items are not claims that source is absent.
+Do not infer production readiness from completed source checkboxes. The preview uses local samples and synthetic voice, and does not accept payments.

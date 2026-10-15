@@ -1,4 +1,6 @@
 'use client';
+import '../app/studio.css';
+import { PlayActions } from './studio/PlayActions';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -14,22 +16,54 @@ import {
   type ServerMessage,
   type ClientMessage,
 } from '@just-imagine/protocol';
-import { GRAVITY_PRESETS, WIND_PRESETS, type Variable } from '@just-imagine/scene-schema';
+import type { Variable, Dial } from '@just-imagine/scene-schema';
 import {
   PREVIEW_WORLDS as FIXTURE_WORLDS,
   type PreviewKey as FixtureWorldKey,
 } from '../lib/preview-worlds';
 import type { Engine, EngineEvent } from '@just-imagine/engine';
-import { getVoice, releaseVoice } from '../lib/voice';
+import { getVoice, releaseVoice, ensureChildVoice } from '../lib/voice';
 import { createWorldSource } from '../lib/world-source';
+import { recordDemoDiscovery } from '../lib/demo';
 import { env } from '../lib/env';
-import { currentIdToken } from '../lib/firebase';
 import { castFor, effectiveCaptions, clampToVariable } from '../lib/helpers';
 import { s } from '../lib/strings/en';
+import { CompanionArt, CompanionMenu } from './companion/Companion';
 import { CharacterFace } from './CharacterFace';
 import { Modal } from './Modal';
+import {
+  CastStrip,
+  DialTray,
+  DiscoveryToast,
+  EntityActions,
+  Listening,
+  PredictionSheet,
+  SpellFlourish,
+  Storybook,
+  SummonOverlay,
+  TopBar,
+  CloseIcon,
+  quotaCopy,
+  type JobStatus,
+} from './studio/parts';
+import { LabDrawer } from './studio/LabDrawer';
+
 type Prediction = Extract<ServerMessage, { type: 'prediction' }>;
 type Discovery = Extract<ServerMessage, { type: 'discovery' }>;
+type Spell = Extract<ServerMessage, { type: 'spell' }>['spell'];
+type Hello = Extract<ClientMessage, { type: 'hello' }>;
+
+const SUMMON_MS = 1900;
+const SPELL_MS = 1600;
+const DISCOVERY_MS = 14000;
+
+function appendKey(draft: string, key: string) {
+  if (key === '-') return draft === '' ? '-' : draft;
+  if (key === '.')
+    return draft.includes('.') ? draft : draft === '' || draft === '-' ? `${draft}0.` : `${draft}.`;
+  return (draft + key).slice(0, 10);
+}
+
 export function Studio() {
   const router = useRouter();
   const host = useRef<HTMLDivElement>(null),
@@ -37,14 +71,20 @@ export function Studio() {
   const variableTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined),
     pendingVariables = useRef<Record<string, number>>({});
   const previousDoc = useRef<WorldWithId | undefined>(undefined);
+  const discovered = useRef(new Set<string>());
+  const hello = useRef<Hello | undefined>(undefined);
   const [child, setChild] = useState<ChildResponse>(),
     [fixture, setFixture] = useState<FixtureWorldKey>('jellyDragon'),
     [worldId, setWorldId] = useState<string>(),
     [world, setWorld] = useState<WorldWithId>(),
     [status, setStatus] = useState('connecting'),
+    [job, setJob] = useState<JobStatus>(),
     [error, setError] = useState(''),
     [ended, setEnded] = useState(false),
     [character, setCharacter] = useState<CharacterId>(DEFAULT_CHARACTER),
+    [speaking, setSpeaking] = useState(false),
+    [summoning, setSummoning] = useState<CharacterId>(),
+    [spell, setSpell] = useState<Spell>(),
     [caption, setCaption] = useState(''),
     [prediction, setPrediction] = useState<Prediction>(),
     [discovery, setDiscovery] = useState<Discovery>(),
@@ -54,14 +94,18 @@ export function Studio() {
     [values, setValues] = useState<Record<string, number>>({}),
     [keypad, setKeypad] = useState<{ id: string; variable: Variable; draft: string }>(),
     [dials, setDials] = useState<Record<string, string>>({}),
+    [labOpen, setLabOpen] = useState(true),
     [captions, setCaptions] = useState(true);
   const selectedWorld = useRef<string | undefined>(undefined);
-  const selectWorldId = (id: string) => {
+  const clearPending = () => {
+    clearTimeout(variableTimer.current);
+    variableTimer.current = undefined;
+    pendingVariables.current = {};
+  };
+  const selectWorldId = (id: string | undefined) => {
     if (selectedWorld.current !== id) {
       selectedWorld.current = id;
-      clearTimeout(variableTimer.current);
-      variableTimer.current = undefined;
-      pendingVariables.current = {};
+      clearPending();
       setWorld(undefined);
       setPrediction(undefined);
       setDiscovery(undefined);
@@ -80,6 +124,20 @@ export function Studio() {
       setError(e instanceof Error ? e.message : s.unavailable);
     }
   };
+  const connectVoice = async () => {
+    const message = hello.current;
+    if (!message) return;
+    setError('');
+    try {
+      const selected = ChildResponseSchema.parse(
+        JSON.parse(localStorage.getItem('ji-child') || 'null'),
+      );
+      await ensureChildVoice(selected, message.worldId);
+      setStatus(getVoice().status);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : s.unavailable);
+    }
+  };
   useEffect(() => {
     const parsed = ChildResponseSchema.safeParse(
       JSON.parse(localStorage.getItem('ji-child') || 'null'),
@@ -93,43 +151,89 @@ export function Studio() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setChild(c);
     setCaptions(effectiveCaptions(c));
-    if (c.ageBand === '11-13') setCharacter('pori');
+    const starter: CharacterId =
+      getVoice().session?.characterId ??
+      c.companion?.characterId ??
+      (c.ageBand === '11-13' ? 'pori' : DEFAULT_CHARACTER);
+    setCharacter(starter);
+    let startWorld: string | undefined;
     if (env.fake) {
       const key = (sessionStorage.getItem('ji-fixture') || 'jellyDragon') as FixtureWorldKey;
       const selected = Object.hasOwn(FIXTURE_WORLDS, key) ? key : 'jellyDragon';
       setFixture(selected);
-      selectWorldId(FIXTURE_WORLDS[selected].worldId);
+      startWorld = FIXTURE_WORLDS[selected].worldId;
+      selectWorldId(startWorld);
     } else {
-      const id = sessionStorage.getItem('ji-world');
-      if (id) selectWorldId(id);
+      const id = getVoice().session?.worldId ?? sessionStorage.getItem('ji-world');
+      if (id) {
+        startWorld = id;
+        selectWorldId(id);
+      }
     }
+    hello.current = {
+      type: 'hello',
+      idToken: '',
+      childId: c.id,
+      characterId: starter,
+      ...(startWorld ? { worldId: startWorld } : {}),
+    };
     const voice = getVoice();
-    voice.onStatus = setStatus;
+    setStatus(voice.status);
+    const unsubscribeStatus = voice.subscribeStatus(setStatus);
+    const timers: ReturnType<typeof setTimeout>[] = [];
     const unsubscribe = voice.subscribe((message) => {
       switch (message.type) {
         case 'ready':
           if (message.worldId && !env.fake) selectWorldId(message.worldId);
           setCharacter(message.characterId);
           break;
+        case 'newGame':
+          selectWorldId(undefined);
+          sessionStorage.removeItem('ji-world');
+          if (hello.current) delete hello.current.worldId;
+          previousDoc.current = undefined;
+          setJob(undefined);
+          setCaption('');
+          break;
         case 'worldJob':
+          setJob(message.status);
           if (!env.fake) selectWorldId(message.worldId);
           break;
         case 'transcript':
-          if (message.role === 'character') setCaption(message.text);
+          if (message.role === 'character' && !env.fake) setCaption(message.text);
           break;
         case 'prediction':
-          setPrediction(message);
+          // Preview predictions belong to the selected fixture, not the socket's canned timeline.
+          if (!env.fake) setPrediction(message);
           break;
         case 'discovery':
-          setDiscovery(message);
+          // Earn preview cards through the real local engine's concept events.
+          if (!env.fake) setDiscovery(message);
           break;
         case 'summon':
-        case 'characterState':
-          if (castFor(c.ageBand).some((c) => c.id === message.characterId))
+          if (
+            castFor(c.ageBand, c.companion?.characterId).some((f) => f.id === message.characterId)
+          ) {
+            setSummoning(message.characterId);
             setCharacter(message.characterId);
+            timers.push(setTimeout(() => setSummoning(undefined), SUMMON_MS));
+          }
+          break;
+        case 'characterState':
+          if (
+            castFor(c.ageBand, c.companion?.characterId).some((f) => f.id === message.characterId)
+          ) {
+            setCharacter(message.characterId);
+            setSpeaking(message.speaking);
+          }
+          break;
+        case 'interrupted':
+          setSpeaking(false);
           break;
         case 'spell':
           engine.current?.castSpell(message.spell, message.target);
+          setSpell(message.spell);
+          timers.push(setTimeout(() => setSpell(undefined), SPELL_MS));
           break;
         case 'dial':
           engine.current?.setDial(message.dial, message.value);
@@ -142,6 +246,7 @@ export function Studio() {
         case 'challenge':
           setChallenge(message.challengeId);
           setCompletedChallenge('');
+          setLabOpen(true);
           break;
         case 'quota':
           setQuota(message.voiceSecondsLeft);
@@ -150,57 +255,33 @@ export function Studio() {
           setError(message.message);
           break;
         case 'bye':
-          clearTimeout(variableTimer.current);
-          variableTimer.current = undefined;
-          pendingVariables.current = {};
+          clearPending();
+          setSpeaking(false);
           setEnded(true);
           break;
       }
     });
     let active = true;
     void (async () => {
-      try {
-        const token = env.fake ? 'fixture-token' : await currentIdToken();
-        if (active)
-          await voice.connect({
-            type: 'hello',
-            idToken: token,
-            childId: c.id,
-            characterId: c.ageBand === '11-13' ? 'pori' : DEFAULT_CHARACTER,
-            ...(env.fake
-              ? {
-                  worldId:
-                    FIXTURE_WORLDS[
-                      (sessionStorage.getItem('ji-fixture') as FixtureWorldKey) || 'jellyDragon'
-                    ]?.worldId,
-                }
-              : sessionStorage.getItem('ji-world')
-                ? { worldId: sessionStorage.getItem('ji-world')! }
-                : {}),
-          });
-      } catch (e) {
-        if (active) setError(e instanceof Error ? e.message : s.unavailable);
-      }
+      if (active) await connectVoice();
     })();
     return () => {
       active = false;
-      clearTimeout(variableTimer.current);
-      variableTimer.current = undefined;
-      pendingVariables.current = {};
+      clearPending();
+      timers.forEach(clearTimeout);
       unsubscribe();
-      voice.onStatus = () => {};
-      voice.end();
+      unsubscribeStatus();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
   useEffect(() => {
-    clearTimeout(variableTimer.current);
-    variableTimer.current = undefined;
-    pendingVariables.current = {};
+    clearPending();
     if (!worldId) return;
     return createWorldSource(fixture).subscribe(
       worldId,
       (doc) => {
         setWorld(doc);
+        if (doc.status === 'ready') setJob('ready');
         const old = previousDoc.current;
         setValues((current) =>
           Object.fromEntries(
@@ -214,13 +295,11 @@ export function Studio() {
         );
         if (old?.id !== doc.id) {
           setDials({});
-          clearTimeout(variableTimer.current);
-          variableTimer.current = undefined;
-          pendingVariables.current = {};
+          clearPending();
         }
         previousDoc.current = doc;
-        if (env.fake) {
-          setCaption(s.captionSample);
+        if (env.fake && old?.id !== doc.id) {
+          setCaption(doc.doc.narration.intro);
           const p = doc.doc.learning.prediction;
           if (p) setPrediction({ type: 'prediction', question: p.question, options: p.options });
         }
@@ -228,6 +307,12 @@ export function Studio() {
       (e) => setError(e.message),
     );
   }, [worldId, fixture]);
+  useEffect(() => {
+    if (!discovery) return;
+    if (env.fake && child && worldId) recordDemoDiscovery(child.id, worldId, discovery);
+    const t = setTimeout(() => setDiscovery(undefined), DISCOVERY_MS);
+    return () => clearTimeout(t);
+  }, [discovery, child, worldId]);
   const worldRef = useRef(world);
   useEffect(() => {
     worldRef.current = world;
@@ -254,13 +339,17 @@ export function Studio() {
         setCompletedChallenge(event.target);
       }
       if (env.fake && event.concept) {
-        const card = conceptCard(event.concept);
-        setDiscovery({
-          type: 'discovery',
-          concept: event.concept,
-          ...card,
-          kidExplanation: CONCEPT_BANK[event.concept].kidHint,
-        });
+        const key = `${selectedWorld.current ?? ''}:${event.concept}`;
+        if (!discovered.current.has(key)) {
+          discovered.current.add(key);
+          const card = conceptCard(event.concept);
+          setDiscovery({
+            type: 'discovery',
+            concept: event.concept,
+            ...card,
+            kidExplanation: CONCEPT_BANK[event.concept].kidHint,
+          });
+        }
       }
     };
   });
@@ -293,11 +382,19 @@ export function Studio() {
   useEffect(() => {
     if (engine.current && world) engine.current.update(world.doc);
   }, [world]);
+  useEffect(() => {
+    const scene = host.current?.closest<HTMLElement>('.stage-scene');
+    const canvasFrame = host.current?.parentElement;
+    if (!scene || !canvasFrame) return;
+    const measure = () => scene.style.setProperty('--world-width', `${canvasFrame.clientWidth}px`);
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvasFrame);
+    measure();
+    return () => observer.disconnect();
+  }, [hasWorld, world?.id]);
   function switchWorld(key: FixtureWorldKey) {
     if (selectedWorld.current === FIXTURE_WORLDS[key].worldId) return;
-    clearTimeout(variableTimer.current);
-    variableTimer.current = undefined;
-    pendingVariables.current = {};
+    clearPending();
     setFixture(key);
     selectWorldId(FIXTURE_WORLDS[key].worldId);
     setWorld(undefined);
@@ -322,6 +419,51 @@ export function Studio() {
           send({ type: 'variable', name, value });
       }, 300);
   }
+  function resetWorld() {
+    engine.current?.reset();
+    setValues(
+      Object.fromEntries(
+        Object.entries(world?.doc.variables || {}).map(([id, v]) => [id, v.value]),
+      ),
+    );
+    setDials({});
+    setChallenge('');
+    setCompletedChallenge('');
+    clearPending();
+  }
+  function playActivity(action: 'primary' | 'again' | 'join') {
+    const game = engine.current;
+    if (!game || !world) return;
+    const repeat = () => {
+      game.reset();
+      for (const [id, value] of Object.entries(values)) game.setVariable(id, value);
+      for (const [dial, value] of Object.entries(dials)) game.setDial(dial as Dial, value);
+      setChallenge('');
+      setCompletedChallenge('');
+      setCaption(world.doc.narration.intro);
+    };
+    if (action === 'again') {
+      repeat();
+      return;
+    }
+    if (fixture === 'moonBounce' || fixture === 'pondFloat') repeat();
+    else if (fixture === 'projectileLab') {
+      repeat();
+      game.tap('cannon');
+    } else if (fixture === 'galtonBoard') game.tap('release');
+    else if (fixture === 'fractionsLab') {
+      const target =
+        action === 'join'
+          ? 'join'
+          : game.frame().entities.find((e) => e.id === 'whole' || e.templateId === 'whole')?.id;
+      if (target) game.tap(target);
+    } else game.tap(world.doc.learning.heroEntityId);
+  }
+  function finish() {
+    clearPending();
+    getVoice().end();
+    setEnded(true);
+  }
   if (ended)
     return (
       <main className="bye">
@@ -332,283 +474,139 @@ export function Studio() {
         </Link>
       </main>
     );
+  const cast = child
+    ? castFor(child.ageBand, child.companion?.characterId).map((c) =>
+        child.companion?.characterId === c.id ? { ...c, displayName: child.companion.name } : c,
+      )
+    : [];
+  const personal = child?.companion?.characterId === character ? child.companion : undefined;
+  const face = personal ? (
+    <CompanionArt companion={personal} speaking={speaking} />
+  ) : (
+    <CharacterFace key={character} character={character} />
+  );
+  const building = Boolean(job && job !== 'ready' && job !== 'failed');
   return (
-    <main className="studio">
-      <div className="studio-top">
-        <div>
-          <h1>{world?.title || s.ready}</h1>
-          <p>{s.studioIntro}</p>
-        </div>
-        <div className="actions">
-          <Link className="button secondary" href="/gallery">
-            {s.gallery}
-          </Link>
-          <button
-            className="button"
-            onClick={() => {
-              clearTimeout(variableTimer.current);
-              variableTimer.current = undefined;
-              pendingVariables.current = {};
-              getVoice().end();
-              setEnded(true);
-            }}
-          >
-            {s.end}
-          </button>
-        </div>
-      </div>
-      {(status === 'reconnecting' || status === 'error') && (
-        <p className="connection" role="status">
-          {s.disconnected}
-        </p>
-      )}
-      {error && (
-        <p className="error" role="alert">
-          {error}
-          <button onClick={() => setError('')} aria-label={s.close}>
-            ×
-          </button>
-        </p>
-      )}
-      {quota !== undefined && (
-        <p className="quota" role="status">
-          {s.quota}: {quota}
-        </p>
-      )}
-      <div className="studio-grid">
-        <section className="play-world" aria-label={world?.title || s.ready}>
-          <div className="engine-host" ref={host} />
-          {!world && <div className="world-loading">{s.load}</div>}
-          <div className="world-controls">
-            <button
-              className="round-button"
-              onClick={() => {
-                engine.current?.reset();
-                setValues(
-                  Object.fromEntries(
-                    Object.entries(world?.doc.variables || {}).map(([id, v]) => [id, v.value]),
-                  ),
-                );
-                setDials({});
-                setChallenge('');
-                setCompletedChallenge('');
-                clearTimeout(variableTimer.current);
-                variableTimer.current = undefined;
-                pendingVariables.current = {};
-              }}
-              aria-label={s.reset}
-            >
-              ↶
-            </button>
-            <button
-              className="caption-button"
-              aria-pressed={captions}
-              onClick={() => setCaptions(!captions)}
-            >
-              {s.captions}
-            </button>
-            <span className="world-status">{world?.status}</span>
+    <main className={discovery ? 'stage has-toast' : 'stage'}>
+      <TopBar
+        status={status}
+        job={job}
+        captions={captions}
+        onCaptions={() => setCaptions(!captions)}
+        onReset={resetWorld}
+        onNewGame={env.fake ? undefined : () => send({ type: 'newGame' })}
+        onRetry={() => void connectVoice()}
+        storybook={
+          env.fake ? (
+            <Storybook worlds={FIXTURE_WORLDS} selected={fixture} onSelect={switchWorld} />
+          ) : undefined
+        }
+      />
+      <div className={world?.doc.variables ? 'stage-scene has-lab' : 'stage-scene'}>
+        <div className="world-frame">
+          <div className="stage-world">
+            <div className="engine-host" ref={host} />
+            {!world && (
+              <Listening
+                name={personal?.name}
+                character={character}
+                face={face}
+                building={building}
+                status={status}
+              />
+            )}
+            {world && !env.fake && (
+              <EntityActions
+                doc={world.doc}
+                onTap={(id) => engine.current?.tap(id)}
+                onFlick={(id, direction) => engine.current?.flick(id, direction)}
+              />
+            )}
+            {spell && <SpellFlourish spell={spell} />}
           </div>
-          {captions && caption && (
+          {prediction && world && (
+            <PredictionSheet
+              prediction={prediction}
+              onAnswer={(index) => {
+                send({ type: 'predictionAnswer', answerIndex: index });
+                setPrediction(undefined);
+              }}
+            />
+          )}
+        </div>
+        {world && (
+          <div className="stage-bottom">
+            {env.fake && (
+              <PlayActions key={world.id} world={fixture} engine={engine} onPlay={playActivity} />
+            )}
+            <DialTray
+              doc={world.doc}
+              values={dials}
+              onChange={(dial, value) => {
+                engine.current?.setDial(dial, value);
+                setDials((v) => ({ ...v, [dial]: value }));
+                send({ type: 'interaction', kind: 'dial', dial, value });
+              }}
+            />
+          </div>
+        )}
+        {world?.doc.variables && (
+          <LabDrawer
+            variables={world.doc.variables}
+            values={values}
+            challenges={world.doc.challenges ?? []}
+            activeChallenge={challenge}
+            completedChallenge={completedChallenge}
+            open={labOpen}
+            onToggle={() => setLabOpen(!labOpen)}
+            onChange={changeVariable}
+            onKeypad={(id, v) =>
+              setKeypad({ id, variable: v, draft: String(values[id] ?? v.value) })
+            }
+          />
+        )}
+        <div className="caption-band">
+          {captions && caption && world && (
             <p className="caption" aria-live="polite">
               {caption}
             </p>
           )}
-        </section>
-        <aside className="character-panel">
-          <CharacterFace key={character} character={character} />
-          <h2>{CHARACTERS[character].displayName}</h2>
-          <p>{CHARACTERS[character].catchphrase}</p>
-          <p className="voice-status">
-            {s.speak}: {status}
-          </p>
-          {!env.characterAssetBaseUrl && <span className="asset-note">{s.noRive}</span>}
-        </aside>
+        </div>
       </div>
-      {prediction && (
-        <section className="prediction" aria-label={s.prediction}>
-          <h2>{prediction.question}</h2>
-          <div className="actions">
-            {prediction.options.map((option, index) => (
-              <button
-                className="button secondary"
-                key={option}
-                onClick={() => {
-                  send({ type: 'predictionAnswer', answerIndex: index });
-                  setPrediction(undefined);
-                }}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </section>
+      {error && (
+        <p className="stage-error" role="alert">
+          {error}
+          <button type="button" onClick={() => setError('')} aria-label={s.close}>
+            <CloseIcon />
+          </button>
+        </p>
       )}
       {discovery && (
-        <section className="discovery" aria-live="polite">
-          <div>
-            <h2>{discovery.title}</h2>
-            <p>{discovery.kidExplanation}</p>
-            <p>{discovery.realLifeNote}</p>
-          </div>
-          <button
-            className="round-button"
-            aria-label={s.close}
-            onClick={() => setDiscovery(undefined)}
-          >
-            ×
-          </button>
-        </section>
+        <DiscoveryToast discovery={discovery} onClose={() => setDiscovery(undefined)} />
       )}
-      {world && (
-        <section className="dial-tray">
-          {world.doc.learning.dials.map((dial) => (
-            <label key={dial}>
-              {s.dialLabels[dial]}
-              <select
-                aria-label={dial}
-                value={dials[dial] || ''}
-                onChange={(e) => {
-                  engine.current?.setDial(dial, e.target.value);
-                  setDials((v) => ({ ...v, [dial]: e.target.value }));
-                  send({ type: 'interaction', kind: 'dial', dial, value: e.target.value });
-                }}
-              >
-                <option value="" disabled>
-                  {s.choose}
-                </option>
-                {(dial === 'gravity'
-                  ? Object.keys(GRAVITY_PRESETS)
-                  : dial === 'wind'
-                    ? Object.keys(WIND_PRESETS)
-                    : Object.keys(world.doc.materials)
-                ).map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ))}
-        </section>
-      )}
-      {world?.doc.variables && (
-        <section className="lab-panel">
-          <h2>{s.lab}</h2>
-          {Object.entries(world.doc.variables).map(([id, v]) => (
-            <div className="variable" key={id}>
-              <label htmlFor={id}>
-                {v.label}
-                <output>
-                  {values[id] ?? v.value} {v.unit}
-                </output>
-              </label>
-              <input
-                id={id}
-                type="range"
-                min={v.min}
-                max={v.max}
-                step={v.step}
-                value={values[id] ?? v.value}
-                onChange={(e) => changeVariable(id, Number(e.target.value), v)}
-              />
-              <button
-                className="button secondary"
-                onClick={() => setKeypad({ id, variable: v, draft: String(values[id] ?? v.value) })}
-              >
-                {s.numeric}
-              </button>
-            </div>
-          ))}
-        </section>
-      )}
-      <section aria-live="polite">
-        {' '}
-        {world?.doc.challenges?.map((c) => (
-          <p className={challenge === c.id ? 'challenge active' : 'challenge'} key={c.id}>
-            <strong>
-              {completedChallenge === c.id
-                ? 'Completed! '
-                : challenge === c.id
-                  ? 'Your challenge: '
-                  : 'Try this: '}
-              {s.challenge}: {c.goal}
-            </strong>{' '}
-            {c.hint}
-          </p>
-        ))}
-      </section>
-      {world && (
-        <section aria-label="World actions" className="entity-actions">
-          <p id="entity-keyboard-help">
-            Choose a name to tap. Use arrow keys on its button to push.
-          </p>{' '}
-          <div className="actions">
-            {world.doc.entities
-              .filter((e) => !e.body.isStatic)
-              .map((e) => (
-                <button
-                  className="button secondary"
-                  key={e.id}
-                  onKeyDown={(event) => {
-                    const direction = (
-                      {
-                        ArrowLeft: { x: -1, y: 0 },
-                        ArrowRight: { x: 1, y: 0 },
-                        ArrowUp: { x: 0, y: -1 },
-                        ArrowDown: { x: 0, y: 1 },
-                      } as Record<string, { x: number; y: number }>
-                    )[event.key];
-                    if (direction) {
-                      event.preventDefault();
-                      engine.current?.flick(e.id, direction);
-                    }
-                  }}
-                  aria-describedby="entity-keyboard-help"
-                  onClick={() => engine.current?.tap(e.id)}
-                >
-                  {e.name}
-                </button>
-              ))}
-          </div>
-        </section>
-      )}
-      <section className="cast">
-        <h2>{s.guides}</h2>
-        <div>
-          {child &&
-            castFor(child.ageBand).map((c) => (
-              <button
-                className={character === c.id ? 'selected' : ''}
-                key={c.id}
-                onClick={() => {
-                  setCharacter(c.id);
-                  send({ type: 'switchCharacter', characterId: c.id });
-                }}
-                aria-pressed={character === c.id}
-              >
-                {c.displayName}
-              </button>
-            ))}
-        </div>
-      </section>
-      {env.fake && (
-        <section className="fixture-picker">
-          <h2>{s.worlds}</h2>
-          <p>{s.localWorlds}</p>
-          <div>
-            {Object.entries(FIXTURE_WORLDS).map(([key, doc]) => (
-              <button
-                className={fixture === key ? 'selected' : ''}
-                key={key}
-                onClick={() => switchWorld(key as FixtureWorldKey)}
-              >
-                {doc.title}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+      <CastStrip
+        companion={child?.companion ?? undefined}
+        cast={cast}
+        active={character}
+        speaking={speaking}
+        activeFace={world ? face : undefined}
+        onPick={(id) => {
+          setCharacter(id);
+          send({ type: 'switchCharacter', characterId: id });
+        }}
+        left={
+          quota !== undefined ? <span className="quota-note">{quotaCopy(quota)}</span> : undefined
+        }
+        right={
+          <>
+            <CompanionMenu inline />
+            <button type="button" className="pill" onClick={finish}>
+              {s.end}
+            </button>
+          </>
+        }
+      />
+      {summoning && <SummonOverlay character={summoning} />}
       {keypad && (
         <Modal className="keypad-wrap" onClose={() => setKeypad(undefined)}>
           <section
@@ -618,20 +616,31 @@ export function Studio() {
             aria-labelledby="keypad-title"
           >
             <h2 id="keypad-title">{keypad.variable.label}</h2>
-            <output aria-live="polite">{keypad.draft || '0'}</output>
+            <output aria-live="polite">
+              {keypad.draft || '0'}
+              <small>
+                {' '}
+                → {clampToVariable(Number(keypad.draft), keypad.variable)} {keypad.variable.unit}
+              </small>
+            </output>
             <div className="keypad-keys">
               {['1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '0', '.'].map((k) => (
                 <button
+                  type="button"
                   key={k}
-                  onClick={() => setKeypad({ ...keypad, draft: (keypad.draft + k).slice(0, 12) })}
+                  onClick={() => setKeypad({ ...keypad, draft: appendKey(keypad.draft, k) })}
                 >
                   {k}
                 </button>
               ))}
             </div>
             <div className="actions">
-              <button onClick={() => setKeypad({ ...keypad, draft: '' })}>{s.keyClear}</button>
+              <button type="button" onClick={() => setKeypad({ ...keypad, draft: '' })}>
+                {s.keyClear}
+              </button>
               <button
+                type="button"
+                className="primary"
                 onClick={() => {
                   changeVariable(keypad.id, Number(keypad.draft), keypad.variable);
                   setKeypad(undefined);
@@ -639,7 +648,9 @@ export function Studio() {
               >
                 {s.apply}
               </button>
-              <button onClick={() => setKeypad(undefined)}>{s.cancel}</button>
+              <button type="button" onClick={() => setKeypad(undefined)}>
+                {s.cancel}
+              </button>
             </div>
           </section>
         </Modal>

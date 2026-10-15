@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { ConceptSchema, DialSchema, IdSchema, TagSchema } from '@just-imagine/scene-schema';
-import { CharacterIdSchema, EmotionSchema, GuideIdSchema, SpellSchema } from './characters';
+import {
+  CharacterIdSchema,
+  EmotionSchema,
+  GuideIdSchema,
+  SpellSchema,
+  ChildDestinationSchema,
+} from './characters';
 import { DocumentIdSchema } from './primitives';
 
 export const AUDIO_IN = {
@@ -38,6 +44,9 @@ export const ErrorCodeSchema = z.enum([
 export const ByeReasonSchema = z.enum(['ended', 'quota', 'target_reached', 'moderation', 'error']);
 
 export const ClientMessageSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('newGame') }),
+  z.strictObject({ type: z.literal('screen'), destination: ChildDestinationSchema }),
+  z.strictObject({ type: z.literal('openWorld'), worldId: DocumentIdSchema }),
   z.strictObject({
     type: z.literal('hello'),
     idToken: z.string().min(1),
@@ -85,6 +94,8 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 export const ServerMessageSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('newGame') }),
+  z.strictObject({ type: z.literal('navigate'), destination: ChildDestinationSchema }),
   z.strictObject({
     type: z.literal('ready'),
     sessionId: DocumentIdSchema,

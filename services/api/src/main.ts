@@ -1,7 +1,8 @@
-import { startTelemetry, logEvent } from '@just-imagine/server-core';
+import { startTelemetry, logEvent, localDevelopment } from '@just-imagine/server-core';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
 import { verifyIdToken } from '@just-imagine/server-core';
+import { FirestoreCompanionService, GeminiCompanionGenerator } from './companion';
 import { createApi } from './app';
 import { FirestoreApiStore } from './store';
 import { StripeBilling } from './billing';
@@ -10,6 +11,13 @@ import { processDeletion, retryDeletions } from './deletion';
 const stopTelemetry = startTelemetry('api');
 const env = z
   .object({
+    GEMINI_API_KEY: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(1).optional(),
+    ),
+    COMPANION_VERTEX: z.enum(['0', '1']).default('0'),
+    COMPANION_IMAGE_MODEL: z.string().default('gemini-nano-banana-2.1'),
+    FAST_MODEL: z.string().default('gemini-3.8-flash'),
     PORT: z.coerce.number().int().min(0).max(65535).default(8081),
     WEB_URL: z.url().default('http://localhost:3000'),
     STRIPE_SECRET_KEY: z.string().optional(),
@@ -30,8 +38,9 @@ const billing =
         webUrl: env.WEB_URL,
       })
     : undefined;
+const local = localDevelopment();
 const queue =
-  env.GOOGLE_CLOUD_PROJECT && env.API_AUDIENCE && env.TASK_SERVICE_ACCOUNT
+  !local && env.GOOGLE_CLOUD_PROJECT && env.API_AUDIENCE && env.TASK_SERVICE_ACCOUNT
     ? deletionQueue({
         project: env.GOOGLE_CLOUD_PROJECT,
         queue: env.DELETION_QUEUE,
@@ -46,6 +55,17 @@ const app = createApi({
     queue ?? { enqueue: (id) => processDeletion(id, billing?.cancel.bind(billing)) },
   ),
   verifyToken: verifyIdToken,
+  companion:
+    env.GEMINI_API_KEY || (env.COMPANION_VERTEX === '1' && env.GOOGLE_CLOUD_PROJECT)
+      ? new FirestoreCompanionService(
+          new GeminiCompanionGenerator({
+            apiKey: env.GEMINI_API_KEY,
+            project: env.GOOGLE_CLOUD_PROJECT,
+            imageModel: env.COMPANION_IMAGE_MODEL,
+            fastModel: env.FAST_MODEL,
+          }),
+        )
+      : undefined,
   billing,
   origins: [env.WEB_URL],
 });
@@ -83,8 +103,16 @@ app.addHook('onResponse', async (req, reply) => {
   logEvent('http_request', { status: reply.statusCode, durationMs: reply.elapsedTime });
 });
 await app.listen({ host: '0.0.0.0', port: env.PORT });
+const deletionRetry = local
+  ? setInterval(() => {
+      void retryDeletions(billing?.cancel.bind(billing)).catch(() =>
+        logEvent('local_deletion_retry', {}, 'ERROR'),
+      );
+    }, 10000)
+  : undefined;
 for (const signal of ['SIGTERM', 'SIGINT'])
   process.on(signal, () => {
+    clearInterval(deletionRetry);
     void app.close().then(async () => {
       await stopTelemetry();
       process.exit(0);

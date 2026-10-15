@@ -46,3 +46,23 @@ describe('toGeminiJsonSchema', () => {
     expect(cleaned.items.anyOf ?? cleaned.items.oneOf).toBeDefined();
   });
 });
+
+it('preserves literal discriminators as enums and leaves property names intact', () => {
+  const schema = toGeminiJsonSchema({
+    type: 'object',
+    properties: {
+      default: { type: 'string', const: 'launch', minLength: 2, maxLength: 8, pattern: 'x' },
+      width: { type: 'number', const: 16, exclusiveMinimum: 0 },
+    },
+    propertyNames: { pattern: 'x' },
+    required: ['default', 'width'],
+  });
+  expect(schema).toEqual({
+    type: 'object',
+    properties: {
+      default: { type: 'string', enum: ['launch'] },
+      width: { type: 'number', enum: [16] },
+    },
+    required: ['default', 'width'],
+  });
+});

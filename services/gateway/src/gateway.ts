@@ -14,6 +14,7 @@ import { newId, logEvent, childHash } from '@just-imagine/server-core';
 import type { LiveConnection, LiveProvider, SessionRecord, SessionStore } from './contracts';
 import { Pacing } from './pacing';
 import { toolSchemas } from './tools';
+import { liveErrorDetails } from './live-errors';
 interface Active {
   record: SessionRecord;
   socket?: WebSocket;
@@ -36,6 +37,7 @@ interface Active {
   awaitingAudioAt?: number;
   remaining: number;
   blocks: number;
+  quotaWarned?: boolean;
   pacing: Pacing;
   lastInteraction: number;
   prediction?: { question: string; correctIndex: number; options: string[] };
@@ -182,9 +184,21 @@ export function startGateway(options: {
               }
               if (role === 'child')
                 serial(session, async () => {
-                  const verdict = findBlockedTerm(text)
-                    ? 'block'
-                    : await options.provider.moderate(text).catch(() => 'block' as const);
+                  let verdict: 'safe' | 'redirect' | 'block';
+                  try {
+                    verdict = findBlockedTerm(text)
+                      ? 'block'
+                      : await options.provider.moderate(text);
+                  } catch (error) {
+                    logEvent(
+                      'moderation_unavailable',
+                      { sessionId: session.record.id, ...liveErrorDetails(error) },
+                      'ERROR',
+                    );
+                    await end(session, 'error');
+                    return;
+                  }
+                  if (!isCurrent()) return;
                   if (verdict !== 'safe')
                     session.live?.text(
                       'Gently redirect to a safe science question. Do not repeat inappropriate content.',
@@ -233,12 +247,20 @@ export function startGateway(options: {
         characterId: session.record.characterId,
         ...(session.record.worldId ? { worldId: session.record.worldId } : {}),
       });
-    } catch {
+    } catch (error) {
+      logEvent(
+        'live_open_failed',
+        { sessionId: session.record.id, count: session.retries, ...liveErrorDetails(error) },
+        'ERROR',
+      );
       retry();
     }
   }
   async function handoff(session: Active, id: CharacterId) {
-    if (!CHARACTERS[id].bands.includes(session.record.identity.child.ageBand))
+    if (
+      !CHARACTERS[id].bands.includes(session.record.identity.child.ageBand) &&
+      id !== session.record.identity.child.companion?.characterId
+    )
       throw new Error('Character unavailable');
     send(session, { type: 'interrupted' });
     session.live?.close();
@@ -326,6 +348,11 @@ export function startGateway(options: {
       identity = r.identity;
     session.pacing.beat(Date.now());
     switch (name) {
+      case 'navigate': {
+        const { destination } = toolSchemas.navigate.parse(args);
+        send(session, { type: 'navigate', destination });
+        return { requested: destination, arrived: false };
+      }
       case 'build_world': {
         const a = toolSchemas.build_world.parse(args);
         if (findBlockedTerm(a.description)) throw new Error('Unsafe request');
@@ -468,6 +495,37 @@ export function startGateway(options: {
       return;
     }
     if (message.type === 'hello') throw new Error('Duplicate hello');
+    if (message.type === 'screen') {
+      session.live?.text(
+        `The browser confirms the child is now on the ${message.destination} screen. Only offer actions available there. This is navigation context, not a new child utterance.`,
+      );
+      return;
+    }
+    if (message.type === 'newGame') {
+      await meter(session);
+      session.stopWorld?.();
+      session.stopWorld = undefined;
+      delete session.record.worldId;
+      session.worldContext = undefined;
+      session.prediction = undefined;
+      send(session, { type: 'newGame' });
+      session.live?.text(
+        'The child chose Build a game. Their previous world remains saved in the gallery. We are now imagining a NEW game with no current world. Ask one short, playful question about what they want to make, then use build_world when their idea is clear. Do not modify the previous world.',
+      );
+      return;
+    }
+    if (message.type === 'openWorld') {
+      await options.store.world(session.record, message.worldId);
+      session.record.worldId = message.worldId;
+      watch(session, message.worldId);
+      send(session, {
+        type: 'ready',
+        sessionId: session.record.id,
+        characterId: session.record.characterId,
+        worldId: message.worldId,
+      });
+      return;
+    }
     if (message.type === 'switchCharacter') {
       await handoff(session, message.characterId);
       return;
@@ -561,7 +619,10 @@ export function startGateway(options: {
           const identity = await options.store.authorize(message.idToken, message.childId);
           if (socket.readyState !== 1) return;
           if (identity.remaining <= 0) throw new Error('QUOTA_EXHAUSTED');
-          if (!CHARACTERS[message.characterId].bands.includes(identity.child.ageBand))
+          if (
+            !CHARACTERS[message.characterId].bands.includes(identity.child.ageBand) &&
+            message.characterId !== identity.child.companion?.characterId
+          )
             throw new Error('FORBIDDEN');
           const existing = message.sessionId ? sessions.get(message.sessionId) : undefined;
           if (existing) {
@@ -623,8 +684,15 @@ export function startGateway(options: {
               ticking = true;
               void (async () => {
                 await meter(s);
-                if (s.remaining <= 120)
+                if (s.remaining <= 120) {
                   send(s, { type: 'quota', voiceSecondsLeft: Math.max(0, s.remaining) });
+                  if (!s.quotaWarned && s.remaining > 0 && s.live) {
+                    s.quotaWarned = true;
+                    s.live.text(
+                      'Quota wrap-up: fewer than two minutes remain. Gently recap our discoveries and finish the activity; do not start another world.',
+                    );
+                  }
+                }
                 if (s.remaining <= 0) {
                   await end(s, 'quota');
                   return;

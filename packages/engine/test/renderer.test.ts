@@ -11,7 +11,14 @@ vi.mock('pixi.js', () => {
     rotation = 0;
     tint = 0;
     position = { set: vi.fn() };
-    scale = { x: 1, set: vi.fn() };
+    scale = {
+      x: 1,
+      y: 1,
+      set: vi.fn((x: number, y = x) => {
+        this.scale.x = x;
+        this.scale.y = y;
+      }),
+    };
     addChild(...children: any[]) {
       for (const c of children) {
         this.removeChild(c);
@@ -67,11 +74,23 @@ vi.mock('pixi.js', () => {
     }
   }
   class Sprite extends Container {
+    constructor(public texture?: unknown) {
+      super();
+    }
     anchor = { set: vi.fn() };
     width = 0;
     height = 0;
   }
-  class MeshPlane extends Sprite {}
+  class MeshPlane extends Container {
+    texture: unknown;
+    geometry = {
+      getAttribute: () => ({ buffer: { data: new Float32Array(18), update: vi.fn() } }),
+    };
+    constructor(options: { texture: unknown }) {
+      super();
+      this.texture = options.texture;
+    }
+  }
   class Application {
     stage = new Container();
     canvas = Object.assign(new EventTarget(), {
@@ -241,4 +260,104 @@ it('retries the same texture URL after a transient failure', async () => {
   await expect(lease.acquire('/retry')).resolves.toBeDefined();
   expect(fetcher).toHaveBeenCalledTimes(2);
   lease.dispose();
+});
+
+it('renders spawned template textures, preserves facing and grows the spawned display', async () => {
+  const doc = structuredClone(FIXTURE_WORLDS.moonBounce);
+  const hero = doc.entities.find((e) => e.id === doc.learning.heroEntityId)!;
+  hero.asset = { url: '/hero.png', width: 64, height: 64, status: 'ready' };
+  hero.behaviors = [{ type: 'face', target: 'pointer' }];
+  for (const material of Object.values(doc.materials)) material.softness = 0;
+  doc.rules = [
+    {
+      id: 'spawn',
+      once: false,
+      when: { event: 'tap', target: hero.id },
+      then: [
+        { action: 'spawn', template: hero.id, count: 1, at: { x: 8, y: 4 } },
+        { action: 'celebrate', style: 'confetti' },
+      ],
+    },
+  ];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: true, blob: async () => new Blob() })),
+  );
+  vi.stubGlobal('createImageBitmap', async () => ({ close: vi.fn() }));
+  const engine = await mountEngine(setup(), doc);
+  const app = state.apps[0],
+    tick = app.ticker.add.mock.calls[0][0],
+    layer = app.stage.children[0].children[1];
+  await vi.waitFor(() =>
+    expect(layer.children[doc.entities.indexOf(hero)].children[0].constructor.name).toBe('Sprite'),
+  );
+  const original = layer.children[doc.entities.indexOf(hero)],
+    texture = original.children[0].texture;
+  engine.tap(hero.id);
+  tick();
+  const spawned = engine
+    .frame()
+    .entities.find((e) => e.templateId === hero.id && e.id !== hero.id)!;
+  await vi.waitFor(() => expect(layer.children.at(-1).children[0].texture).toBe(texture));
+  const view = layer.children.at(-1);
+  engine.castSpell('grow', spawned.id);
+  tick();
+  expect(Math.abs(view.scale.x)).toBeCloseTo(2);
+  expect(view.scale.y).toBeCloseTo(2);
+  expect(original.scale.x).toBeLessThan(0);
+  const overlay = app.stage.children[0].children[2];
+  expect(overlay.children.filter((p: any) => p.visible && p.tint !== 0).length).toBeGreaterThan(0);
+  engine.dispose();
+});
+it('retains displays and fetches/applies unchanged colliders once through progressive updates', async () => {
+  const doc = structuredClone(FIXTURE_WORLDS.moonBounce),
+    hero = doc.entities.find((e) => e.id === doc.learning.heroEntityId)!;
+  hero.body.shape = 'auto';
+  hero.asset = {
+    url: '/hero.png',
+    colliderUrl: '/hero.json',
+    status: 'ready',
+    width: 64,
+    height: 64,
+  };
+  for (const m of Object.values(doc.materials)) m.softness = 0;
+  const polygon = [
+    { x: -0.5, y: -0.5 },
+    { x: 0.5, y: -0.5 },
+    { x: 0, y: 0.5 },
+  ];
+  const fetcher = vi.fn(async (url: string) =>
+    url.endsWith('.json')
+      ? new Response(JSON.stringify({ vertices: polygon, parts: [polygon] }))
+      : { ok: true, blob: async () => new Blob() },
+  );
+  vi.stubGlobal('fetch', fetcher);
+  vi.stubGlobal('createImageBitmap', async () => ({ close: vi.fn() }));
+  const engine = await mountEngine(setup(), doc);
+  await vi.waitFor(() => expect(state.textures.length).toBeGreaterThan(0));
+  const app = state.apps[0],
+    layer = app.stage.children[0].children[1],
+    views = [...layer.children];
+  for (let i = 0; i < 8; i++) {
+    doc.title = `patch${i}`;
+    engine.update(doc);
+  }
+  await Promise.resolve();
+  expect(layer.children).toEqual(views);
+  expect(fetcher.mock.calls.filter(([url]) => url === '/hero.json')).toHaveLength(1);
+  engine.dispose();
+});
+
+it('keeps a tap impulse alive on pointer release instead of replacing it with a zero-velocity flick', async () => {
+  const engine = await mountEngine(setup(), FIXTURE_WORLDS.jellyDragon);
+  const app = state.apps[0];
+  for (const type of ['pointerdown', 'pointerup']) {
+    const event = new Event(type);
+    Object.assign(event, { pointerId: 1, clientX: 5 * 60, clientY: 1.8 * 60 });
+    app.canvas.dispatchEvent(event);
+  }
+  expect(engine.snapshot().inputs.filter((event) => event.type === 'tap')).toHaveLength(1);
+  expect(engine.snapshot().inputs.filter((event) => event.type === 'flick')).toHaveLength(0);
+  expect(engine.frame().entities.find((e) => e.id === 'dragon')!.vy).toBeLessThan(-0.5);
+  engine.dispose();
 });

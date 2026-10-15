@@ -71,6 +71,7 @@ it('publishes placeholders through ready, replays idempotently and refuses a del
     'unavailable',
   );
   expect((await db().doc('worlds/w_deleted').get()).exists).toBe(false);
+  expect((await db().doc('builderJobs/j_deleted').get()).exists).toBe(false);
 });
 
 it('commits a patch, version, and completion marker atomically', async () => {
@@ -130,12 +131,14 @@ it('commits a patch, version, and completion marker atomically', async () => {
     instruction: 'Rename the world',
     promptVersion: 'v1',
   };
-  generate.mockRejectedValueOnce(new Error('Temporary patch failure'));
+  generate
+    .mockRejectedValueOnce(new Error('Temporary patch failure'))
+    .mockRejectedValueOnce(new Error('Temporary patch failure'));
   await expect(worker.run(job)).rejects.toThrow('Temporary patch failure');
   expect((await db().doc(paths.world(worldId)).get()).data()?.['status']).toBe('ready');
   expect(await worker.run(job)).toEqual({ status: 'complete' });
   expect(await worker.run(job)).toEqual({ status: 'already-complete' });
-  expect(generate).toHaveBeenCalledTimes(2);
+  expect(generate).toHaveBeenCalledTimes(3);
   expect(
     (
       await db()
@@ -149,7 +152,7 @@ it('commits a patch, version, and completion marker atomically', async () => {
   await expect(worker.run({ ...job, jobId: 'j_deleted_patch' })).rejects.toThrow('unavailable');
   expect((await db().doc(paths.world(worldId)).get()).exists).toBe(false);
 });
-it('records admission failure before a world exists', async () => {
+it('does not recreate retained job data for a missing or deleted profile', async () => {
   const worker = new BuilderWorker({} as VertexModels, {
     bucket: 'unused',
     assetBaseUrl: 'https://assets.invalid',
@@ -171,8 +174,6 @@ it('records admission failure before a world exists', async () => {
     conversationSummary: '',
   };
   await expect(worker.run(job)).rejects.toThrow('unavailable');
-  expect((await db().doc('builderJobs/j_admission_failure').get()).data()?.['status']).toBe(
-    'failed',
-  );
+  expect((await db().doc('builderJobs/j_admission_failure').get()).exists).toBe(false);
   expect((await db().doc('worlds/w_admission_failure').get()).exists).toBe(false);
 });

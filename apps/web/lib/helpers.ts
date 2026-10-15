@@ -1,10 +1,10 @@
-import { CHARACTERS, type AgeBand } from '@just-imagine/protocol';
+import { CHARACTERS, type AgeBand, type CharacterId } from '@just-imagine/protocol';
 import type { Variable } from '@just-imagine/scene-schema';
 export const defaultCaptionsFor = (band: AgeBand) => band !== '6-7';
 export const effectiveCaptions = (p: { ageBand: AgeBand; captions?: boolean }) =>
   p.captions ?? defaultCaptionsFor(p.ageBand);
-export const castFor = (band: AgeBand) =>
-  Object.values(CHARACTERS).filter((c) => c.bands.includes(band));
+export const castFor = (band: AgeBand, companion?: CharacterId) =>
+  Object.values(CHARACTERS).filter((c) => c.bands.includes(band) || c.id === companion);
 export function clampToVariable(value: number, v: Pick<Variable, 'min' | 'max' | 'step'>) {
   if (!Number.isFinite(value)) return v.min;
   return Math.min(

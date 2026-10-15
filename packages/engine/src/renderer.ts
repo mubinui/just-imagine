@@ -1,6 +1,9 @@
-import { Application, Container, Graphics, Sprite, Text, MeshPlane } from 'pixi.js';
+import { Application, Container, Sprite, Text, MeshPlane } from 'pixi.js';
+import { WorldGraphics as Graphics } from './world-graphics';
 import type { SceneDoc } from '@just-imagine/scene-schema';
 import { readBoundedJson } from './bounded-json';
+import { placeholder, playSurface } from './placeholder';
+import { SoundCues } from './sound';
 import { TextureLease } from './textures';
 import { recordPointer, pointerVelocity, type PointerSample } from './gesture';
 import { createSimulation, type Simulation, type EngineEvent } from './simulation';
@@ -16,7 +19,7 @@ export async function mountEngine(
   const app = new Application();
   let disposed = false;
   let current = structuredClone(doc);
-  let generation = 0;
+
   const root = new Container();
   const background = new Container(),
     entities = new Container(),
@@ -24,6 +27,7 @@ export async function mountEngine(
   root.addChild(background, entities, overlay);
   const meshes = new Map<string, MeshPlane>();
   const textures = new TextureLease();
+  const sounds = new SoundCues();
   const visualGraphics = new Map<number, Graphics>(),
     visualTexts = new Map<number, Text>();
   const graphics = (index: number) => {
@@ -39,11 +43,23 @@ export async function mountEngine(
   const text = (index: number, value: string, size = 0.22) => {
     let t = visualTexts.get(index);
     if (!t) {
-      t = new Text({ text: value, style: { fontSize: size, fill: 0x173b38 } });
+      t = new Text({
+        text: value,
+        resolution: 2,
+        style: {
+          fontFamily: 'Nunito, sans-serif',
+          fontWeight: '700',
+          fontSize: 48,
+          fill: 0x243e36,
+        },
+      });
       visualTexts.set(index, t);
       overlay.addChild(t);
     }
     t.visible = true;
+    // The scene uses metres; learning annotations still need a readable screen size.
+    const readableSize = Math.max(size, (13 * 16) / Math.max(1, element.clientWidth));
+    t.scale.set(readableSize / 48);
     if (t.text !== value) t.text = value;
     return t;
   };
@@ -55,6 +71,21 @@ export async function mountEngine(
     return { g, until: 0 };
   });
   let particleIndex = 0;
+  const sources = new Map<string, SceneDoc['entities'][number]>();
+  const viewKeys = new Map<string, string>();
+  const backgrounds = new Map<number, { key: string; slot: Container }>();
+  const colliderApplied = new Map<string, string>();
+  const colliderCache = new Map<
+    string,
+    { controller: AbortController; promise: Promise<unknown> }
+  >();
+  let visualKey = '';
+  let surface = playSurface(current);
+  background.addChild(surface);
+  const trail = new Graphics();
+  overlay.addChild(trail);
+  const trailPoints: { x: number; y: number; time: number }[] = [];
+  let lastTrailTime = 0;
   const sprites = new Map<string, Container>();
   try {
     await app.init({
@@ -88,7 +119,42 @@ export async function mountEngine(
   app.stage.addChild(root);
   element.append(app.canvas);
   app.canvas.style.touchAction = 'none';
-  const unsubscribe = onEvent ? sim.subscribe(onEvent) : () => {};
+  const unsubscribe = sim.subscribe((event) => {
+    onEvent?.(event);
+    if (event.type === 'celebrate' || event.type === 'sound') {
+      const cue =
+        typeof event.value === 'object' && event.value !== null
+          ? (event.value as { style?: string; cue?: string })
+          : {};
+      if (event.type === 'sound' && cue.cue) sounds.play(cue.cue);
+      const hero =
+        sim.frame().entities.find((p) => p.id === current.learning.heroEntityId) ??
+        sim.frame().entities.find((p) => p.templateId === current.learning.heroEntityId);
+      const at = hero ?? { x: 8, y: 4.5 },
+        style =
+          cue.style ??
+          (typeof event.value === 'string'
+            ? event.value
+            : cue.cue === 'splash'
+              ? 'splash'
+              : 'sparkle');
+      for (let i = 0; i < (event.type === 'sound' ? 8 : 24); i++) {
+        const particle = particles[particleIndex++ % particles.length]!;
+        particle.until = event.time + 0.9;
+        particle.g.position.set(
+          at.x + Math.cos(i * 2.4) * (0.2 + i * 0.035),
+          at.y + Math.sin(i * 2.4) * (0.2 + i * 0.035),
+        );
+        particle.g.tint =
+          style === 'splash'
+            ? 0x55cbed
+            : style === 'confetti'
+              ? [0xe95f8c, 0x6dcab7, 0xffcc66][i % 3]!
+              : 0xffdc77;
+        particle.g.visible = true;
+      }
+    }
+  });
   const resize = () => {
     const width = element.clientWidth || 960;
     const height = (width * 9) / 16;
@@ -98,67 +164,35 @@ export async function mountEngine(
   resize();
   const observer = new ResizeObserver(resize);
   observer.observe(element);
-  function drawAssets() {
-    const token = ++generation;
-    for (const controller of colliderRequests) controller.abort();
-    colliderRequests.clear();
-    for (const c of entities.removeChildren()) c.destroy({ children: true });
-    for (const c of background.removeChildren()) c.destroy({ children: true });
-    sprites.clear();
-    meshes.clear();
-    for (const g of visualGraphics.values()) g.destroy();
-    for (const t of visualTexts.values()) t.destroy();
-    visualGraphics.clear();
-    visualTexts.clear();
-    const urls = new Set<string>();
-    // Slots and every placeholder are created before starting any network operation.
-    const backgrounds = [current.theme.backdrop, current.theme.midLayer].map((asset) => {
-      const slot = new Container();
-      background.addChild(slot);
-      return { asset, slot };
-    });
-    const pending = current.entities.map((e) => {
-      const c = new Container();
-      const g = new Graphics()
-        .roundRect(
-          -e.body.size.width / 2,
-          -e.body.size.height / 2,
-          e.body.size.width,
-          e.body.size.height,
-          0.12,
-        )
-        .fill(e.kind === 'water' ? { color: 0x52b8dc, alpha: 0.45 } : 0xf4ae74);
-      c.addChild(g);
-      entities.addChild(c);
-      sprites.set(e.id, c);
-      return { e, c, g };
-    });
-    for (const { asset, slot } of backgrounds) {
-      if (asset?.status !== 'ready') continue;
-      urls.add(asset.url);
-      void textures
-        .acquire(asset.url)
-        .then((texture) => {
-          if (disposed || token !== generation) return;
-          const sprite = new Sprite(texture);
-          sprite.width = 16;
-          sprite.height = 9;
-          slot.addChild(sprite);
-        })
-        .catch(() => {});
-    }
-    for (const { e, c, g } of pending) {
-      if (e.asset?.status !== 'ready') continue;
-      urls.add(e.asset.url);
+  function viewSource(p: { id: string; templateId?: string }) {
+    return current.entities.find((e) => e.id === (p.templateId ?? p.id)) ?? sources.get(p.id);
+  }
+  function sourceKey(e: SceneDoc['entities'][number]) {
+    return JSON.stringify([e.asset?.url, e.asset?.colliderUrl, e.asset?.status]);
+  }
+  function drawEntity(e: SceneDoc['entities'][number], id: string) {
+    sources.set(id, e);
+    const key = JSON.stringify([e.asset, e.body.size, e.body.shape]);
+    const existing = sprites.get(id);
+    if (existing && viewKeys.get(id) === key) return;
+    existing?.destroy({ children: true });
+    meshes.delete(id);
+    const c = new Container();
+    const g = placeholder(e);
+    c.addChild(g);
+    entities.addChild(c);
+    sprites.set(id, c);
+    viewKeys.set(id, key);
+    if (e.asset?.status === 'ready')
       void textures
         .acquire(e.asset.url)
         .then((texture) => {
-          if (disposed || token !== generation || c.destroyed) return;
-          const soft = !!sim.frame().entities.find((p) => p.id === e.id)?.nodes;
+          if (disposed || sprites.get(id) !== c || c.destroyed) return;
+          const soft = !!sim.frame().entities.find((p) => p.id === id)?.nodes;
           const sprite = soft
             ? new MeshPlane({ texture, verticesX: 3, verticesY: 3 })
             : new Sprite(texture);
-          if (sprite instanceof MeshPlane) meshes.set(e.id, sprite);
+          if (sprite instanceof MeshPlane) meshes.set(id, sprite);
           else {
             sprite.anchor.set(0.5);
             sprite.width = e.body.size.width;
@@ -168,37 +202,138 @@ export async function mountEngine(
           g.destroy();
           c.addChild(sprite);
         })
-        .catch(() => {});
-      if (e.asset.colliderUrl && e.body.shape === 'auto')
-        loadCollider(e.id, e.asset.colliderUrl, token);
-    }
-    textures.retain(urls);
+        .catch(() => {
+          if (sprites.get(id) === c) viewKeys.delete(id);
+        });
   }
-  const colliderRequests = new Set<AbortController>();
-  function loadCollider(id: string, url: string, token: number) {
-    const controller = new AbortController();
-    colliderRequests.add(controller);
-    void (async () => {
-      const response = await fetch(url, { signal: controller.signal });
-      if (!response.ok) throw new Error('Collider unavailable');
-      const value = await readBoundedJson(response, controller);
-      if (!disposed && token === generation) sim.setCollider(id, value);
-    })()
-      .catch(() => {})
-      .finally(() => colliderRequests.delete(controller));
+  function loadCollider(id: string, e: SceneDoc['entities'][number]) {
+    const url = e.asset?.colliderUrl;
+    if (!url || e.asset?.status !== 'ready' || e.body.shape !== 'auto') return;
+    const key = sourceKey(e);
+    if (colliderApplied.get(id) === key) return;
+    colliderApplied.set(id, key);
+    let cached = colliderCache.get(url);
+    if (!cached) {
+      const controller = new AbortController();
+      const promise = (async () => {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error('Collider unavailable');
+        return readBoundedJson(response, controller);
+      })();
+      cached = { controller, promise };
+      colliderCache.set(url, cached);
+      void promise.catch(() => {
+        if (colliderCache.get(url)?.promise === promise) colliderCache.delete(url);
+      });
+    }
+    void cached.promise
+      .then((value) => {
+        if (disposed || colliderApplied.get(id) !== key) return;
+        const p = sim.frame().entities.find((p) => p.id === id);
+        const source = p && viewSource(p);
+        if (source && sourceKey(source) === key && !sim.setCollider(id, value))
+          colliderApplied.delete(id);
+      })
+      .catch(() => {
+        if (colliderApplied.get(id) === key) colliderApplied.delete(id);
+      });
+  }
+  function drawAssets() {
+    const poses = sim.frame().entities,
+      live = new Set(poses.map((p) => p.id));
+    for (const [id, c] of sprites)
+      if (!live.has(id)) {
+        c.destroy({ children: true });
+        sprites.delete(id);
+        meshes.delete(id);
+        viewKeys.delete(id);
+        colliderApplied.delete(id);
+        highlights.delete(id);
+        sources.delete(id);
+      }
+    const urls = new Set<string>(),
+      colliders = new Set<string>();
+    for (const e of current.entities) if (e.asset?.status === 'ready') urls.add(e.asset.url);
+    for (const [index, asset] of [current.theme.backdrop, current.theme.midLayer].entries()) {
+      const key = JSON.stringify(asset),
+        prior = backgrounds.get(index);
+      if (asset?.status === 'ready') urls.add(asset.url);
+      if (prior?.key === key) continue;
+      prior?.slot.destroy({ children: true });
+      const slot = new Container();
+      background.addChild(slot);
+      backgrounds.set(index, { key, slot });
+      if (asset?.status === 'ready')
+        void textures
+          .acquire(asset.url)
+          .then((texture) => {
+            if (disposed || backgrounds.get(index)?.slot !== slot) return;
+            const sprite = new Sprite(texture);
+            sprite.width = 16;
+            sprite.height = 9;
+            slot.addChild(sprite);
+          })
+          .catch(() => {
+            if (backgrounds.get(index)?.slot === slot) backgrounds.get(index)!.key = '';
+          });
+    }
+    background.addChild(
+      ...[...backgrounds].sort(([a], [b]) => a - b).map(([, value]) => value.slot),
+    );
+    for (const p of poses) {
+      const e = viewSource(p);
+      if (!e) continue;
+      if (e.asset?.status === 'ready') urls.add(e.asset.url);
+      drawEntity(e, p.id);
+      if (e.asset?.colliderUrl) {
+        colliders.add(e.asset.colliderUrl);
+        loadCollider(p.id, e);
+      }
+    }
+    for (const [url, cached] of colliderCache)
+      if (!colliders.has(url)) {
+        cached.controller.abort();
+        colliderCache.delete(url);
+      }
+    textures.retain(urls);
+    const nextVisualKey = JSON.stringify(current.visuals);
+    if (nextVisualKey !== visualKey) {
+      visualKey = nextVisualKey;
+      for (const g of visualGraphics.values()) g.destroy();
+      for (const t of visualTexts.values()) t.destroy();
+      visualGraphics.clear();
+      visualTexts.clear();
+    }
   }
   drawAssets();
-  let accumulator = 0;
-  let previous = sim.frame().entities;
+
   const ticker = () => {
     if (disposed) return;
-    accumulator += Math.min(0.1, app.ticker.deltaMS / 1000);
-    while (accumulator >= 1 / 60) {
-      previous = sim.frame().entities;
-      sim.step();
-      accumulator -= 1 / 60;
-    }
+    sim.advance(Math.min(0.1, app.ticker.deltaMS / 1000));
     const state = sim.frame();
+    trail.clear();
+    if (state.time < lastTrailTime) trailPoints.length = 0;
+    const trailHero = state.entities.find((p) => p.id === current.learning.heroEntityId);
+    if (trailHero && current.entities.find((e) => e.id === trailHero.id)?.tags.includes('trail')) {
+      if (state.time - lastTrailTime > 0.035) {
+        trailPoints.push({ x: trailHero.x, y: trailHero.y, time: state.time });
+        lastTrailTime = state.time;
+      }
+      while (trailPoints.length > 64 || (trailPoints[0] && state.time - trailPoints[0].time > 2))
+        trailPoints.shift();
+      for (const [i, p] of trailPoints.entries())
+        trail
+          .circle(p.x, p.y, 0.045)
+          .fill({ color: 0xc16b41, alpha: ((i + 1) / trailPoints.length) * 0.65 });
+    }
+    for (const p of state.entities)
+      if (!sprites.has(p.id)) {
+        const source = viewSource(p);
+        if (source) {
+          drawEntity(source, p.id);
+          loadCollider(p.id, source);
+        }
+      }
     for (const g of visualGraphics.values()) g.visible = false;
     for (const t of visualTexts.values()) t.visible = false;
     for (const p of particles) {
@@ -214,6 +349,8 @@ export async function mountEngine(
         sprites.delete(id);
         meshes.delete(id);
         highlights.delete(id);
+        viewKeys.delete(id);
+        colliderApplied.delete(id);
       }
     for (const p of state.entities) {
       if (!sprites.has(p.id)) {
@@ -228,8 +365,8 @@ export async function mountEngine(
       }
       const c = sprites.get(p.id);
       if (c) {
-        const old = previous.find((e) => e.id === p.id) ?? p,
-          alpha = accumulator * 60;
+        const old = state.previousEntities.find((e) => e.id === p.id) ?? p,
+          alpha = state.interpolation;
         c.position.set(old.x + (p.x - old.x) * alpha, old.y + (p.y - old.y) * alpha);
         c.rotation = p.rotation;
         c.alpha = (highlights.get(p.id) ?? 0) > state.time ? 0.6 : 1;
@@ -266,7 +403,9 @@ export async function mountEngine(
           }
           buffer.update();
         }
-        const original = current.entities.find((e) => e.id === p.id);
+        const original = viewSource(p);
+        if (original && !mesh)
+          c.scale.set(p.width / original.body.size.width, p.height / original.body.size.height);
         for (const behavior of original?.behaviors ?? []) {
           if (behavior.type === 'glow') c.tint = Number.parseInt(behavior.color.slice(1), 16);
           if (behavior.type === 'face') {
@@ -285,8 +424,6 @@ export async function mountEngine(
             particle.g.visible = true;
           }
         }
-        if (original && !mesh)
-          c.scale.set(p.width / original.body.size.width, p.height / original.body.size.height);
       }
     }
     for (const [index, v] of (current.visuals ?? []).entries()) {
@@ -297,27 +434,52 @@ export async function mountEngine(
           t.position.set(p.x, p.y - 0.6);
         }
       }
-      if (v.type === 'ruler')
-        overlay.addChild(
-          graphics(index)
-            .moveTo(v.from.x, v.from.y)
-            .lineTo(v.to.x, v.to.y)
-            .stroke({ width: 0.025, color: 0x173b38 }),
+      if (v.type === 'ruler') {
+        const dx = v.to.x - v.from.x,
+          dy = v.to.y - v.from.y,
+          length = Math.hypot(dx, dy);
+        const g = graphics(index)
+          .moveTo(v.from.x, v.from.y)
+          .lineTo(v.to.x, v.to.y)
+          .stroke({ width: 0.025, color: 0x245e4e });
+        for (let n = 0; n <= length && length > 0; n++) {
+          const x = v.from.x + (dx * n) / length,
+            y = v.from.y + (dy * n) / length;
+          g.moveTo(x, y - 0.08)
+            .lineTo(x, y + 0.08)
+            .stroke({ width: 0.025, color: 0x245e4e });
+        }
+        const label = text(index, `${Number(length.toFixed(2))} m`, 0.3);
+        label.position.set(
+          (v.from.x + v.to.x) / 2 - label.width / 2,
+          (v.from.y + v.to.y) / 2 + 0.12,
         );
+      }
       if (v.type === 'plot' || v.type === 'histogram') {
         const index = (current.visuals ?? []).indexOf(v),
           x = 0.35 + (index % 3) * 5,
-          y = 6.8;
-        const g = graphics(index).rect(x, y, 4.5, 1.7).fill({ color: 0xffffff, alpha: 0.85 });
-        const label = text(index, v.title, 0.18);
+          y = 0.65;
+        const label = text(index, v.title, 0.28);
         label.position.set(x + 0.1, y + 0.05);
+        const plotWidth = Math.max(4.2, label.width),
+          plotBottom = y + Math.max(1.5, label.height + 1.2);
+        const g = graphics(index)
+          .roundRect(x, y, plotWidth + 0.3, plotBottom - y + 0.2, 0.16)
+          .fill({ color: 0xfff9ee, alpha: 0.95 });
+        // Keep the title above both the plot and its backing panel.
+        overlay.addChild(label);
 
         if (v.type === 'histogram') {
           const bins = state.histograms[v.id] ?? [],
             max = Math.max(1, ...bins);
           bins.forEach((n, i) =>
             g
-              .rect(x + 0.1 + (i * 4.2) / v.bins, y + 1.5 - n / max, 4 / v.bins, n / max)
+              .rect(
+                x + 0.1 + (i * plotWidth) / v.bins,
+                plotBottom - n / max,
+                (plotWidth - 0.2) / v.bins,
+                n / max,
+              )
               .fill(0x4d9b8d),
           );
         } else {
@@ -326,8 +488,8 @@ export async function mountEngine(
             const min = Math.min(...points.map((p) => p.value)),
               max = Math.max(min + 1, ...points.map((p) => p.value));
             points.forEach((p, i) => {
-              const px = x + 0.1 + (i / Math.max(1, points.length - 1)) * 4.2,
-                py = y + 1.5 - (p.value - min) / (max - min);
+              const px = x + 0.1 + (i / Math.max(1, points.length - 1)) * plotWidth,
+                py = plotBottom - (p.value - min) / (max - min);
               if (i === 0) g.moveTo(px, py);
               else g.lineTo(px, py);
             });
@@ -355,21 +517,24 @@ export async function mountEngine(
           ratio = v.numerator / v.denominator;
         if (v.style === 'bar') {
           for (let n = 0; n < v.denominator; n++)
-            g.rect(v.at.x + n * 0.25, v.at.y, 0.24, 0.45).fill(
-              n < v.numerator ? 0x4d9b8d : 0xe5ece9,
-            );
+            g.rect(v.at.x + n * 0.8, v.at.y, 0.76, 0.6).fill(n < v.numerator ? 0x4d9b8d : 0xe5ece9);
         } else {
-          g.circle(v.at.x, v.at.y, 0.5).fill(0xe5ece9);
+          g.circle(v.at.x, v.at.y, 0.65).fill(0xe5ece9);
           if (ratio > 0)
             g.moveTo(v.at.x, v.at.y)
-              .arc(v.at.x, v.at.y, 0.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio)
+              .arc(v.at.x, v.at.y, 0.65, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio)
               .lineTo(v.at.x, v.at.y)
               .fill(0x4d9b8d);
         }
       }
+      if (v.type === 'fraction')
+        text(index, `${v.numerator}/${v.denominator}`, 0.38).position.set(
+          v.at.x + (v.style === 'bar' ? 0.45 : -0.25),
+          v.at.y + 0.8,
+        );
       if (v.type === 'stopwatch') {
         const t = text(index, `${(state.stopwatches[index] ?? 0).toFixed(2)} s`, 0.25);
-        t.position.set(14, 0.3);
+        t.position.set(15.65 - t.width, 0.3);
       }
       if (v.type === 'vector') {
         const p = state.entities.find((p) => p.id === v.entity);
@@ -395,36 +560,69 @@ export async function mountEngine(
   app.ticker.add(ticker);
   let held: string | undefined;
   let heldPointer: number | undefined;
+  let dragging = false;
+  let downAt = { x: 0, y: 0 };
   const samples: PointerSample[] = [];
   let last = { x: 0, y: 0, time: 0 };
   const point = (e: PointerEvent) => {
     const r = app.canvas.getBoundingClientRect();
     return { x: ((e.clientX - r.left) / r.width) * 16, y: ((e.clientY - r.top) / r.height) * 9 };
   };
-  const down = (e: PointerEvent) => {
-    const p = point(e);
-    const hit = sim
-      .snapshot()
+  const hitAt = (p: { x: number; y: number }) =>
+    sim
+      .frame()
       .entities.slice()
       .reverse()
-      .find((b) => Math.abs(b.x - p.x) < b.width / 2 && Math.abs(b.y - p.y) < b.height / 2);
+      .find((b) => {
+        const source = viewSource(b);
+        if (
+          !source ||
+          (source.body.isStatic &&
+            !current.rules.some(
+              (r) =>
+                r.when.event === 'tap' &&
+                (r.when.target === source.id || source.tags.includes(r.when.target)),
+            ))
+        )
+          return false;
+        const touch = (22 * 16) / (element.clientWidth || 960);
+        return (
+          Math.abs(b.x - p.x) <= Math.max(b.width / 2, touch) &&
+          Math.abs(b.y - p.y) <= Math.max(b.height / 2, touch)
+        );
+      });
+  const down = (e: PointerEvent) => {
+    sounds.unlock();
+    const p = point(e);
+    const hit = hitAt(p);
     if (hit) {
       if (held) return;
       held = hit.id;
+      dragging = false;
+      downAt = p;
       heldPointer = e.pointerId;
       samples.length = 0;
       recordPointer(samples, { ...p, time: e.timeStamp });
       highlights.set(hit.id, sim.frame().time + 0.3);
       last = { ...p, time: e.timeStamp };
-      sim.tap(hit.id, p);
       app.canvas.setPointerCapture(e.pointerId);
     }
   };
   const move = (e: PointerEvent) => {
+    const pointer = point(e);
+    last = { ...pointer, time: e.timeStamp };
+    app.canvas.style.cursor = held ? 'grabbing' : hitAt(pointer) ? 'grab' : 'default';
     if (held && e.pointerId === heldPointer) {
       const p = point(e);
       recordPointer(samples, { ...p, time: e.timeStamp });
-      sim.drag(held, p);
+      const source = viewSource({ id: held });
+      if (
+        source &&
+        !source.body.isStatic &&
+        (Math.hypot(p.x - downAt.x, p.y - downAt.y) * (element.clientWidth || 960)) / 16 > 6
+      )
+        dragging = true;
+      if (dragging) sim.drag(held, p);
       last = { ...p, time: e.timeStamp };
     }
   };
@@ -438,7 +636,8 @@ export async function mountEngine(
   const up = (e: PointerEvent) => {
     if (held && e.pointerId === heldPointer) {
       recordPointer(samples, { ...point(e), time: e.timeStamp });
-      sim.flick(held, pointerVelocity(samples));
+      if (dragging) sim.flick(held, pointerVelocity(samples));
+      else sim.tap(held, point(e));
       releaseCapture();
     }
   };
@@ -460,16 +659,28 @@ export async function mountEngine(
     cancelDrag: sim.cancelDrag.bind(sim),
     setCollider: sim.setCollider.bind(sim),
     step: sim.step.bind(sim),
-    tap: sim.tap.bind(sim),
+    advance: sim.advance.bind(sim),
+    tap(target, at) {
+      sounds.unlock();
+      sim.tap(target, at);
+    },
     drag: sim.drag.bind(sim),
     flick: sim.flick.bind(sim),
     setDial: sim.setDial.bind(sim),
     setVariable: sim.setVariable.bind(sim),
     castSpell: sim.castSpell.bind(sim),
-    reset: sim.reset.bind(sim),
+    reset() {
+      sim.reset();
+      colliderApplied.clear();
+      drawAssets();
+    },
     load(next) {
       sim.load(next);
+      colliderApplied.clear();
       current = structuredClone(next);
+      surface.destroy();
+      surface = playSurface(current);
+      background.addChild(surface);
       void drawAssets();
     },
     update(next) {
@@ -480,11 +691,15 @@ export async function mountEngine(
     dispose() {
       if (disposed) return;
       disposed = true;
-      generation++;
-      for (const controller of colliderRequests) controller.abort();
-      colliderRequests.clear();
+      for (const cached of colliderCache.values()) cached.controller.abort();
+      colliderCache.clear();
+      colliderApplied.clear();
+      viewKeys.clear();
+      backgrounds.clear();
+      sources.clear();
       observer.disconnect();
       unsubscribe();
+      sounds.dispose();
       app.ticker.remove(ticker);
       app.canvas.removeEventListener('pointerdown', down);
       app.canvas.removeEventListener('pointermove', move);

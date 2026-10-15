@@ -1,7 +1,7 @@
 import { it, expect, vi, afterEach } from 'vitest';
 import { VoiceClient } from '../src/voice-client';
 import type { BrowserAudio } from '../src/browser-audio';
-function harness() {
+function harness(capture = false) {
   const sockets: Array<{
     readyState: number;
     bufferedAmount: number;
@@ -24,7 +24,7 @@ function harness() {
   };
   const client = new VoiceClient({
     url: 'ws://localhost',
-    capture: false,
+    capture,
     audio: audio as unknown as BrowserAudio,
     socket: () => {
       const socket = {
@@ -91,4 +91,57 @@ it('does not reconnect after terminal bye and stops microphone', async () => {
   await vi.advanceTimersByTimeAsync(30000);
   expect(sockets).toHaveLength(1);
   expect(audio.stopCapture).toHaveBeenCalledOnce();
+});
+it('exposes a credential-free session snapshot and supports multiple route status subscribers', async () => {
+  const { client, sockets } = harness(),
+    first = vi.fn(),
+    second = vi.fn();
+  const unsubscribe = client.subscribeStatus(first);
+  client.subscribeStatus(second);
+  await client.connect(hello);
+  sockets[0]!.onmessage?.({
+    data: JSON.stringify({
+      type: 'ready',
+      sessionId: 's_one',
+      characterId: 'bhombol',
+      worldId: 'w_one',
+    }),
+  });
+  expect(client.session).toEqual({
+    childId: 'c_one',
+    characterId: 'bhombol',
+    sessionId: 's_one',
+    worldId: 'w_one',
+  });
+  expect(client.session).not.toHaveProperty('idToken');
+  expect(first).toHaveBeenCalledWith('connected');
+  unsubscribe();
+  client.end();
+  expect(second).toHaveBeenCalledWith('closed');
+  expect(first).not.toHaveBeenCalledWith('closed');
+  expect(client.session).toBeUndefined();
+});
+
+it('does not reopen the previous world after starting a fresh game and reconnecting', async () => {
+  vi.useFakeTimers();
+  const { client, sockets } = harness();
+  await client.connect({ ...hello, worldId: 'w_old' });
+  sockets[0]?.onmessage?.({ data: JSON.stringify({ type: 'newGame' }) });
+  expect(client.session?.worldId).toBeUndefined();
+  sockets[0]?.onclose?.();
+  await vi.advanceTimersByTimeAsync(500);
+  sockets[1]?.onopen?.();
+  expect(JSON.parse(sockets[1]!.sent[0]!)).not.toHaveProperty('worldId');
+  client.end();
+});
+
+it('allows retry after microphone permission was denied during connection', async () => {
+  const { client, audio, sockets } = harness(true);
+  audio.startCapture.mockRejectedValueOnce(new Error('Microphone permission denied'));
+  await expect(client.connect(hello)).rejects.toThrow('permission denied');
+  expect(client.session).toBeUndefined();
+  expect(client.status).toBe('error');
+  await client.connect(hello);
+  expect(sockets).toHaveLength(1);
+  client.end();
 });

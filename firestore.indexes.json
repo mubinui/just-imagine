@@ -51,5 +51,11 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "children",
+      "fieldPath": "companion.image",
+      "indexes": []
+    }
+  ]
 }

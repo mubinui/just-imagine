@@ -82,3 +82,41 @@ describe('API boundaries', () => {
     await app.close();
   });
 });
+it('requires a signed-in parent and explicit photo permission before drawing a companion', async () => {
+  const app = createApi({
+    store: {} as ApiStore,
+    origins: [],
+    verifyToken: async () => ({ uid: 'parent' }),
+  });
+  expect(
+    (await app.inject({ method: 'POST', url: '/v1/children/c_one/companion', payload: {} }))
+      .statusCode,
+  ).toBe(401);
+  const res = await app.inject({
+    method: 'POST',
+    url: '/v1/children/c_one/companion',
+    headers: { authorization: 'Bearer valid' },
+    payload: {
+      name: 'Pip',
+      characterId: 'bhombol',
+      consent: false,
+      mimeType: 'image/png',
+      photo: 'AAAA',
+    },
+  });
+  expect(res.statusCode).toBe(400);
+  const missing = await app.inject({
+    method: 'POST',
+    url: '/v1/children/c_one/companion',
+    headers: { authorization: 'Bearer valid' },
+    payload: {
+      name: 'Pip',
+      characterId: 'bhombol',
+      consent: true,
+      mimeType: 'image/png',
+      photo: 'AAAA',
+    },
+  });
+  expect(missing.statusCode).toBe(503);
+  await app.close();
+});

@@ -13,6 +13,7 @@ describe('ROUTES', () => {
     expect(keys).toEqual([
       'checkout',
       'createChild',
+      'createCompanion',
       'deleteAccountData',
       'deleteChild',
       'deleteWorld',

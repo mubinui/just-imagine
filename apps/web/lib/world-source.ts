@@ -1,4 +1,4 @@
-import { WorldDocSchema, paths, type WorldSource } from '@just-imagine/protocol';
+import { WorldDocSchema, paths, type WorldSource, type WorldWithId } from '@just-imagine/protocol';
 import {
   FakeWorldSource,
   progressiveScript,
@@ -10,6 +10,19 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { firebase } from './firebase';
 import { type PreviewKey } from './preview-worlds';
 import { env } from './env';
+import { playablePreview } from './playable-preview';
+function previewArt(world: WorldWithId, key: PreviewKey): WorldWithId {
+  const doc = playablePreview(world.doc, key, window.location.origin);
+  return {
+    ...world,
+    doc,
+    assets: Object.fromEntries(
+      doc.entities
+        .filter((e) => e.asset?.status === 'ready')
+        .map((e) => [e.id, { status: 'ready' as const, url: e.asset!.url }]),
+    ),
+  };
+}
 export function createWorldSource(key: PreviewKey = 'jellyDragon'): WorldSource {
   if (env.fake)
     return new FakeWorldSource(
@@ -25,16 +38,7 @@ export function createWorldSource(key: PreviewKey = 'jellyDragon'): WorldSource 
         : progressiveScript(key as FixtureWorldKey)
       ).map((step) => ({
         ...step,
-        world: {
-          ...step.world,
-          doc: {
-            ...step.world.doc,
-            entities: step.world.doc.entities.map((e) => ({
-              ...e,
-              asset: e.asset ? { ...e.asset, status: 'placeholder' as const } : undefined,
-            })),
-          },
-        },
+        world: previewArt(step.world, key),
       })),
       {
         timers: {

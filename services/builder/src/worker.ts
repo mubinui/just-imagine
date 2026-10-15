@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { Storage } from '@google-cloud/storage';
 import sharp from 'sharp';
@@ -22,7 +24,7 @@ export class BuilderWorker {
   private storage = new Storage();
   constructor(
     private models: VertexModels,
-    private config: { bucket: string; assetBaseUrl: string },
+    private config: { bucket: string; assetBaseUrl: string; assetDirectory?: string },
   ) {}
   async run(input: unknown): Promise<{ status: 'complete' | 'already-complete' }> {
     const job = BuilderJobSchema.parse(input);
@@ -32,6 +34,18 @@ export class BuilderWorker {
       await db().runTransaction(async (tx) => {
         const ref = db().doc(`builderJobs/${job.jobId}`),
           prior = await tx.get(ref);
+        const fences = await Promise.all([
+          tx.get(db().doc(`deletionLocks/${job.uid}`)),
+          tx.get(db().doc(`users/${job.uid}/deletionLocks/${job.childId}`)),
+          tx.get(db().doc(`worldDeletionLocks/${job.worldId}`)),
+          tx.get(db().doc(paths.user(job.uid))),
+          tx.get(db().doc(paths.child(job.uid, job.childId))),
+        ]);
+        if (
+          fences.slice(0, 3).some((snapshot) => snapshot.exists) ||
+          fences.slice(3).some((snapshot) => !snapshot.exists)
+        )
+          return;
         if (['running', 'complete', 'fallback'].includes(prior.data()?.['status'])) return;
         tx.set(
           ref,
@@ -207,6 +221,11 @@ export class BuilderWorker {
                 if (entity) entity.asset = ref;
               }
             } catch {
+              logEvent(
+                'asset_failed',
+                { jobId: job.jobId, milestone: request.kind, success: false },
+                'WARNING',
+              );
               world.assets[request.id] = { status: 'failed' };
             }
             await this.publish(job, lease, world);
@@ -219,7 +238,13 @@ export class BuilderWorker {
         await this.publish(job, lease, world);
       }
       await db().runTransaction(async (tx) => {
-        const lock = await tx.get(lockRef);
+        const [lock, ...fences] = await Promise.all([
+          tx.get(lockRef),
+          tx.get(db().doc(`deletionLocks/${job.uid}`)),
+          tx.get(db().doc(`users/${job.uid}/deletionLocks/${job.childId}`)),
+          tx.get(db().doc(`worldDeletionLocks/${job.worldId}`)),
+        ]);
+        if (fences.some((snapshot) => snapshot.exists)) throw new Error('Deletion requested');
         if (lock.data()?.['lease'] !== lease) throw new Error('Job lease lost');
         tx.update(jobRef, {
           status: usedFallback ? 'fallback' : 'complete',
@@ -248,7 +273,8 @@ export class BuilderWorker {
           tx.get(db().doc(`worldDeletionLocks/${job.worldId}`)),
         ]);
         if (lock.data()?.['lease'] !== lease) return;
-        tx.update(jobRef, { status: 'failed', finishedAt: Date.now() });
+        if (!parentDelete.exists && !childDelete.exists && !worldDelete.exists)
+          tx.update(jobRef, { status: 'failed', finishedAt: Date.now() });
         if (
           job.kind === 'build' &&
           world.exists &&
@@ -352,7 +378,7 @@ export class BuilderWorker {
     if (cached.success && cached.data.safetyChecked) return cached.data;
     for (let attempt = 0; attempt < 2; attempt++) {
       const prompt = `${STYLE_BIBLE} ${request.description}. ${request.kind === 'sprite' ? 'Full body, centered, flat pure magenta #FF00FF background, soft rim light, no shadow on background, no text.' : 'Wide 16:9 landscape, no text, no foreground characters.'}${attempt ? ' Strictly follow safety and background requirements.' : ''}`;
-      const raw = await this.models.image(prompt, request.hero);
+      const raw = await this.models.image(prompt, request.hero, request.kind !== 'sprite');
       const processed = request.kind === 'sprite' ? await processSprite(raw) : null;
       if (processed && processed.magentaFraction > 0.02) continue;
       const image =
@@ -363,21 +389,29 @@ export class BuilderWorker {
           .toBuffer());
       if (!(await this.models.safeImage(image, request.description))) continue;
       const prefix = `assets/${hash}`;
-      await this.storage
-        .bucket(this.config.bucket)
-        .file(`${prefix}/sprite.webp`)
-        .save(image, {
-          contentType: 'image/webp',
-          metadata: { cacheControl: 'public,max-age=31536000,immutable' },
-        });
-      if (processed)
+      if (this.config.assetDirectory) {
+        const dir = join(this.config.assetDirectory, prefix);
+        await mkdir(dir, { recursive: true });
+        await writeFile(join(dir, 'sprite.webp'), image);
+        if (processed)
+          await writeFile(join(dir, 'collider.json'), JSON.stringify(processed.collider));
+      } else {
         await this.storage
           .bucket(this.config.bucket)
-          .file(`${prefix}/collider.json`)
-          .save(JSON.stringify(processed.collider), {
-            contentType: 'application/json',
+          .file(`${prefix}/sprite.webp`)
+          .save(image, {
+            contentType: 'image/webp',
             metadata: { cacheControl: 'public,max-age=31536000,immutable' },
           });
+        if (processed)
+          await this.storage
+            .bucket(this.config.bucket)
+            .file(`${prefix}/collider.json`)
+            .save(JSON.stringify(processed.collider), {
+              contentType: 'application/json',
+              metadata: { cacheControl: 'public,max-age=31536000,immutable' },
+            });
+      }
       const record = AssetCacheDocSchema.parse({
         url: `${this.config.assetBaseUrl}/${prefix}/sprite.webp`,
         colliderUrl: processed ? `${this.config.assetBaseUrl}/${prefix}/collider.json` : null,

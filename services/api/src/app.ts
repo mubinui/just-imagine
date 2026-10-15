@@ -3,11 +3,13 @@ import cors from '@fastify/cors';
 import { z } from 'zod';
 import {
   CreateChildBodySchema,
+  CreateCompanionBodySchema,
   UpdateChildBodySchema,
   CheckoutBodySchema,
   DocumentIdSchema,
 } from '@just-imagine/protocol';
 import { ApiFault } from './errors';
+import type { CompanionService } from './companion';
 import type { ApiStore } from './store';
 
 export interface Billing {
@@ -20,6 +22,7 @@ export interface ApiOptions {
   store: ApiStore;
   verifyToken(token: string): Promise<{ uid: string }>;
   billing?: Billing;
+  companion?: CompanionService;
   origins: string[];
 }
 export function createApi(options: ApiOptions) {
@@ -87,6 +90,16 @@ export function createApi(options: ApiOptions) {
           await options.store.createChild(req.parentUid, CreateChildBodySchema.parse(req.body)),
         ),
     );
+    routes.post('/v1/children/:childId/companion', { bodyLimit: 5700000 }, async (req) => {
+      const input = CreateCompanionBodySchema.parse(req.body);
+      if (!options.companion)
+        throw new ApiFault(
+          503,
+          'INTERNAL',
+          'Photo companions are not connected yet. Choose a ready-made friend for now.',
+        );
+      return options.companion.create(req.parentUid, id(req.params, 'childId'), input);
+    });
     routes.patch('/v1/children/:childId', (req) =>
       options.store.updateChild(
         req.parentUid,

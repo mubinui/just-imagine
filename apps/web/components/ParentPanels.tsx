@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   AgeBandSchema,
   AvatarSchema,
@@ -16,8 +17,10 @@ import {
 import { api } from '../lib/api';
 import { env } from '../lib/env';
 import { s } from '../lib/strings/en';
+import { CompanionSetup } from './companion/CompanionSetup';
 import { Avatar } from './ProfilePicker';
 import { Modal } from './Modal';
+import '../app/parent-polish.css';
 export function ParentPanel({
   panel,
 }: {
@@ -76,13 +79,35 @@ export function ParentPanel({
     await action(async () => {
       if (confirm.kind === 'account') {
         await api('deleteAccountData');
+        localStorage.removeItem('ji-child');
         if (!env.fake) await fetch('/api/session', { method: 'DELETE' });
         router.replace('/sign-in');
-      } else if (confirm.kind === 'child') await api('deleteChild', { childId: confirm.id });
-      else await api('deleteWorld', { worldId: confirm.id });
+      } else if (confirm.kind === 'child') {
+        await api('deleteChild', { childId: confirm.id });
+        try {
+          if (JSON.parse(localStorage.getItem('ji-child') || 'null')?.id === confirm.id)
+            localStorage.removeItem('ji-child');
+        } catch {
+          localStorage.removeItem('ji-child');
+        }
+      } else await api('deleteWorld', { worldId: confirm.id });
       setConfirm(undefined);
     });
   }
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const day = new Date();
+    day.setDate(day.getDate() - 6 + i);
+    day.setHours(0, 0, 0, 0);
+    const end = new Date(day);
+    end.setDate(end.getDate() + 1);
+    const minutes = Math.round(
+      sessions
+        .filter((session) => session.startedAt >= +day && session.startedAt < +end)
+        .reduce((sum, session) => sum + session.voiceSeconds, 0) / 60,
+    );
+    return { day, minutes };
+  });
+  const chartMax = Math.max(10, ...week.map((day) => day.minutes));
   return (
     <>
       <div className="page-heading">
@@ -118,35 +143,39 @@ export function ParentPanel({
                   <p className="usage-number">{worlds.length}</p>
                 </div>
               </section>
-              <section className="parent-section">
+              <section className="parent-section exploration-section">
                 <h2>This week&apos;s exploration</h2>
-                <div className="week-chart">
-                  {Array.from({ length: 7 }, (_, i) => {
-                    const day = new Date();
-                    day.setDate(day.getDate() - 6 + i);
-                    day.setHours(0, 0, 0, 0);
-                    const end = new Date(day);
-                    end.setDate(end.getDate() + 1);
-                    const minutes = Math.round(
-                      sessions
-                        .filter((ss) => ss.startedAt >= +day && ss.startedAt < +end)
-                        .reduce((sum, ss) => sum + ss.voiceSeconds, 0) / 60,
-                    );
-                    return (
-                      <div key={i}>
-                        <span>{day.toLocaleDateString(undefined, { weekday: 'short' })}</span>
-                        <meter
-                          min={0}
-                          max={60 * data.children.length || 60}
-                          value={minutes}
-                          aria-label={`${day.toDateString()}: ${minutes} minutes`}
-                        />
-                        <strong>{minutes} min</strong>
-                      </div>
-                    );
-                  })}
-                </div>
-                <p>
+                <p className="chart-description">Minutes spent talking and exploring together.</p>
+                {week.some((day) => day.minutes > 0) ? (
+                  <div className="exploration-chart">
+                    {week.map(({ day, minutes }, i) => {
+                      return (
+                        <div className="exploration-day" key={i}>
+                          <div
+                            className="exploration-column"
+                            role="img"
+                            aria-label={`${day.toDateString()}: ${minutes} minutes`}
+                          >
+                            <span
+                              className="exploration-bar"
+                              style={{ height: `${(minutes / chartMax) * 100}%` }}
+                            />
+                            <strong aria-hidden="true">{minutes}</strong>
+                          </div>
+                          <span>{day.toLocaleDateString(undefined, { weekday: 'short' })}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="exploration-empty">
+                    <p>Your week starts with a little wonder.</p>
+                    <Link className="text-link" href="/play">
+                      Start an adventure
+                    </Link>
+                  </div>
+                )}
+                <p className="exploration-summary">
                   {data.children.reduce((sum, c) => sum + c.loopsCompleted, 0)} completed learning
                   loops · {new Set(discoveries.map((d) => d.concept)).size} concepts discovered
                 </p>
@@ -166,10 +195,10 @@ export function ParentPanel({
                 ))}
               </section>
               <section className="parent-section">
-                <h2>{s.discovery}</h2>
+                <h2>Discoveries</h2>
                 {discoveries.length ? (
                   discoveries.map((d, index) => (
-                    <article key={`${d.concept}-${index}`}>
+                    <article className="parent-discovery" key={`${d.concept}-${index}`}>
                       <h3>{d.title}</h3>
                       <p>{d.kidExplanation}</p>
                       <p>{d.realLifeNote}</p>
@@ -197,9 +226,15 @@ export function ParentPanel({
                 <h2>{s.sessions}</h2>
                 {sessions.length ? (
                   sessions.map((ss) => (
-                    <p key={ss.id}>
-                      {new Date(ss.startedAt).toLocaleDateString()} · {ss.summary}
-                    </p>
+                    <article className="session-entry" key={ss.id}>
+                      <time dateTime={new Date(ss.startedAt).toISOString()}>
+                        {new Date(ss.startedAt).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </time>
+                      <p>{ss.summary}</p>
+                    </article>
                   ))
                 ) : (
                   <p>{s.empty}</p>
@@ -217,6 +252,7 @@ export function ParentPanel({
                 <ChildForm
                   key={child.id}
                   child={child}
+                  onCompanionSaved={load}
                   busy={busy}
                   save={(body) => action(() => api('updateChild', { childId: child.id }, body))}
                   remove={() => setConfirm({ kind: 'child', id: child.id })}
@@ -345,11 +381,13 @@ export function ParentPanel({
 }
 function ChildForm({
   child,
+  onCompanionSaved,
   busy,
   save,
   remove,
 }: {
   child?: ChildResponse;
+  onCompanionSaved?: () => Promise<void>;
   busy: boolean;
   save: (body: CreateChildBody | Record<string, unknown>) => Promise<void>;
   remove?: () => void;
@@ -442,6 +480,10 @@ function ChildForm({
           </label>
         )}
       </div>
+      {child && onCompanionSaved && <CompanionSetup child={child} onSaved={onCompanionSaved} />}
+      {!child && (
+        <p>You can choose their friend or make a chibi from a photo after adding this explorer.</p>
+      )}
       <div className="actions">
         <button className="button primary" disabled={busy}>
           {child ? s.save : s.add}

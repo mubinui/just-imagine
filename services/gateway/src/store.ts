@@ -19,6 +19,7 @@ import {
 import { ConceptSchema, findBlockedTerm } from '@just-imagine/scene-schema';
 import {
   db,
+  localDevelopment,
   verifyIdToken,
   readDoc,
   voiceSecondsLeft,
@@ -184,6 +185,29 @@ export class FirestoreSessionStore implements SessionStore {
   async enqueue(job: BuilderJob) {
     if (await isKillSwitchOn()) throw new Error('KILL_SWITCH');
     if (job.kind === 'build') await reserveWorld(job.uid, job.plan);
+    if (localDevelopment()) {
+      const ref = db().doc(`localBuildTasks/${job.jobId}`);
+      await db().runTransaction(async (tx) => {
+        const [task, deleting, childDeleting] = await Promise.all([
+          tx.get(ref),
+          tx.get(db().doc(`deletionLocks/${job.uid}`)),
+          tx.get(db().doc(`users/${job.uid}/deletionLocks/${job.childId}`)),
+        ]);
+        if (deleting.exists || childDeleting.exists) throw new Error('FORBIDDEN');
+        if (!task.exists)
+          tx.create(ref, {
+            uid: job.uid,
+            childId: job.childId,
+            worldId: job.worldId,
+            payload: job,
+            state: 'queued',
+            attempts: 0,
+            nextAt: Date.now(),
+            leaseUntil: 0,
+          });
+      });
+      return;
+    }
     const parent = this.tasks.queuePath(this.queue.project, 'us-central1', this.queue.queue);
     await this.tasks.createTask({
       parent,

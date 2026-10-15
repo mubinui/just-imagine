@@ -15,7 +15,12 @@
     "format:check": "prettier --check .",
     "test:emulator": "node scripts/test-emulators.mjs",
     "dev:web": "pnpm --filter @just-imagine/web dev",
-    "dev:gateway": "pnpm --filter @just-imagine/fixtures dev"
+    "dev:gateway": "pnpm --filter @just-imagine/fixtures dev",
+    "local:start": "node scripts/local.mjs start",
+    "local:stop": "node scripts/local.mjs stop",
+    "local:status": "node scripts/local.mjs status",
+    "local:logs": "node scripts/local.mjs logs",
+    "local:reload-key": "node scripts/local.mjs reload-key"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

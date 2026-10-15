@@ -24,6 +24,24 @@ export class VoiceClient {
   private generation = 0;
   private connecting = false;
   private listeners = new Set<(message: ServerMessage) => void>();
+  private statusListeners = new Set<(status: VoiceStatus) => void>();
+  status: VoiceStatus = 'idle';
+  get session() {
+    if (this.ended || !this.hello) return undefined;
+    const { childId, characterId, worldId, sessionId } = this.hello;
+    return { childId, characterId, worldId, sessionId };
+  }
+  subscribeStatus(listener: (status: VoiceStatus) => void) {
+    this.statusListeners.add(listener);
+    return () => {
+      this.statusListeners.delete(listener);
+    };
+  }
+  private setStatus(status: VoiceStatus) {
+    this.status = status;
+    this.onStatus(status);
+    for (const listener of this.statusListeners) listener(status);
+  }
   onStatus: (status: VoiceStatus) => void = () => {};
   constructor(private options: VoiceOptions) {
     this.audio = options.audio ?? new BrowserAudio();
@@ -53,6 +71,14 @@ export class VoiceClient {
       if (this.options.capture !== false) await this.audio.startCapture();
       if (this.ended || generation !== this.generation) return;
       await this.open();
+    } catch (error) {
+      if (generation === this.generation) {
+        this.ended = true;
+        this.hello = undefined;
+        this.audio.stopCapture();
+        this.setStatus('error');
+      }
+      throw error;
     } finally {
       if (generation === this.generation || !this.socket) this.connecting = false;
     }
@@ -60,7 +86,7 @@ export class VoiceClient {
   private async open() {
     if (this.ended || !this.hello) return;
     const generation = ++this.generation;
-    this.onStatus(this.retry ? 'reconnecting' : 'connecting');
+    this.setStatus(this.retry ? 'reconnecting' : 'connecting');
     try {
       if (this.options.getToken) this.hello.idToken = await this.options.getToken();
       if (this.ended || generation !== this.generation) return;
@@ -82,9 +108,13 @@ export class VoiceClient {
           if (message.type === 'ready') {
             this.retry = 0;
             this.hello!.sessionId = message.sessionId;
+            this.hello!.characterId = message.characterId;
             if (message.worldId) this.hello!.worldId = message.worldId;
-            this.onStatus('connected');
+            this.setStatus('connected');
           }
+          if (message.type === 'characterState' || message.type === 'summon')
+            this.hello!.characterId = message.characterId;
+          if (message.type === 'newGame') delete this.hello!.worldId;
           if (message.type === 'worldJob') this.hello!.worldId = message.worldId;
           if (message.type === 'interrupted') this.audio.flush();
           if (message.type === 'bye') {
@@ -92,15 +122,15 @@ export class VoiceClient {
             this.audio.stopCapture();
             this.audio.flush();
             socket.close();
-            this.onStatus('closed');
+            this.setStatus('closed');
           }
           for (const listener of this.listeners) listener(message);
         } catch {
-          this.onStatus('error');
+          this.setStatus('error');
         }
       };
       socket.onerror = () => {
-        if (!this.ended) this.onStatus('reconnecting');
+        if (!this.ended) this.setStatus('reconnecting');
       };
       socket.onclose = () => {
         if (generation === this.generation) {
@@ -118,10 +148,10 @@ export class VoiceClient {
     if (this.retry >= 5) {
       this.ended = true;
       this.audio.stopCapture();
-      this.onStatus('error');
+      this.setStatus('error');
       return;
     }
-    this.onStatus('reconnecting');
+    this.setStatus('reconnecting');
     this.timer = setTimeout(() => void this.open(), 500 * 2 ** this.retry++);
   }
   send(message: Exclude<ClientMessage, { type: 'hello' }>) {
@@ -138,11 +168,12 @@ export class VoiceClient {
     this.socket = undefined;
     this.audio.stopCapture();
     this.audio.flush();
-    this.onStatus('closed');
+    this.setStatus('closed');
   }
   async dispose() {
     this.end();
     this.listeners.clear();
+    this.statusListeners.clear();
     await this.audio.dispose();
   }
 }

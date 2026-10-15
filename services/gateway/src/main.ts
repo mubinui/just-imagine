@@ -12,6 +12,10 @@ const env = z
     BUILDER_URL: z.url(),
     TASK_SERVICE_ACCOUNT: z.email(),
     BUILDER_QUEUE: z.string().default('world-builds'),
+    GEMINI_API_KEY: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(1).optional(),
+    ),
     LIVE_MODEL: z.string().default('gemini-3.8-live'),
     FAST_MODEL: z.string().default('gemini-3.8-flash'),
   })
@@ -30,6 +34,7 @@ const gateway = startGateway({
   provider: new VertexLiveProvider({
     project: env.GOOGLE_CLOUD_PROJECT,
     liveModel: env.LIVE_MODEL,
+    apiKey: env.GEMINI_API_KEY,
     fastModel: env.FAST_MODEL,
   }),
 });

@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { MeResponse, ChildResponse } from '@just-imagine/protocol';
+import { CompanionArt } from './companion/Companion';
 import { api } from '../lib/api';
 import { getVoice, releaseVoice } from '../lib/voice';
 import { s } from '../lib/strings/en';
+import '../app/explorers.css';
 export function Avatar({ kind = 'fox' }: { kind?: string }) {
   return (
     <span className={`avatar avatar-${kind}`} aria-hidden="true">
@@ -41,14 +43,31 @@ export function ProfilePicker() {
     <main className="picker">
       <h1>{s.who}</h1>
       <p className="lead">{s.pick}</p>
+      {!data && !error && <p role="status">{s.load}</p>}
       <div className="profiles">
         {data?.children.map((child) => (
           <button className="profile" key={child.id} onClick={() => select(child)}>
-            <Avatar kind={child.avatar} />
+            {child.companion ? (
+              <CompanionArt companion={child.companion} />
+            ) : (
+              <Avatar kind={child.avatar} />
+            )}
             <strong>{child.firstName}</strong>
             <span>
               {s.agePrefix} {child.ageBand}
             </span>
+            <svg
+              className="profile-arrow"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <path d="M4 12h15m-6-6 6 6-6 6" />
+            </svg>
           </button>
         ))}
       </div>

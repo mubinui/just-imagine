@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, db } from '@just-imagine/server-core';
 import { UserDocSchema, paths } from '@just-imagine/protocol';
 function sameOrigin(req: NextRequest) {
-  return req.headers.get('origin') === req.nextUrl.origin;
+  const publicOrigin = process.env.WEB_URL
+    ? new URL(process.env.WEB_URL).origin
+    : req.nextUrl.origin;
+  return req.headers.get('origin') === publicOrigin;
 }
 export async function POST(req: NextRequest) {
   if (!sameOrigin(req)) return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });

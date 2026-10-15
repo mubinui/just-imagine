@@ -4,7 +4,7 @@ import { mountCharacter } from '@just-imagine/characters';
 import type { CharacterId, Emotion } from '@just-imagine/protocol';
 import { getVoice } from '../lib/voice';
 import { env } from '../lib/env';
-import { Avatar } from './ProfilePicker';
+import { CharacterArt } from './studio/CharacterArt';
 export function CharacterFace({ character }: { character: CharacterId }) {
   const [failed, setFailed] = useState(false);
   const host = useRef<HTMLDivElement>(null),
@@ -59,15 +59,7 @@ export function CharacterFace({ character }: { character: CharacterId }) {
       {env.characterAssetBaseUrl && !failed ? (
         <canvas ref={canvas} width={220} height={220} />
       ) : (
-        <Avatar
-          kind={
-            character === 'mishti' || character === 'chandni'
-              ? 'fox'
-              : character === 'pori'
-                ? 'bunny'
-                : 'panda'
-          }
-        />
+        <CharacterArt id={character} />
       )}
     </div>
   );

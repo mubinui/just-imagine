@@ -67,3 +67,15 @@ it('rejects a patch introducing an unapproved remote asset', async () => {
     ]),
   ).rejects.toThrow('unapproved asset');
 });
+
+it('repairs an invalid patch once using validation issues without mutating the original', async () => {
+  const generate = vi
+    .fn()
+    .mockResolvedValueOnce([{ op: 'replace', path: '/worldId', value: 'wrong' }])
+    .mockResolvedValueOnce([{ op: 'replace', path: '/title', value: 'Repaired title' }]);
+  const result = await patchScene(fixture, 'change title', generate);
+  expect(result.doc.title).toBe('Repaired title');
+  expect(generate).toHaveBeenCalledTimes(2);
+  expect(generate.mock.calls[1]?.[0]).toContain('Validation issues to repair');
+  expect(fixture.title).not.toBe('Repaired title');
+});

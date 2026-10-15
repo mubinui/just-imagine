@@ -285,3 +285,74 @@ it('does not install a meter interval after end during the initial Live open', a
   interval.mockRestore();
   await h.gateway.close();
 });
+
+it('warns the character once as quota approaches exhaustion', async () => {
+  const h = harness(10);
+  h.store.meter = async () => 100;
+  const { socket, messages } = await connect(h.gateway);
+  socket.send(JSON.stringify(hello));
+  await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+  await vi.waitFor(() =>
+    expect(messages.filter((m) => (m as { type: string }).type === 'quota').length).toBeGreaterThan(
+      1,
+    ),
+  );
+  expect(h.live.text.mock.calls.filter(([text]) => text.includes('Quota wrap-up'))).toHaveLength(1);
+  await h.gateway.close();
+});
+
+it('fails closed on a moderation outage without recording a child safety violation', async () => {
+  const h = harness();
+  h.provider.moderate = async () => {
+    throw new Error('upstream timeout');
+  };
+  const { socket, messages } = await connect(h.gateway);
+  socket.send(JSON.stringify(hello));
+  await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+  h.callbacks()?.transcript('child', 'A friendly boat', true);
+  await vi.waitFor(() => expect(messages).toContainEqual({ type: 'bye', reason: 'error' }));
+  expect(messages).not.toContainEqual({ type: 'bye', reason: 'moderation' });
+  await h.gateway.close();
+});
+it('routes only named child destinations and keeps one Live session through screen changes', async () => {
+  const h = harness(),
+    { socket, messages } = await connect(h.gateway);
+  socket.send(JSON.stringify(hello));
+  await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+  h.callbacks()?.tool('navigate_ok', 'navigate', { destination: 'gallery' });
+  await vi.waitFor(() =>
+    expect(messages).toContainEqual({ type: 'navigate', destination: 'gallery' }),
+  );
+  socket.send(JSON.stringify({ type: 'screen', destination: 'gallery' }));
+  await vi.waitFor(() =>
+    expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining('now on the gallery screen')),
+  );
+  h.callbacks()?.tool('navigate_bad', 'navigate', { destination: '/parent/billing' });
+  await vi.waitFor(() =>
+    expect(h.live.toolResult).toHaveBeenCalledWith(
+      'navigate_bad',
+      'navigate',
+      expect.objectContaining({ error: expect.any(String) }),
+    ),
+  );
+  expect(messages.filter((m) => (m as { type: string }).type === 'navigate')).toHaveLength(1);
+  expect(h.provider.open).toHaveBeenCalledOnce();
+  await h.gateway.close();
+});
+
+it('starts a fresh game without deleting saved work or replacing the Live session', async () => {
+  const h = harness(),
+    stop = vi.fn();
+  h.store.watchWorld = () => stop;
+  h.store.world = vi.fn(async () => ({}) as Awaited<ReturnType<SessionStore['world']>>);
+  const { socket, messages } = await connect(h.gateway);
+  socket.send(JSON.stringify({ ...hello, worldId: 'w_previous' }));
+  await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+  socket.send(JSON.stringify({ type: 'newGame' }));
+  await vi.waitFor(() => expect(messages).toContainEqual({ type: 'newGame' }));
+  expect(stop).toHaveBeenCalledOnce();
+  expect([...h.records.values()][0]).not.toHaveProperty('worldId');
+  expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining('NEW game'));
+  expect(h.provider.open).toHaveBeenCalledOnce();
+  await h.gateway.close();
+});

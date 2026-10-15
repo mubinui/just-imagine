@@ -3,6 +3,9 @@ import {
   UpdateChildBodySchema,
   defaultTierFor,
   PLAN_LIMITS,
+  DiscoveryDocSchema,
+  type ServerMessage,
+  type DiscoveryDoc,
   type MeResponse,
   type RouteKey,
 } from '@just-imagine/protocol';
@@ -46,6 +49,33 @@ export function readDemo(): MeResponse {
 export function writeDemo(data: MeResponse) {
   localStorage.setItem(key, JSON.stringify(data));
 }
+function demoDiscoveries(childId: string): DiscoveryDoc[] {
+  try {
+    return DiscoveryDocSchema.array().parse(
+      JSON.parse(localStorage.getItem(`ji-discoveries:${childId}`) || '[]'),
+    );
+  } catch {
+    return [];
+  }
+}
+export function recordDemoDiscovery(
+  childId: string,
+  worldId: string,
+  card: Extract<ServerMessage, { type: 'discovery' }>,
+) {
+  if (!readDemo().children.some((child) => child.id === childId)) return;
+  const cards = demoDiscoveries(childId);
+  const prior = cards.find((entry) => entry.concept === card.concept);
+  if (prior) {
+    if (prior.worldIds.includes(worldId)) return;
+    prior.worldIds.push(worldId);
+    prior.count++;
+  } else
+    cards.push(
+      DiscoveryDocSchema.parse({ ...card, firstAt: Date.now(), count: 1, worldIds: [worldId] }),
+    );
+  localStorage.setItem(`ji-discoveries:${childId}`, JSON.stringify(cards));
+}
 export function demoRequest(
   route: RouteKey,
   params: Record<string, string>,
@@ -54,6 +84,10 @@ export function demoRequest(
   const data = readDemo();
   const child = data.children.find((c) => c.id === params.childId);
   switch (route) {
+    case 'createCompanion':
+      throw new Error(
+        'Photo companions need a connected Gemini service. Choose a ready-made friend in this preview.',
+      );
     case 'me':
       return data;
     case 'createChild': {
@@ -81,10 +115,15 @@ export function demoRequest(
       return child;
     }
     case 'deleteChild':
+      localStorage.removeItem(`ji-discoveries:${params.childId}`);
+      if (JSON.parse(localStorage.getItem('ji-child') || 'null')?.id === params.childId)
+        localStorage.removeItem('ji-child');
       data.children = data.children.filter((c) => c.id !== params.childId);
       writeDemo(data);
       return {};
     case 'deleteAccountData':
+      for (const c of data.children) localStorage.removeItem(`ji-discoveries:${c.id}`);
+      localStorage.removeItem('ji-deleted-worlds');
       localStorage.removeItem(key);
       localStorage.removeItem('ji-child');
       localStorage.removeItem('ji-preview-auth');
@@ -125,7 +164,7 @@ export function demoRequest(
     case 'listSessions':
       return { sessions: [] };
     case 'listDiscoveries':
-      return { discoveries: [] };
+      return { discoveries: child ? demoDiscoveries(child.id) : [] };
     case 'checkout':
     case 'portal':
       throw new Error('Billing is unavailable in the local preview. No payment has been taken.');

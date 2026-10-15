@@ -27,7 +27,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
     try {
       if (env.fake) {
         localStorage.setItem('ji-preview-auth', '1');
-        router.push('/play');
+        router.push(signup ? '/parent/children' : '/play');
         return;
       }
       const auth = firebase().auth;
@@ -53,7 +53,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
         }),
       });
       if (!response.ok) throw new Error((await response.json()).error);
-      router.push('/play');
+      router.push(signup ? '/parent/children' : '/play');
     } catch (e) {
       setError(e instanceof Error ? e.message : s.unavailable);
     } finally {

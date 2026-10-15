@@ -1,0 +1,273 @@
+.home-hero {
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 7%;
+  padding-top: 58px;
+  padding-bottom: 78px;
+}
+.home-hero h1 {
+  font-size: clamp(64px, 6.2vw, 88px);
+  line-height: 1.08;
+  max-width: 9ch;
+}
+.home-hero .lead {
+  font-size: 20px;
+  max-width: 32ch;
+}
+.home-hero .actions {
+  align-items: flex-start;
+  gap: 14px 24px;
+}
+.home-hero .button {
+  min-height: 56px;
+}
+.hero-invitation {
+  font-size: 14px;
+  line-height: 1.7;
+  margin-top: 28px;
+}
+.gravity-playground {
+  min-width: 0;
+}
+.gravity-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+.experiment-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.experiment-live i {
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.gravity-scene {
+  position: relative;
+  overflow: hidden;
+  background: #e1ebd7;
+  border-radius: 48% 48% 16px 16px;
+  color: var(--accent);
+}
+.gravity-scene svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gravity-orbit {
+  fill: none;
+  stroke: #b6cba8;
+  stroke-width: 1;
+}
+.gravity-sun {
+  fill: var(--yellow);
+}
+.gravity-moon-detail {
+  fill: #d5cfae;
+  opacity: 0;
+}
+.gravity-floor {
+  fill: #c3d6b5;
+}
+.gravity-ground-line {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.gravity-guide {
+  stroke: #7d9e73;
+  stroke-dasharray: 3 7;
+}
+.gravity-ball {
+  color: #b95132;
+}
+.gravity-height {
+  opacity: 0.7;
+}
+.gravity-height-label {
+  fill: var(--soft);
+  font:
+    12px Nunito,
+    sans-serif;
+  text-anchor: middle;
+}
+.gravity-reading {
+  position: absolute;
+  right: 24px;
+  bottom: 26px;
+  display: grid;
+  line-height: 1.2;
+  gap: 5px;
+  text-align: right;
+}
+.gravity-reading strong {
+  font:
+    25px Baloo,
+    serif;
+}
+.gravity-reading span {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.gravity-scene[data-planet='moon'] {
+  background: #e4e8e2;
+}
+[data-planet='moon'] .gravity-orbit {
+  stroke: #cad1c3;
+}
+[data-planet='moon'] .gravity-sun {
+  fill: var(--ground);
+}
+[data-planet='moon'] .gravity-moon-detail {
+  opacity: 1;
+}
+[data-planet='moon'] .gravity-floor {
+  fill: #cbd4c2;
+}
+.gravity-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+}
+.planet-switch {
+  display: flex;
+  padding: 4px;
+  background: #ecefe2;
+  border-radius: 12px;
+}
+.planet-switch button {
+  min-width: 80px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 18px;
+}
+.planet-switch button[aria-pressed='true'] {
+  background: var(--surface);
+  box-shadow: 0 3px 8px -4px #243e3638;
+}
+.gravity-drop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-color: var(--accent);
+  font-size: 14px;
+  font-weight: 800;
+}
+.gravity-note {
+  font-size: 13px;
+  margin-top: 12px;
+}
+.discovery-story {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 8%;
+  margin: 0 6% 78px;
+  padding-top: 48px;
+  border-top: 1px solid var(--line);
+}
+.discovery-story > h2 {
+  font-size: clamp(32px, 3.5vw, 46px);
+  line-height: 1.16;
+}
+.discovery-story > h2 span {
+  color: var(--accent);
+}
+.discovery-story ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.discovery-story li {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 20px;
+  padding-bottom: 26px;
+}
+.discovery-story li:last-child {
+  padding-bottom: 0;
+}
+.story-step {
+  font:
+    23px Baloo,
+    serif;
+  color: var(--accent);
+  border-bottom: 1px solid var(--line);
+  height: 35px;
+}
+.discovery-story li h2 {
+  font-size: 23px;
+  margin: 0 0 8px;
+}
+.discovery-story li p {
+  font-size: 16px;
+  max-width: 45ch;
+}
+@media (max-width: 1000px) {
+  .home-hero {
+    gap: 5%;
+  }
+  .home-hero h1 {
+    font-size: 64px;
+  }
+  .gravity-heading {
+    flex-wrap: wrap;
+  }
+  .gravity-reading {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+@media (max-width: 700px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+    padding: 36px 6% 46px;
+    gap: 40px;
+  }
+  .home-hero h1 {
+    font-size: 62px;
+    max-width: 9ch;
+  }
+  .home-hero .lead {
+    font-size: 18px;
+  }
+  .hero-invitation {
+    margin-top: 20px;
+  }
+  .gravity-playground {
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
+  }
+  .gravity-heading {
+    font-size: 14px;
+  }
+  .planet-switch button {
+    min-width: 65px;
+    padding-inline: 12px;
+  }
+  .gravity-drop {
+    padding-inline: 12px;
+  }
+  .gravity-reading strong {
+    font-size: 22px;
+  }
+  .discovery-story {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding-top: 32px;
+    margin-bottom: 44px;
+  }
+}

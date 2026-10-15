@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PresetCompanionSchema } from './characters';
 import { ConceptSchema } from '@just-imagine/scene-schema';
 import { PlanLimitsSchema, PlanTierSchema } from './plans';
 import {
@@ -43,7 +44,9 @@ export const CreateChildBodySchema = ChildDocSchema.pick({
   firstName: true,
   avatar: true,
   ageBand: true,
-}).strict();
+})
+  .extend({ companion: PresetCompanionSchema.optional() })
+  .strict();
 export type CreateChildBody = z.infer<typeof CreateChildBodySchema>;
 
 export const UpdateChildBodySchema = ChildDocSchema.pick({
@@ -55,6 +58,7 @@ export const UpdateChildBodySchema = ChildDocSchema.pick({
   captions: true,
   sessionTargetMinutes: true,
 })
+  .extend({ companion: PresetCompanionSchema.nullable().optional() })
   .partial()
   .strict();
 export type UpdateChildBody = z.infer<typeof UpdateChildBodySchema>;
@@ -97,6 +101,7 @@ export type WorldSummary = z.infer<typeof WorldSummarySchema>;
 export const ROUTES = {
   me: { method: 'GET', path: '/v1/me' },
   deleteAccountData: { method: 'POST', path: '/v1/me/delete' },
+  createCompanion: { method: 'POST', path: '/v1/children/:childId/companion' },
   createChild: { method: 'POST', path: '/v1/children' },
   updateChild: { method: 'PATCH', path: '/v1/children/:childId' },
   deleteChild: { method: 'DELETE', path: '/v1/children/:childId' },

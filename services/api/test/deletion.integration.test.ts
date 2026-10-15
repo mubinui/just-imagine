@@ -30,3 +30,17 @@ it('fences individual worlds before recursively removing versions', async () => 
   expect((await db().collection('worlds/w_delete_single/versions').get()).empty).toBe(true);
   expect((await db().doc('deletionLocks/delete_single').get()).exists).toBe(false);
 });
+
+it('deletes only owned builder jobs for a world and preserves durable fences', async () => {
+  await db()
+    .doc('builderJobs/j_remove_owned')
+    .set({ uid: 'cleanup_parent', childId: 'c_cleanup', worldId: 'w_cleanup', status: 'running' });
+  await db()
+    .doc('builderJobs/j_keep_other')
+    .set({ uid: 'other_parent', childId: 'c_other', worldId: 'w_cleanup', status: 'failed' });
+  const id = await requestDeletion('cleanup_parent', null, 'w_cleanup');
+  await processDeletion(id);
+  expect((await db().doc('builderJobs/j_remove_owned').get()).exists).toBe(false);
+  expect((await db().doc('builderJobs/j_keep_other').get()).exists).toBe(true);
+  expect((await db().doc('worldDeletionLocks/w_cleanup').get()).exists).toBe(true);
+});

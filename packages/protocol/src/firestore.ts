@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ConceptSchema, PatchOpSchema, SceneDocSchema } from '@just-imagine/scene-schema';
 import { PlanTierSchema } from './plans';
-import { CharacterIdSchema } from './characters';
+import { CharacterIdSchema, CompanionSchema } from './characters';
 import { AgeBandSchema, TierSchema } from './bands';
 import { ByeReasonSchema } from './ws';
 import { DateKeySchema, DocumentIdSchema, EpochMsSchema } from './primitives';
@@ -23,6 +23,7 @@ export type UserDoc = z.infer<typeof UserDocSchema>;
 export const ChildDocSchema = z.object({
   firstName: z.string().trim().min(1).max(30),
   avatar: AvatarSchema,
+  companion: CompanionSchema.nullable().optional(),
   ageBand: AgeBandSchema,
   tier: TierSchema,
   labsUnlocked: z.boolean(),

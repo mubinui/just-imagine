@@ -37,11 +37,13 @@ export interface Pose {
   width: number;
   height: number;
   nodes?: Vec2[];
+  templateId?: string;
 }
 export interface Simulation {
   load(doc: SceneDoc): void;
   update(doc: SceneDoc): void;
   step(frames?: number): void;
+  advance(seconds: number): void;
   tap(target: string, at?: Vec2): void;
   drag(target: string, at: Vec2): void;
   flick(target: string, velocity: Vec2): void;
@@ -56,7 +58,10 @@ export interface Simulation {
   setCollider(target: string, value: unknown): boolean;
   subscribe(listener: (event: EngineEvent) => void): () => void;
 }
-export type SimulationFrame = Omit<SimulationSnapshot, 'history' | 'inputs'>;
+export type SimulationFrame = Omit<SimulationSnapshot, 'history' | 'inputs'> & {
+  previousEntities: Pose[];
+  interpolation: number;
+};
 export interface SimulationSnapshot {
   time: number;
   timeScale: number;
@@ -89,6 +94,8 @@ class Runtime implements Simulation {
   private landingSamples = new Map<string, number[]>();
   private landed = new Map<string, Set<string>>();
   private supported = new Set<string>();
+  private templates = new Map<string, string>();
+  private collisionRuleContacts = new Map<string, Set<string>>();
   private bodies = new Map<string, RAPIER.RigidBody>();
   private lattices = new Map<string, RAPIER.RigidBody[]>();
   private entities = new Map<string, Entity>();
@@ -102,6 +109,9 @@ class Runtime implements Simulation {
   private serial = 0;
   private lastSummaries = new Map<string, number>();
   private time = 0;
+  private ticks = 0;
+  private pendingTicks = 0;
+  private previousPoses: Pose[] = [];
   private watches = new Map<number, { start: number; stop?: number }>();
   private timeScale = 1;
   private wind = { x: 0, y: 0 };
@@ -136,11 +146,12 @@ class Runtime implements Simulation {
   private input(type: string, target?: string, value?: unknown) {
     this.inputs.push({ type, time: this.time, ...(target ? { target } : {}), value });
     if (this.inputs.length > 2000) this.inputs.shift();
-    const interval = type === 'variable' ? 0.3 : ['tap', 'drag', 'flick'].includes(type) ? 0.5 : 0;
-    const key = type === 'variable' ? `${type}:${target}` : 'interaction';
-    if (!interval || this.time - (this.lastSummaries.get(key) ?? -Infinity) >= interval) {
+    const interval = type === 'variable' ? 300 : type === 'drag' ? 500 : 0;
+    const key = `${type}:${target ?? ''}`;
+    const now = Date.now();
+    if (!interval || now - (this.lastSummaries.get(key) ?? -Infinity) >= interval) {
       this.emit({ type, ...(target ? { target } : {}), value });
-      this.lastSummaries.set(key, this.time);
+      this.lastSummaries.set(key, now);
     }
     (this.doc.visuals ?? []).forEach((v, i) => {
       if (v.type === 'stopwatch' && v.startOn === type) this.watches.set(i, { start: this.time });
@@ -156,6 +167,8 @@ class Runtime implements Simulation {
     this.queue?.free();
     this.doc = structuredClone(doc);
     this.bodies.clear();
+    this.templates.clear();
+    this.collisionRuleContacts.clear();
     this.documentJoints = [];
     this.colliderParts.clear();
     this.removed.clear();
@@ -179,6 +192,9 @@ class Runtime implements Simulation {
     this.histograms = {};
     this.inputs = [];
     this.time = 0;
+    this.ticks = 0;
+    this.pendingTicks = 0;
+    this.previousPoses = [];
     this.watches.clear();
     this.timeScale = 1;
     this.seed = doc.environment.seed;
@@ -203,6 +219,7 @@ class Runtime implements Simulation {
       this.world.createCollider(RAPIER.ColliderDesc.cuboid(w! / 2, h! / 2).setTranslation(x!, y!));
     this.reconcileJoints();
     for (const [id, v] of Object.entries(doc.variables ?? {})) this.setVariable(id, v.value);
+    this.previousPoses = this.poses();
   }
   private reconcileJoints() {
     for (const joint of this.documentJoints)
@@ -248,6 +265,9 @@ class Runtime implements Simulation {
     this.lattices.delete(id);
     this.bodies.delete(id);
     this.entities.delete(id);
+    this.templates.delete(id);
+    for (const key of this.collisionRuleContacts.keys())
+      if (key.split(':').includes(id)) this.collisionRuleContacts.delete(key);
     this.scales.delete(id);
     this.launches.delete(id);
     this.submerged.delete(id);
@@ -267,6 +287,7 @@ class Runtime implements Simulation {
       launch = this.launches.get(id),
       material = this.effectiveMaterials.get(id),
       hold = this.holds.get(id),
+      template = this.templates.get(id),
       parts = this.colliderParts.get(id),
       baseline = this.spellBaseline?.scales.get(id),
       landed = [...this.landed].filter(([, set]) => set.has(id)).map(([key]) => key);
@@ -278,6 +299,7 @@ class Runtime implements Simulation {
 
     if (parts) this.colliderParts.set(id, parts);
     this.add(e);
+    if (template) this.templates.set(id, template);
     if (baseline !== undefined) this.spellBaseline?.scales.set(id, baseline);
     for (const key of landed) this.landed.get(key)?.add(id);
     if (hold) this.drag(id, hold);
@@ -287,6 +309,43 @@ class Runtime implements Simulation {
         node.setAngvel(angular ?? 0, true);
       }
     }
+  }
+  private nodes(id: string) {
+    return this.lattices.get(id) ?? (this.bodies.has(id) ? [this.bodies.get(id)!] : []);
+  }
+  private area(e: Entity, scale = 1) {
+    const w = e.body.size.width * scale,
+      h = e.body.size.height * scale;
+    if (e.body.shape === 'circle') return Math.PI * (Math.min(w, h) / 2) ** 2;
+    if (e.body.shape === 'polygon' && e.body.vertices) {
+      const vs = e.body.vertices;
+      return (
+        (Math.abs(
+          vs.reduce((sum, v, i) => {
+            const next = vs[(i + 1) % vs.length]!;
+            return sum + v.x * next.y - next.x * v.y;
+          }, 0),
+        ) /
+          2) *
+        scale *
+        scale
+      );
+    }
+    return w * h;
+  }
+  private nodeDensity(e: Entity, density: number, scale = 1) {
+    const radius = (Math.min(e.body.size.width, e.body.size.height) * scale) / 8;
+    return (density * this.area(e, scale)) / (9 * Math.PI * radius * radius);
+  }
+  private impulse(id: string, impulse: Vec2) {
+    const nodes = this.nodes(id),
+      mass = nodes.reduce((sum, n) => sum + n.mass(), 0);
+    for (const n of nodes)
+      if (n.isDynamic())
+        n.applyImpulse(
+          { x: (impulse.x * n.mass()) / mass, y: (impulse.y * n.mass()) / mass },
+          true,
+        );
   }
   private add(entity: Entity) {
     if (this.entities.size >= 24) return;
@@ -316,7 +375,7 @@ class Runtime implements Simulation {
           ? RAPIER.ColliderDesc.ball(Math.min(w, h) / 2)
           : RAPIER.ColliderDesc.cuboid(w / 2, h / 2);
     if (soft) c = RAPIER.ColliderDesc.ball(Math.min(w, h) / 8);
-    c.setDensity(m.density)
+    c.setDensity(soft ? this.nodeDensity(e, m.density, scale) : m.density)
       .setFriction(m.friction)
       .setRestitution(m.restitution)
       .setSensor(e.kind === 'water')
@@ -370,12 +429,15 @@ class Runtime implements Simulation {
                   dx * Math.sin(e.transform.rotation) +
                   dy * Math.cos(e.transform.rotation),
               )
-              .setLinearDamping(0.8)
               .setCcdEnabled(true),
           );
           const nc = this.world.createCollider(
             RAPIER.ColliderDesc.ball(radius)
-              .setDensity(m.density)
+              .setDensity(this.nodeDensity(e, m.density, scale))
+              .setActiveEvents(
+                RAPIER.ActiveEvents.COLLISION_EVENTS | RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS,
+              )
+              .setContactForceEventThreshold(0)
               .setFriction(m.friction)
               .setRestitution(m.restitution),
             node,
@@ -512,6 +574,7 @@ class Runtime implements Simulation {
   }
   private fire(event: string, data: Record<string, unknown> = {}) {
     for (const r of this.doc.rules) {
+      if (data.onlyRuleId && data.onlyRuleId !== r.id) continue;
       if (r.when.event !== event || (r.once && this.fired.has(r.id))) continue;
       const w = r.when;
       let yes = false;
@@ -524,7 +587,7 @@ class Runtime implements Simulation {
           break;
         case 'timer':
           yes =
-            Math.floor((this.time - (1 / 60) * this.timeScale) / w.everySeconds) <
+            Math.floor((this.ticks - 1) / 60 / w.everySeconds) <
             Math.floor(this.time / w.everySeconds);
           break;
         case 'collision':
@@ -565,17 +628,17 @@ class Runtime implements Simulation {
         this.emit({ type: a.action, value: a });
         break;
       case 'applyImpulse':
-        for (const id of this.targets(a.target)) this.bodies.get(id)?.applyImpulse(a.impulse, true);
+        for (const id of this.targets(a.target)) this.impulse(id, a.impulse);
         break;
       case 'launch':
         for (const id of this.targets(a.target)) {
           const l = this.launches.get(id) ?? { speed: 8, angle: 45 };
           const r = (l.angle * Math.PI) / 180;
-          const b = this.bodies.get(id)!;
-          b.applyImpulse(
-            { x: Math.cos(r) * l.speed * b.mass(), y: -Math.sin(r) * l.speed * b.mass() },
-            true,
-          );
+          for (const node of this.nodes(id))
+            node.applyImpulse(
+              { x: Math.cos(r) * l.speed * node.mass(), y: -Math.sin(r) * l.speed * node.mass() },
+              true,
+            );
         }
         for (const id of this.targets(a.target)) {
           for (const set of this.landed.values()) set.delete(id);
@@ -623,6 +686,7 @@ class Runtime implements Simulation {
           e.body.isStatic = false;
           e.transform = { x: at.x + (this.random() - 0.5) * 0.2, y: at.y, rotation: 0 };
           this.add(e);
+          this.templates.set(e.id, template.id);
         }
         break;
       }
@@ -633,6 +697,7 @@ class Runtime implements Simulation {
     const parts = parseCollider(value),
       e = this.entities.get(target);
     if (!parts || !e || e.body.shape !== 'auto') return false;
+    if (JSON.stringify(this.colliderParts.get(target)) === JSON.stringify(parts)) return true;
     this.colliderParts.set(target, parts);
     if (this.lattices.has(target)) return true;
     this.rebuild(target, e);
@@ -667,14 +732,20 @@ class Runtime implements Simulation {
           RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(at.x, at.y),
         );
         this.anchors.set(target, anchor);
-        const mass = body.mass();
-        const joint = this.world.createImpulseJoint(
-          RAPIER.JointData.spring(0, 400 * mass, 40 * mass, { x: 0, y: 0 }, { x: 0, y: 0 }),
-          body,
-          anchor,
-          true,
-        );
-        joint.setContactsEnabled(false);
+        for (const node of this.nodes(target)) {
+          const mass = node.mass();
+          const offset = {
+            x: node.translation().x - body.translation().x,
+            y: node.translation().y - body.translation().y,
+          };
+          const joint = this.world.createImpulseJoint(
+            RAPIER.JointData.spring(0, 400 * mass, 40 * mass, { x: 0, y: 0 }, offset),
+            node,
+            anchor,
+            true,
+          );
+          joint.setContactsEnabled(false);
+        }
       }
       anchor.setNextKinematicTranslation(at);
     }
@@ -696,7 +767,8 @@ class Runtime implements Simulation {
     this.supported.delete(target);
     const length = Math.hypot(velocity.x, velocity.y),
       scale = length > 20 ? 20 / length : 1;
-    this.bodies.get(target)?.setLinvel({ x: velocity.x * scale, y: velocity.y * scale }, true);
+    for (const node of this.nodes(target))
+      node.setLinvel({ x: velocity.x * scale, y: velocity.y * scale }, true);
     this.input('flick', target, velocity);
   }
   setDial(dial: Dial, value: string) {
@@ -760,7 +832,16 @@ class Runtime implements Simulation {
           for (const node of this.lattices.get(bind.entity) ?? [b])
             for (let i = 0; i < node.numColliders(); i++) {
               const c = node.collider(i);
-              if (bind.prop === 'density') c.setDensity(Math.max(0.05, n));
+              if (bind.prop === 'density')
+                c.setDensity(
+                  this.lattices.has(bind.entity)
+                    ? this.nodeDensity(
+                        this.entities.get(bind.entity)!,
+                        Math.max(0.05, n),
+                        this.scales.get(bind.entity) ?? 1,
+                      )
+                    : Math.max(0.05, n),
+                );
               if (bind.prop === 'friction') c.setFriction(Math.max(0, Math.min(1, n)));
               if (bind.prop === 'restitution') c.setRestitution(Math.max(0, Math.min(1, n)));
             }
@@ -801,9 +882,19 @@ class Runtime implements Simulation {
   }
   step(frames = 1) {
     this.alive();
-    for (let frame = 0; frame < Math.min(3600, Math.max(0, Math.floor(frames))); frame++) {
-      this.world.timestep = this.timeScale / 60;
-      this.time += this.timeScale / 60;
+    for (let frame = 0; frame < Math.min(3600, Math.max(0, Math.floor(frames))); frame++)
+      this.advance(1 / 60);
+  }
+  advance(seconds: number) {
+    this.alive();
+    if (!Number.isFinite(seconds) || seconds <= 0) return;
+    this.pendingTicks += Math.min(60, seconds) * 60 * this.timeScale;
+    while (this.pendingTicks >= 1 - 1e-9) {
+      this.pendingTicks = Math.max(0, this.pendingTicks - 1);
+      this.previousPoses = this.poses();
+      this.world.timestep = 1 / 60;
+      this.ticks++;
+      this.time = this.ticks / 60;
       for (const [id, b] of this.bodies) {
         if (b.isFixed()) continue;
         for (const node of this.lattices.get(id) ?? [b]) node.resetForces(false);
@@ -846,57 +937,97 @@ class Runtime implements Simulation {
         const hold = this.holds.get(id);
         if (hold) {
           this.anchors.get(id)?.setNextKinematicTranslation(hold);
-          b.addForce({ x: -b.mass() * this.gravity.x, y: -b.mass() * this.gravity.y }, true);
-        }
-        for (const behavior of e.behaviors) {
-          if (behavior.type === 'wander')
-            b.addForce(
-              { x: Math.sin(this.time + id.length) * behavior.speed * b.mass(), y: 0 },
+          for (const node of this.nodes(id))
+            node.addForce(
+              { x: -node.mass() * this.gravity.x, y: -node.mass() * this.gravity.y },
               true,
             );
-          if (behavior.type === 'float')
-            b.addForce(
-              {
-                x: 0,
-                y:
-                  Math.sin((this.time * 2 * Math.PI) / behavior.period) *
-                  behavior.amplitude *
-                  b.mass(),
-              },
-              true,
-            );
-          if (behavior.type === 'bounceIdle' && Math.abs(v.y) < 0.05)
-            b.applyImpulse({ x: 0, y: -b.mass() * 1.5 }, true);
         }
+        for (const node of this.nodes(id))
+          for (const behavior of e.behaviors) {
+            const b = node;
+            if (behavior.type === 'wander')
+              b.addForce(
+                { x: Math.sin(this.time + id.length) * behavior.speed * b.mass(), y: 0 },
+                true,
+              );
+            if (behavior.type === 'float')
+              b.addForce(
+                {
+                  x: 0,
+                  y:
+                    Math.sin((this.time * 2 * Math.PI) / behavior.period) *
+                    behavior.amplitude *
+                    b.mass(),
+                },
+                true,
+              );
+            if (behavior.type === 'bounceIdle' && this.supported.has(id) && Math.abs(v.y) < 0.05)
+              b.applyImpulse({ x: 0, y: -b.mass() * 1.5 }, true);
+          }
       }
       this.world.step(this.queue);
       const forces = new Map<string, number>();
-      this.queue.drainContactForceEvents((e) => {
-        const a = this.colliderIds.get(e.collider1()),
-          b = this.colliderIds.get(e.collider2());
-        if (a && b)
-          forces.set([a, b].sort().join(':'), e.totalForceMagnitude() * this.world.timestep);
+      const pairs = new Map<string, { a: string; b: string; started: boolean }>();
+      this.queue.drainContactForceEvents((event) => {
+        const a = this.colliderIds.get(event.collider1()),
+          b = this.colliderIds.get(event.collider2());
+        if (!a || !b || a === b) return;
+        const key = [a, b].sort().join(':');
+        forces.set(key, (forces.get(key) ?? 0) + event.totalForceMagnitude() * this.world.timestep);
+        pairs.set(key, { a, b, started: false });
       });
       this.queue.drainCollisionEvents((ca, cb, started) => {
-        if (!started) return;
         const a = this.colliderIds.get(ca),
           b = this.colliderIds.get(cb);
-        if (!a || !b) return;
-        (this.doc.visuals ?? []).forEach((v, i) => {
-          const watch = this.watches.get(i);
-          if (
-            v.type === 'stopwatch' &&
-            watch &&
-            watch.stop === undefined &&
-            this.pair(a, b, v.stopOn.a, v.stopOn.b)
-          )
-            watch.stop = this.time;
-        });
-        this.fire('collision', { a, b, impulse: forces.get([a, b].sort().join(':')) ?? 0 });
-        for (const c of this.doc.challenges ?? [])
-          if (c.check.event === 'collision' && this.pair(a, b, c.check.a, c.check.b))
-            this.complete(c.id);
+        if (!a || !b || a === b) return;
+        const key = [a, b].sort().join(':');
+        if (started) pairs.set(key, { a, b, started: true });
       });
+      // A landing may spread over several nodes/ticks. Rules run once per contact episode
+      // when their threshold is crossed, rather than only on the first narrow-phase contact.
+      const active = new Set<string>();
+      for (const id of this.bodies.keys())
+        for (const node of this.nodes(id))
+          for (let i = 0; i < node.numColliders(); i++)
+            this.world.contactPairsWith(node.collider(i), (other) => {
+              const otherId = this.colliderIds.get(other.handle);
+              if (otherId && id !== otherId) active.add([id, otherId].sort().join(':'));
+            });
+      for (const key of this.collisionRuleContacts.keys())
+        if (!active.has(key)) this.collisionRuleContacts.delete(key);
+      for (const [key, { a, b, started }] of pairs) {
+        const delivered = this.collisionRuleContacts.get(key) ?? new Set<string>();
+        this.collisionRuleContacts.set(key, delivered);
+        const impulse = forces.get(key) ?? 0;
+        for (const rule of this.doc.rules) {
+          const when = rule.when;
+          if (
+            when.event === 'collision' &&
+            !delivered.has(rule.id) &&
+            this.pair(a, b, when.a, when.b) &&
+            impulse >= (when.minImpulse ?? 0)
+          ) {
+            delivered.add(rule.id);
+            this.fire('collision', { a, b, impulse, onlyRuleId: rule.id });
+          }
+        }
+        if (started) {
+          (this.doc.visuals ?? []).forEach((visual, i) => {
+            const watch = this.watches.get(i);
+            if (
+              visual.type === 'stopwatch' &&
+              watch &&
+              watch.stop === undefined &&
+              this.pair(a, b, visual.stopOn.a, visual.stopOn.b)
+            )
+              watch.stop = this.time;
+          });
+          for (const c of this.doc.challenges ?? [])
+            if (c.check.event === 'collision' && this.pair(a, b, c.check.a, c.check.b))
+              this.complete(c.id);
+        }
+      }
       this.supported.clear();
       for (const [id, b] of this.bodies) {
         if (b.isFixed()) continue;
@@ -912,8 +1043,7 @@ class Runtime implements Simulation {
             });
       }
       this.fire('timer');
-      if (Math.floor(this.time * 10) !== Math.floor((this.time - this.world.timestep) * 10))
-        this.sample();
+      if (this.ticks % 6 === 0) this.sample();
     }
   }
   private complete(id: string) {
@@ -980,6 +1110,7 @@ class Runtime implements Simulation {
         s = this.scales.get(id) ?? 1;
       return {
         id,
+        templateId: this.templates.get(id) ?? id,
         x: p.x,
         y: p.y,
         rotation: b.rotation(),
@@ -997,6 +1128,8 @@ class Runtime implements Simulation {
     this.alive();
     return {
       time: this.time,
+      previousEntities: this.previousPoses,
+      interpolation: this.pendingTicks,
       timeScale: this.timeScale,
       gravity: { ...this.gravity },
       entities: this.poses(),
@@ -1019,6 +1152,8 @@ class Runtime implements Simulation {
     this.queue.free();
     this.listeners.clear();
     this.bodies.clear();
+    this.templates.clear();
+    this.collisionRuleContacts.clear();
     this.entities.clear();
     this.colliderIds.clear();
     this.lattices.clear();
@@ -1042,6 +1177,8 @@ class Runtime implements Simulation {
     this.histograms = {};
     this.history = [];
     this.inputs = [];
+    this.previousPoses = [];
+    this.pendingTicks = 0;
     this.spellBaseline = undefined;
   }
 }

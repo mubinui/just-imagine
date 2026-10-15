@@ -1,0 +1,564 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-16T00:00:00Z",
+  "title": "Design System: Just Imagine web",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Forest",
+        "canonical": "#245e4e",
+        "tonalRamp": [
+          "#0b1f19",
+          "#153a30",
+          "#1c4c3f",
+          "#245e4e",
+          "#2d7260",
+          "#5a9a86",
+          "#9ec4b4",
+          "#e0efe8"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Deep Forest Ink",
+        "canonical": "#243e36",
+        "tonalRamp": [
+          "#0c1612",
+          "#182a24",
+          "#1e342d",
+          "#243e36",
+          "#2f5b4f",
+          "#51675c",
+          "#8d9f8c",
+          "#d6decb"
+        ]
+      },
+      "yellow": {
+        "role": "secondary",
+        "displayName": "Sunshine",
+        "canonical": "#f7d76e",
+        "tonalRamp": [
+          "#3d3010",
+          "#7a6020",
+          "#a38a2d",
+          "#d4b43d",
+          "#f7d76e",
+          "#f9e08e",
+          "#fbeab4",
+          "#fdf6dd"
+        ]
+      },
+      "peach": {
+        "role": "secondary",
+        "displayName": "Peach",
+        "canonical": "#f9ceb0",
+        "tonalRamp": [
+          "#3f2819",
+          "#7a4b2d",
+          "#b3744e",
+          "#d99b61",
+          "#f0b88f",
+          "#f9ceb0",
+          "#fbe0cd",
+          "#fdf1e8"
+        ]
+      },
+      "mint": {
+        "role": "tertiary",
+        "displayName": "Mint",
+        "canonical": "#d5e7c9",
+        "tonalRamp": [
+          "#1f2d1a",
+          "#3f5a35",
+          "#64845c",
+          "#8aa38c",
+          "#a5bf8f",
+          "#d5e7c9",
+          "#e4ecd9",
+          "#f1f6ea"
+        ]
+      },
+      "focus-ochre": {
+        "role": "tertiary",
+        "displayName": "Focus Ochre",
+        "canonical": "#ad6524",
+        "tonalRamp": [
+          "#2b1909",
+          "#5a3312",
+          "#8a4f1c",
+          "#ad6524",
+          "#c7843f",
+          "#d9a46e",
+          "#e8c7a3",
+          "#f6e8d8"
+        ]
+      },
+      "stage-alert": {
+        "role": "tertiary",
+        "displayName": "Alert Clay",
+        "canonical": "#c7572b",
+        "tonalRamp": [
+          "#31150b",
+          "#62291a",
+          "#8a3b1c",
+          "#a7472a",
+          "#c7572b",
+          "#d9825f",
+          "#ebb49c",
+          "#f6e2d6"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger Clay",
+        "canonical": "#8f3e2c",
+        "tonalRamp": [
+          "#2a110c",
+          "#541f16",
+          "#733323",
+          "#8f3e2c",
+          "#b35a44",
+          "#cd8a78",
+          "#e3bbb0",
+          "#f4e4df"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Cream Ground",
+        "canonical": "#fff9ee",
+        "tonalRamp": [
+          "#3d3626",
+          "#7a6c4c",
+          "#b3a07a",
+          "#d9c9a3",
+          "#f2e6cc",
+          "#f9f0dd",
+          "#fff9ee",
+          "#fffdf7"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Cream Surface",
+        "canonical": "#fffdf7",
+        "tonalRamp": [
+          "#3d3b30",
+          "#7a7660",
+          "#b3ad92",
+          "#d9d3b8",
+          "#f0ecd8",
+          "#f9f6e8",
+          "#fffdf7",
+          "#fffefc"
+        ]
+      },
+      "stage-pill": {
+        "role": "neutral",
+        "displayName": "Stage Pill Cream",
+        "canonical": "#fff9eef2",
+        "tonalRamp": [
+          "#fff9ee12",
+          "#fff9ee26",
+          "#fff9ee3a",
+          "#fff9ee66",
+          "#fff9ee99",
+          "#fff9eec9",
+          "#fff9eef2",
+          "#fff9ee"
+        ]
+      },
+      "parent-ground": {
+        "role": "neutral",
+        "displayName": "Parent Ground",
+        "canonical": "#fcfcf5",
+        "tonalRamp": [
+          "#3b3b2e",
+          "#75755c",
+          "#b0b08a",
+          "#d4d4b4",
+          "#e8e8d2",
+          "#f3f3e6",
+          "#fcfcf5",
+          "#fefefb"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#d6decb",
+        "tonalRamp": [
+          "#2a3024",
+          "#55604a",
+          "#8aa38c",
+          "#b6c29f",
+          "#c8d1b8",
+          "#d6decb",
+          "#e4ead9",
+          "#f2f5ec"
+        ]
+      },
+      "soft": {
+        "role": "neutral",
+        "displayName": "Soft Green",
+        "canonical": "#51675c",
+        "tonalRamp": [
+          "#121a16",
+          "#263730",
+          "#3d5545",
+          "#51675c",
+          "#6f857a",
+          "#95a79e",
+          "#bfcac4",
+          "#e6ebe8"
+        ]
+      },
+      "stage-world-floor": {
+        "role": "neutral",
+        "displayName": "World Floor",
+        "canonical": "#eaf4f1",
+        "tonalRamp": [
+          "#1f2d29",
+          "#3f5a52",
+          "#6b8a80",
+          "#9db8ae",
+          "#c6dbd4",
+          "#dfece7",
+          "#eaf4f1",
+          "#f6faf8"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The landing question only, capped at 8ch."
+      },
+      "headline": { "displayName": "Headline", "purpose": "Parent page titles." },
+      "stage-headline": {
+        "displayName": "Stage Headline",
+        "purpose": "Listening prompt and summon name; vmin-sized so it scales with the stage."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Parent section headings and the prediction question."
+      },
+      "title-small": {
+        "displayName": "Title Small",
+        "purpose": "Lab drawer and Discovery toast headings; chip and dial values at 17 to 18 px."
+      },
+      "lead": { "displayName": "Lead", "purpose": "Landing and picker intros." },
+      "body": { "displayName": "Body", "purpose": "Paragraphs in both rooms, max 70ch." },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "The friend's spoken line under the world."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Pill labels, friend names, world-action chips; Nunito, sentence case."
+      },
+      "dial-label": {
+        "displayName": "Dial Label",
+        "purpose": "Small Baloo name above a dial value or lab variable."
+      },
+      "small": {
+        "displayName": "Small",
+        "purpose": "Status detail, parent subtle text, preview banner."
+      }
+    },
+    "shadows": [
+      {
+        "name": "parent-card",
+        "value": "0 14px 35px -18px #31544659",
+        "purpose": "The --shadow token on the landing play window and parent world tiles."
+      },
+      {
+        "name": "stage-pill",
+        "value": "0 8px 20px -12px #000b",
+        "purpose": "Floating pills and the status chip on the forest stage."
+      },
+      {
+        "name": "stage-dial",
+        "value": "0 10px 24px -14px #000c",
+        "purpose": "Dial trays at the world's bottom edge."
+      },
+      {
+        "name": "stage-caption",
+        "value": "0 10px 30px -14px #000c",
+        "purpose": "The caption line."
+      },
+      {
+        "name": "stage-world",
+        "value": "0 24px 60px -30px #000c, 0 2px 0 #fff9ee22 inset",
+        "purpose": "The 16:9 world well."
+      },
+      {
+        "name": "stage-drawer",
+        "value": "0 16px 40px -20px #000c",
+        "purpose": "Lab drawer column."
+      },
+      { "name": "stage-toast", "value": "0 24px 50px -22px #000d", "purpose": "Discovery toast." },
+      { "name": "stage-sheet", "value": "0 30px 60px -30px #000d", "purpose": "Prediction card." },
+      {
+        "name": "character-drop",
+        "value": "drop-shadow(0 8px 12px #0008)",
+        "purpose": "Friend art in the strip; 0 18px 24px #0007 at listening size, 0 20px 30px #000a at summon size."
+      },
+      {
+        "name": "answer-tint",
+        "value": "0 10px 24px -12px #245e4ecc",
+        "purpose": "Prediction answers cast their own fill: forest, #b3744e for peach, #a38a2d for sunshine."
+      }
+    ],
+    "motion": [
+      {
+        "name": "duration",
+        "value": "220ms",
+        "purpose": "The --duration token for hover, press and colour transitions; 0ms under prefers-reduced-motion."
+      },
+      {
+        "name": "ease-entrance",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Every entrance and pulse on the stage: rise, toast-in, summon-rise, banner, mic-pulse."
+      },
+      {
+        "name": "rise",
+        "value": "420ms",
+        "purpose": "Prediction card enters from 24px below at 97% scale."
+      },
+      { "name": "toast-in", "value": "520ms", "purpose": "Discovery toast slides up 40px." },
+      {
+        "name": "summon-rise",
+        "value": "900ms",
+        "purpose": "The one authored moment: guide rises from 60vh at 60% scale with a 4% overshoot at 60%."
+      },
+      {
+        "name": "sparkle",
+        "value": "1100ms cubic-bezier(0.2, 0.9, 0.3, 1)",
+        "purpose": "Fourteen eight-point sparkles burst outward on --dx/--dy and fade."
+      },
+      {
+        "name": "spell-burst",
+        "value": "1200ms ease-out",
+        "purpose": "Sunshine radial pool scales 0.2 to 1.6 and fades."
+      },
+      {
+        "name": "banner",
+        "value": "1500ms",
+        "purpose": "Spell banner pops to 105%, holds, drifts up 10px and fades."
+      },
+      {
+        "name": "mic-pulse",
+        "value": "1.8s infinite",
+        "purpose": "Sunshine ring breathes 94% to 110% and fades; 1.4s on the speaking friend."
+      },
+      {
+        "name": "chip-pulse",
+        "value": "1.6s ease-out infinite",
+        "purpose": "Connected status dot throws a 9px sunshine halo."
+      },
+      {
+        "name": "dot",
+        "value": "1.2s ease-in-out infinite",
+        "purpose": "Three building dots bounce 8px with 150ms stagger."
+      },
+      {
+        "name": "blink",
+        "value": "4.6s infinite",
+        "purpose": "Character eyes close to 8% at the 96% mark; right eye 50ms late."
+      },
+      {
+        "name": "mouth",
+        "value": "40ms linear",
+        "purpose": "Mouth scaleY follows --mouth-open from the voice level."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none; animation-duration: 1ms",
+        "purpose": "Loops are removed and entrances collapse to 1ms under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      { "name": "parent-narrow", "value": "1000px" },
+      { "name": "parent-stack", "value": "700px" },
+      { "name": "stage-compact", "value": "760px wide or 520px tall" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button (parent)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Forest on cream-white for the main parent and landing action.",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Start playing</a>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 11px 23px; border-radius: 12px; border: 1px solid transparent; background: var(--accent, #245e4e); color: var(--accent-ink, #fffaf1); font: 700 17px/1.6 Nunito, sans-serif; text-decoration: none; transition: background 220ms, transform 220ms; } .ds-btn-primary:hover { background: #194d3e; } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 3px solid #ad6524; outline-offset: 5px; }"
+    },
+    {
+      "name": "Default Button (parent)",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "Outlined 44px control used across parent forms and rows.",
+      "html": "<button class=\"ds-btn-default\" type=\"button\">Edit profile</button>",
+      "css": ".ds-btn-default { cursor: pointer; min-height: 44px; padding: 8px 18px; border-radius: 12px; border: 1px solid var(--line, #d6decb); background: transparent; color: var(--ink, #243e36); font: 700 17px/1.6 Nunito, sans-serif; transition: background 220ms, transform 220ms; } .ds-btn-default:hover { background: #e4ecd9; } .ds-btn-default:active { transform: translateY(1px); } .ds-btn-default:focus-visible { outline: 3px solid #ad6524; outline-offset: 5px; }"
+    },
+    {
+      "name": "Input (parent)",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Stacked label with a cream field and a muted green stroke.",
+      "html": "<label class=\"ds-field\">Child's name<input class=\"ds-input\" type=\"text\" placeholder=\"Mishti\"></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 8px; font: 700 17px/1.6 Nunito, sans-serif; color: var(--ink, #243e36); } .ds-input { min-height: 44px; border: 1px solid #8d9f8c; border-radius: 10px; padding: 10px 12px; background: var(--surface, #fffdf7); color: var(--ink, #243e36); font: inherit; font-weight: 400; } .ds-input:focus-visible { outline: 3px solid #ad6524; outline-offset: 5px; }"
+    },
+    {
+      "name": "Parent Rail",
+      "kind": "nav",
+      "refersTo": "nav-rail-item",
+      "description": "Vertical navigation rail with a tonal fill on the current page.",
+      "html": "<nav class=\"ds-rail\"><a href=\"#\" aria-current=\"page\">Overview</a><a href=\"#\">Children</a><a href=\"#\">Worlds</a><a href=\"#\">Billing</a></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 7px; width: 200px; padding: 24px 0; border-right: 1px solid var(--line, #d6decb); background: #fcfcf5; } .ds-rail a { padding: 12px 14px; border-radius: 10px; min-height: 44px; display: flex; align-items: center; text-decoration: none; color: var(--ink, #243e36); font: 400 15px/1.6 Nunito, sans-serif; white-space: nowrap; } .ds-rail a:hover { background: #e4ecd9; } .ds-rail a[aria-current='page'] { background: #e4ecd9; font-weight: 700; } .ds-rail a:focus-visible { outline: 3px solid #ad6524; outline-offset: 5px; }"
+    },
+    {
+      "name": "Stage Pill",
+      "kind": "button",
+      "refersTo": "stage-pill",
+      "description": "Floating cream pill on the forest stage; aria-pressed fills sunshine; the quiet variant is for exits.",
+      "html": "<div class=\"ds-stage\"><button class=\"ds-pill quiet\" type=\"button\" aria-label=\"Home\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 11.5 12 4l9 7.5\"/><path d=\"M5.5 10.5V20h13v-9.5\"/></svg></button><button class=\"ds-pill\" type=\"button\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"3\"/><path d=\"M7 12h6M7 15.5h10\"/></svg><span>Captions</span></button><button class=\"ds-pill\" type=\"button\">Finish playing</button></div>",
+      "css": ".ds-stage { display: flex; gap: 10px; padding: 20px; background: #243e36; border-radius: 16px; } .ds-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 52px; min-width: 52px; padding: 8px 18px; border-radius: 999px; border: 0; background: #fff9eef2; color: #243e36; font: 700 17px/1.1 Nunito, sans-serif; box-shadow: 0 8px 20px -12px #000b; cursor: pointer; transition: transform 220ms, background 220ms; } .ds-pill svg { width: 22px; height: 22px; flex: none; } .ds-pill:hover { background: #fff9ee; transform: translateY(-1px); } .ds-pill:active { transform: translateY(1px); } .ds-pill[aria-pressed='true'] { background: #f7d76e; } .ds-pill.quiet { background: #fff9ee26; color: #fff9ee; box-shadow: none; } .ds-pill.quiet:hover { background: #fff9ee3a; } .ds-pill:focus-visible { outline: 4px solid #f7d76e; outline-offset: 3px; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "stage-pill",
+      "description": "Cream chip with a Baloo state word, a coloured dot that pulses sunshine when connected, and a Nunito detail line.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-chip\" data-state=\"connected\" role=\"status\"><strong>Listening</strong><small>Voice connection: connected</small></div><div class=\"ds-chip\" data-state=\"building\" role=\"status\"><strong>Sketching</strong><small>Voice connection: connected</small></div></div>",
+      "css": ".ds-stage { display: flex; gap: 10px; padding: 20px; background: #243e36; border-radius: 16px; } .ds-chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 52px; padding: 7px 16px 7px 14px; border-radius: 18px; background: #fff9eef2; color: #243e36; box-shadow: 0 8px 20px -12px #000b; } .ds-chip strong { display: inline-flex; align-items: center; gap: 8px; font: 800 17px/1.1 Baloo, sans-serif; } .ds-chip strong::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: #245e4e; } .ds-chip[data-state='connected'] strong::before { background: #f7d76e; animation: ds-chip-pulse 1.6s ease-out infinite; } .ds-chip[data-state='building'] strong::before { background: #f9ceb0; } .ds-chip[data-state='error'] strong::before { background: #c7572b; } .ds-chip small { font: 600 12px/1.1 Nunito, sans-serif; color: #51675c; } @keyframes ds-chip-pulse { 0% { box-shadow: 0 0 0 0 #f7d76e99; } 100% { box-shadow: 0 0 0 9px #f7d76e00; } }"
+    },
+    {
+      "name": "Dial",
+      "kind": "input",
+      "refersTo": "stage-dial",
+      "description": "Cream tray with a small Baloo label over a borderless Baloo select with an inline forest chevron.",
+      "html": "<div class=\"ds-stage\"><label class=\"ds-dial\"><span>Gravity</span><select><option>Choose</option><option>Earth</option><option>Moon</option></select></label></div>",
+      "css": ".ds-stage { display: flex; gap: 10px; padding: 20px; background: #243e36; border-radius: 16px; } .ds-dial { display: grid; gap: 2px; padding: 8px 14px; border-radius: 20px; background: #fff9eef2; color: #243e36; box-shadow: 0 10px 24px -14px #000c; } .ds-dial > span { font: 800 13px/1 Baloo, sans-serif; color: #51675c; padding-left: 2px; } .ds-dial select { appearance: none; min-height: 44px; min-width: 150px; padding: 6px 40px 6px 10px; border: 0; border-radius: 12px; background: #fff9ee url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 8l5 5 5-5' fill='none' stroke='%23245e4e' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\") no-repeat right 12px center / 18px 18px; color: #243e36; font: 800 18px/1 Baloo, sans-serif; cursor: pointer; } .ds-dial select:focus-visible { outline: 4px solid #f7d76e; outline-offset: 3px; }"
+    },
+    {
+      "name": "Caption",
+      "kind": "custom",
+      "refersTo": "stage-caption",
+      "description": "The friend's spoken line, a bold cream pill under the world.",
+      "html": "<div class=\"ds-stage\"><p class=\"ds-caption\">Here is your jelly dragon, snoozing on a cloud. Try giving it a little flick!</p></div>",
+      "css": ".ds-stage { display: flex; justify-content: center; padding: 20px; background: #243e36; border-radius: 16px; } .ds-caption { margin: 0; max-width: min(100%, 72ch); padding: 11px 22px; border-radius: 999px; background: #fff9ee; color: #243e36; font: 700 clamp(15px, 2vmin, 21px)/1.3 Nunito, sans-serif; text-align: center; box-shadow: 0 10px 30px -14px #000c; }"
+    },
+    {
+      "name": "Prediction Card",
+      "kind": "card",
+      "refersTo": "prediction-answer",
+      "description": "Centred cream sheet with a Baloo question and two or three 64px pill answers in forest, peach and sunshine.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-prediction\"><h2>If the dragon falls off the cloud, will it bounce or splat?</h2><div class=\"ds-answers\"><button type=\"button\">bounce</button><button type=\"button\">splat</button><button type=\"button\">float</button></div></div></div>",
+      "css": ".ds-stage { display: grid; place-items: center; padding: 24px; background: #243e36; border-radius: 16px; } .ds-prediction { display: grid; gap: 18px; width: min(86%, 620px); padding: 28px 30px; border-radius: 28px; background: #fff9ee; color: #243e36; text-align: center; box-shadow: 0 30px 60px -30px #000d; animation: ds-rise 420ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-prediction h2 { margin: 0 auto; max-width: 24ch; font: 800 clamp(22px, 3.4vmin, 34px)/1.12 Baloo, sans-serif; letter-spacing: -0.02em; } .ds-answers { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; } .ds-answers button { cursor: pointer; min-height: 64px; padding: 10px 26px; border: 0; border-radius: 999px; background: #245e4e; color: #fff9ee; font: 800 20px/1 Baloo, sans-serif; box-shadow: 0 10px 24px -12px #245e4ecc; transition: background 220ms, transform 220ms; } .ds-answers button:hover { background: #2d7260; } .ds-answers button:active { transform: translateY(1px); } .ds-answers button:nth-child(2) { background: #f9ceb0; color: #243e36; box-shadow: 0 10px 24px -12px #b3744e; } .ds-answers button:nth-child(3) { background: #f7d76e; color: #243e36; box-shadow: 0 10px 24px -12px #a38a2d; } .ds-answers button:focus-visible { outline: 4px solid #f7d76e; outline-offset: 3px; } @keyframes ds-rise { from { transform: translateY(24px) scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }"
+    },
+    {
+      "name": "Discovery Toast",
+      "kind": "card",
+      "refersTo": "discovery-toast",
+      "description": "Cream toast with a sunshine star badge, a Baloo title, two explanation lines and a mint close circle.",
+      "html": "<div class=\"ds-stage\"><section class=\"ds-toast\" aria-live=\"polite\"><span class=\"badge\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"m12 2.5 2.6 6.1 6.6.6-5 4.4 1.5 6.5L12 16.7l-5.7 3.4 1.5-6.5-5-4.4 6.6-.6Z\"/></svg></span><div><h2>Heavier things fall the same</h2><p>The pebble and the dragon landed together.</p><p>Try dropping a coin and a key at home.</p></div><button class=\"close\" type=\"button\" aria-label=\"Close\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\"><path d=\"M6 6l12 12M18 6 6 18\"/></svg></button></section></div>",
+      "css": ".ds-stage { display: grid; place-items: end; padding: 24px; background: #243e36; border-radius: 16px; } .ds-toast { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: start; width: min(380px, 80vw); padding: 14px 14px 16px; border-radius: 22px; background: #fff9ee; color: #243e36; box-shadow: 0 24px 50px -22px #000d; animation: ds-toast-in 520ms cubic-bezier(0.22, 1, 0.36, 1); font-family: Nunito, sans-serif; } .ds-toast .badge { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: #f7d76e; color: #243e36; } .ds-toast .badge svg { width: 32px; height: 32px; } .ds-toast h2 { margin: 0; font: 800 22px/1.12 Baloo, sans-serif; } .ds-toast p { margin: 4px 0 0; font-size: 15px; line-height: 1.4; } .ds-toast p + p { color: #51675c; } .ds-toast .close { cursor: pointer; min-height: 44px; min-width: 44px; border: 0; border-radius: 50%; background: #d5e7c9; color: #243e36; display: grid; place-items: center; } .ds-toast .close svg { width: 20px; height: 20px; } .ds-toast .close:focus-visible { outline: 4px solid #f7d76e; outline-offset: 3px; } @keyframes ds-toast-in { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }"
+    },
+    {
+      "name": "Cast Strip Friend",
+      "kind": "nav",
+      "refersTo": "stage-pill-quiet",
+      "description": "A friend button in the forest cast strip; the active one grows, lifts and wears a sunshine ring that breathes while speaking.",
+      "html": "<nav class=\"ds-strip\" aria-label=\"Guides\"><button class=\"ds-friend\" type=\"button\"><span class=\"art\"><span class=\"ring\"></span><svg viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"58\" r=\"30\" fill=\"#fff9ee\"/><ellipse cx=\"38\" cy=\"55\" rx=\"6.4\" ry=\"7.4\" fill=\"#243e36\"/><ellipse cx=\"62\" cy=\"55\" rx=\"6.4\" ry=\"7.4\" fill=\"#243e36\"/><circle cx=\"30\" cy=\"65\" r=\"4.5\" fill=\"#f9ceb0\" opacity=\".55\"/><circle cx=\"70\" cy=\"65\" r=\"4.5\" fill=\"#f9ceb0\" opacity=\".55\"/><path d=\"M44 71 Q50 80 56 71\" fill=\"none\" stroke=\"#243e36\" stroke-width=\"3.2\" stroke-linecap=\"round\"/></svg></span><span class=\"name\">Mishti</span></button><button class=\"ds-friend is-active is-speaking\" type=\"button\" aria-pressed=\"true\"><span class=\"art\"><span class=\"ring\"></span><svg viewBox=\"0 0 100 100\"><ellipse cx=\"21\" cy=\"54\" rx=\"11\" ry=\"19\" fill=\"#c48a3a\"/><ellipse cx=\"79\" cy=\"54\" rx=\"11\" ry=\"19\" fill=\"#c48a3a\"/><circle cx=\"50\" cy=\"56\" r=\"31\" fill=\"#e9b35a\"/><ellipse cx=\"50\" cy=\"69\" rx=\"17\" ry=\"13\" fill=\"#fff9ee\"/><ellipse cx=\"38\" cy=\"50\" rx=\"6.2\" ry=\"7.1\" fill=\"#243e36\"/><ellipse cx=\"62\" cy=\"50\" rx=\"6.2\" ry=\"7.1\" fill=\"#243e36\"/><ellipse cx=\"50\" cy=\"62\" rx=\"6.5\" ry=\"4.6\" fill=\"#243e36\"/><path d=\"M43 72 Q50 81 57 72\" fill=\"none\" stroke=\"#243e36\" stroke-width=\"3.2\" stroke-linecap=\"round\"/></svg></span><span class=\"name\">Bhombol</span></button></nav>",
+      "css": ".ds-strip { display: flex; align-items: flex-end; justify-content: center; gap: 14px; height: 132px; padding: 0 20px 12px; background: #243e36; border-top: 1px solid #fff9ee22; border-radius: 0 0 16px 16px; } .ds-friend { position: relative; display: grid; justify-items: center; gap: 2px; min-width: 84px; padding: 6px 6px 4px; border: 0; border-radius: 22px; background: transparent; color: #fff9eec9; font: 700 14px/1.1 Nunito, sans-serif; cursor: pointer; transition: transform 220ms, color 220ms; } .ds-friend:hover { background: #fff9ee12; } .ds-friend .art { position: relative; width: 68px; height: 68px; transition: transform 220ms; } .ds-friend .art svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 12px #0008); } .ds-friend .ring { position: absolute; inset: -6px; border-radius: 50%; border: 4px solid #f7d76e; opacity: 0; } .ds-friend.is-active { color: #fff9ee; } .ds-friend.is-active .art { width: 96px; height: 96px; transform: translateY(-6px); } .ds-friend.is-active .ring { opacity: 0.55; } .ds-friend.is-active.is-speaking .ring { opacity: 1; animation: ds-mic-pulse 1.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; } .ds-friend:focus-visible { outline: 4px solid #f7d76e; outline-offset: 3px; } @keyframes ds-mic-pulse { 0% { transform: scale(0.94); opacity: 0.9; } 70%, 100% { transform: scale(1.1); opacity: 0; } }"
+    },
+    {
+      "name": "Lab Drawer",
+      "kind": "card",
+      "refersTo": "lab-drawer",
+      "description": "Cream column beside the world: Baloo variable names, forest values, ranges, outlined number pills and a sunshine challenge card.",
+      "html": "<div class=\"ds-stage\"><section class=\"ds-lab\" aria-label=\"Lab tools\"><div class=\"head\"><h2>Lab tools</h2><button type=\"button\" aria-label=\"Close lab\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg></button></div><div class=\"variable\"><label>Launch speed<output>10 m/s</output></label><button class=\"num\" type=\"button\">Enter a number</button><input type=\"range\" min=\"0\" max=\"30\" value=\"10\"></div><p class=\"challenge active\"><strong>Try this: Land the ball in the cup</strong>Try an angle near forty-five degrees, then adjust the speed.</p></section></div>",
+      "css": ".ds-stage { display: grid; place-items: start end; padding: 24px; background: #243e36; border-radius: 16px; } .ds-lab { display: grid; gap: 10px; width: 300px; padding: 14px 14px 14px 16px; border-radius: 22px; background: #fff9eef0; color: #243e36; box-shadow: 0 16px 40px -20px #000c; font-family: Nunito, sans-serif; } .ds-lab .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; } .ds-lab h2 { margin: 0; font: 800 22px/1.12 Baloo, sans-serif; } .ds-lab .head button { cursor: pointer; min-height: 44px; min-width: 44px; padding: 0; border: 0; border-radius: 999px; background: #d5e7c9; color: #243e36; display: grid; place-items: center; } .ds-lab .head button svg { width: 20px; height: 20px; } .ds-lab .variable { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; padding: 12px 2px 14px; border-bottom: 1px solid #e3d8c3; } .ds-lab .variable label { display: flex; flex-direction: column; gap: 6px; font: 800 15px/1.2 Baloo, sans-serif; } .ds-lab .variable output { font: 700 15px/1.2 Nunito, sans-serif; color: #245e4e; font-variant-numeric: tabular-nums; } .ds-lab .num { grid-column: 2; grid-row: 1; align-self: center; cursor: pointer; min-height: 44px; padding: 0 12px; border: 2px solid #d6decb; border-radius: 999px; background: transparent; color: #245e4e; font: 800 16px/1 Baloo, sans-serif; } .ds-lab input[type='range'] { grid-column: 1 / -1; min-height: 44px; width: 100%; margin: 0; accent-color: #245e4e; } .ds-lab .challenge { margin: 10px 0 0; padding: 12px 14px; border-radius: 16px; font-size: 15px; line-height: 1.4; color: #51675c; } .ds-lab .challenge.active { background: #f7d76e; color: #243e36; } .ds-lab .challenge strong { display: block; font: 800 17px/1.3 Baloo, sans-serif; } .ds-lab button:focus-visible, .ds-lab input:focus-visible { outline: 4px solid #f7d76e; outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Theatre Built From the Mark",
+    "overview": "Just Imagine has one palette and two rooms. The parent room is a calm, paper-coloured page: warm cream ground (#fff9ee), deep green foreground (#243e36), forest actions (#245e4e), muted leaf, ochre and clay accents. Locally hosted Baloo provides soft rounded headings; Nunito provides readable body copy. The landing composition pairs a large question with an abstract geometric play window. It makes no claim that geometric placeholders are final illustration.\n\nThe child room is the same palette turned inside out. The Studio is a stage, not a page: the forest green that is ink on the parent side becomes the wings and floor, and the cream that is ground on the parent side becomes the pills, captions and sheets that float at the stage edges. The Dream Launch mark (forest tile, cream cloud, peach arc, sunshine star) supplies the whole stage vocabulary: forest for the house, cream for anything you can touch, peach for warmth, sunshine for anything live. Six authored SVG characters carry the mark's round geometry (big eyes, a mouth driven by the voice level, a blink every few seconds) and stand in for external Rive assets with identical mounting.\n\nThe child and parent worlds share typography and semantic colors. Motion duration is a token and becomes zero with reduced-motion preferences. Physics remains interactive. Parent forms and all actionable child controls retain visible keyboard focus. Browser selection, progress meters and range inputs use the same palette.",
+    "keyCharacteristics": [
+      "One palette, inverted between rooms: cream page with forest ink for parents; forest stage with cream pills for children.",
+      "Baloo for anything that names (headings, dial values, chip titles, answer buttons); Nunito for anything that explains (body, captions, pill labels).",
+      "Sunshine (#f7d76e) means live: mic ring, speaking friend's ring, pressed pill, connected dot, active challenge, spell banner.",
+      "Fully rounded pills on the stage; 10 to 16 px corners in the parent room.",
+      "Soft offset shadows cast toward the floor; no borders on the stage, quiet 1 px dividers in the parent room.",
+      "One authored motion moment (the summon rise with sparkles); everything else is a short state transition or a breathing pulse."
+    ],
+    "rules": [
+      {
+        "name": "The Sunshine-Means-Live Rule",
+        "body": "Yellow (#f7d76e) is reserved for things that are listening, speaking, pressed, connected, or just happened. It never decorates a resting surface. A yellow element the child cannot act on or that is not currently happening is a defect.",
+        "section": "colors"
+      },
+      {
+        "name": "The Inverted Rooms Rule",
+        "body": "Forest ink and cream ground are the same two colours in both rooms; the parent room sets ink on cream and the stage sets cream on ink. Never introduce a third page colour to tell the rooms apart.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quiet Chrome Rule",
+        "body": "On the stage, controls that leave or reset (home, gallery, reset) are translucent cream at 15% on forest; controls that act in the world (captions, finish, answers) are opaque cream or a full accent. A child should be able to tell \"exit\" from \"play\" by weight alone.",
+        "section": "colors"
+      },
+      {
+        "name": "The Naming Face Rule",
+        "body": "Baloo appears wherever a thing is named or chosen: headings, dial values, variable names, answer buttons, keypad digits, the spell banner. Nunito appears wherever a thing is explained: body, captions, pill labels, hints. A Baloo sentence or a Nunito heading is a defect.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence Case Rule",
+        "body": "No uppercase labels anywhere. Small labels get Baloo weight and a darker colour, not tracking or capitals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Stage-Not-Page Rule",
+        "body": "The Studio never scrolls and never shows a heading over the world. The world fills the viewport and everything else floats at the edges in pills.",
+        "section": "layout"
+      },
+      {
+        "name": "The Beside-Not-Over Rule",
+        "body": "The lab column and the cast strip share the viewport with the world; they never cover it. Only transient moments (prediction, summon, spell, toast) may overlay the world, and each one is dismissed by a child's answer or by time.",
+        "section": "layout"
+      },
+      {
+        "name": "The Floor Shadow Rule",
+        "body": "Shadows always fall downward with negative spread and never spread outward evenly. A centred glow, a hard offset, or a coloured halo on a resting surface is a defect; the only radial light pools are the cream spotlight behind the listening friend and the sunshine burst of a spell, and both are moments, not surfaces.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Line-Or-Shadow Rule",
+        "body": "The parent room separates with lines and never with shadows on content; the stage separates with shadows and never with lines. The single exception is the 1 px cream line at 13% along the top of the cast strip.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the two rooms on the same two colours: ink on cream for parents, cream on ink for the stage.",
+      "Do use sunshine (#f7d76e) only for what is live, pressed or just happened, and peach (#f9ceb0) for warmth and the softer option.",
+      "Do use Baloo 800 for anything named or chosen and Nunito for anything explained; keep everything sentence case.",
+      "Do make stage controls full pills with floor shadows (negative spread, black at low alpha) and no borders; keep parent controls at 10 to 16 px corners with 1 px lines.",
+      "Do keep targets at 44 px in the parent room, 52 px for stage pills and 64 px for the child's answers and keypad keys; every actionable control keeps a visible focus ring (ochre on cream, sunshine on forest).",
+      "Do let the world fill the viewport in the Studio with chrome floating at a 16 px edge and the lab beside the world, never over it.",
+      "Do ease every entrance with cubic-bezier(0.22, 1, 0.36, 1), run loops as slow breathing pulses, and zero all of it under prefers-reduced-motion.",
+      "Do mount character art in a fixed square slot so authored SVG and Rive swap without layout change."
+    ],
+    "donts": [
+      "Don't put a heading, a card frame or a scrolling column over or around the world in the Studio.",
+      "Don't use yellow on a resting surface, or any gradient fill on a surface; the only gradients are the listening spotlight and the spell burst.",
+      "Don't add uppercase labels, letter-spaced eyebrows or kicker lines; small labels get Baloo weight and a darker colour instead.",
+      "Don't use hard offset shadows, even glows or coloured halos on resting elements.",
+      "Don't add a third accent or a new page colour to distinguish screens; tonal steps of cream and forest do that.",
+      "Don't present the geometric landing window or the authored SVG cast as finished illustration; the final painted and Rive assets are external.",
+      "Don't replace inline SVG icons with glyph fonts or emoji in chrome."
+    ]
+  }
+}

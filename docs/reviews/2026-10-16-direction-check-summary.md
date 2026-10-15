@@ -12,17 +12,17 @@ The build is going in the right direction. Every boundary goes through the share
 
 ## Completion by area
 
-| Area | Estimate | Owner now |
-|---|---|---|
-| Shared packages (scene-schema, protocol, fixtures, server-core) | 95% | done |
-| API and billing | 80% | Codex |
-| Builder | 70% | Codex |
-| Gateway | 65% | Codex |
-| Web app | 55% (functional 70%, child-facing design 30%) | Claude Code (Studio), Codex (parent area) |
-| Engine | 60% | Codex |
-| Characters and audio | 40% (audio core done; cast, summon, Rive layer missing) | Claude Code (stage presentation), Codex (package) |
-| Infrastructure | 55% (validates; cannot deploy) | Codex, then whoever holds GCP credentials |
-| Whole project, weighted | about 60% of the code, about 40% of the submission | |
+| Area                                                            | Estimate                                                | Owner now                                         |
+| --------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------- |
+| Shared packages (scene-schema, protocol, fixtures, server-core) | 95%                                                     | done                                              |
+| API and billing                                                 | 80%                                                     | Codex                                             |
+| Builder                                                         | 70%                                                     | Codex                                             |
+| Gateway                                                         | 65%                                                     | Codex                                             |
+| Web app                                                         | 55% (functional 70%, child-facing design 30%)           | Claude Code (Studio), Codex (parent area)         |
+| Engine                                                          | 60%                                                     | Codex                                             |
+| Characters and audio                                            | 40% (audio core done; cast, summon, Rive layer missing) | Claude Code (stage presentation), Codex (package) |
+| Infrastructure                                                  | 55% (validates; cannot deploy)                          | Codex, then whoever holds GCP credentials         |
+| Whole project, weighted                                         | about 60% of the code, about 40% of the submission      |                                                   |
 
 ## Priority fixes handed to Codex (its areas)
 

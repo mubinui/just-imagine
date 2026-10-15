@@ -112,6 +112,11 @@ export class FirestoreApiStore implements ApiStore {
           'Unlock Labs before selecting it for this age band.',
         );
       }
+      if (Object.hasOwn(body, 'companion')) {
+        const requestRef = ref.collection('companionRequests').doc('current');
+        const request = await tx.get(requestRef);
+        if (request.exists) tx.update(requestRef, { requestId: '', until: 0 });
+      }
       tx.set(ref, merged);
       return { ...merged, id };
     });
@@ -119,9 +124,9 @@ export class FirestoreApiStore implements ApiStore {
   async getWorld(uid: string, id: string): Promise<WorldResponse> {
     await this.user(uid);
     if ((await db().doc(`worldDeletionLocks/${id}`).get()).exists) throw missing();
-    const world = await readDoc(paths.world(id), WorldDocSchema);
-    if (!world) throw missing();
-    if (world.ownerUid !== uid) throw forbidden();
+    const snapshot = await db().doc(paths.world(id)).get();
+    if (!snapshot.exists || snapshot.data()?.['ownerUid'] !== uid) throw missing();
+    const world = WorldDocSchema.parse(snapshot.data());
     return { ...world, id };
   }
   async listWorlds(uid: string, id: string): Promise<WorldListResponse> {

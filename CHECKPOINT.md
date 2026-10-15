@@ -1,87 +1,112 @@
 # Development checkpoint
 
-Updated: 2026-10-15. Owner: Codex. Status: active implementation.
+Updated: **2026-10-16 (Asia/Dhaka)**. Branch: `feat/full-development`.
 
-## Resume here
+## Start here
 
-Read this file, TODO.md, and the master plan before editing. The user authorized completing development and requested this persistent handoff. Work is on `feat/full-development`; initial foundation files were already uncommitted. Preserve existing work and the A3 web plan. No push, deployment, or production credentials have been used.
+The app is running in local preview at **http://localhost:3200**. Choose **Start imagining → Ari**, answer the prediction, then tap/flick the dragon or select a Lab from the storybook. The landing itself has an Earth/Moon gravity experiment. Parent space is at `/parent/dashboard`.
 
-Current step: all application/service packages now exist. Web passed production builds, 12 unit tests and 4 browser flows. Engine review fixes are active; backend race fixes are undergoing regression tests. Next: finish review fixes, close remaining operations/evaluation gaps, run full workspace verification and update this handoff. Credentialed cloud and real-device checks remain separate external gates.
+The user requested full implementation, a persistent teammate handoff, and then a premium judge-facing UI pass using Impeccable. They explicitly chose **keep the warm cream/forest palette; elevate the craft**. Preserve Claude Code's full-screen Studio, character presentation and brand assets. Codex owns the landing/parent refinements, demo art/data integration, engine and backend fixes described below.
 
-## Baseline
+Source baseline was committed/pushed by Claude Code and draft PR #1 opened (see preserved notes). Current polish/fix changes are uncommitted; Codex has not committed, pushed, merged or deployed them. Do not confuse a local playable preview with a credentialed production release.
 
-- Config, scene-schema, protocol, fixtures implemented.
-- 164 tests passed in the preceding session; lint/typecheck/format and browser bundle checks passed.
-- Four fixture worlds and a real loopback fake WebSocket gateway are available.
-- Runtime Node 25.8.0; target Node >=22.12; pnpm 10.34.7.
-- pnpm runner if pnpm is absent: `npm exec --yes --offline --cache .npm-cache --package pnpm@10.34.7 -- pnpm`.
+## Active pass — runnable local application
 
-## Milestones
+Docker Compose is being completed for web3300, API3301, builder/assets3302, Live gateway8788, Firebase Auth9099 and Firestore8080. Local queues persist in Firestore; world artwork persists in a Docker volume. Explicit demo-project/emulator guards keep these adapters out of cloud deployments. The existing3200 preview remains available.
 
-- [x] Shared contracts and fixtures (Plan 0 tasks 1–13, 17–18).
-- [x] Firebase server-core, quota integration tests, CI source (remote CI not activated).
-- [ ] A1 simulation engine and renderer.
-- [ ] A2 browser audio, voice client, character presentation.
-- [ ] A3 marketing, auth, child Studio/gallery, parent management.
-- [ ] B1 authenticated conversation gateway and Live adapter.
-- [ ] B2 world/patch builder and asset pipeline.
-- [ ] B3 account/profile/world/billing API and security rules.
-- [ ] B4 infrastructure, deployment configuration, operations.
-- [ ] Workspace integration, browser tests, security review.
-- [ ] Credentialed staging verification and performance/evaluation gates.
+The user supplied `GEMINI_API_KEY` in the gitignored root `.env.local` (mode0600). A server-side model-list request returned HTTP200. Real Live speech/captions and browser microphone transcription are verified. Real scene generation and companion image generation/moderation passed separately. Full voice→build integration remains under test. Never print or commit the key. Docker is running on the ports below. Parent signup/profile creation/companion save/fresh sign-in pass in the real-service browser. Fixed Docker session-origin matching, unsupported Live setup fields, minimum Gemini request deadlines (10s), and complex-schema rejection with validated JSON-mode fallback. Next: full voice→build/image integration, regression suite, reproducible final image, and handoff. A new **Build a game** control clears the active world without deleting saved work or restarting the companion session.
 
-## Decisions and review ledger
+### Demo identities, real services
 
-- Ruling: Continue local source development on a feature branch, retaining existing uncommitted files; publishing remains a separate action.
-- Ruling: The design spec and current shared contracts govern missing A1/A2/B1–B4 detailed plans. Write scoped implementation briefs before their implementation.
-- Ruling: Specified future model IDs and vendor versions must be verified before live use. Keep adapters configurable and report availability honestly.
-- Ruling: Use repository-native Next.js/Firebase hosting, as explicitly established by the spec, rather than registering a separate Sites-hosted copy.
-- Plan 0 review: plain ULID generation does not guarantee sorting in the same millisecond; use monotonic IDs. Reject nonfinite quota increments and malformed stored usage. Treat invalid kill-switch configuration/read failures conservatively.
-- Integration boundaries: engine consumes SceneDoc; web consumes protocol/WorldSource; gateway sends control+PCM only; builder publishes worlds through Firestore; API owns parent writes. Shared schema changes require teammate review.
+User explicitly wants fictitious accounts with all real functionality, not fixture data. Created and verified `parent@justimagine.test` / `ImaginePlay!2026` at http://localhost:3300/sign-in, child explorer **Ari**, companion **Pip**. Child selects Ari at `/play`; there is no child email/password in this parent-owned account model. Auth/storage currently run in persistent Docker emulators; Gemini calls are real. The3200 site remains a separate fixture preview. Do not overwrite the demo family or replace its worlds with fixtures.
 
-## External prerequisites / unverified gates
+## Latest pass — playable worlds
 
-Firebase/Google Cloud projects, ADC, model availability, Stripe test credentials and price, final Rive/art assets, deployment IAM, real-device performance, child usability sessions, load test, and production release remain unverified. These do not prevent local implementation.
+The six local preview worlds now have larger playable objects, painted meadow/moon/pond scenery, tactile duck/cannon/cup sprites, and exact native peg/fraction geometry. `lib/playable-preview.ts` adapts cloned fixtures so backend evaluation fixtures remain unchanged. Five new WebP assets total approximately 825KB; prompts, source paths and provenance sidecars are in `apps/web/public/worlds/`.
 
-## Latest verification
+- Each world has an explicit action: bounce, drop together, drop into water, launch, release a ball, or split/join. Static rule-driven controls are accessible too. Retry preserves the child's gravity/material/variable choices. Readings come from simulation state; the peg board caps at its actual entity limit.
+- Tap now dispatches on release; the previous zero-velocity release erased the tap impulse. Drag begins after 6px; pointer cancellation never launches an object. Canvas targets have a 44px minimum hit area and sound unlock also works from action buttons.
+- Higher-resolution curve tessellation removes polygonal balls/pegs without changing physics dimensions. Text rasterizes at 48px with 2× resolution, then scales with a 13 CSS-pixel minimum for mobile annotations. Plot panels accommodate title size, rulers show real world lengths, and the cannon trail records actual positions.
+- The hollow cup uses three convex collider pieces; direct ball drops and real challenge collisions are tested. Cannon copy correctly promises hitting the cup. Fraction split/join works repeatedly; manual peg drops feed the real histogram.
+- Stage controls follow the canvas width; compact layouts scroll without squeezing the world or Lab. Discovery details collapse until opened. Existing six SVG cast and warm palette remain.
 
-Baseline only; new work verification will be appended here and in docs/handoff reports.
+This is a local-preview improvement, not evidence of live Vertex output or child usability. A fresh Impeccable finish reviewer inspected all twelve desktop/mobile captures, requested readable phone annotations, and returned **ship** after that bounded fix and recapture. No remaining material findings in this scope. The earlier side-border hook finding was fixed; no ignores were added. Approved warm identity and active-character selection rings remain intentional.
 
-### Foundation milestone
+## Current implementation
 
-36 tests pass against actual Firestore/Auth emulators, including ten consecutive quota races. Scoped lint/typecheck/format pass. See docs/handoff/foundation-report.md. Java21 is in `.tools/amazon-corretto-21.jdk/Contents/Home`; export JAVA_HOME for emulator commands.
+| Area             | Implemented and checked locally                                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared contracts | Scene/protocol Zod validation, physics/material validation, atomic patches, six playable sample worlds, fake socket/source, Firebase server core/quotas                            |
+| Engine           | Pixi/Rapier, soft bodies, drag/flick, dials, rules, variables, challenges, plots, histogram trials, sprites/auto-colliders, spells/effects/synthesized cues, bounded cleanup       |
+| Web/audio        | Marketing/auth, profile selection, full-screen Studio, six authored fallback characters, PCM capture/playback, reconnect, parent CRUD/progress/test billing, deletion confirmation |
+| Gateway          | Auth/ownership, Live adapter/tools, quotas/pacing, reconnect/session lease, durable metering, in-memory transcripts, summaries, versioned persona/Lab instructions                 |
+| Builder          | Versioned scene prompts, validation/repair/patches, curated fallback, progressive safe assets, alpha processing/convex colliders, caching, jobs/deletion fences/evaluator          |
+| API              | Profiles/worlds/discoveries/sessions, Stripe TEST checkout/portal/webhooks, durable account/child/world deletion and writer fences                                                 |
+| Operations       | CI and browser gate, Docker, Cloud Build/promote source, Terraform/Firestore rules/indexes, telemetry/alerts/dashboard/CDN option, load/eval scripts                               |
 
-### API and audio progress
+See `docs/handoff/engine-report.md` and `docs/handoff/backend-direction-fixes.md` for the latest concrete fixes. Earlier review reports are historical: read their appended closure sections and the newer direction-fix report before treating a finding as open.
 
-API: 11 emulator-backed tests pass, including profile races, ownership, deletion, Stripe signature/idempotency, and Firestore rules. See docs/handoff/api-report.md; durable deletion and production billing still need review.
+## Judge-facing changes
 
-Characters/audio: 7 tests pass for PCM conversion, bounded playback/flush, reconnect identity, terminal cleanup, audio unlock gating. Real microphone/Safari and Rive asset verification pending. Engine implementation is underway with headless Rapier tests.
+### Character and layout refinement — verified locally
 
-### Engine milestone and review follow-up
+All six authored SVG characters were refined with more distinct silhouettes, facial details and separate voice-driven mouth openings. Selection uses stable 76px slots on desktop and 64px on phones, with visible names and no reflow. The Studio uses the available viewport, preserves the canvas's 16:9 ratio, and keeps header, dials, Lab controls and cast balanced. Compact screens and the numeric keypad scroll. The five-viewport regression passes at 1440×900, 1180×820, 390×844, 320×640 and 844×390, including all six character selections, predictions, dials, Lab sliders, keypad cancellation and finish controls. Character evidence: `/tmp/ji-craft/`; current world evidence: `apps/web/.impeccable/review/worlds/`.
 
-Engine source: 7 headless Rapier tests, typecheck/lint pass; browser bundle 820,517 bytes gzip. Web implementation started against stable API. Review found important physics/lifecycle issues; see docs/handoff/engine-review.md. Engine is NOT release-complete until those fixes pass regression tests.
+- Landing: real Earth/Moon drop-and-bounce interaction, stronger typography and spacing, single primary preview entry, sequential learning story. No invented testimonials, metrics or live-AI claims.
+- Explorer picker and parent area: clearer selection/focus, calmer forms, session chart with an honest empty state and a direct start action.
+- Studio: Claude Code's full-bleed stage, storybook, cast strip, listening state, captions, predictions, summons/spell presentation and lab drawer retained.
+- Flagship art: compressed local dragon/cloud/meadow WebP assets in `apps/web/public/worlds/`; exact image-generation prompts/provenance in `PROVENANCE.md`. These are static preview assets. Moon/pond scenery and duck/cannon/cup sprites now extend the set; pegs and fractions intentionally use exact native geometry.
+- Preview Discovery Cards now persist per child to browser storage and appear in Parent space. Profile/account deletion removes them. No sample progress is invented.
+- New physics fixes restore the jelly dragon's bounce Discovery rule, distribute soft-body mass/forces correctly, retain flick messages, render spawned templates/facing/scale, and avoid repeated collider downloads/rebuilds.
 
-API review found deletion durability and billing ordering/concurrency defects. Current fixes add persistent deletion jobs/tombstones, retryable Auth cleanup, per-account billing leases, reused pending checkout and authoritative subscription reconciliation. Regression and re-review pending. Builder source underway; initial pipeline tests failed missingmodule before implementation.
+## Verification
 
-### Integration checkpoint
+**Baseline:** full workspace lint, typecheck, optimized preview build, native API/builder/gateway startup smoke and full `pnpm test` passed before the latest visual extension. That run plus the subsequent engine correction covered **320 distinct cases**.
 
-All three backend bundles build successfully. Gateway:5 tests (real localWebSockets), builder:6 tests including emulator progressivepublish/idempotency/deletionfence, API:12 emulator-backed tests, foundation36 emulator tests. Root `pnpm test:emulator` now runs sharedemulators sequentially across core/API/builder and passed. `pnpm test` combines packageunit tests with this gate.
+**Latest playable-world extension:** **45 engine tests and 17 web tests pass**, including tap-impulse preservation, preview schema/fixture immutability, static controls, hollow-cup collision and repeated fraction recombination. Replacing the baseline engine44/web13 counts gives **325 distinct passing cases across the full baseline and final scoped runs**, not a new single full-workspace run. **All 9 Playwright tests pass**, including original flows, five-viewport character/layout coverage and actions in all six worlds. Twelve desktop/mobile world captures show no horizontal overflow or page errors. After the bounded mobile-label correction, all twelve captures and the 45 engine tests were rerun.
 
-Infrastructure source now includes Terraform CloudRun/IAM/Firestore/GCS/Tasks/Secrets/deletionretryScheduler, Dockerfile, CloudBuild imagebuild andk6scaffold. Terraformformatpassed; providerinit/validatepending. No cloudchanges. Webfirstpasscomplete, build/browserchecks inprogress. API/backend rereview inprogress. Enginecriticalreviewfixes remain priority next.
+Optimized preview build, engine typecheck, engine/web lint and final formatting are checked for this extension. The optimized build reports the existing `metadataBase` fallback warning; set the actual site origin before deployment. Evidence: `/tmp/ji-world-{engine-test,web-test,e2e,build,engine-types,engine-lint,lint,format,capture}.log`, `/tmp/ji-world-review.json`. Browser artifacts are ignored. Previous full-workspace logs remain `/tmp/just-imagine-final-{tests,build,lint,typecheck,e2e}.log`.
 
-### Hardening checkpoint
+Counts across baseline + scoped updates: schema85, protocol45, fixtures36, server-core37, engine45, characters8, web17, API15, builder19, gateway18. API/builder/gateway cases repeated inside the emulator runner are counted once.
 
-Web first pass: real and fake optimized builds, typecheck/lint, 12 unit tests and 4 Playwright flows pass. Actual WebGL/audio unlock/voice, parent CRUD, mobile layouts, predictions/dials/keypad checked. Read-only web/audio review active. See docs/handoff/web-report.md.
+Earlier checks: real/fake optimized Next builds, Terraform validate, all three native service startup smokes, offline50-case evaluator plumbing. Local Node22 ARM64 Docker build and API/builder/gateway startup plus Sharp WebP passed; this does not establish AMD64 Cloud Run deployment. The offline evaluator uses fixture doubles and is not a model-quality score.
 
-Backend review fixes now implemented: individual-world deletion tombstones; atomic patch/version/job completion; bounded gateway control queue and independent shutdown/metering; finish attempted on metering failure; account-fenced daily usage; serialized billing portal/customer persistence; atomic monotonic session/daily metering; failed world/job notifications. New emulator regressions underway. Seven gateway unit/WebSocket tests pass. Terraform provider initialization and validation passed locally; no deployment.
+## Run and verify
 
-Engine implementer is addressing all ten findings from docs/handoff/engine-review.md. Do not mark the engine release-ready until scoped re-review. Remaining source work includes observability/evaluation setup and fuller sprite collision post-processing.
+```sh
+# Terminal 1 (already running on 8787)
+pnpm --filter @just-imagine/fixtures dev
+# Terminal 2 (already running on 3200)
+NEXT_PUBLIC_FAKE=1 pnpm --filter @just-imagine/web dev --port 3200
+# Browser suite against this preview
+PLAYWRIGHT_BASE_URL=http://localhost:3200 pnpm --filter @just-imagine/web e2e
+# Workspace checks
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test
+NEXT_PUBLIC_FAKE=1 pnpm build
+```
 
-### Review closure progress
+If pnpm is absent, use `npm exec --yes --offline --cache .npm-cache --package pnpm@10.34.7 -- pnpm`. Target Node22.12+, pnpm10.34.7, Java21. Local Java21: `.tools/amazon-corretto-21.jdk/Contents/Home`. Emulator suites run sequentially through `scripts/test-emulators.mjs`; avoid starting two runs on the same ports. Public web env changes require rebuilding. Port3000 belongs to an unrelated app: do not stop it.
 
-Backend emulator regressions passed: server-core37, API14, builder7, gateway8 (66 total across shared emulator run). Characters now8 tests including delayed microphone permission cancellation. Sprite processing now performs alpha despeckling, traced outline simplification and convex decomposition bounded to40 points/12 parts, with concavity regression. Engine25 tests plus real WebGL lifecycle smoke passed; scoped re-review identified a few remaining collider/body-patch edge cases to fix next.
+## Remaining gates / next teammate work
 
-Web review fixes implemented for saved-world voice identity, microphone cancellation, slider coalescing, keyboard entity actions, progressive control-state preservation/reset, challenge feedback, parent Labs controls and weekly activity. Scoped review surfaced timer/world identity cleanup follow-ups, now being corrected. Telemetry source includes privacy-limited JSON events and opt-in Cloud Trace export; Terraform adds metrics, alert policies, uptime checks, dashboard and optional HTTPS CDN. Terraform validate passes. Builder evaluation/prompt/extra Labs fixtures work active. Whole-workspace verification still pending after these changes.
+1. **Credentialed staging:** configure Firebase/GCP/ADC/Vertex models and verify one real speech→world→play→summary session, image generation, resume/handoff and deletion. Model IDs preserve the spec and remain configurable/unverified. Check current API/model availability before rollout.
+2. **Payments/deployment:** Stripe TEST keys/price/webhook, Terraform plan/apply, actual service URLs/IAM, App Hosting public env, CDN/DNS, notification destinations and CI/promotion approvals. No cloud resources were created here.
+3. **Release evidence:** real-model50-prompt eval,200-session load, speech latency,2022iPad/Safari fps/audio, child usability and production policy review. Local software WebGL is not device evidence.
+4. **Known source follow-through:** safe parallel moderation/tool gating, fuller Live transport/goAway/missing-call-ID coverage, task permanent-vs-transient error classification and asset failure diagnostics. See backend-direction-fixes.md exclusions. Recorded reaction clips/final Rive files and richer lab measurement presentation remain assets/polish work. The engine still lacks the spec’s explicit buoyant-flag behavior and automatic splitting for breakable materials; density-based buoyancy exists, but it is not full flag coverage. Replay API and richer measurement visuals also remain separate work. Fixed60Hz time scaling is now corrected and tested.
+5. Review latest uncommitted work together and rerun required CI before merging. Shared schemas/protocol shapes were preserved; schema-adapter behavior changed and deserves teammate review.
+
+## Important decisions
+
+- Original Next/Firebase architecture retained. No separate Sites registration.
+- Raw audio is not stored; transcripts stay in bounded gateway memory. Jobs use an age/tier/concept brief rather than raw transcript excerpts. Operational logs omit child text/tokens/provider messages.
+- Live moderation outages fail closed as operational errors, not child safety strikes. Parallelization is deferred until tool gating can be proven safe.
+- A failed generated scene is recorded as terminal fallback, remains playable and is explained to the child; retry/handoff context clears stale failures correctly.
+- Browser screenshots and tool caches are ignored. Keep source art/provenance and checkpoint history. This shared workspace must not be removed as part of cleanup.
+
+## Parallel teammate ledger (preserved)
 
 ## Parallel session notes (Claude Code, 2026-10-15 23:55)
 
@@ -103,15 +128,57 @@ Web review fixes implemented for saved-world voice identity, microphone cancella
 ## Parallel session notes (Claude Code, 2026-10-16 00:17) — files claimed
 
 Claude Code is now redesigning the child Studio surface per docs/reviews/2026-10-16-web-direction-check.md (stage layout, Imagine-phase listening state, cast strip, dial tray, Discovery toast, summon overlay, spell flourish, six distinct character faces). Files taken until the next note here:
+
 - apps/web/components/Studio.tsx, apps/web/components/CharacterFace.tsx, apps/web/app/globals.css (studio and character sections), apps/web/lib/strings/en.ts (child-facing strings only)
 - new: apps/web/components/SummonOverlay.tsx, apps/web/components/SpellFlourish.tsx, apps/web/components/studio/*, apps/web/app/studio.css
-Codex: please keep to services/, packages/ and the parent area while this is in progress; if you must touch one of these files, append a note here first.
+  Codex: please keep to services/, packages/ and the parent area while this is in progress; if you must touch one of these files, append a note here first.
 
 ## Parallel session notes (Claude Code, 2026-10-16 00:21) — review findings for Codex
 
 Four direction-check reports are in docs/reviews/ (summary: docs/reviews/2026-10-16-direction-check-summary.md). Findings in your areas, highest value first; all have file:line references in the reports:
+
 1. builder `src/vertex.ts:56` and gateway `src/tools.ts:35` send raw JSON Schema (`$schema`, `additionalProperties`, `propertyNames`) to Vertex; wrap with `toGeminiJsonSchema` from scene-schema.
 2. gateway `src/gateway.ts:236-238` swallows Live setup errors; the child gets `bye: error` with nothing logged. Also: quota warning never reaches the character; prompts are one unversioned string.
 3. engine soft bodies: lattice carries ~40% of document mass, impulses land on one node, so the jelly dragon's `bounce` rule never fires (engine report defect 1, with a probe).
 4. api `src/store.ts:124` leaks world existence with 403 (spec says 404); `src/deletion.ts:72-100` leaves builderJobs behind.
-Claude Code is on the Studio stage (files listed in the note above) and will not touch these.
+   Claude Code is on the Studio stage (files listed in the note above) and will not touch these.
+
+## Parallel session notes (Claude Code, 2026-10-16 00:46) — Studio stage rebuilt
+
+The child Studio is now a full-bleed stage (impeccable new-work flow; surface brief at apps/web/.impeccable/surfaces/components-studio-tsx.md; review captures in apps/web/.impeccable/review/). Changed: apps/web/components/Studio.tsx (same hooks and contracts, new render tree), components/CharacterFace.tsx (authored SVG fallback instead of Avatar), new components/studio/{parts,LabDrawer,CharacterArt}.tsx, new app/studio.css (imported by Studio.tsx; globals.css untouched, its .studio/.play-world/.character-panel/.cast/.dial-tray/.lab-panel/.discovery/.prediction rules are now unused and can be deleted), lib/strings/en.ts (child strings appended). Your Playwright flows in e2e/flows.spec.ts pass unchanged against it (every selector they rely on was kept). Engine placeholder art is unchanged and still yours; a cream-silhouette/sky palette for placeholders would lift the stage a lot. Claude Code's file claim on these files ends once this work is committed.
+
+## Codex checkpoint — 2026-10-16, premium preview in progress
+
+- User approved keeping the cream/forest palette and explicitly requested Impeccable polish. Codex owns landing `app/page.tsx`, new `welcome.css`/`GravityPlayground.tsx`, explorer picker/`explorers.css`, parent panels/`parent-polish.css`. Claude Code's Studio/character files are preserved.
+- Preview currently running at **http://localhost:3200** (`NEXT_PUBLIC_FAKE=1 next dev --port 3200`); fixture gateway on 8787. Port 3000 belongs to an unrelated app; do not stop it. Port 3100 is an older production preview.
+- Landing now has an actual drop/bounce experiment with Earth/Moon acceleration, one clear entry CTA, and a quieter sequential explanation. Explorer cards and parent chart/empty states refined. Desktop/mobile captures passed overflow checks and the route from landing through profile to Studio had no page errors. Web lint passed before the final empty-state refinement.
+- Engine implementer is fixing the newly reported mass/impulse, flick, spawned-rendering, face-direction and collider-reload defects from `docs/reviews/2026-10-16-engine-characters-direction-check.md`; do not overwrite packages/engine concurrently.
+- Prior full suite: **300 distinct tests**, **5 Playwright flows**, emulator suites; scoped fixtures36/characters8/gateway12 rerun passed after fallback context retry fix and browser timer binding fix. All three service bundles and Sharp WebP worked in the local Node22 ARM64 Docker image. This is packaging evidence, not Cloud Run/AMD64 deployment evidence.
+- Teammate has since committed/pushed baseline and opened draft PR #1, per notes above. Codex has not committed or pushed this polish batch.
+- Remaining: final visual confirmation/e2e/build/typecheck, flagship demo sprite integration, consolidate handoff; newly reported backend adapter/API gaps and real staging credentials remain explicit follow-through work.
+
+### Codex integration note — preview discoveries
+
+Codex is making one narrow integration edit to `components/Studio.tsx`: persist a displayed preview Discovery Card to the browser sample family's store so it is visible in Parent space. This preserves Claude Code's render tree and animation work. Storage/API changes stay in `lib/demo.ts`; no live-service behavior changes.
+
+### Preview integration correction
+
+The local socket's canned timeline previously repeated a prediction after the child had answered and could award a bounce card while a different Lab was selected. Studio now uses the selected fixture's predictions and real local engine concept events in preview mode; live mode still receives both from the real gateway. This is a narrow control-handler change preserving the teammate's presentation.
+
+### Impeccable hook follow-up
+
+Removed the legacy 4px side accent from `globals.css` `.challenge.active`. Active-state background and text remain; Studio keeps its own challenge styling. No ignore/suppression was added and no other design changes were made.
+
+## Latest feature — personal chibi companion
+
+User requested a photo-derived chibi friend powered by Gemini 3.8 Live across child screens. Parent photo upload with a ready-made fallback is explicitly approved. Implementation and configuration: `docs/handoff/personal-companion-plan.md`.
+
+Parent signup now leads to explorer creation, then optional photo/ready-made companion setup. Generated artwork stays in the private child profile; original uploads are normalized in memory and never stored by the app. Ownership, explicit permission, generation attempts, concurrent requests and deletion/stale-publication races are enforced. Child screens share one voice session, personalized identity and named navigation tools. A generated avatar also stays in its cast slot while a specialist guide speaks. Parent screens and external URLs are excluded from the navigation tool. Server-side API-key support was added to the existing Vertex Live provider; default remains Gemini3.8Live.
+
+Preview: open `/parent/children`, name/select Ari's ready-made friend, then choose Ari at `/play` and use **Explore together**. Photo creation explicitly requires the connected Gemini service and is disabled in fixture preview. No actual generated-photo result or credentialed Live session has been claimed. Generated portraits have a speaking gesture, not a Rive face rig. Docker orchestration from the feasibility discussion is still pending.
+
+Verification: full workspace suite passes **334 distinct tests** including emulator runs (schema85, protocol45, fixtures36, server-core37, engine45, characters9, web17, API22, builder19, gateway19; duplicate service unit runs counted once). **All10 Playwright tests pass**, including same-WebSocket Studio→Gallery→Studio traversal, the original six-world interactions and five-viewport cast/layout regression. Final menu keyboard checks are scoped separately. Workspace typecheck/lint and full optimized preview/service build pass. Evidence: `/tmp/ji-companion-{tests,e2e,final-e2e,types,lint,build,capture}.log`; eight desktop/mobile captures under `apps/web/.impeccable/review/companion/` (ignored). The finish review requested keyboard focus and SVG arrows; both are implemented; the fresh reviewer returned **ship** with no open material findings.
+
+## Parallel session notes (Claude Code, 2026-10-16 02:53) — pushed to main
+
+On the user's instruction ("push all the changes in the main branch"), the whole working tree was committed on `feat/full-development` and `main` was fast-forwarded to it; both are pushed. Before committing: prettier (whitespace only) on `services/builder/src/vertex.ts`, `services/builder/src/worker.ts`, `services/builder/test/completion.test.ts`, `apps/web/.impeccable/surfaces/personal-companion.md`; and in `services/gateway/test/live.test.ts` the inline `typeof import('@google/genai')` became `import type * as GenAI` + `typeof GenAI` (lint rule consistent-type-imports; test still passes). Re-read those files before anchored edits. Claude Code dropped its pending 64 px Studio size patch because you edited studio.css after it; the 52 px stage pills still differ from the spec's 64 px child-target rule, yours to decide. Claude Code's claim on the Studio files is released.

@@ -1,0 +1,27 @@
+FROM eclipse-temurin:21-jre AS java
+FROM node:22-bookworm-slim
+COPY --from=java /opt/java/openjdk /opt/java/openjdk
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="/opt/java/openjdk/bin:${PATH}"
+WORKDIR /app
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages ./packages
+COPY services ./services
+COPY apps/web ./apps/web
+COPY scripts ./scripts
+COPY turbo.json firebase.json firestore.rules firestore.indexes.json ./
+COPY infra/local/firebase.json ./firebase.local.json
+RUN pnpm install --frozen-lockfile
+RUN pnpm exec firebase setup:emulators:firestore
+ENV NEXT_PUBLIC_FAKE=0
+ENV NEXT_PUBLIC_FIREBASE_EMULATOR=1
+ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-just-imagine-local
+ENV NEXT_PUBLIC_FIREBASE_API_KEY=demo-key
+ENV NEXT_PUBLIC_FIREBASE_APP_ID=demo
+ENV NEXT_PUBLIC_GATEWAY_URL=ws://localhost:8788
+ENV NEXT_PUBLIC_API_URL=http://localhost:3301
+RUN pnpm --filter @just-imagine/api --filter @just-imagine/builder --filter @just-imagine/gateway build
+RUN pnpm --filter @just-imagine/web build
+EXPOSE 3300 3301 3302 8788 8080 9099
+CMD ["pnpm", "--filter", "@just-imagine/web", "start", "--port", "3300", "--hostname", "0.0.0.0"]

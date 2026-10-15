@@ -1,4 +1,7 @@
-import { startTelemetry, logEvent } from '@just-imagine/server-core';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { startLocalQueue } from './local-queue';
+import { startTelemetry, logEvent, localDevelopment } from '@just-imagine/server-core';
 import Fastify from 'fastify';
 import { genkit, z as flowSchema } from 'genkit';
 import { OAuth2Client } from 'google-auth-library';
@@ -8,6 +11,11 @@ import { VertexModels } from './vertex';
 const stopTelemetry = startTelemetry('builder');
 const env = z
   .object({
+    GEMINI_API_KEY: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(1).optional(),
+    ),
+    ASSET_DIRECTORY: z.string().optional(),
     PORT: z.coerce.number().default(8082),
     GOOGLE_CLOUD_PROJECT: z.string().min(1),
     ASSET_BUCKET: z.string().min(1),
@@ -20,15 +28,21 @@ const env = z
     PROP_MODEL: z.string().default('gemini-3.1-flash-lite-image'),
   })
   .parse(process.env);
+const local = localDevelopment();
 const worker = new BuilderWorker(
   new VertexModels({
     project: env.GOOGLE_CLOUD_PROJECT,
+    apiKey: env.GEMINI_API_KEY,
     sceneModel: env.SCENE_MODEL,
     fastModel: env.FAST_MODEL,
     heroModel: env.HERO_MODEL,
     propModel: env.PROP_MODEL,
   }),
-  { bucket: env.ASSET_BUCKET, assetBaseUrl: env.ASSET_BASE_URL },
+  {
+    bucket: env.ASSET_BUCKET,
+    assetBaseUrl: env.ASSET_BASE_URL,
+    assetDirectory: local ? env.ASSET_DIRECTORY : undefined,
+  },
 );
 const ai = genkit({});
 const build = ai.defineFlow({ name: 'buildWorld', inputSchema: flowSchema.unknown() }, (input) =>
@@ -37,6 +51,29 @@ const build = ai.defineFlow({ name: 'buildWorld', inputSchema: flowSchema.unknow
 const auth = new OAuth2Client();
 const app = Fastify({ bodyLimit: 128 * 1024, logger: false });
 app.get('/health', async () => ({ ok: true }));
+if (local && env.ASSET_DIRECTORY)
+  app.get('/assets/:hash/:file', async (req, reply) => {
+    const parsed = z
+      .object({
+        hash: z.string().regex(/^[a-f0-9]{64}$/),
+        file: z.enum(['sprite.webp', 'collider.json']),
+      })
+      .safeParse(req.params);
+    if (!parsed.success) return reply.code(404).send();
+    try {
+      const data = await readFile(
+        join(env.ASSET_DIRECTORY!, 'assets', parsed.data.hash, parsed.data.file),
+      );
+      reply
+        .header('Access-Control-Allow-Origin', '*')
+        .header('Cache-Control', 'public,max-age=31536000,immutable');
+      return reply
+        .type(parsed.data.file.endsWith('.webp') ? 'image/webp' : 'application/json')
+        .send(data);
+    } catch {
+      return reply.code(404).send();
+    }
+  });
 app.post('/jobs', async (req, reply) => {
   try {
     const token = req.headers.authorization?.replace(/^Bearer /, '');
@@ -60,9 +97,11 @@ app.addHook('onResponse', async (_req, reply) => {
   logEvent('http_request', { status: reply.statusCode, durationMs: reply.elapsedTime });
 });
 await app.listen({ host: '0.0.0.0', port: env.PORT });
+const stopQueue = local ? startLocalQueue(worker) : async () => {};
 for (const signal of ['SIGTERM', 'SIGINT'])
   process.on(signal, () => {
     void app.close().then(async () => {
+      await stopQueue();
       await stopTelemetry();
       process.exit(0);
     });

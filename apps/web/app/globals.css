@@ -1393,7 +1393,6 @@ progress::-moz-progress-bar {
   padding: var(--space-4, 1rem);
 }
 .challenge.active {
-  border-left: 4px solid var(--green, #245e4e);
   background: #e5eedf;
   padding: 1rem;
 }

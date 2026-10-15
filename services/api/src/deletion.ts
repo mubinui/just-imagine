@@ -62,6 +62,15 @@ export async function processDeletion(
   try {
     if (job.worldId) {
       await db().recursiveDelete(db().doc(paths.world(job.worldId)));
+      for (const collection of ['builderJobs', 'localBuildTasks'])
+        for (const doc of (
+          await db()
+            .collection(collection)
+            .where('uid', '==', job.uid)
+            .where('worldId', '==', job.worldId)
+            .get()
+        ).docs)
+          await db().recursiveDelete(doc.ref);
       await db().runTransaction(async (tx) => {
         if ((await tx.get(ref)).data()?.['lease'] !== lease) throw new Error('Deletion lease lost');
         tx.update(ref, { status: 'complete', finishedAt: Date.now() });
@@ -72,6 +81,8 @@ export async function processDeletion(
     for (const [collection, owner] of [
       ['worlds', 'ownerUid'],
       ['sessions', 'uid'],
+      ['builderJobs', 'uid'],
+      ['localBuildTasks', 'uid'],
     ] as const) {
       const base = db().collection(collection).where(owner, '==', job.uid);
       const query = job.childId ? base.where('childId', '==', job.childId) : base;

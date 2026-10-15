@@ -118,3 +118,61 @@ describe('builder completion', () => {
     expect(report.results[0]?.attempts).toBe(2);
   });
 });
+
+it('sends sanitized response schemas and requests actual 16:9 2K backdrops', async () => {
+  const model = new VertexModels({
+    project: 'test',
+    sceneModel: 'scene',
+    fastModel: 'fast',
+    heroModel: 'hero',
+    propModel: 'prop',
+  });
+  mockGenerate.mockResolvedValueOnce({ text: '{}' });
+  await model.generate('safe world', 'scene');
+  expect(JSON.stringify(mockGenerate.mock.calls[0]![0].config.responseJsonSchema)).not.toMatch(
+    /"(const|pattern|minLength|maxLength|propertyNames)":/,
+  );
+  mockGenerate.mockResolvedValueOnce({
+    candidates: [
+      {
+        content: {
+          parts: [
+            {
+              inlineData: {
+                mimeType: 'image/png',
+                data: Buffer.from('image-double').toString('base64'),
+              },
+            },
+          ],
+        },
+      },
+    ],
+  });
+  await model.image('safe landscape', false, true);
+  expect(mockGenerate.mock.calls[1]![0].config.imageConfig).toEqual({
+    aspectRatio: '16:9',
+    imageSize: '2K',
+  });
+});
+
+it('uses validated JSON mode when the provider rejects a complex response schema', async () => {
+  const model = new VertexModels({
+    project: 'test',
+    apiKey: 'server-key',
+    sceneModel: 'scene',
+    fastModel: 'fast',
+    heroModel: 'hero',
+    propModel: 'prop',
+  });
+  mockGenerate.mockRejectedValueOnce({ status: 400 }).mockResolvedValue({ text: '{}' });
+  await model.generate('safe world', 'scene', 'one');
+  await model.generate('another world', 'scene', 'two');
+  expect(mockGenerate).toHaveBeenCalledTimes(3);
+  expect(mockGenerate.mock.calls[0]![0].config.responseJsonSchema).toBeDefined();
+  for (const [request] of mockGenerate.mock.calls.slice(1)) {
+    expect(request.config.responseJsonSchema).toBeUndefined();
+    expect(request.config.responseMimeType).toBe('application/json');
+    expect(request.contents).toContain('Output JSON contract (follow exactly)');
+    expect(request.config.safetySettings).toHaveLength(4);
+  }
+});

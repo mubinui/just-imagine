@@ -1,0 +1,114 @@
+name: just-imagine-local
+x-app: &app
+  image: just-imagine-local:dev
+  build:
+    context: .
+    dockerfile: Dockerfile.local
+  init: true
+  restart: unless-stopped
+  stop_grace_period: 90s
+x-server-env: &server-env
+  LOCAL_DEV: '1'
+  GOOGLE_CLOUD_PROJECT: demo-just-imagine-local
+  FIRESTORE_EMULATOR_HOST: emulators:8080
+  FIREBASE_AUTH_EMULATOR_HOST: emulators:9099
+  WEB_URL: http://localhost:3300
+  FAST_MODEL: ${FAST_MODEL:-gemini-3.8-flash}
+services:
+  emulators:
+    <<: *app
+    command:
+      [
+        pnpm,
+        exec,
+        firebase,
+        emulators:start,
+        --config,
+        firebase.local.json,
+        --only,
+        'firestore,auth',
+        --project,
+        demo-just-imagine-local,
+        --import,
+        /data/firebase,
+        --export-on-exit,
+        /data/firebase,
+      ]
+    ports: ['127.0.0.1:8080:8080', '127.0.0.1:9099:9099']
+    volumes: [firebase-data:/data/firebase]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "Promise.all([fetch('http://127.0.0.1:8080'),fetch('http://127.0.0.1:9099')]).then(()=>process.exit(0)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+  api:
+    <<: *app
+    command: [node, services/api/dist/main.js]
+    env_file: [.env.local]
+    environment:
+      <<: *server-env
+      PORT: '3301'
+      COMPANION_IMAGE_MODEL: ${COMPANION_IMAGE_MODEL:-gemini-nano-banana-2.1}
+    ports: ['127.0.0.1:3301:3301']
+    depends_on:
+      emulators: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3301/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+  builder:
+    <<: *app
+    command: [node, services/builder/dist/main.js]
+    env_file: [.env.local]
+    environment:
+      <<: *server-env
+      PORT: '3302'
+      ASSET_BUCKET: local-assets
+      ASSET_BASE_URL: http://localhost:3302
+      ASSET_DIRECTORY: /data/worlds
+      BUILDER_AUDIENCE: http://builder:3302
+      TASK_SERVICE_ACCOUNT: local@demo-just-imagine-local.iam.gserviceaccount.com
+      SCENE_MODEL: ${SCENE_MODEL:-gemini-3.8-flash}
+      HERO_MODEL: ${HERO_MODEL:-gemini-nano-banana-2.1}
+      PROP_MODEL: ${PROP_MODEL:-gemini-3.1-flash-lite-image}
+    ports: ['127.0.0.1:3302:3302']
+    volumes: [world-assets:/data/worlds]
+    depends_on:
+      emulators: { condition: service_healthy }
+  gateway:
+    <<: *app
+    command: [node, services/gateway/dist/main.js]
+    env_file: [.env.local]
+    environment:
+      <<: *server-env
+      PORT: '8788'
+      BUILDER_URL: http://builder:3302
+      TASK_SERVICE_ACCOUNT: local@demo-just-imagine-local.iam.gserviceaccount.com
+      LIVE_MODEL: gemini-3.8-live
+    ports: ['127.0.0.1:8788:8788']
+    depends_on:
+      emulators: { condition: service_healthy }
+  web:
+    <<: *app
+    environment:
+      <<: *server-env
+      NODE_ENV: production
+    ports: ['127.0.0.1:3300:3300']
+    depends_on:
+      api: { condition: service_healthy }
+volumes:
+  firebase-data:
+  world-assets:
