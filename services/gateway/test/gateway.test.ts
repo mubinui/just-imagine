@@ -239,10 +239,14 @@ it('replays the control manifest after opening Live and announces ready-to-ready
   jobUpdate('failed');
   expect(h.live.text).toHaveBeenLastCalledWith(expect.stringContaining('World building failed'));
   jobUpdate('running');
-  expect(h.live.text).toHaveBeenLastCalledWith(expect.not.stringContaining('World building failed'));
+  expect(h.live.text).toHaveBeenLastCalledWith(
+    expect.not.stringContaining('World building failed'),
+  );
   jobUpdate('failed');
   jobUpdate('complete');
-  expect(h.live.text).toHaveBeenLastCalledWith(expect.not.stringContaining('World building failed'));
+  expect(h.live.text).toHaveBeenLastCalledWith(
+    expect.not.stringContaining('World building failed'),
+  );
   h.live.text.mockClear();
   a.socket.send(JSON.stringify({ type: 'switchCharacter', characterId: 'chandni' }));
   await vi.waitFor(() => expect(h.provider.open).toHaveBeenCalledTimes(2));

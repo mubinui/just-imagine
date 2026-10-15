@@ -67,16 +67,16 @@ Open `http://localhost:3100/play` and choose Ari. Preview mode uses local sample
 
 ## Workspace
 
-| Location | Responsibility |
-| --- | --- |
-| `packages/scene-schema`, `protocol` | Validated scenes, physics rules and service contracts |
-| `packages/fixtures`, `server-core` | Offline worlds/fakes, Firebase, transactions and telemetry |
-| `packages/engine`, `characters` | Pixi/Rapier simulation, browser audio, voice client and Rive adapter |
-| `apps/web` | Marketing/auth, child Studio/gallery, parent profiles/progress/billing |
-| `services/gateway` | Authenticated Live voice, tools, pacing, quotas and session summaries |
-| `services/builder` | Versioned prompts, scene/patch generation, safe assets and evaluations |
-| `services/api` | Ownership, profiles, worlds, Stripe test billing and durable deletion |
-| `infra`, `.github`, `cloudbuild*.yaml` | Terraform, operations, CI, load scenario and image promotion |
+| Location                               | Responsibility                                                         |
+| -------------------------------------- | ---------------------------------------------------------------------- |
+| `packages/scene-schema`, `protocol`    | Validated scenes, physics rules and service contracts                  |
+| `packages/fixtures`, `server-core`     | Offline worlds/fakes, Firebase, transactions and telemetry             |
+| `packages/engine`, `characters`        | Pixi/Rapier simulation, browser audio, voice client and Rive adapter   |
+| `apps/web`                             | Marketing/auth, child Studio/gallery, parent profiles/progress/billing |
+| `services/gateway`                     | Authenticated Live voice, tools, pacing, quotas and session summaries  |
+| `services/builder`                     | Versioned prompts, scene/patch generation, safe assets and evaluations |
+| `services/api`                         | Ownership, profiles, worlds, Stripe test billing and durable deletion  |
+| `infra`, `.github`, `cloudbuild*.yaml` | Terraform, operations, CI, load scenario and image promotion           |
 
 Worlds arrive through Firestore. WebSockets carry control messages and PCM only. Raw audio is never stored; transcripts stay in gateway memory, while persisted summaries/learning records contain the session outcome. Build jobs use a deterministic age/tier/concept brief rather than transcript excerpts.
 

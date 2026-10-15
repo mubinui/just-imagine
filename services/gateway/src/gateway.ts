@@ -269,7 +269,7 @@ export function startGateway(options: {
       watchedJob = id;
       outcome = '';
       stopJob = options.store.watchJob?.(id, (status) => {
-        if(session.ended||watchedJob!==id)return;
+        if (session.ended || watchedJob !== id) return;
         if (['running', 'complete'].includes(status)) {
           if (outcome) {
             outcome = '';
@@ -278,7 +278,7 @@ export function startGateway(options: {
           }
           return;
         }
-        if(!['failed','fallback'].includes(status))return;
+        if (!['failed', 'fallback'].includes(status)) return;
         outcome =
           status === 'fallback'
             ? 'The requested world could not be painted. This is a safe sample world instead. Explain gently and offer to explore it or try again.'

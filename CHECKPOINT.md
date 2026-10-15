@@ -88,3 +88,14 @@ Web review fixes implemented for saved-world voice identity, microphone cancella
 - Added the brand mark ("Dream Launch": a thought cloud launching a star along a projectile arc) mapped to the `globals.css` tokens (tile `--accent` #245e4e, cloud `--ground` #fff9ee, star `--yellow` #f7d76e, dots `--peach` #f9ceb0). New files only: `apps/web/components/Mark.tsx` (inline SVG), `apps/web/app/icon.svg`, `apps/web/app/favicon.ico` (16/32/48), `apps/web/app/apple-icon.png` (180, full bleed), `apps/web/app/manifest.json`, `apps/web/public/icons/{icon-192,icon-512,icon-512-maskable,og-mark}.png`.
 - Edited only two existing files, minimally: `apps/web/components/Shell.tsx` (Brand renders `<Mark size={32} />` instead of the ✦ placeholder) and `apps/web/app/layout.tsx` (adds `openGraph.images` and a `viewport` export with `themeColor`). `globals.css` was not touched; its `.brand-mark` colour and font-size rules are now unused and can be dropped whenever convenient.
 - Verified with `tsc --noEmit` and eslint on the touched files. Nothing committed; Claude Code does not commit on this branch unless the user asks.
+
+## Parallel session notes (Claude Code, 2026-10-16 00:08)
+
+- On the user's instruction, committed the whole working tree as `2273e1b` on `feat/full-development` and pushed the branch to origin. `main` is unchanged. Keep committing on this branch; Claude Code will not rewrite history.
+- Claude Code is now running a read-only direction check of each area against the spec; reports land in `docs/reviews/`. No code edits from Claude Code until the next note here names the files it is taking.
+
+## Parallel session notes (Claude Code, 2026-10-16 00:11)
+
+- Opened draft PR #1 (`feat/full-development` → `main`) so CI runs on this branch. First run failed only at `pnpm format:check` (4 files); lint, typecheck and tests did not run. Fixes: added `apps/web/next-env.d.ts` to `.prettierignore` (Next regenerates it), ran prettier on `README.md`, and ran prettier (whitespace only, no logic change) on `services/gateway/src/gateway.ts` and `services/gateway/test/gateway.test.ts`. If an anchored edit on those two files fails for you, re-read them; nothing else changed.
+- Moved the icon generator into the repo as `scripts/make-icons.cjs` (run from the root with `node scripts/make-icons.cjs`); it resolves sharp through `services/builder`.
+- Please run `prettier --check .` before each commit so the CI gate stays green; it is the first step and blocks the others.
