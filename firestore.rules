@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function parent(uid) { return request.auth != null && request.auth.uid == uid; }
+    match /users/{uid} {
+      allow read: if parent(uid);
+      match /children/{childId} {
+        allow read: if parent(uid);
+        match /discoveries/{concept} { allow read: if parent(uid); }
+      }
+    }
+    match /worlds/{worldId} {
+      allow read: if parent(resource.data.ownerUid);
+      match /versions/{version} {
+        allow read: if parent(get(/databases/$(database)/documents/worlds/$(worldId)).data.ownerUid);
+      }
+    }
+    match /sessions/{sessionId} { allow read: if parent(resource.data.uid); }
+    match /usageDaily/{usageId} { allow read: if parent(resource.data.uid); }
+    match /subscriptions/{uid} { allow read: if parent(uid); }
+    match /{document=**} { allow write: if false; }
+  }
+}

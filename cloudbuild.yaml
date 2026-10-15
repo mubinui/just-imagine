@@ -1,0 +1,9 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: [build, -t, 'us-central1-docker.pkg.dev/$PROJECT_ID/just-imagine/services:$COMMIT_SHA', .]
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/just-imagine/services:$COMMIT_SHA'
+options:
+  logging: CLOUD_LOGGING_ONLY
+# Apply the reviewed Terraform plan with this image digest to staging.
+# Production is a separate manually approved promotion; this file never auto-promotes it.

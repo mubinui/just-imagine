@@ -1,0 +1,125 @@
+import { test, expect } from '@playwright/test';
+test('profile gesture unlocks audio, world renders, prediction and lab controls work', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/play');
+  await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
+  await expect(page).toHaveURL(/studio/);
+  await expect(page.locator('canvas')).toBeVisible();
+  await expect(page.getByText('Voice connection: connected')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'bounce', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'bounce', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'bounce', exact: true })).toHaveCount(0);
+  await page.getByLabel('gravity', { exact: true }).selectOption('moon');
+  await page.screenshot({ path: 'test-results/studio-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Cannon and Cup', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Lab tools' })).toBeVisible();
+  await page.getByRole('button', { name: 'Enter a number' }).first().click();
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: '9', exact: true }).click();
+  await page.getByRole('button', { name: '9', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply number' }).click();
+  const slider = page.getByRole('slider').first();
+  await expect(slider).toHaveValue((await slider.getAttribute('max')) || '');
+  await page.getByRole('button', { name: 'Finish playing' }).click();
+  await expect(page.getByRole('heading', { name: 'A lovely place to pause.' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+test('parent CRUD persists and deletion requires confirmation', async ({ page }) => {
+  await page.goto('/parent/children');
+  await page.getByLabel('First name').last().fill('Mira');
+  await page.getByRole('button', { name: 'Add explorer', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Mira', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Mira', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete', exact: true }).last().click();
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Mira', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete', exact: true }).last().click();
+  await page.getByRole('button', { name: 'Confirm deletion' }).click();
+  await expect(page.getByRole('heading', { name: 'Mira', exact: true })).toHaveCount(0);
+  await page.goto('/parent/billing');
+  await expect(page.getByRole('button', { name: 'Explore Family' })).toBeDisabled();
+  await page.goto('/parent/dashboard');
+  await page.screenshot({ path: 'test-results/parent-desktop.png', fullPage: true });
+});
+test('marketing and child surfaces adapt without horizontal overflow or free text', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.screenshot({ path: 'test-results/landing-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of ['/', '/play', '/parent/children', '/sign-up', '/privacy']) {
+    await page.goto(route);
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true);
+    await page.screenshot({
+      path: `test-results/mobile-${route.replaceAll('/', '') || 'landing'}.png`,
+      fullPage: true,
+    });
+  }
+  await page.goto('/play');
+  await expect(page.locator('input[type=text],textarea,[contenteditable=true]')).toHaveCount(0);
+});
+test('session route rejects missing and mismatched origins before authentication', async ({
+  request,
+}) => {
+  expect((await request.post('/api/session', { data: { idToken: 'invalid' } })).status()).toBe(403);
+  expect(
+    (
+      await request.post('/api/session', {
+        headers: { Origin: 'https://wrong.example' },
+        data: { idToken: 'invalid' },
+      })
+    ).status(),
+  ).toBe(403);
+});
+
+test('coalesces slider transport, preserves values during asset updates, and resets cleanly', async ({
+  page,
+}) => {
+  const values: number[] = [];
+  page.on('websocket', (socket) =>
+    socket.on('framesent', (event) => {
+      if (typeof event.payload === 'string') {
+        try {
+          const message = JSON.parse(event.payload);
+          if (message.type === 'variable') values.push(message.value);
+        } catch {}
+      }
+    }),
+  );
+  await page.goto('/play');
+  await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
+  await expect(page.locator('canvas')).toBeVisible();
+  await page.getByRole('button', { name: 'Cannon and Cup', exact: true }).click();
+  const slider = page.getByRole('slider').first();
+  await expect(slider).toBeVisible();
+  const initial = await slider.inputValue();
+  await slider.focus();
+  await slider.press('Home');
+  for (let i = 0; i < 20; i++) await slider.press('ArrowRight');
+  const selected = await slider.inputValue();
+  await page.waitForTimeout(500);
+  expect(values.length).toBeGreaterThan(0);
+  expect(values.length).toBeLessThan(20);
+  expect(values.at(-1)).toBe(Number(selected));
+  await page.waitForTimeout(2000);
+  await expect(slider).toHaveValue(selected);
+  await page.getByRole('button', { name: 'Start over', exact: true }).click();
+  await expect(slider).toHaveValue(initial);
+  await page.getByRole('button', { name: 'Cannon and Cup', exact: true }).click();
+  await expect(page.locator('canvas')).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'World actions' }).getByRole('button').first(),
+  ).toBeVisible();
+  await page
+    .getByRole('region', { name: 'World actions' })
+    .getByRole('button')
+    .first()
+    .press('ArrowUp');
+});

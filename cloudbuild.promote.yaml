@@ -1,0 +1,15 @@
+# Run only after staging acceptance; require approval on the production trigger.
+substitutions:
+  _IMAGE_DIGEST: ''
+steps:
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -euc
+      - |
+        [[ '${_IMAGE_DIGEST}' == *@sha256:* ]] || { echo 'Supply the tested immutable image digest'; exit 1; }
+        for service in gateway api builder; do
+          gcloud run services update "imagine-$$service" --project "$PROJECT_ID" --region us-central1 --image '${_IMAGE_DIGEST}' --quiet
+        done
+options:
+  logging: CLOUD_LOGGING_ONLY

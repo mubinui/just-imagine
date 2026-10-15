@@ -1,0 +1,34 @@
+{
+  "name": "@just-imagine/server-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore,auth --project demo-just-imagine \"vitest run\"",
+    "test:unit": "vitest run test/ids.test.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@google-cloud/opentelemetry-cloud-trace-exporter": "^3.1.0",
+    "@just-imagine/protocol": "workspace:*",
+    "@just-imagine/scene-schema": "workspace:*",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/sdk-node": "^0.223.0",
+    "firebase-admin": "^13.4.0",
+    "ulid": "^3.0.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@just-imagine/config": "workspace:*",
+    "@types/node": "^22.15.0",
+    "eslint": "^9.30.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

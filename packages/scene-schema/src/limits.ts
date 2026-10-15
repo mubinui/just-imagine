@@ -1,0 +1,15 @@
+export const LIMITS = {
+  schemaVersion: 1,
+  maxEntities: 24,
+  maxJoints: 16,
+  maxRules: 12,
+  maxMaterials: 8,
+  maxDials: 3,
+  maxConcepts: 3,
+  minEntitySize: 0.2,
+  maxEntitySize: 8,
+  maxTerrainSize: 16,
+  bounds: { width: 16, height: 9 },
+  density: { min: 0.05, max: 20 },
+  mass: { min: 0.01, max: 2000 },
+} as const;

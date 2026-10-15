@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "worldId": "w_fixture_moon_bounce",
+  "tier": "playground",
+  "title": "Bouncy Ball on the Moon",
+  "theme": {
+    "paletteHint": "deep indigo with silver",
+    "timeOfDay": "night",
+    "backdropDescription": "cartoon moon surface with soft grey craters, a starry sky and a tiny Earth in the distance",
+    "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+  },
+  "environment": {
+    "gravity": { "x": 0, "y": 1.62 },
+    "wind": { "x": 0, "y": 0 },
+    "medium": "air",
+    "bounds": { "width": 16, "height": 9 },
+    "seed": 7
+  },
+  "materials": {
+    "moondust": {
+      "density": 1.5,
+      "friction": 0.8,
+      "restitution": 0.1,
+      "softness": 0.1,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "rubber": {
+      "density": 1.1,
+      "friction": 0.8,
+      "restitution": 0.85,
+      "softness": 0.2,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "metal": {
+      "density": 6,
+      "friction": 0.4,
+      "restitution": 0.2,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    }
+  },
+  "entities": [
+    {
+      "id": "ground",
+      "kind": "ground",
+      "name": "moon ground",
+      "description": "soft grey cartoon moon surface",
+      "body": {
+        "shape": "box",
+        "material": "moondust",
+        "isStatic": true,
+        "size": { "width": 16, "height": 1 }
+      },
+      "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+      "tags": ["ground"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "ball",
+      "kind": "sprite",
+      "name": "bouncy ball",
+      "description": "bright red rubber bouncy ball with a white star",
+      "body": {
+        "shape": "circle",
+        "material": "rubber",
+        "isStatic": false,
+        "size": { "width": 1, "height": 1 }
+      },
+      "transform": { "x": 5, "y": 2, "rotation": 0 },
+      "tags": ["ball", "hero"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "bolt_toy",
+      "kind": "sprite",
+      "name": "metal bolt",
+      "description": "shiny chunky cartoon metal bolt",
+      "body": {
+        "shape": "box",
+        "material": "metal",
+        "isStatic": false,
+        "size": { "width": 0.8, "height": 0.8 }
+      },
+      "transform": { "x": 10, "y": 2, "rotation": 0 },
+      "tags": ["bolt"],
+      "behaviors": [],
+      "pretend": false
+    }
+  ],
+  "joints": [],
+  "rules": [
+    {
+      "id": "r_ball_bounce",
+      "when": { "event": "collision", "a": "ball", "b": "ground", "minImpulse": 1 },
+      "then": [
+        { "action": "sound", "cue": "boing" },
+        {
+          "action": "say",
+          "text": "Look how slowly it falls! The Moon pulls much less than Earth does."
+        }
+      ],
+      "concept": "gravity",
+      "once": true
+    },
+    {
+      "id": "r_bolt_land",
+      "when": { "event": "collision", "a": "bolt", "b": "ground", "minImpulse": 1 },
+      "then": [
+        { "action": "sound", "cue": "ding" },
+        {
+          "action": "say",
+          "text": "The heavy bolt fell just as slowly as the ball. Gravity pulls everything the same way!"
+        }
+      ],
+      "concept": "mass",
+      "once": true
+    },
+    {
+      "id": "r_earth",
+      "when": { "event": "dial", "dial": "gravity", "value": "earth" },
+      "then": [{ "action": "say", "text": "Whoa, Earth gravity! Everything drops faster now." }],
+      "once": false
+    }
+  ],
+  "learning": {
+    "concepts": ["gravity", "mass"],
+    "prediction": {
+      "question": "Which one lands first on the Moon, the ball or the heavy bolt?",
+      "options": ["the ball", "the bolt", "same time"],
+      "correctIndex": 2,
+      "concept": "gravity"
+    },
+    "dials": ["gravity"],
+    "heroEntityId": "ball"
+  },
+  "narration": {
+    "intro": "Welcome to the Moon! Drop the ball and the bolt and watch what happens."
+  }
+}

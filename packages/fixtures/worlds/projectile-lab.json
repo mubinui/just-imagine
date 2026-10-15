@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "worldId": "w_fixture_projectile_lab",
+  "tier": "lab",
+  "title": "Cannon and Cup",
+  "theme": {
+    "paletteHint": "bright science-lab teal and orange",
+    "timeOfDay": "day",
+    "backdropDescription": "cheerful cartoon science lab lawn with a chalkboard wall showing a faint grid",
+    "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+  },
+  "environment": {
+    "gravity": { "x": 0, "y": 9.81 },
+    "wind": { "x": 0, "y": 0 },
+    "medium": "air",
+    "bounds": { "width": 16, "height": 9 },
+    "seed": 11
+  },
+  "materials": {
+    "grass": {
+      "density": 1,
+      "friction": 0.8,
+      "restitution": 0.1,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "rubber": {
+      "density": 1.1,
+      "friction": 0.8,
+      "restitution": 0.6,
+      "softness": 0.2,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "metal": {
+      "density": 6,
+      "friction": 0.4,
+      "restitution": 0.2,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    }
+  },
+  "entities": [
+    {
+      "id": "ground",
+      "kind": "ground",
+      "name": "lawn",
+      "description": "neat green lawn with chalk distance marks",
+      "body": {
+        "shape": "box",
+        "material": "grass",
+        "isStatic": true,
+        "size": { "width": 16, "height": 1 }
+      },
+      "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+      "tags": ["ground"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "cannon",
+      "kind": "sprite",
+      "name": "toy cannon",
+      "description": "friendly round toy cannon on wheels, pointing up and to the right",
+      "body": {
+        "shape": "box",
+        "material": "metal",
+        "isStatic": true,
+        "size": { "width": 1.2, "height": 1 }
+      },
+      "transform": { "x": 2, "y": 7.5, "rotation": 0 },
+      "tags": ["cannon"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "ball",
+      "kind": "sprite",
+      "name": "red ball",
+      "description": "small bright red rubber ball",
+      "body": {
+        "shape": "circle",
+        "material": "rubber",
+        "isStatic": false,
+        "size": { "width": 0.4, "height": 0.4 }
+      },
+      "transform": { "x": 2.6, "y": 6.7, "rotation": 0 },
+      "tags": ["ball", "hero"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "cup",
+      "kind": "sprite",
+      "name": "big cup",
+      "description": "big friendly orange cup with a smiley face",
+      "body": {
+        "shape": "box",
+        "material": "metal",
+        "isStatic": true,
+        "size": { "width": 0.9, "height": 0.8 }
+      },
+      "transform": { "x": 12, "y": 7.6, "rotation": 0 },
+      "tags": ["cup", "target"],
+      "behaviors": [],
+      "pretend": false
+    }
+  ],
+  "joints": [],
+  "rules": [
+    {
+      "id": "r_fire",
+      "when": { "event": "tap", "target": "cannon" },
+      "then": [
+        { "action": "launch", "target": "hero" },
+        { "action": "sound", "cue": "whoosh" }
+      ],
+      "once": false
+    },
+    {
+      "id": "r_land",
+      "when": { "event": "collision", "a": "hero", "b": "ground", "minImpulse": 0.5 },
+      "then": [
+        { "action": "sound", "cue": "ding" },
+        {
+          "action": "say",
+          "text": "It curved! Gravity pulls down the whole time, so the path bends into an arc."
+        }
+      ],
+      "concept": "projectile",
+      "once": true
+    },
+    {
+      "id": "r_done",
+      "when": { "event": "challengeComplete", "id": "ch_cup" },
+      "then": [
+        {
+          "action": "say",
+          "text": "Right in the cup! Now try the same angle with a different speed."
+        }
+      ],
+      "concept": "graph",
+      "once": true
+    }
+  ],
+  "learning": {
+    "concepts": ["projectile", "gravity", "graph"],
+    "prediction": {
+      "question": "If we make the angle bigger, will the ball go further or higher?",
+      "options": ["further", "higher", "both"],
+      "correctIndex": 1,
+      "concept": "projectile"
+    },
+    "dials": [],
+    "heroEntityId": "ball"
+  },
+  "narration": {
+    "intro": "Welcome to the cannon lab! Set the speed and angle, then tap the cannon to fire."
+  },
+  "variables": {
+    "launch_speed": {
+      "label": "Launch speed",
+      "min": 2,
+      "max": 20,
+      "step": 0.5,
+      "value": 10,
+      "unit": "m/s",
+      "binds": { "kind": "launch", "entity": "ball", "prop": "speed" }
+    },
+    "launch_angle": {
+      "label": "Launch angle",
+      "min": 0,
+      "max": 90,
+      "step": 1,
+      "value": 45,
+      "unit": "°",
+      "binds": { "kind": "launch", "entity": "ball", "prop": "angle" }
+    },
+    "gravity": {
+      "label": "Gravity",
+      "min": 1,
+      "max": 25,
+      "step": 0.1,
+      "value": 9.81,
+      "unit": "m/s²",
+      "binds": { "kind": "gravity" }
+    }
+  },
+  "visuals": [
+    {
+      "type": "plot",
+      "id": "height_plot",
+      "title": "Height over time",
+      "x": "time",
+      "y": { "entity": "ball", "prop": "height" },
+      "maxSeconds": 6
+    },
+    { "type": "vector", "entity": "ball", "show": "velocity" },
+    { "type": "ruler", "from": { "x": 2, "y": 8.2 }, "to": { "x": 12, "y": 8.2 } },
+    {
+      "type": "stopwatch",
+      "startOn": "launch",
+      "stopOn": { "event": "collision", "a": "hero", "b": "ground" }
+    }
+  ],
+  "challenges": [
+    {
+      "id": "ch_cup",
+      "goal": "Land the ball in the cup",
+      "check": { "event": "collision", "a": "hero", "b": "cup" },
+      "hint": "Try an angle near forty-five degrees, then adjust the speed.",
+      "concept": "projectile",
+      "reward": [
+        { "action": "celebrate", "style": "confetti" },
+        { "action": "sound", "cue": "ding" }
+      ]
+    }
+  ]
+}

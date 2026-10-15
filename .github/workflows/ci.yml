@@ -1,0 +1,50 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_FAKE: '1'
+      - run: pnpm --filter @just-imagine/web exec playwright install --with-deps chromium
+      - name: Browser integration
+        shell: bash
+        run: |
+          pnpm --filter @just-imagine/fixtures dev > /tmp/fixture-gateway.log 2>&1 &
+          fixture_pid=$!
+          NEXT_PUBLIC_FAKE=1 pnpm --filter @just-imagine/web start --port 3100 > /tmp/web.log 2>&1 &
+          web_pid=$!
+          trap 'kill "$fixture_pid" "$web_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:3100/play > /dev/null; then break; fi
+            sleep 1
+          done
+          pnpm --filter @just-imagine/web e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-results
+          path: apps/web/test-results/

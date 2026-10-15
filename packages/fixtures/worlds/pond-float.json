@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "worldId": "w_fixture_pond_float",
+  "tier": "playground",
+  "title": "Duck and Stone at the Pond",
+  "theme": {
+    "paletteHint": "fresh spring greens and sky blue",
+    "timeOfDay": "day",
+    "backdropDescription": "sunny cartoon pond with reeds, lily pads and a wooden dock",
+    "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+  },
+  "environment": {
+    "gravity": { "x": 0, "y": 9.81 },
+    "wind": { "x": 0, "y": 0 },
+    "medium": "air",
+    "bounds": { "width": 16, "height": 9 },
+    "seed": 3
+  },
+  "materials": {
+    "grass": {
+      "density": 1,
+      "friction": 0.8,
+      "restitution": 0.1,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "water": {
+      "density": 1,
+      "friction": 0.05,
+      "restitution": 0,
+      "softness": 1,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "wood": {
+      "density": 0.6,
+      "friction": 0.5,
+      "restitution": 0.3,
+      "softness": 0.05,
+      "buoyant": true,
+      "breakable": false,
+      "pretend": false
+    },
+    "stone": {
+      "density": 2.6,
+      "friction": 0.7,
+      "restitution": 0.1,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    }
+  },
+  "entities": [
+    {
+      "id": "ground",
+      "kind": "ground",
+      "name": "pond bed",
+      "description": "muddy pond bed with pebbles",
+      "body": {
+        "shape": "box",
+        "material": "grass",
+        "isStatic": true,
+        "size": { "width": 16, "height": 1 }
+      },
+      "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+      "tags": ["ground"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "pond",
+      "kind": "water",
+      "name": "pond",
+      "description": "clear blue cartoon pond water",
+      "body": {
+        "shape": "box",
+        "material": "water",
+        "isStatic": true,
+        "size": { "width": 10, "height": 3 }
+      },
+      "transform": { "x": 8, "y": 6.5, "rotation": 0 },
+      "tags": ["water"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "duck",
+      "kind": "sprite",
+      "name": "wooden duck",
+      "description": "cute painted wooden toy duck",
+      "body": {
+        "shape": "auto",
+        "material": "wood",
+        "isStatic": false,
+        "size": { "width": 1, "height": 0.9 }
+      },
+      "transform": { "x": 6, "y": 2, "rotation": 0 },
+      "tags": ["duck", "hero"],
+      "behaviors": [{ "type": "face", "target": "pointer" }],
+      "pretend": false
+    },
+    {
+      "id": "stone",
+      "kind": "sprite",
+      "name": "smooth stone",
+      "description": "smooth grey river stone",
+      "body": {
+        "shape": "circle",
+        "material": "stone",
+        "isStatic": false,
+        "size": { "width": 0.7, "height": 0.7 }
+      },
+      "transform": { "x": 10, "y": 2, "rotation": 0 },
+      "tags": ["stone"],
+      "behaviors": [],
+      "pretend": false
+    }
+  ],
+  "joints": [],
+  "rules": [
+    {
+      "id": "r_duck_water",
+      "when": { "event": "enterMedium", "target": "duck", "medium": "water" },
+      "then": [
+        { "action": "sound", "cue": "splash" },
+        { "action": "celebrate", "style": "splash" },
+        {
+          "action": "say",
+          "text": "The duck floats! Wood is lighter than water, so the water pushes it up."
+        }
+      ],
+      "concept": "buoyancy",
+      "once": true
+    },
+    {
+      "id": "r_stone_water",
+      "when": { "event": "enterMedium", "target": "stone", "medium": "water" },
+      "then": [
+        { "action": "sound", "cue": "splash" },
+        {
+          "action": "say",
+          "text": "Splash! The stone sinks because it is heavier than the water it pushes aside."
+        }
+      ],
+      "concept": "density",
+      "once": true
+    }
+  ],
+  "learning": {
+    "concepts": ["buoyancy", "density"],
+    "prediction": {
+      "question": "Drop them in the pond. Which one floats?",
+      "options": ["the duck", "the stone", "both"],
+      "correctIndex": 0,
+      "concept": "buoyancy"
+    },
+    "dials": ["heroMaterial"],
+    "heroEntityId": "duck"
+  },
+  "narration": { "intro": "A duck, a stone and a pond. Drag them over the water and let go!" }
+}

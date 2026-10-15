@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "worldId": "w_fixture_jelly_dragon",
+  "tier": "playground",
+  "title": "Jelly Dragon on a Cloud",
+  "theme": {
+    "paletteHint": "sunset pastel with mint",
+    "timeOfDay": "sunset",
+    "backdropDescription": "rolling green meadow under a pastel sunset sky with soft fluffy clouds",
+    "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+  },
+  "environment": {
+    "gravity": { "x": 0, "y": 9.81 },
+    "wind": { "x": 0, "y": 0 },
+    "medium": "air",
+    "bounds": { "width": 16, "height": 9 },
+    "seed": 42
+  },
+  "materials": {
+    "jelly": {
+      "density": 1.1,
+      "friction": 0.3,
+      "restitution": 0.6,
+      "softness": 0.8,
+      "buoyant": true,
+      "breakable": false,
+      "pretend": false
+    },
+    "cloud": {
+      "density": 0.06,
+      "friction": 0.9,
+      "restitution": 0.1,
+      "softness": 0.4,
+      "buoyant": true,
+      "breakable": false,
+      "pretend": true
+    },
+    "grass": {
+      "density": 1,
+      "friction": 0.8,
+      "restitution": 0.1,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "stone": {
+      "density": 2.5,
+      "friction": 0.7,
+      "restitution": 0.1,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    }
+  },
+  "entities": [
+    {
+      "id": "ground",
+      "kind": "ground",
+      "name": "meadow",
+      "description": "rolling green meadow edge with tiny flowers",
+      "body": {
+        "shape": "box",
+        "material": "grass",
+        "isStatic": true,
+        "size": { "width": 16, "height": 1 }
+      },
+      "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+      "tags": ["ground"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "cloud1",
+      "kind": "sprite",
+      "name": "fluffy cloud",
+      "description": "fluffy white cartoon cloud with a smiling face",
+      "body": {
+        "shape": "auto",
+        "material": "cloud",
+        "isStatic": true,
+        "size": { "width": 3, "height": 1.2 }
+      },
+      "transform": { "x": 5, "y": 3, "rotation": 0 },
+      "tags": ["cloud", "platform"],
+      "behaviors": [{ "type": "float", "amplitude": 0.1, "period": 4 }],
+      "pretend": true
+    },
+    {
+      "id": "dragon",
+      "kind": "sprite",
+      "name": "jelly dragon",
+      "description": "small cute dragon made of wobbly translucent green jelly with big eyes",
+      "body": {
+        "shape": "auto",
+        "material": "jelly",
+        "isStatic": false,
+        "size": { "width": 1.4, "height": 1.2 }
+      },
+      "transform": { "x": 5, "y": 1.8, "rotation": 0 },
+      "tags": ["dragon", "hero"],
+      "behaviors": [{ "type": "face", "target": "pointer" }],
+      "pretend": false
+    },
+    {
+      "id": "pebble",
+      "kind": "sprite",
+      "name": "pebble",
+      "description": "small round grey pebble",
+      "body": {
+        "shape": "circle",
+        "material": "stone",
+        "isStatic": false,
+        "size": { "width": 0.5, "height": 0.5 }
+      },
+      "transform": { "x": 11, "y": 7.7, "rotation": 0 },
+      "tags": ["pebble"],
+      "behaviors": [],
+      "pretend": false
+    }
+  ],
+  "joints": [],
+  "rules": [
+    {
+      "id": "r_bounce",
+      "when": { "event": "collision", "a": "hero", "b": "ground", "minImpulse": 2 },
+      "then": [
+        { "action": "sound", "cue": "boing" },
+        { "action": "celebrate", "style": "sparkle" },
+        { "action": "say", "text": "Boing! Jelly squishes and springs back. That is bounciness!" }
+      ],
+      "concept": "bounce",
+      "once": true
+    },
+    {
+      "id": "r_tap_dragon",
+      "when": { "event": "tap", "target": "hero" },
+      "then": [
+        { "action": "applyImpulse", "target": "hero", "impulse": { "x": 0, "y": -6 } },
+        { "action": "sound", "cue": "whoosh" }
+      ],
+      "once": false
+    },
+    {
+      "id": "r_pebble",
+      "when": { "event": "collision", "a": "pebble", "b": "ground", "minImpulse": 2 },
+      "then": [
+        { "action": "sound", "cue": "ding" },
+        {
+          "action": "say",
+          "text": "The pebble landed with a thud and stayed put. Stone does not squish."
+        }
+      ],
+      "concept": "gravity",
+      "once": true
+    }
+  ],
+  "learning": {
+    "concepts": ["bounce", "gravity"],
+    "prediction": {
+      "question": "If the dragon falls off the cloud, will it bounce or splat?",
+      "options": ["bounce", "splat"],
+      "correctIndex": 0,
+      "concept": "bounce"
+    },
+    "dials": ["gravity", "heroMaterial"],
+    "heroEntityId": "dragon"
+  },
+  "narration": {
+    "intro": "Here is your jelly dragon, snoozing on a cloud. Try giving it a little flick!"
+  }
+}

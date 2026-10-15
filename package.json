@@ -1,0 +1,28 @@
+{
+  "name": "just-imagine",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "test": "turbo run test --filter=!@just-imagine/server-core && pnpm test:emulator",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:emulator": "node scripts/test-emulators.mjs",
+    "dev:web": "pnpm --filter @just-imagine/web dev",
+    "dev:gateway": "pnpm --filter @just-imagine/fixtures dev"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.9.0",
+    "eslint": "^9.30.0",
+    "firebase-tools": "^14.0.0"
+  },
+  "packageManager": "pnpm@10.34.7"
+}

@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 1,
+  "worldId": "w_fixture_fractions_lab",
+  "tier": "lab",
+  "title": "Share and Recombine",
+  "theme": {
+    "paletteHint": "bright science-lab teal and orange",
+    "timeOfDay": "day",
+    "backdropDescription": "A warm garden picnic table for sharing colorful fraction blocks",
+    "backdrop": {
+      "url": "",
+      "width": 1920,
+      "height": 1080,
+      "status": "placeholder"
+    }
+  },
+  "environment": {
+    "gravity": {
+      "x": 0,
+      "y": 9.81
+    },
+    "wind": {
+      "x": 0,
+      "y": 0
+    },
+    "medium": "air",
+    "bounds": {
+      "width": 16,
+      "height": 9
+    },
+    "seed": 11
+  },
+  "materials": {
+    "grass": {
+      "density": 1,
+      "friction": 0.8,
+      "restitution": 0.1,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "wood": {
+      "density": 0.6,
+      "friction": 0.5,
+      "restitution": 0.2,
+      "softness": 0.05,
+      "buoyant": true,
+      "breakable": false,
+      "pretend": false
+    }
+  },
+  "entities": [
+    {
+      "id": "ground",
+      "kind": "ground",
+      "name": "lawn",
+      "description": "neat green lawn with chalk distance marks",
+      "body": {
+        "shape": "box",
+        "material": "grass",
+        "isStatic": true,
+        "size": {
+          "width": 16,
+          "height": 1
+        }
+      },
+      "transform": {
+        "x": 8,
+        "y": 8.5,
+        "rotation": 0
+      },
+      "tags": ["ground"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "whole",
+      "kind": "sprite",
+      "name": "one whole sharing bar",
+      "description": "one whole sharing bar",
+      "body": {
+        "shape": "box",
+        "material": "wood",
+        "isStatic": false,
+        "size": {
+          "width": 4,
+          "height": 1
+        }
+      },
+      "transform": {
+        "x": 8,
+        "y": 4,
+        "rotation": 0
+      },
+      "tags": ["whole", "hero"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "half",
+      "kind": "sprite",
+      "name": "one half sharing bar",
+      "description": "one half sharing bar",
+      "body": {
+        "shape": "box",
+        "material": "wood",
+        "isStatic": false,
+        "size": {
+          "width": 2,
+          "height": 1
+        }
+      },
+      "transform": {
+        "x": 3,
+        "y": 6,
+        "rotation": 0
+      },
+      "tags": ["piece"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "join",
+      "kind": "sprite",
+      "name": "recombine button",
+      "description": "recombine button",
+      "body": {
+        "shape": "box",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "transform": {
+        "x": 13,
+        "y": 3,
+        "rotation": 0
+      },
+      "tags": ["join"],
+      "behaviors": [],
+      "pretend": false
+    }
+  ],
+  "joints": [],
+  "rules": [
+    {
+      "id": "split",
+      "when": {
+        "event": "tap",
+        "target": "whole"
+      },
+      "then": [
+        {
+          "action": "remove",
+          "target": "whole"
+        },
+        {
+          "action": "remove",
+          "target": "piece"
+        },
+        {
+          "action": "spawn",
+          "template": "half",
+          "at": {
+            "x": 6.5,
+            "y": 4
+          },
+          "count": 1
+        },
+        {
+          "action": "spawn",
+          "template": "half",
+          "at": {
+            "x": 9.5,
+            "y": 4
+          },
+          "count": 1
+        },
+        {
+          "action": "say",
+          "text": "Two equal halves make one whole. Each half has the same area."
+        }
+      ],
+      "concept": "fraction",
+      "once": false
+    },
+    {
+      "id": "join_halves",
+      "when": {
+        "event": "tap",
+        "target": "join"
+      },
+      "then": [
+        {
+          "action": "remove",
+          "target": "piece"
+        },
+        {
+          "action": "remove",
+          "target": "whole"
+        },
+        {
+          "action": "spawn",
+          "template": "whole",
+          "at": {
+            "x": 8,
+            "y": 4
+          },
+          "count": 1
+        },
+        {
+          "action": "say",
+          "text": "One half plus one half makes one whole. Tap the whole to split it again."
+        }
+      ],
+      "concept": "fraction",
+      "once": false
+    }
+  ],
+  "learning": {
+    "concepts": ["fraction", "measurement"],
+    "prediction": {
+      "question": "How many equal halves make one whole?",
+      "options": ["Two", "Three", "Four"],
+      "correctIndex": 0,
+      "concept": "fraction"
+    },
+    "dials": [],
+    "heroEntityId": "whole"
+  },
+  "narration": {
+    "intro": "Tap the whole bar to share it into equal halves. Drag the halves together, or tap the button to recombine."
+  },
+  "variables": {
+    "time_scale": {
+      "label": "Watch speed",
+      "min": 0.2,
+      "max": 1,
+      "step": 0.1,
+      "value": 1,
+      "unit": "\u00d7",
+      "binds": {
+        "kind": "timeScale"
+      }
+    }
+  },
+  "visuals": [
+    {
+      "type": "fraction",
+      "id": "half_bar",
+      "numerator": 1,
+      "denominator": 2,
+      "style": "bar",
+      "at": {
+        "x": 2,
+        "y": 1
+      }
+    },
+    {
+      "type": "fraction",
+      "id": "half_pie",
+      "numerator": 1,
+      "denominator": 2,
+      "style": "pie",
+      "at": {
+        "x": 6,
+        "y": 1
+      }
+    },
+    {
+      "type": "fraction",
+      "id": "whole_bar",
+      "numerator": 2,
+      "denominator": 2,
+      "style": "bar",
+      "at": {
+        "x": 10,
+        "y": 1
+      }
+    },
+    {
+      "type": "ruler",
+      "from": {
+        "x": 6,
+        "y": 7.8
+      },
+      "to": {
+        "x": 10,
+        "y": 7.8
+      }
+    }
+  ],
+  "challenges": [
+    {
+      "id": "share_together",
+      "goal": "Bring the two half bars together",
+      "check": {
+        "event": "collision",
+        "a": "piece",
+        "b": "piece"
+      },
+      "hint": "Split the whole, then drag one half gently against the other.",
+      "concept": "fraction",
+      "reward": [
+        {
+          "action": "celebrate",
+          "style": "sparkle"
+        }
+      ]
+    }
+  ]
+}

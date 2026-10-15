@@ -1,0 +1,111 @@
+'use client';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from 'firebase/auth';
+import { firebase } from '../lib/firebase';
+import { env } from '../lib/env';
+import { s } from '../lib/strings/en';
+import { Brand, Preview } from './Shell';
+export function AuthForm({ signup = false }: { signup?: boolean }) {
+  const router = useRouter();
+  const [consent, setConsent] = useState(false),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false);
+  async function submit(form: FormData | null) {
+    setError('');
+    if ((signup || !form) && !consent) {
+      setError(s.consentRequired);
+      return;
+    }
+    setBusy(true);
+    try {
+      if (env.fake) {
+        localStorage.setItem('ji-preview-auth', '1');
+        router.push('/play');
+        return;
+      }
+      const auth = firebase().auth;
+      const result = form
+        ? signup
+          ? await createUserWithEmailAndPassword(
+              auth,
+              String(form.get('email')),
+              String(form.get('password')),
+            )
+          : await signInWithEmailAndPassword(
+              auth,
+              String(form.get('email')),
+              String(form.get('password')),
+            )
+        : await signInWithPopup(auth, new GoogleAuthProvider());
+      const response = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken: await result.user.getIdToken(),
+          consent,
+        }),
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+      router.push('/play');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : s.unavailable);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <main className="auth-page">
+      <Brand />
+      <Preview />
+      <section className="auth-panel">
+        <h1>{signup ? s.signUp : s.signIn}</h1>
+        <form action={(f) => void submit(f)}>
+          <label>
+            {s.email}
+            <input name="email" type="email" autoComplete="email" required />
+          </label>
+          <label>
+            {s.password}
+            <input
+              name="password"
+              type="password"
+              autoComplete={signup ? 'new-password' : 'current-password'}
+              minLength={8}
+              required
+            />
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+            />
+            <span>
+              {s.consent} <Link href="/privacy">{s.privacy}</Link>
+            </span>
+          </label>
+          <button className="button primary" disabled={busy}>
+            {s.submit}
+          </button>
+        </form>
+        <button className="button secondary" disabled={busy} onClick={() => void submit(null)}>
+          {s.google}
+        </button>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+        <Link href={signup ? '/sign-in' : '/sign-up'}>{signup ? s.signIn : s.signUp}</Link>
+        {env.fake && <Link href="/play">{s.previewSignIn}</Link>}
+      </section>
+    </main>
+  );
+}

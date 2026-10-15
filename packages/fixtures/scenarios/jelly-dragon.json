@@ -1,0 +1,101 @@
+{
+  "onHello": [
+    { "type": "characterState", "characterId": "bhombol", "emotion": "happy", "speaking": true },
+    {
+      "type": "transcript",
+      "role": "character",
+      "text": "Hi! I am {characterName}. What shall we build today?",
+      "final": true
+    },
+    { "type": "characterState", "characterId": "bhombol", "emotion": "idle", "speaking": false }
+  ],
+  "onInteraction": [
+    {
+      "type": "characterState",
+      "characterId": "bhombol",
+      "emotion": "surprised",
+      "speaking": true
+    },
+    {
+      "type": "transcript",
+      "role": "character",
+      "text": "Whoa, look at it wobble!",
+      "final": true
+    },
+    { "type": "characterState", "characterId": "bhombol", "emotion": "idle", "speaking": false }
+  ],
+  "onSwitchCharacter": [
+    {
+      "type": "transcript",
+      "role": "character",
+      "text": "Hello, I am here now. What did you notice?",
+      "final": true
+    }
+  ],
+  "timeline": [
+    {
+      "afterMs": 1500,
+      "message": {
+        "type": "transcript",
+        "role": "child",
+        "text": "a jelly dragon on a cloud",
+        "final": true
+      }
+    },
+    {
+      "afterMs": 2000,
+      "message": {
+        "type": "worldJob",
+        "jobId": "j_fake",
+        "worldId": "w_fixture_jelly_dragon",
+        "status": "queued"
+      }
+    },
+    {
+      "afterMs": 2500,
+      "message": {
+        "type": "prediction",
+        "question": "If the dragon falls off the cloud, will it bounce or splat?",
+        "options": ["bounce", "splat"]
+      }
+    },
+    {
+      "afterMs": 3000,
+      "message": {
+        "type": "worldJob",
+        "jobId": "j_fake",
+        "worldId": "w_fixture_jelly_dragon",
+        "status": "placeholders"
+      }
+    },
+    {
+      "afterMs": 4500,
+      "message": {
+        "type": "worldJob",
+        "jobId": "j_fake",
+        "worldId": "w_fixture_jelly_dragon",
+        "status": "ready"
+      }
+    },
+    {
+      "afterMs": 5000,
+      "message": {
+        "type": "transcript",
+        "role": "character",
+        "text": "Here is your jelly dragon, snoozing on a cloud. Try giving it a little flick!",
+        "final": true
+      }
+    },
+    {
+      "afterMs": 9000,
+      "message": {
+        "type": "discovery",
+        "concept": "bounce",
+        "title": "Boing!",
+        "kidExplanation": "Squishy things squash and spring back.",
+        "realLifeNote": "A rubber ball bounces for the same reason."
+      }
+    },
+    { "afterMs": 12000, "message": { "type": "quota", "voiceSecondsLeft": 120 } }
+  ]
+}

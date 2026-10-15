@@ -1,0 +1,549 @@
+{
+  "schemaVersion": 1,
+  "worldId": "w_fixture_galton_board",
+  "tier": "lab",
+  "title": "Peg Garden Probability",
+  "theme": {
+    "paletteHint": "bright science-lab teal and orange",
+    "timeOfDay": "day",
+    "backdropDescription": "A cheerful wooden probability board in a sunny garden",
+    "backdrop": {
+      "url": "",
+      "width": 1920,
+      "height": 1080,
+      "status": "placeholder"
+    }
+  },
+  "environment": {
+    "gravity": {
+      "x": 0,
+      "y": 9.81
+    },
+    "wind": {
+      "x": 0,
+      "y": 0
+    },
+    "medium": "air",
+    "bounds": {
+      "width": 16,
+      "height": 9
+    },
+    "seed": 37
+  },
+  "materials": {
+    "grass": {
+      "density": 1,
+      "friction": 0.8,
+      "restitution": 0.1,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "wood": {
+      "density": 0.6,
+      "friction": 0.5,
+      "restitution": 0.2,
+      "softness": 0.05,
+      "buoyant": true,
+      "breakable": false,
+      "pretend": false
+    },
+    "metal": {
+      "density": 6,
+      "friction": 0.4,
+      "restitution": 0.2,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    }
+  },
+  "entities": [
+    {
+      "id": "ground",
+      "kind": "ground",
+      "name": "lawn",
+      "description": "neat green lawn with chalk distance marks",
+      "body": {
+        "shape": "box",
+        "material": "grass",
+        "isStatic": true,
+        "size": {
+          "width": 16,
+          "height": 1
+        }
+      },
+      "transform": {
+        "x": 8,
+        "y": 8.5,
+        "rotation": 0
+      },
+      "tags": ["ground"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "ball",
+      "kind": "sprite",
+      "name": "small counting ball",
+      "description": "small counting ball",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": false,
+        "size": {
+          "width": 0.24,
+          "height": 0.24
+        }
+      },
+      "transform": {
+        "x": 8.12,
+        "y": 0.6,
+        "rotation": 0
+      },
+      "tags": ["ball", "hero"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "release",
+      "kind": "sprite",
+      "name": "release button",
+      "description": "release button",
+      "body": {
+        "shape": "box",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 1,
+          "height": 0.6
+        }
+      },
+      "transform": {
+        "x": 1,
+        "y": 1,
+        "rotation": 0
+      },
+      "tags": ["release"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_0_0",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 8,
+        "y": 2.0,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_1_0",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 6,
+        "y": 3.25,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_1_1",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 10,
+        "y": 3.25,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_2_0",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 4,
+        "y": 4.5,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_2_1",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 8,
+        "y": 4.5,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_2_2",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 12,
+        "y": 4.5,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_3_0",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 2,
+        "y": 5.75,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_3_1",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 6,
+        "y": 5.75,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_3_2",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 10,
+        "y": 5.75,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "peg_3_3",
+      "kind": "sprite",
+      "name": "round wooden peg",
+      "description": "round wooden peg",
+      "body": {
+        "shape": "circle",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.35,
+          "height": 0.35
+        }
+      },
+      "transform": {
+        "x": 14,
+        "y": 5.75,
+        "rotation": 0
+      },
+      "tags": ["peg"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "divider_0",
+      "kind": "sprite",
+      "name": "bin divider",
+      "description": "bin divider",
+      "body": {
+        "shape": "box",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.2,
+          "height": 1.5
+        }
+      },
+      "transform": {
+        "x": 4,
+        "y": 7.25,
+        "rotation": 0
+      },
+      "tags": ["divider"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "divider_1",
+      "kind": "sprite",
+      "name": "bin divider",
+      "description": "bin divider",
+      "body": {
+        "shape": "box",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.2,
+          "height": 1.5
+        }
+      },
+      "transform": {
+        "x": 8,
+        "y": 7.25,
+        "rotation": 0
+      },
+      "tags": ["divider"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "divider_2",
+      "kind": "sprite",
+      "name": "bin divider",
+      "description": "bin divider",
+      "body": {
+        "shape": "box",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 0.2,
+          "height": 1.5
+        }
+      },
+      "transform": {
+        "x": 12,
+        "y": 7.25,
+        "rotation": 0
+      },
+      "tags": ["divider"],
+      "behaviors": [],
+      "pretend": false
+    }
+  ],
+  "joints": [],
+  "rules": [
+    {
+      "id": "release_ball",
+      "when": {
+        "event": "tap",
+        "target": "release"
+      },
+      "then": [
+        {
+          "action": "spawn",
+          "template": "ball",
+          "at": {
+            "x": 8.12,
+            "y": 0.6
+          },
+          "count": 1
+        }
+      ],
+      "concept": "probability",
+      "once": false
+    },
+    {
+      "id": "drop_ball",
+      "when": {
+        "event": "timer",
+        "everySeconds": 3
+      },
+      "then": [
+        {
+          "action": "spawn",
+          "template": "ball",
+          "at": {
+            "x": 8.12,
+            "y": 0.6
+          },
+          "count": 1
+        }
+      ],
+      "concept": "probability",
+      "once": false
+    },
+    {
+      "id": "peg_touch",
+      "when": {
+        "event": "collision",
+        "a": "ball",
+        "b": "peg"
+      },
+      "then": [
+        {
+          "action": "say",
+          "text": "Each peg can nudge a ball left or right. Watch the landing counts grow."
+        }
+      ],
+      "concept": "probability",
+      "once": true
+    }
+  ],
+  "learning": {
+    "concepts": ["probability", "graph"],
+    "prediction": {
+      "question": "Will every ball necessarily land in the same bin?",
+      "options": ["Yes, always", "No, paths can differ"],
+      "correctIndex": 1,
+      "concept": "probability"
+    },
+    "dials": [],
+    "heroEntityId": "ball"
+  },
+  "narration": {
+    "intro": "Watch balls tumble through the pegs. Tap the round button to add a ball, then compare the four bins."
+  },
+  "variables": {
+    "time_scale": {
+      "label": "Watch speed",
+      "min": 0.2,
+      "max": 1,
+      "step": 0.1,
+      "value": 1,
+      "unit": "\u00d7",
+      "binds": {
+        "kind": "timeScale"
+      }
+    }
+  },
+  "visuals": [
+    {
+      "type": "histogram",
+      "id": "landings",
+      "title": "Balls in each bin",
+      "bins": 4,
+      "source": {
+        "tag": "ball",
+        "prop": "x"
+      }
+    }
+  ],
+  "challenges": [
+    {
+      "id": "collect_six",
+      "goal": "Collect six landings and compare the bins",
+      "check": {
+        "event": "histogramFilled",
+        "id": "landings",
+        "count": 6
+      },
+      "hint": "Let each ball settle. The tallest bar has the most landings.",
+      "concept": "probability",
+      "reward": [
+        {
+          "action": "celebrate",
+          "style": "confetti"
+        }
+      ]
+    }
+  ]
+}

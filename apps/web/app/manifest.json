@@ -1,0 +1,19 @@
+{
+  "name": "Just Imagine",
+  "short_name": "Just Imagine",
+  "description": "A playful family space for imagination and discovery.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff9ee",
+  "theme_color": "#245e4e",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

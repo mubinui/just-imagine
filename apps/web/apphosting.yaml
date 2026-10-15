@@ -1,0 +1,13 @@
+# Configure repository root as the monorepo root and app root apps/web in App Hosting.
+runConfig:
+  minInstances: 0
+  maxInstances: 20
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 1024
+env:
+  - variable: NEXT_PUBLIC_FAKE
+    value: '0'
+    availability: [BUILD, RUNTIME]
+# Add Firebase public configuration and API/gateway URLs for each backend in
+# App Hosting environment settings before building. Never put Admin or Stripe keys here.

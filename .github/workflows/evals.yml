@@ -1,0 +1,75 @@
+name: builder-evaluations
+on:
+  pull_request:
+    paths:
+      - 'services/builder/**'
+      - 'packages/fixtures/**'
+      - 'packages/scene-schema/**'
+      - '.github/workflows/evals.yml'
+  schedule:
+    - cron: '20 2 * * *'
+  workflow_dispatch:
+    inputs:
+      real_vertex:
+        description: Run the 50-case evaluation against staging Vertex (billable)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @just-imagine/builder eval:offline
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: builder-eval-offline
+          path: services/builder/reports/*.json
+  staging:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.real_vertex)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      SCENE_MODEL: ${{ vars.SCENE_MODEL }}
+      FAST_MODEL: ${{ vars.FAST_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Require staging configuration
+        env:
+          WIF_PROVIDER: ${{ vars.WIF_PROVIDER }}
+          EVAL_SERVICE_ACCOUNT: ${{ vars.EVAL_SERVICE_ACCOUNT }}
+        run: |
+          test -n "$GOOGLE_CLOUD_PROJECT"
+          test -n "$SCENE_MODEL"
+          test -n "$FAST_MODEL"
+          test -n "$WIF_PROVIDER"
+          test -n "$EVAL_SERVICE_ACCOUNT"
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.EVAL_SERVICE_ACCOUNT }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @just-imagine/builder eval:vertex
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: builder-eval-staging
+          path: services/builder/reports/*.json
