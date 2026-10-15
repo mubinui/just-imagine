@@ -2,14 +2,14 @@
 
 | | |
 |---|---|
-| Status | Approved design, pending written-spec review |
+| Status | Approved; revised 2026-10-15 with the Labs tier and guide characters |
 | Date | 2026-10-15 |
 | Target | Google Cloud AI competition submission, 4 to 6 weeks from this date |
 | Team | Two programmers: Dev A (Experience), Dev B (Platform and AI) |
 
 ## 1. Purpose
 
-Just Imagine is a web SaaS for children aged 6 to 10. A child talks with three cute animal characters and together they turn the child's imagination into a live, interactive, physics-respecting 2.5D world. The product is both entertainment and learning: every world teaches the real physics behind what the child imagined, and the session structure gradually lengthens the child's attention span.
+Just Imagine is a web SaaS for children aged 6 to 13. Younger children (6 to 10) talk with three cute animal companions in Playgrounds and turn imagination into a live, interactive, physics-respecting 2.5D world. Older children (9 to 13) summon guide characters in Labs, where the same worlds carry variable sliders, live graphs, measuring tools, and maths visualizations. The product is both entertainment and learning: every world teaches the real physics behind what the child imagined, and the session structure gradually lengthens the child's attention span.
 
 Success for this round means:
 
@@ -19,7 +19,7 @@ Success for this round means:
 
 ## 2. Users and constraints
 
-**Primary user: the child (6 to 10).** Early reader. Interacts by voice and touch. Text on screen is minimal and is always spoken aloud by a character.
+**Primary user: the child (6 to 13).** Age bands 6-7, 8-10, and 11-13. Younger children are early readers and interact by voice and touch; text on screen is minimal and always spoken aloud. Older children also use sliders and a numeric keypad. Nobody types free text.
 
 **Secondary user: the parent.** Creates the account, gives consent, manages child profiles, sees progress, and pays.
 
@@ -45,15 +45,25 @@ Every session runs one loop repeatedly. The loop is also the learning loop.
 
 ### 3.2 Characters
 
-Three characters with distinct jobs and voices. Names are placeholders and can be changed without code impact (they are configuration).
+Two casts, all configured in one file (`packages/protocol/src/characters.ts`). Names are Bengali children's favourites and can be changed without code impact.
+
+**Companions** (Playgrounds, 6 to 10): friends who are always on screen.
 
 | Character | Animal | Role | Personality |
 |---|---|---|---|
-| Pip | kitten | The dreamer. Leads Imagine. Asks "what if" questions. | Bubbly, curious, quick |
-| Bolt | puppy | The tinkerer. Leads Build and Discover. Explains physics. | Warm, enthusiastic, hands-on |
-| Luna | cat | The thinker. Leads Predict, reflection, pacing, session recap. | Calm, gentle, wise |
+| Mishti | kitten | The dreamer. Leads Imagine. Asks "what if" questions. | Bubbly, curious, quick |
+| Bhombol | puppy | The tinkerer. Leads Build and Discover. Explains physics. | Warm, enthusiastic, hands-on |
+| Chandni | cat | The thinker. Leads Predict, reflection, pacing, session recap. | Calm, gentle, wise |
 
-**One mic-holder at a time.** Exactly one character holds the live voice conversation. The child taps a character to hand off. On handoff the gateway closes the current Live session and opens a new one with the new character's voice and persona, injecting a conversation summary so continuity is preserved. The other two characters react visually (Rive animations) and with short pre-generated voice lines (cached clips from the TTS model), never with a second live session.
+**Guides** (summoned, see 3.7): specialists who appear with a magic effect and conjure a world in their domain.
+
+| Character | Look | Domain | Available to |
+|---|---|---|---|
+| Pori Apu (Physics Fairy) | small glowing fairy with a wand | forces, motion, energy, gravity labs | every band; simplified for 6-7 |
+| Onko Mama (Math Man) | caped uncle with chalk and a calculator belt | numbers, fractions, geometry, graphs, probability labs | 8-10 and 11-13 |
+| Jadu Kaka (Magic Man) | top hat, twirling moustache, sparkly cloak | rule-bending what-ifs; every trick ends with the real science revealed | every band |
+
+**One mic-holder at a time.** Exactly one character, companion or guide, holds the live voice conversation. The child taps a character or asks for one to hand off. On handoff the gateway closes the current Live session and opens a new one with the new character's voice and persona, injecting a conversation summary so continuity is preserved. The other two characters react visually (Rive animations) and with short pre-generated voice lines (cached clips from the TTS model), never with a second live session.
 
 **Visual style.** Disney and Pixar inspired 2D painterly cartoon: soft lighting, big expressive eyes, rounded shapes, warm palette. A written style bible and a style version tag govern every generated asset.
 
@@ -63,17 +73,17 @@ A pacing module in the gateway tracks turn rate, interaction rate, and silence. 
 
 - If 90 seconds pass without an "attention beat" (a question, a surprise event, a dial offer), the gateway injects a system note into the Live session asking the character to deliver one.
 - Each session has a target length by profile. Initial targets: 8 minutes for the first three sessions, then rising by 2 minutes for every three completed loops, capped at 20 minutes.
-- At target length, Luna runs a 60-second recap and the session ends gracefully. The child can start another session if quota allows.
+- At target length, Chandni runs a 60-second recap and the session ends gracefully. The child can start another session if quota allows.
 
 The parent dashboard shows target length and actual engaged minutes over time. This is the "focus span grows with thinking" mechanic.
 
 ### 3.4 Learning layer
 
-**Concept tags.** Every world carries one to three concept tags from a fixed list: gravity, mass, buoyancy, friction, bounce (restitution), momentum, air resistance, balance, springiness, density, force, speed. The list is data and can grow.
+**Concept tags.** Every world carries one to three concept tags from a fixed list: gravity, mass, buoyancy, friction, bounce (restitution), momentum, air resistance, balance, springiness, density, force, speed, and for Labs: acceleration, energy, projectile, probability, fraction, graph, measurement. The list is data and can grow.
 
 **Predictions.** One prediction question per world, generated by the builder and validated to reference the world's concept tags.
 
-**Discovery Cards.** Unlocked when a rule fires that is tagged with a concept the child has not yet discovered in this world. A card holds a title, a one-sentence kid explanation, and a one-sentence "in real life" note. Cards persist per child.
+**Discovery Cards.** Unlocked when a rule fires that is tagged with a concept the child has not yet discovered in this world. A card holds a title, a one-sentence kid explanation, and a one-sentence "in real life" note. The title and the "in real life" note come from a curated bank written once per concept (`packages/protocol/src/concept-bank.ts`); the model personalizes only the kid explanation to the world. Cards persist per child.
 
 **What-if dials.** The builder chooses which dials a world exposes from: gravity (Earth, Moon, Jupiter, none), wind (none, breeze, storm), material of the hero entity (chosen from the world's material table). Turning a dial is an attention beat and is narrated.
 
@@ -96,7 +106,32 @@ Parent area (ordinary web UI):
 
 Marketing: a landing page with sign-up.
 
-## 4. Architecture
+Labs adds to the Studio: a collapsible slider panel on the right (variables), a graph strip along the top edge (plots, histograms), and tool buttons (ruler, stopwatch, vector arrows). The dial tray is replaced by the slider panel in Labs. Captions of character speech are on by default for 8-10 and 11-13, off for 6-7, with a parent toggle.
+
+### 3.6 Labs tier
+
+Labs is the mode for 9 to 13. A profile in band 11-13 defaults to Labs; a profile in 8-10 can open Labs from the Studio; a parent can unlock it early. Labs uses the same engine, DSL, and loop, with these additions.
+
+**Physics lab features (all in this round):** variable sliders bound to mass, launch speed, launch angle, gravity, friction, wind, or time scale; live graphs of position and speed over time; force and velocity arrows drawn on bodies; a ruler and a stopwatch; optional challenges with a goal, a check, and a hint ("land the ball in the cup").
+
+**Lab kinds in this round, in priority order:**
+
+1. **Graphs and functions.** Projectile trajectories plotted live against sliders for speed and angle; plotting y = f(x) as a path a ball rolls along.
+2. **Probability and data.** A Galton board: balls drop through pegs into bins and a histogram grows live.
+3. **Fractions.** Bars and pie slices as physical objects that split and recombine.
+
+Number line and arithmetic jumps, and geometry (shapes, angles, symmetry, area by tiling), are deferred to after submission (section 18).
+
+**Input.** Voice first, plus sliders and a numeric keypad for entering values. No free-text chat.
+
+### 3.7 Guides and magic
+
+A guide is summoned when the child names one or names a topic ("I want to learn fractions"). The companion holding the mic calls the `summon_guide` tool; the client plays a sparkle transition while the gateway hands the session to the guide; the guide appears, says a catchphrase, and conjures the world with a reveal animation. Summoning is a character handoff (8.5) with an animation in front of it, so it costs no new conversation machinery.
+
+Jadu Kaka's tricks are **spells**: runtime transformations the engine applies without changing the world document: reverse gravity, slow time, grow, shrink, float everything, restore. Each spell is announced, applied with a flourish, and followed by the science in one sentence. Pori Apu and Onko Mama build lab worlds (3.6) through the normal builder with the lab extension of the DSL (5.6).
+
+Availability by band is in the guides table in 3.2.
+
 
 ### 4.1 Overview
 
@@ -321,6 +356,55 @@ The validator returns `{ ok, doc, issues[] }` where issues are structured, so te
 }
 ```
 
+### 5.6 Lab extension (additive, optional)
+
+Every field below is optional, so Playground worlds and all fixtures stay valid. The builder fills them only for Labs worlds, and the validator enforces the same closed-vocabulary rules.
+
+```ts
+type SceneDoc = SceneDoc & {
+  tier: 'playground' | 'lab';          // required; defaults to 'playground' in fromGenerated
+  variables?: Record<string, Variable>; // at most 6
+  visuals?: Visual[];                   // at most 6
+  challenges?: Challenge[];             // at most 3
+};
+
+type Variable = {
+  label: string;                        // "Launch speed"
+  min: number; max: number; step: number; value: number;
+  unit: string;                         // "m/s", "", "x"
+  binds:
+    | { kind: 'gravity' }                                   // environment.gravity.y
+    | { kind: 'wind' }                                      // environment.wind.x
+    | { kind: 'timeScale' }                                 // 0.1 to 2
+    | { kind: 'material'; entity: string; prop: 'density' | 'friction' | 'restitution' }
+    | { kind: 'launch'; entity: string; prop: 'speed' | 'angle' }
+    | { kind: 'scale'; entity: string };                    // uniform size factor 0.5 to 2
+};
+
+type Visual =
+  | { type: 'plot'; id: string; title: string; x: 'time'; y: { entity: string; prop: 'x' | 'y' | 'speed' | 'height' }; maxSeconds: number }
+  | { type: 'vector'; entity: string; show: 'velocity' | 'gravity' | 'net' }
+  | { type: 'ruler'; from: Vec2; to: Vec2 }
+  | { type: 'stopwatch'; startOn: 'launch' | 'tap'; stopOn: { event: 'collision'; a: string; b: string } }
+  | { type: 'numberLine'; from: number; to: number; step: number; marker: { entity: string; prop: 'x' } }
+  | { type: 'histogram'; id: string; title: string; bins: number; source: { tag: string; prop: 'x' } }
+  | { type: 'fraction'; id: string; numerator: number; denominator: number; style: 'bar' | 'pie'; at: Vec2 }
+  | { type: 'label'; entity: string; text: string };
+
+type Challenge = {
+  id: string;
+  goal: string;                         // spoken and shown: "Land the ball in the cup"
+  check: { event: 'collision'; a: string; b: string } | { event: 'histogramFilled'; id: string; count: number };
+  hint: string;
+  concept: Concept;
+  reward: Action[];                     // usually celebrate + say
+};
+```
+
+New actions: `launch` (applies the entity's launch speed and angle as an impulse), `setGravity`, `setTimeScale`, `scaleEntity`. New rule event: `challengeComplete`. Spells (3.7) are not DSL; they are gateway-to-client messages the engine applies at runtime.
+
+Validator additions: every `binds.entity` and visual `entity` exists; `launch` variables require a non-static entity; `histogram.source.tag` exists; `challenges[].concept` is in `learning.concepts`; a `lab` world has at least one variable or visual; a `playground` world has none.
+
 ## 6. Client engine
 
 Package `packages/engine`, framework-agnostic TypeScript with a thin React mount in `apps/web`.
@@ -344,6 +428,10 @@ Tap: highlight and emit tap event. Drag: kinematic hold with a spring to the poi
 ### 6.5 Dials
 
 The dial tray renders only the dials the document exposes. Gravity presets: Earth 9.81, Moon 1.62, Jupiter 24.8, none 0. Wind presets: none 0, breeze 2, storm 8. Hero material: switches the hero's material among the document's material table. Changing a dial emits a `dial` rule event and a gateway event.
+
+### 6.5a Variables, visuals, and spells (Labs)
+
+The slider panel renders `variables`; each change applies its binding immediately and emits a `variable` event to the gateway (throttled to one per 300 ms per variable). Visuals are drawn on an overlay layer above entities: plots and histograms sample at 10 Hz into ring buffers; vectors and labels follow bodies each frame; ruler and stopwatch are static overlays. Spells arrive as `spell` messages and are applied as runtime overrides (gravity sign, time scale, body scale, buoyancy) with a sparkle burst; `restore` clears all overrides. A spell never writes to the world document.
 
 ### 6.6 Determinism and replay
 
@@ -398,7 +486,11 @@ Service `services/gateway`. Node 22, `ws` on a Fastify server, `@google/genai` S
 | `set_dial` | `dial`, `value` | Sends a `dial` message to the client. |
 | `ask_prediction` | `question`, `options[]`, `correctIndex` | Shows the prediction UI; the answer comes back as a client event. |
 | `award_discovery` | `concept`, `title`, `kidExplanation`, `realLifeNote` | Persists a Discovery Card and shows the toast. |
-| `switch_character` | `characterId` | Starts the handoff (8.5). |
+| `switch_character` | `characterId` | Starts the handoff (8.5) to a companion. |
+| `summon_guide` | `characterId`, `topic` | Sends `summon` to the client, then starts the handoff to the guide with the topic in its system instruction. |
+| `cast_spell` | `spell`, `target?` | Jadu Kaka only. Sends `spell` to the client. |
+| `set_variable` | `name`, `value` | Labs only. Sends `variable` to the client. |
+| `start_challenge` | `challengeId` | Labs only. Sends `challenge` to the client. |
 | `end_session` | `reason` | Begins the recap and close. |
 
 The gateway validates every tool argument with Zod before acting and returns a structured error to the model on failure.
@@ -431,9 +523,9 @@ Voice seconds are counted from `hello` to close and written to the daily usage d
 
 Defined as Zod schemas in `packages/protocol`. JSON text frames for control, binary frames for audio.
 
-Client to gateway: `hello`, `audio` (binary PCM16 16 kHz), `text` (accessibility and debug), `interaction` (tap, drag, flick, dial with entity or dial id), `simEvent` (rule fired with optional `say` text, throttled), `predictionAnswer`, `switchCharacter`, `end`.
+Client to gateway: `hello`, `audio` (binary PCM16 16 kHz), `text` (accessibility and debug), `interaction` (tap, drag, flick, dial with entity or dial id), `simEvent` (rule fired with optional `say` text, throttled), `predictionAnswer`, `switchCharacter`, `variable` (name, value), `challengeResult` (id, completed), `end`.
 
-Gateway to client: `ready` (sessionId, character), `audio` (binary PCM16 24 kHz), `interrupted`, `transcript` (role, text, final), `characterState` (emotion, speaking), `worldJob` (jobId, status), `prediction`, `discovery`, `dial`, `quota` (secondsLeft), `error` (code, message), `bye` (reason).
+Gateway to client: `ready` (sessionId, character), `audio` (binary PCM16 24 kHz), `interrupted`, `transcript` (role, text, final), `characterState` (emotion, speaking), `worldJob` (jobId, status), `prediction`, `discovery`, `dial`, `summon` (characterId), `spell` (spell, target), `variable` (name, value), `challenge` (challengeId), `quota` (secondsLeft), `error` (code, message), `bye` (reason).
 
 World content never travels over the WebSocket. The client subscribes to the world document in Firestore and renders updates as they land.
 
@@ -487,7 +579,7 @@ Firestore collections. Clients have read access only to their own documents thro
 users/{uid}
   email, displayName, consentAt, plan ('free' | 'family'), stripeCustomerId, createdAt
 users/{uid}/children/{childId}
-  firstName, avatar, ageBand ('6-7' | '8-10'), sessionTargetMinutes, loopsCompleted, createdAt
+  firstName, avatar, ageBand ('6-7' | '8-10' | '11-13'), tier ('playground' | 'lab'), labsUnlocked, captions, sessionTargetMinutes, loopsCompleted, createdAt
 users/{uid}/children/{childId}/discoveries/{concept}
   firstAt, count, worldIds[], title, kidExplanation, realLifeNote
 worlds/{worldId}
@@ -529,7 +621,7 @@ Retention: raw audio is never stored. Live transcripts exist only in gateway mem
 | Images per world | 8 | 16 |
 | Saved worlds | 10 | 200 |
 
-**Billing.** Stripe in test mode. Stripe Checkout for upgrade, Stripe Customer Portal for management. Webhooks (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`) update `subscriptions/{uid}` and `users/{uid}.plan`. Webhook signatures are verified; events are idempotent on event id.
+**Billing.** Stripe in test mode. Family is USD 9.99 per month with a 7-day trial; local currency pricing comes after submission. Stripe Checkout for upgrade, Stripe Customer Portal for management. Webhooks (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`) update `subscriptions/{uid}` and `users/{uid}.plan`. Webhook signatures are verified; events are idempotent on event id.
 
 **Parent dashboard.** Reads sessions, discoveries, usage, and worlds for the parent's children. Shows engaged minutes per day, loops completed, concept coverage, Discovery Cards, and session summaries.
 
@@ -537,7 +629,7 @@ Retention: raw audio is never stored. Live transcripts exist only in gateway mem
 
 - The child never enters free text. All child input is voice, tap, drag, or dial.
 - Vertex safety settings at the strictest level on every model call.
-- Prompt-level policy in every system instruction: no violence, weapons, horror, romance, real-world brands, or requests for personal information; redirect gently.
+- Prompt-level policy in every system instruction: no violence, weapons, horror, romance, real-world brands, or requests for personal information; redirect gently. Cartoon-scary is allowed (dragons, monsters, witches, ghosts, magic wands); real-world weapons, gore, horror, and cruelty are not. "sword" stays blocked this round.
 - Inline transcript moderation (8.7) and DSL category allowlist (5.4) and image safety check (9.5) as layered backstops.
 - No raw audio stored; transcripts are discarded at session end; summaries only.
 - Child profiles hold a first name, an avatar choice, and an age band only.
@@ -591,6 +683,8 @@ The api and builder are stateless. The gateway holds only per-session memory and
 | End-to-end | Playwright against staging with fake Live and fake builder toggled by a test flag | Sign-up, child profile, Studio loop with a fixture world, dial, prediction, discovery, handoff, parent dashboard. |
 | Load | k6 WebSocket scenario | 200 concurrent sessions on staging for 15 minutes with synthetic audio; p95 first audio and error rate within SLO. |
 
+Usability sessions with 3 to 5 children in the age bands run twice: before the week-5 SaaS polish and before submission. Findings feed the attention engine defaults and the Labs slider panel.
+
 Test-driven development applies to every package: tests are written before implementation for schema, validator, interpreter, gateway state machine, and quota logic.
 
 ## 16. Repository layout and ownership
@@ -622,15 +716,15 @@ Tooling: pnpm workspaces, Turborepo, TypeScript strict, Zod 4, Vitest, Playwrigh
 | Week | Dev A (Experience) | Dev B (Platform and AI) | Exit criteria |
 |---|---|---|---|
 | 1 | Monorepo, shared packages, fixtures, fake gateway, design system tokens, Studio shell | Same shared work, Terraform for staging, hello-world deploys of all services, CI pipeline | Both devs can run the app locally against fakes; staging exists. |
-| 2 | Engine renders fixture worlds with physics, interactions, dials; determinism tests | Gateway voice loop with one character on Vertex Live; `imagineToScene` flow producing valid DSL; validator complete | A child can talk to Bolt on staging; a fixture world plays locally. |
-| 3 | Rive characters, lip-sync, emotion states, progressive loading UI, Gallery | Asset pipeline with chroma key and colliders, caching, Firestore progressive publish, all tools wired, fire-and-notify | A spoken wish becomes a generated world on staging. |
-| 4 | Full loop integration, prediction and Discovery UI, character handoff, Who's playing | Auth, child profiles, pacing engine, moderation, resumption hardening | Full loop end-to-end on staging with real accounts. |
-| 5 | Parent dashboard, marketing page, polish pass | Quotas, Stripe, observability dashboards and alerts, load test | SaaS complete; load test within SLO. |
+| 2 | Engine renders fixture worlds with physics, interactions, dials; determinism tests | Gateway voice loop with one character on Vertex Live; `imagineToScene` flow producing valid DSL; validator complete | A child can talk to Bhombol on staging; a fixture world plays locally. |
+| 3 | Rive characters (companions), lip-sync, emotion states, progressive loading UI, Gallery | Asset pipeline with chroma key and colliders, caching, Firestore progressive publish, all tools wired, fire-and-notify | A spoken wish becomes a generated world on staging. |
+| 4 | Full loop integration, prediction and Discovery UI, handoff and summon transitions, Labs slider panel, plots, vectors, spells | Auth, child profiles, pacing engine, moderation, guide personas, lab builder prompts, resumption hardening | Full loop end-to-end on staging with real accounts; projectile lab and Galton board work. |
+| 5 | Parent dashboard, marketing page, guide Rive characters, fractions lab, polish pass | Quotas, Stripe, observability dashboards and alerts, load test | SaaS complete; load test within SLO; first kid usability session done. |
 | 6 | Demo worlds, evals review, submission video | Hardening, runbooks, prod deploy, buffer | Prod deployed; submission ready. |
 
 ## 18. Out of scope for this round
 
-Native apps, multiplayer or shared worlds, user-uploaded images or photos, 3D rendering, languages other than English, teacher or classroom mode, offline play, Google Play or App Store billing, live avatars from the Live API, text chat for the child.
+Native apps, multiplayer or shared worlds, user-uploaded images or photos, 3D rendering, languages other than English (Bangla is first after submission; strings and prompts are isolated now), teacher or classroom mode, offline play, Google Play or App Store billing, live avatars from the Live API, text chat for the child, the number-line and geometry lab kinds, local-currency pricing.
 
 ## 19. Risks and mitigations
 
@@ -660,3 +754,14 @@ Native apps, multiplayer or shared worlds, user-uploaded images or photos, 3D re
 | Agent framework | Genkit for builder flows; `@google/genai` directly for Live | ADK for TypeScript (repo warns against production use) |
 | Backend language | TypeScript end-to-end | Python for AI services |
 | Web hosting | Firebase App Hosting for Next.js | Cloud Run for web |
+| Labs tier | 9 to 13, overlapping Playgrounds at 9 to 10; bands 6-7, 8-10, 11-13 | 11 to 14 only; a mode for any profile |
+| Guides | Pori Apu (physics), Onko Mama (maths), Jadu Kaka (magic), summoned via handoff | Replace companions; single narrator |
+| Lab kinds this round | graphs and functions, probability and data, fractions | number line, geometry (deferred) |
+| Visualization placement | overlays on the world canvas plus slider panel | separate whiteboard panel |
+| Older-kid input | voice plus sliders and keypad | typed chat |
+| Timeline | 6 weeks with two lab kinds first, fractions third | 8 weeks |
+| Learning text | curated concept bank; model personalizes one sentence | fully generated |
+| Captions | on by default for 8 and up | always on; always off |
+| Pricing | Family USD 9.99 per month, 7-day trial | undecided |
+| Repository | private until submission | public |
+| Character names | Bengali children's favourites: Mishti, Bhombol, Chandni, Pori Apu, Onko Mama, Jadu Kaka | English placeholders (Pip, Bolt, Luna, Physics Fairy, Math Man, Magic Man) |

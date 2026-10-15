@@ -45,9 +45,10 @@ just-imagine/
     package.json  tsconfig.base.json  eslint.config.base.js
   packages/scene-schema/
     src/index.ts                    re-exports
-    src/concepts.ts                 CONCEPTS, DIALS, presets
+    src/concepts.ts                 CONCEPTS (playground and lab), DIALS, presets
     src/limits.ts                   LIMITS constants
     src/schema.ts                   Zod schemas and inferred types for SceneDoc
+                                    (schema.ts also holds the lab extension: TierSchema, VariableSchema, VisualSchema, ChallengeSchema; Task 17)
     src/gen.ts                      GeneratedSceneSchema (what the model emits) and fromGenerated
     src/materials-table.ts          reference ranges and lookupMaterialRange
     src/blocklist.ts                BLOCKED_TERMS and findBlockedTerm
@@ -60,7 +61,9 @@ just-imagine/
   packages/protocol/
     src/index.ts
     src/plans.ts                    PlanTierSchema, PLAN_LIMITS
-    src/characters.ts               CharacterIdSchema, CHARACTERS, EmotionSchema
+    src/bands.ts                    AgeBandSchema, TierSchema, defaultTierFor
+    src/characters.ts               CharacterIdSchema, CHARACTERS (companions and guides), EmotionSchema, SpellSchema
+    src/concept-bank.ts             curated Discovery Card titles and real-life notes (Task 18)
     src/ws.ts                       ClientMessageSchema, ServerMessageSchema, audio constants, codecs
     src/jobs.ts                     BuildWorldJobSchema, PatchWorldJobSchema, BuilderJobSchema
     src/firestore.ts                document schemas, paths, yyyymmdd
@@ -68,7 +71,7 @@ just-imagine/
     src/world-source.ts             WorldSource interface
     test/*.test.ts
   packages/fixtures/
-    worlds/jelly-dragon.json  worlds/moon-bounce.json  worlds/pond-float.json
+    worlds/jelly-dragon.json  worlds/moon-bounce.json  worlds/pond-float.json  worlds/projectile-lab.json (Task 17)
     scenarios/jelly-dragon.json     fake gateway script
     src/index.ts                    typed exports of worlds and scenarios
     src/audio.ts                    pcm16Tone, splitPcm16Frames
@@ -351,6 +354,7 @@ export function minimalScene(): SceneDoc {
   return {
     schemaVersion: 1,
     worldId: 'w_test',
+    tier: 'playground',
     title: 'Test World',
     theme: {
       paletteHint: 'pastel',
@@ -482,8 +486,11 @@ Expected: FAIL, "Cannot find module '../src/schema'".
 
 ```ts
 export const CONCEPTS = [
+  // Playground concepts
   'gravity', 'mass', 'buoyancy', 'friction', 'bounce', 'momentum',
   'airResistance', 'balance', 'springiness', 'density', 'force', 'speed',
+  // Lab concepts
+  'acceleration', 'energy', 'projectile', 'probability', 'fraction', 'graph', 'measurement',
 ] as const;
 export type Concept = (typeof CONCEPTS)[number];
 
@@ -677,9 +684,13 @@ export const EnvironmentSchema = z.object({
 });
 export type Environment = z.infer<typeof EnvironmentSchema>;
 
+export const TierSchema = z.enum(['playground', 'lab']);
+export type Tier = z.infer<typeof TierSchema>;
+
 export const SceneDocSchema = z.object({
   schemaVersion: z.literal(1),
   worldId: z.string().min(1),
+  tier: TierSchema.default('playground'),
   title: z.string().min(1).max(60),
   theme: ThemeSchema,
   environment: EnvironmentSchema,
@@ -1763,14 +1774,16 @@ git commit -m "feat(scene-schema): export Gemini-safe JSON schema and add migrat
 
 **Files:**
 - Create: `packages/protocol/package.json`, `packages/protocol/tsconfig.json`, `packages/protocol/eslint.config.js`, `packages/protocol/vitest.config.ts`
-- Create: `packages/protocol/src/plans.ts`, `packages/protocol/src/characters.ts`, `packages/protocol/src/ws.ts`, `packages/protocol/src/index.ts`
-- Test: `packages/protocol/test/ws.test.ts`, `packages/protocol/test/plans.test.ts`
+- Create: `packages/protocol/src/plans.ts`, `packages/protocol/src/bands.ts`, `packages/protocol/src/characters.ts`, `packages/protocol/src/ws.ts`, `packages/protocol/src/index.ts`
+- Test: `packages/protocol/test/ws.test.ts`, `packages/protocol/test/plans.test.ts`, `packages/protocol/test/characters.test.ts`
 
 **Interfaces:**
 - Produces:
   - `PlanTierSchema`, `type PlanTier`, `PLAN_LIMITS: Record<PlanTier, PlanLimits>`, `type PlanLimits = { children; voiceSecondsPerDay; worldsPerDay; imagesPerWorld; savedWorlds }`
-  - `CharacterIdSchema`, `type CharacterId = 'pip' | 'bolt' | 'luna'`, `CHARACTERS: Record<CharacterId, CharacterConfig>`, `EmotionSchema`, `type Emotion`
+  - `AgeBandSchema`, `type AgeBand = '6-7' | '8-10' | '11-13'`, `TierSchema`, `type Tier`, `defaultTierFor(band): Tier`
+  - `CharacterIdSchema`, `type CharacterId = 'mishti' | 'bhombol' | 'chandni' | 'pori' | 'onkomama' | 'jadukaka'`, `CompanionIdSchema`, `GuideIdSchema`, `CHARACTERS: Record<CharacterId, CharacterConfig>`, `guidesFor(band): CharacterConfig[]`, `DEFAULT_CHARACTER`, `EmotionSchema`, `type Emotion`, `SpellSchema`, `type Spell`
   - `ClientMessageSchema`, `type ClientMessage`, `ServerMessageSchema`, `type ServerMessage`, `AUDIO_IN`, `AUDIO_OUT`, `encodeMessage(m)`, `parseClientMessage(raw)`, `parseServerMessage(raw)`, `ErrorCodeSchema`, `ByeReasonSchema`, `WorldJobStatusSchema`
+  - Lab and guide messages: client `variable`, `challengeResult`; server `summon`, `spell`, `variable`, `challenge`
 - Consumed by Plans A2, A3 (client side) and B1 (gateway), B3 (plan limits).
 
 - [ ] **Step 1: Create the package files**
@@ -1832,26 +1845,33 @@ import {
 } from '../src/ws';
 
 const clientMessages: ClientMessage[] = [
-  { type: 'hello', idToken: 't', childId: 'c1', characterId: 'bolt' },
-  { type: 'hello', idToken: 't', childId: 'c1', characterId: 'pip', worldId: 'w1', sessionId: 's1' },
+  { type: 'hello', idToken: 't', childId: 'c1', characterId: 'bhombol' },
+  { type: 'hello', idToken: 't', childId: 'c1', characterId: 'mishti', worldId: 'w1', sessionId: 's1' },
   { type: 'text', text: 'make a jelly dragon' },
   { type: 'interaction', kind: 'flick', entityId: 'dragon', entityName: 'jelly dragon' },
   { type: 'interaction', kind: 'dial', dial: 'gravity', value: 'moon' },
   { type: 'simEvent', ruleId: 'r1', concept: 'bounce', say: 'Boing!' },
   { type: 'predictionAnswer', answerIndex: 1 },
-  { type: 'switchCharacter', characterId: 'luna' },
+  { type: 'switchCharacter', characterId: 'chandni' },
+  { type: 'variable', name: 'launch_speed', value: 12.5 },
+  { type: 'challengeResult', challengeId: 'ch_cup', completed: true },
   { type: 'end' },
 ];
 
 const serverMessages: ServerMessage[] = [
-  { type: 'ready', sessionId: 's1', characterId: 'bolt' },
+  { type: 'ready', sessionId: 's1', characterId: 'bhombol' },
   { type: 'interrupted' },
   { type: 'transcript', role: 'child', text: 'a dragon', final: true },
-  { type: 'characterState', characterId: 'bolt', emotion: 'thinking', speaking: false },
+  { type: 'characterState', characterId: 'bhombol', emotion: 'thinking', speaking: false },
   { type: 'worldJob', jobId: 'j1', worldId: 'w1', status: 'placeholders' },
   { type: 'prediction', question: 'Bounce or splat?', options: ['bounce', 'splat'] },
   { type: 'discovery', concept: 'bounce', title: 'Boing!', kidExplanation: 'Squishy things spring back.', realLifeNote: 'Rubber balls bounce because they squish and spring back.' },
   { type: 'dial', dial: 'gravity', value: 'moon' },
+  { type: 'summon', characterId: 'pori' },
+  { type: 'spell', spell: 'reverseGravity' },
+  { type: 'spell', spell: 'grow', target: 'hero' },
+  { type: 'variable', name: 'launch_speed', value: 12.5 },
+  { type: 'challenge', challengeId: 'ch_cup' },
   { type: 'quota', voiceSecondsLeft: 120 },
   { type: 'error', code: 'SESSION_ACTIVE_ELSEWHERE', message: 'already playing on another device' },
   { type: 'bye', reason: 'target_reached' },
@@ -1907,34 +1927,92 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
 export const QUOTA_WARNING_SECONDS = 120;
 ```
 
-`packages/protocol/src/characters.ts`:
+`packages/protocol/src/bands.ts`:
 
 ```ts
 import { z } from 'zod';
 
-export const CharacterIdSchema = z.enum(['pip', 'bolt', 'luna']);
+export const AgeBandSchema = z.enum(['6-7', '8-10', '11-13']);
+export type AgeBand = z.infer<typeof AgeBandSchema>;
+
+export const TierSchema = z.enum(['playground', 'lab']);
+export type Tier = z.infer<typeof TierSchema>;
+
+export function defaultTierFor(band: AgeBand): Tier {
+  return band === '11-13' ? 'lab' : 'playground';
+}
+```
+
+`packages/protocol/src/characters.ts`:
+
+```ts
+import { z } from 'zod';
+import { AgeBandSchema, type AgeBand } from './bands';
+
+export const CompanionIdSchema = z.enum(['mishti', 'bhombol', 'chandni']);
+export const GuideIdSchema = z.enum(['pori', 'onkomama', 'jadukaka']);
+export const CharacterIdSchema = z.enum([...CompanionIdSchema.options, ...GuideIdSchema.options]);
 export type CharacterId = z.infer<typeof CharacterIdSchema>;
 
 export const EmotionSchema = z.enum(['idle', 'happy', 'thinking', 'surprised', 'sleepy']);
 export type Emotion = z.infer<typeof EmotionSchema>;
 
+export const SpellSchema = z.enum(['reverseGravity', 'slowTime', 'grow', 'shrink', 'floatAll', 'restore']);
+export type Spell = z.infer<typeof SpellSchema>;
+
 export interface CharacterConfig {
   id: CharacterId;
+  kind: 'companion' | 'guide';
   displayName: string;
-  animal: 'kitten' | 'puppy' | 'cat';
-  role: 'dreamer' | 'tinkerer' | 'thinker';
-  leads: Array<'imagine' | 'predict' | 'play' | 'discover' | 'remix' | 'recap'>;
+  title: string;                 // shown to parents and in the Gallery
+  look: string;                  // one-sentence art direction for the Rive character
+  domain: 'play' | 'physics' | 'maths' | 'magic';
+  leads: Array<'imagine' | 'predict' | 'play' | 'discover' | 'remix' | 'recap' | 'lab' | 'spell'>;
+  bands: AgeBand[];
+  catchphrase: string;
   // Live API voice name. Set after the week-2 listening test; the gateway reads it from here.
   voice: string;
 }
 
+const ALL_BANDS = AgeBandSchema.options;
+
 export const CHARACTERS: Record<CharacterId, CharacterConfig> = {
-  pip: { id: 'pip', displayName: 'Pip', animal: 'kitten', role: 'dreamer', leads: ['imagine', 'remix'], voice: 'Leda' },
-  bolt: { id: 'bolt', displayName: 'Bolt', animal: 'puppy', role: 'tinkerer', leads: ['play', 'discover'], voice: 'Puck' },
-  luna: { id: 'luna', displayName: 'Luna', animal: 'cat', role: 'thinker', leads: ['predict', 'recap'], voice: 'Kore' },
+  mishti: { id: 'mishti', kind: 'companion', displayName: 'Mishti', title: 'the dreamer', look: 'tiny cream kitten with huge sparkly eyes and a pink bow', domain: 'play', leads: ['imagine', 'remix'], bands: ['6-7', '8-10'], catchphrase: 'Ooh, what if...', voice: 'Leda' },
+  bhombol: { id: 'bhombol', kind: 'companion', displayName: 'Bhombol', title: 'the tinkerer', look: 'chubby golden puppy with a tool belt and floppy ears', domain: 'play', leads: ['play', 'discover'], bands: ['6-7', '8-10'], catchphrase: 'Let us build it!', voice: 'Puck' },
+  chandni: { id: 'chandni', kind: 'companion', displayName: 'Chandni', title: 'the thinker', look: 'sleek silver-grey cat with a crescent-moon pendant', domain: 'play', leads: ['predict', 'recap'], bands: ['6-7', '8-10'], catchphrase: 'What do you think will happen?', voice: 'Kore' },
+  pori: { id: 'pori', kind: 'guide', displayName: 'Pori Apu', title: 'Physics Fairy', look: 'small glowing fairy with dragonfly wings and a star-tipped wand', domain: 'physics', leads: ['lab', 'discover'], bands: [...ALL_BANDS], catchphrase: 'Every push has a story!', voice: 'Aoede' },
+  onkomama: { id: 'onkomama', kind: 'guide', displayName: 'Onko Mama', title: 'Math Man', look: 'cheerful caped uncle with round glasses, chalk in hand and a calculator belt', domain: 'maths', leads: ['lab', 'discover'], bands: ['8-10', '11-13'], catchphrase: 'Numbers are everywhere, let us find them!', voice: 'Charon' },
+  jadukaka: { id: 'jadukaka', kind: 'guide', displayName: 'Jadu Kaka', title: 'Magic Man', look: 'tall magician in a top hat with a twirly moustache and a sparkly cloak', domain: 'magic', leads: ['spell', 'discover'], bands: [...ALL_BANDS], catchphrase: 'Abracadabra, but with science!', voice: 'Fenrir' },
 };
 
-export const DEFAULT_CHARACTER: CharacterId = 'bolt';
+export const DEFAULT_CHARACTER: CharacterId = 'bhombol';
+
+export function guidesFor(band: AgeBand): CharacterConfig[] {
+  return Object.values(CHARACTERS).filter((c) => c.kind === 'guide' && c.bands.includes(band));
+}
+```
+
+`packages/protocol/test/characters.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { CHARACTERS, CharacterIdSchema, guidesFor } from '../src/characters';
+import { defaultTierFor } from '../src/bands';
+
+describe('characters', () => {
+  it('has a config for every id with a non-empty voice', () => {
+    for (const id of CharacterIdSchema.options) expect(CHARACTERS[id].voice.length).toBeGreaterThan(0);
+  });
+  it('offers Math Man only from 8-10 up and the other guides to everyone', () => {
+    expect(guidesFor('6-7').map((c) => c.id)).toEqual(['pori', 'jadukaka']);
+    expect(guidesFor('8-10').map((c) => c.id)).toEqual(['pori', 'onkomama', 'jadukaka']);
+    expect(guidesFor('11-13').map((c) => c.id)).toEqual(['pori', 'onkomama', 'jadukaka']);
+  });
+  it('defaults 11-13 to the lab tier and younger bands to playground', () => {
+    expect(defaultTierFor('11-13')).toBe('lab');
+    expect(defaultTierFor('8-10')).toBe('playground');
+  });
+});
 ```
 
 `packages/protocol/src/ws.ts`:
@@ -1942,7 +2020,7 @@ export const DEFAULT_CHARACTER: CharacterId = 'bolt';
 ```ts
 import { z } from 'zod';
 import { ConceptSchema, DialSchema } from '@just-imagine/scene-schema';
-import { CharacterIdSchema, EmotionSchema } from './characters';
+import { CharacterIdSchema, EmotionSchema, SpellSchema } from './characters';
 
 export const AUDIO_IN = { sampleRate: 16000, channels: 1, frameMs: 20, samplesPerFrame: 320, mimeType: 'audio/pcm;rate=16000' } as const;
 export const AUDIO_OUT = { sampleRate: 24000, channels: 1, frameMs: 20, samplesPerFrame: 480, mimeType: 'audio/pcm;rate=24000' } as const;
@@ -1973,6 +2051,8 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('simEvent'), ruleId: z.string(), concept: ConceptSchema.optional(), say: z.string().max(200).optional() }),
   z.object({ type: z.literal('predictionAnswer'), answerIndex: z.number().int().min(0).max(2) }),
   z.object({ type: z.literal('switchCharacter'), characterId: CharacterIdSchema }),
+  z.object({ type: z.literal('variable'), name: z.string().min(1).max(32), value: z.number() }),
+  z.object({ type: z.literal('challengeResult'), challengeId: z.string().min(1), completed: z.boolean() }),
   z.object({ type: z.literal('end') }),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
@@ -1986,6 +2066,10 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('prediction'), question: z.string(), options: z.array(z.string()).min(2).max(3) }),
   z.object({ type: z.literal('discovery'), concept: ConceptSchema, title: z.string(), kidExplanation: z.string(), realLifeNote: z.string() }),
   z.object({ type: z.literal('dial'), dial: DialSchema, value: z.string() }),
+  z.object({ type: z.literal('summon'), characterId: CharacterIdSchema }),
+  z.object({ type: z.literal('spell'), spell: SpellSchema, target: z.string().optional() }),
+  z.object({ type: z.literal('variable'), name: z.string().min(1).max(32), value: z.number() }),
+  z.object({ type: z.literal('challenge'), challengeId: z.string().min(1) }),
   z.object({ type: z.literal('quota'), voiceSecondsLeft: z.number().int() }),
   z.object({ type: z.literal('error'), code: ErrorCodeSchema, message: z.string() }),
   z.object({ type: z.literal('bye'), reason: ByeReasonSchema }),
@@ -2007,6 +2091,7 @@ export function parseServerMessage(raw: string): ServerMessage {
 
 ```ts
 export * from './plans';
+export * from './bands';
 export * from './characters';
 export * from './ws';
 ```
@@ -2035,7 +2120,7 @@ git commit -m "feat(protocol): add plan limits, character config, and WebSocket 
 **Interfaces:**
 - Produces:
   - `BuildWorldJobSchema`, `PatchWorldJobSchema`, `BuilderJobSchema`, `type BuilderJob`, `type BuildWorldJob`, `type PatchWorldJob`
-  - `AgeBandSchema`, `AvatarSchema`, `UserDocSchema`, `ChildDocSchema`, `DiscoveryDocSchema`, `AssetStatusSchema`, `WorldDocSchema`, `WorldVersionDocSchema`, `SessionDocSchema`, `UsageDailyDocSchema`, `SubscriptionDocSchema`, `AssetCacheDocSchema`, `RuntimeConfigDocSchema`, inferred `type XxxDoc` for each, `paths`, `yyyymmdd(date: Date): string`
+  - `AvatarSchema`, `UserDocSchema`, `ChildDocSchema` (with `tier`, `labsUnlocked`, `captions`), `DiscoveryDocSchema`, `AssetStatusSchema`, `WorldDocSchema`, `WorldVersionDocSchema`, `SessionDocSchema`, `UsageDailyDocSchema`, `SubscriptionDocSchema`, `AssetCacheDocSchema`, `RuntimeConfigDocSchema`, inferred `type XxxDoc` for each, `paths`, `yyyymmdd(date: Date): string`
   - `interface WorldSource { subscribe(worldId: string, onUpdate: (world: WorldDoc & { id: string }) => void, onError?: (e: Error) => void): () => void }`
 - Consumed by Plans B1, B2, B3 (documents and jobs), A3 (`WorldSource`, `WorldDoc`), Task 12 (`FakeWorldSource`).
 
@@ -2052,7 +2137,7 @@ const base = { jobId: 'j_1', worldId: 'w_1', uid: 'u_1', childId: 'c_1', session
 describe('BuilderJobSchema', () => {
   it('accepts a build job', () => {
     const r = BuilderJobSchema.safeParse({
-      ...base, kind: 'build', description: 'a jelly dragon on a cloud', concepts: ['bounce'], ageBand: '6-7',
+      ...base, kind: 'build', description: 'a jelly dragon on a cloud', concepts: ['bounce'], ageBand: '6-7', tier: 'playground',
       styleVersion: 'style-v1', promptVersion: 'imagine-v1', conversationSummary: 'The child wants a jelly dragon.',
     });
     expect(r.success).toBe(true);
@@ -2063,7 +2148,7 @@ describe('BuilderJobSchema', () => {
   });
   it('rejects a build job with four concepts', () => {
     const r = BuilderJobSchema.safeParse({
-      ...base, kind: 'build', description: 'x', concepts: ['bounce', 'gravity', 'mass', 'speed'], ageBand: '6-7',
+      ...base, kind: 'build', description: 'x', concepts: ['bounce', 'gravity', 'mass', 'speed'], ageBand: '6-7', tier: 'playground',
       styleVersion: 'style-v1', promptVersion: 'imagine-v1', conversationSummary: 'x',
     });
     expect(r.success).toBe(false);
@@ -2101,14 +2186,15 @@ describe('yyyymmdd', () => {
 
 describe('document schemas', () => {
   it('accepts a child document and rejects an age band outside the product', () => {
-    const child = { firstName: 'Ayaan', avatar: 'fox', ageBand: '6-7', sessionTargetMinutes: 8, loopsCompleted: 0, createdAt: 1 };
+    const child = { firstName: 'Ayaan', avatar: 'fox', ageBand: '6-7', tier: 'playground', labsUnlocked: false, captions: false, sessionTargetMinutes: 8, loopsCompleted: 0, createdAt: 1 };
     expect(ChildDocSchema.safeParse(child).success).toBe(true);
     expect(ChildDocSchema.safeParse({ ...child, ageBand: '14-16' }).success).toBe(false);
+    expect(ChildDocSchema.safeParse({ ...child, ageBand: '11-13', tier: 'lab' }).success).toBe(true);
   });
   it('requires integer epoch timestamps', () => {
     const usage = { uid: 'u1', date: '20261015', voiceSeconds: 10, worlds: 1, images: 3 };
     expect(UsageDailyDocSchema.safeParse(usage).success).toBe(true);
-    const session = { uid: 'u1', childId: 'c1', characterIds: ['bolt'], worldIds: [], startedAt: '2026-10-15', endedAt: null, voiceSeconds: 0, turns: 0, beats: 0, summary: null, discoveries: [], predictions: [], endReason: null, active: true };
+    const session = { uid: 'u1', childId: 'c1', characterIds: ['bhombol'], worldIds: [], startedAt: '2026-10-15', endedAt: null, voiceSeconds: 0, turns: 0, beats: 0, summary: null, discoveries: [], predictions: [], endReason: null, active: true };
     expect(SessionDocSchema.safeParse(session).success).toBe(false);
   });
   it('requires a world document to embed a SceneDoc', () => {
@@ -2130,9 +2216,7 @@ Expected: FAIL, modules not found.
 import { z } from 'zod';
 import { ConceptSchema, LIMITS } from '@just-imagine/scene-schema';
 import { PlanTierSchema } from './plans';
-
-export const AgeBandSchema = z.enum(['6-7', '8-10']);
-export type AgeBand = z.infer<typeof AgeBandSchema>;
+import { AgeBandSchema, TierSchema } from './bands';
 
 const JobBase = z.object({
   jobId: z.string().min(1),
@@ -2148,6 +2232,8 @@ export const BuildWorldJobSchema = JobBase.extend({
   description: z.string().min(1).max(1000),
   concepts: z.array(ConceptSchema).max(LIMITS.maxConcepts),
   ageBand: AgeBandSchema,
+  tier: TierSchema,
+  labKind: z.enum(['projectile', 'galton', 'fractions']).optional(),
   styleVersion: z.string().min(1),
   promptVersion: z.string().min(1),
   conversationSummary: z.string().max(2000),
@@ -2172,7 +2258,7 @@ import { z } from 'zod';
 import { ConceptSchema, PatchOpSchema, SceneDocSchema } from '@just-imagine/scene-schema';
 import { PlanTierSchema } from './plans';
 import { CharacterIdSchema } from './characters';
-import { AgeBandSchema } from './jobs';
+import { AgeBandSchema, TierSchema } from './bands';
 import { ByeReasonSchema } from './ws';
 
 const epochMs = z.number().int().nonnegative();
@@ -2193,6 +2279,9 @@ export const ChildDocSchema = z.object({
   firstName: z.string().min(1).max(30),
   avatar: AvatarSchema,
   ageBand: AgeBandSchema,
+  tier: TierSchema,
+  labsUnlocked: z.boolean(),
+  captions: z.boolean(),
   sessionTargetMinutes: z.number().int().min(8).max(20),
   loopsCompleted: z.number().int().min(0),
   createdAt: epochMs,
@@ -2444,7 +2533,7 @@ export const CreateChildBodySchema = ChildDocSchema.pick({ firstName: true, avat
 export type CreateChildBody = z.infer<typeof CreateChildBodySchema>;
 
 export const UpdateChildBodySchema = ChildDocSchema
-  .pick({ firstName: true, avatar: true, ageBand: true, sessionTargetMinutes: true })
+  .pick({ firstName: true, avatar: true, ageBand: true, tier: true, labsUnlocked: true, captions: true, sessionTargetMinutes: true })
   .partial()
   .strict();
 export type UpdateChildBody = z.infer<typeof UpdateChildBodySchema>;
@@ -2580,6 +2669,7 @@ git commit -m "feat(protocol): add REST route table and request and response sch
 {
   "schemaVersion": 1,
   "worldId": "w_fixture_jelly_dragon",
+  "tier": "playground",
   "title": "Jelly Dragon on a Cloud",
   "theme": {
     "paletteHint": "sunset pastel with mint",
@@ -2622,6 +2712,7 @@ git commit -m "feat(protocol): add REST route table and request and response sch
 {
   "schemaVersion": 1,
   "worldId": "w_fixture_moon_bounce",
+  "tier": "playground",
   "title": "Bouncy Ball on the Moon",
   "theme": {
     "paletteHint": "deep indigo with silver",
@@ -2662,6 +2753,7 @@ git commit -m "feat(protocol): add REST route table and request and response sch
 {
   "schemaVersion": 1,
   "worldId": "w_fixture_pond_float",
+  "tier": "playground",
   "title": "Duck and Stone at the Pond",
   "theme": {
     "paletteHint": "fresh spring greens and sky blue",
@@ -3001,14 +3093,14 @@ A WebSocket server that speaks the protocol from scripted scenarios, so the web 
 ```json
 {
   "onHello": [
-    { "type": "characterState", "characterId": "bolt", "emotion": "happy", "speaking": true },
-    { "type": "transcript", "role": "character", "text": "Hi! I am Bolt. What shall we build today?", "final": true },
-    { "type": "characterState", "characterId": "bolt", "emotion": "idle", "speaking": false }
+    { "type": "characterState", "characterId": "bhombol", "emotion": "happy", "speaking": true },
+    { "type": "transcript", "role": "character", "text": "Hi! I am Bhombol. What shall we build today?", "final": true },
+    { "type": "characterState", "characterId": "bhombol", "emotion": "idle", "speaking": false }
   ],
   "onInteraction": [
-    { "type": "characterState", "characterId": "bolt", "emotion": "surprised", "speaking": true },
+    { "type": "characterState", "characterId": "bhombol", "emotion": "surprised", "speaking": true },
     { "type": "transcript", "role": "character", "text": "Whoa, look at it wobble!", "final": true },
-    { "type": "characterState", "characterId": "bolt", "emotion": "idle", "speaking": false }
+    { "type": "characterState", "characterId": "bhombol", "emotion": "idle", "speaking": false }
   ],
   "onSwitchCharacter": [
     { "type": "transcript", "role": "character", "text": "Hello, I am here now. What did you notice?", "final": true }
@@ -3063,8 +3155,8 @@ describe('fake gateway', () => {
     gateway = await startFakeGateway({ port: 0, scenario: SCENARIOS.jellyDragon });
     const ws = await connect(gateway.url);
     const first = nextJson(ws);
-    ws.send(encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'bolt', worldId: 'w_fixture_jelly_dragon' }));
-    expect(await first).toEqual({ type: 'ready', sessionId: 's_fake', characterId: 'bolt', worldId: 'w_fixture_jelly_dragon' });
+    ws.send(encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'bhombol', worldId: 'w_fixture_jelly_dragon' }));
+    expect(await first).toEqual({ type: 'ready', sessionId: 's_fake', characterId: 'bhombol', worldId: 'w_fixture_jelly_dragon' });
     expect(await nextJson(ws)).toMatchObject({ type: 'characterState', emotion: 'happy' });
     expect(gateway.received[0]).toMatchObject({ type: 'hello', childId: 'c1' });
     ws.close();
@@ -3079,7 +3171,7 @@ describe('fake gateway', () => {
         if (ev.data instanceof ArrayBuffer) { frames.push(ev.data); if (frames.length === 50) resolve(); }
       });
     });
-    ws.send(encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'pip' }));
+    ws.send(encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'mishti' }));
     await done;
     expect(frames.every((f) => f.byteLength === 960)).toBe(true);
     ws.close();
@@ -3088,7 +3180,7 @@ describe('fake gateway', () => {
   it('replies bye and closes on end', async () => {
     gateway = await startFakeGateway({ port: 0, scenario: SCENARIOS.jellyDragon });
     const ws = await connect(gateway.url);
-    ws.send(encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'luna' }));
+    ws.send(encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'chandni' }));
     await nextJson(ws);
     const closed = new Promise<void>((resolve) => ws.addEventListener('close', () => resolve()));
     const bye = nextJson(ws);
@@ -3112,7 +3204,7 @@ Expected: FAIL, module not found.
 import { WebSocketServer, type WebSocket as WsSocket } from 'ws';
 import { z } from 'zod';
 import {
-  AUDIO_OUT, ClientMessageSchema, ServerMessageSchema, encodeMessage,
+  AUDIO_OUT, CHARACTERS, ClientMessageSchema, ServerMessageSchema, encodeMessage,
   type ClientMessage, type ServerMessage,
 } from '@just-imagine/protocol';
 import { int16ToBytes, pcm16Tone, splitPcm16Frames } from './audio';
@@ -3158,6 +3250,7 @@ export function startFakeGateway(opts: { port: number; scenario: Scenario; tone?
         }
         case 'interaction': sendAll(opts.scenario.onInteraction); break;
         case 'switchCharacter':
+          if (CHARACTERS[m.characterId].kind === 'guide') send({ type: 'summon', characterId: m.characterId });
           send({ type: 'ready', sessionId: 's_fake', characterId: m.characterId });
           sendAll(opts.scenario.onSwitchCharacter);
           break;
@@ -3346,7 +3439,7 @@ import { ChildDocSchema, paths } from '@just-imagine/protocol';
 import { clearFirestore } from './emulator';
 import { readDoc, writeDoc, updateDoc, DocShapeError } from '../src/docs';
 
-const child = { firstName: 'Mira', avatar: 'owl' as const, ageBand: '8-10' as const, sessionTargetMinutes: 8, loopsCompleted: 0, createdAt: 1 };
+const child = { firstName: 'Mira', avatar: 'owl' as const, ageBand: '8-10' as const, tier: 'playground' as const, labsUnlocked: false, captions: true, sessionTargetMinutes: 8, loopsCompleted: 0, createdAt: 1 };
 
 describe('typed documents', () => {
   beforeEach(clearFirestore);
@@ -3782,6 +3875,475 @@ Open the Actions tab on GitHub and confirm the `ci` job is green. Then in reposi
 
 ---
 
+### Task 17: Scene DSL lab extension and projectile fixture
+
+Sequence: Dev A does this right after Task 7, before Task 11, so the fixtures package is created with four worlds. All new fields are optional, so every earlier test keeps passing.
+
+**Files:**
+- Modify: `packages/scene-schema/src/schema.ts` (lab schemas, new actions, new rule event, new SceneDoc fields)
+- Modify: `packages/scene-schema/src/validator.ts` (`checkLab`, new issue codes)
+- Create: `packages/fixtures/worlds/projectile-lab.json`
+- Modify: `packages/fixtures/src/worlds.ts`, `packages/fixtures/test/worlds.test.ts`
+- Test: `packages/scene-schema/test/lab.test.ts`
+
+**Interfaces:**
+- Produces: `VariableBindSchema`, `VariableSchema`, `type Variable`, `VisualSchema`, `type Visual`, `ChallengeSchema`, `type Challenge`, `LAB_LIMITS = { maxVariables: 6, maxVisuals: 6, maxChallenges: 3 }`, `SceneDoc.variables?`, `SceneDoc.visuals?`, `SceneDoc.challenges?`, actions `launch`, `setGravity`, `setTimeScale`, `scaleEntity`, rule event `challengeComplete`, issue codes `LAUNCH_NEEDS_DYNAMIC`, `LAB_EMPTY`, `PLAYGROUND_HAS_LAB_FIELDS`, `UNKNOWN_CHALLENGE_REF`, `VARIABLE_RANGE`, and `FIXTURE_WORLDS.projectileLab`.
+- Consumed by Plan A1 (slider panel, visual overlays, launch), Plan B2 (lab builder prompts), Plan B1 (`set_variable`, `start_challenge` tools).
+
+- [ ] **Step 1: Write the failing tests**
+
+`packages/scene-schema/test/lab.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { SceneDocSchema, type SceneDoc } from '../src/schema';
+import { validateScene } from '../src/validator';
+import { minimalScene } from './helpers';
+
+function minimalLab(): SceneDoc {
+  const doc = minimalScene();
+  doc.tier = 'lab';
+  doc.learning.concepts = ['projectile', 'gravity'];
+  doc.learning.prediction.concept = 'projectile';
+  doc.rules[0]!.concept = 'gravity';
+  doc.variables = {
+    launch_speed: { label: 'Launch speed', min: 2, max: 20, step: 0.5, value: 10, unit: 'm/s', binds: { kind: 'launch', entity: 'ball', prop: 'speed' } },
+    gravity: { label: 'Gravity', min: 1, max: 25, step: 0.1, value: 9.81, unit: 'm/s²', binds: { kind: 'gravity' } },
+  };
+  doc.visuals = [
+    { type: 'plot', id: 'height', title: 'Height over time', x: 'time', y: { entity: 'ball', prop: 'height' }, maxSeconds: 6 },
+    { type: 'vector', entity: 'ball', show: 'velocity' },
+  ];
+  doc.challenges = [
+    { id: 'ch_ground', goal: 'Make the ball land past the middle', check: { event: 'collision', a: 'hero', b: 'ground' }, hint: 'Try a bigger angle', concept: 'projectile', reward: [{ action: 'celebrate', style: 'confetti' }] },
+  ];
+  doc.rules.push({ id: 'r_go', when: { event: 'tap', target: 'hero' }, then: [{ action: 'launch', target: 'hero' }], once: false });
+  return doc;
+}
+
+const codes = (r: { issues: { code: string }[] }) => r.issues.map((i) => i.code);
+
+describe('lab extension', () => {
+  it('parses and validates a minimal lab world', () => {
+    expect(SceneDocSchema.safeParse(minimalLab()).success).toBe(true);
+    const r = validateScene(minimalLab());
+    expect(r.ok).toBe(true);
+    expect(r.issues).toEqual([]);
+  });
+
+  it('defaults tier to playground when absent', () => {
+    const { tier: _t, ...withoutTier } = minimalScene();
+    const parsed = SceneDocSchema.parse(withoutTier);
+    expect(parsed.tier).toBe('playground');
+  });
+
+  it('rejects more than six variables at the schema level', () => {
+    const doc = minimalLab();
+    for (let i = 0; i < 6; i++) doc.variables![`v${i}`] = { ...doc.variables!['gravity']! };
+    expect(SceneDocSchema.safeParse(doc).success).toBe(false);
+  });
+
+  it('reports VARIABLE_RANGE when value is outside min and max', () => {
+    const doc = minimalLab();
+    doc.variables!['gravity']!.value = 40;
+    expect(codes(validateScene(doc))).toContain('VARIABLE_RANGE');
+  });
+
+  it('reports UNKNOWN_ENTITY_REF for a binding or visual on a missing entity', () => {
+    const doc = minimalLab();
+    doc.variables!['launch_speed']!.binds = { kind: 'launch', entity: 'rocket', prop: 'speed' };
+    doc.visuals!.push({ type: 'label', entity: 'nobody', text: 'hi' });
+    const r = validateScene(doc);
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: 'UNKNOWN_ENTITY_REF', path: 'variables.launch_speed.binds.entity' }));
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: 'UNKNOWN_ENTITY_REF', path: 'visuals.2.entity' }));
+  });
+
+  it('reports LAUNCH_NEEDS_DYNAMIC when a launch variable targets a static entity', () => {
+    const doc = minimalLab();
+    doc.variables!['launch_speed']!.binds = { kind: 'launch', entity: 'ground', prop: 'speed' };
+    expect(codes(validateScene(doc))).toContain('LAUNCH_NEEDS_DYNAMIC');
+  });
+
+  it('reports LAB_EMPTY for a lab with no variables or visuals, and PLAYGROUND_HAS_LAB_FIELDS the other way round', () => {
+    const empty = minimalLab();
+    delete empty.variables;
+    delete empty.visuals;
+    expect(codes(validateScene(empty))).toContain('LAB_EMPTY');
+    const playground = minimalLab();
+    playground.tier = 'playground';
+    expect(codes(validateScene(playground))).toContain('PLAYGROUND_HAS_LAB_FIELDS');
+  });
+
+  it('reports UNKNOWN_CHALLENGE_REF when a rule waits on a challenge that does not exist', () => {
+    const doc = minimalLab();
+    doc.rules.push({ id: 'r_done', when: { event: 'challengeComplete', id: 'ch_missing' }, then: [{ action: 'sound', cue: 'ding' }], once: true });
+    expect(codes(validateScene(doc))).toContain('UNKNOWN_CHALLENGE_REF');
+  });
+
+  it('checks challenge concepts and tags like rules', () => {
+    const doc = minimalLab();
+    doc.challenges![0]!.concept = 'fraction';
+    doc.challenges![0]!.check = { event: 'collision', a: 'hero', b: 'cup' };
+    const r = validateScene(doc);
+    expect(codes(r)).toEqual(expect.arrayContaining(['LEARNING_CONCEPT_MISMATCH', 'UNKNOWN_TAG']));
+  });
+});
+```
+
+- [ ] **Step 2: Run the tests to verify they fail**
+
+Run: `pnpm --filter @just-imagine/scene-schema test -- lab`
+Expected: FAIL; `tier`, `variables`, and the `launch` action are unknown to the schema.
+
+- [ ] **Step 3: Extend the schema**
+
+In `packages/scene-schema/src/schema.ts`, add two members to `RuleWhenSchema`'s union and four to `ActionSchema`'s union:
+
+```ts
+  // append inside RuleWhenSchema's array
+  z.object({ event: z.literal('challengeComplete'), id: IdSchema }),
+```
+
+```ts
+  // append inside ActionSchema's array
+  z.object({ action: z.literal('launch'), target: TagSchema }),
+  z.object({ action: z.literal('setGravity'), y: z.number().min(-30).max(30) }),
+  z.object({ action: z.literal('setTimeScale'), value: z.number().min(0.1).max(2) }),
+  z.object({ action: z.literal('scaleEntity'), target: TagSchema, factor: z.number().min(0.5).max(2) }),
+```
+
+Then, after `ActionSchema` and before `RuleSchema`, add the lab schemas:
+
+```ts
+export const LAB_LIMITS = { maxVariables: 6, maxVisuals: 6, maxChallenges: 3 } as const;
+
+export const VariableBindSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('gravity') }),
+  z.object({ kind: z.literal('wind') }),
+  z.object({ kind: z.literal('timeScale') }),
+  z.object({ kind: z.literal('material'), entity: IdSchema, prop: z.enum(['density', 'friction', 'restitution']) }),
+  z.object({ kind: z.literal('launch'), entity: IdSchema, prop: z.enum(['speed', 'angle']) }),
+  z.object({ kind: z.literal('scale'), entity: IdSchema }),
+]);
+export type VariableBind = z.infer<typeof VariableBindSchema>;
+
+export const VariableSchema = z.object({
+  label: z.string().min(1).max(30),
+  min: z.number(),
+  max: z.number(),
+  step: z.number().positive(),
+  value: z.number(),
+  unit: z.string().max(8),
+  binds: VariableBindSchema,
+});
+export type Variable = z.infer<typeof VariableSchema>;
+
+const EntityPropSchema = z.enum(['x', 'y', 'speed', 'height']);
+
+export const VisualSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('plot'), id: IdSchema, title: z.string().min(1).max(40), x: z.literal('time'), y: z.object({ entity: IdSchema, prop: EntityPropSchema }), maxSeconds: z.number().min(1).max(60) }),
+  z.object({ type: z.literal('vector'), entity: IdSchema, show: z.enum(['velocity', 'gravity', 'net']) }),
+  z.object({ type: z.literal('ruler'), from: Vec2Schema, to: Vec2Schema }),
+  z.object({ type: z.literal('stopwatch'), startOn: z.enum(['launch', 'tap']), stopOn: z.object({ event: z.literal('collision'), a: TagSchema, b: TagSchema }) }),
+  z.object({ type: z.literal('numberLine'), from: z.number(), to: z.number(), step: z.number().positive(), marker: z.object({ entity: IdSchema, prop: z.literal('x') }) }),
+  z.object({ type: z.literal('histogram'), id: IdSchema, title: z.string().min(1).max(40), bins: z.number().int().min(2).max(12), source: z.object({ tag: TagSchema, prop: z.literal('x') }) }),
+  z.object({ type: z.literal('fraction'), id: IdSchema, numerator: z.number().int().min(0).max(12), denominator: z.number().int().min(1).max(12), style: z.enum(['bar', 'pie']), at: Vec2Schema }),
+  z.object({ type: z.literal('label'), entity: IdSchema, text: z.string().min(1).max(40) }),
+]);
+export type Visual = z.infer<typeof VisualSchema>;
+
+export const ChallengeCheckSchema = z.discriminatedUnion('event', [
+  z.object({ event: z.literal('collision'), a: TagSchema, b: TagSchema }),
+  z.object({ event: z.literal('histogramFilled'), id: IdSchema, count: z.number().int().min(1).max(500) }),
+]);
+
+export const ChallengeSchema = z.object({
+  id: IdSchema,
+  goal: z.string().min(1).max(120),
+  check: ChallengeCheckSchema,
+  hint: z.string().min(1).max(160),
+  concept: ConceptSchema,
+  reward: z.array(ActionSchema).min(1).max(3),
+});
+export type Challenge = z.infer<typeof ChallengeSchema>;
+```
+
+Finally add three optional fields to `SceneDocSchema` after `narration`:
+
+```ts
+  variables: z.record(IdSchema, VariableSchema).optional(),
+  visuals: z.array(VisualSchema).max(LAB_LIMITS.maxVisuals).optional(),
+  challenges: z.array(ChallengeSchema).max(LAB_LIMITS.maxChallenges).optional(),
+```
+
+and add a `.refine` to `SceneDocSchema` after the object closes:
+
+```ts
+export const SceneDocSchema = z.object({ /* ...as above... */ }).refine(
+  (d) => !d.variables || Object.keys(d.variables).length <= LAB_LIMITS.maxVariables,
+  { message: `at most ${LAB_LIMITS.maxVariables} variables`, path: ['variables'] },
+);
+```
+
+Because `GeneratedSceneSchema` in `gen.ts` is derived with `.omit(...).extend(...)`, and Zod 4 does not allow `.omit` on a refined schema, change `gen.ts` to derive from the inner object: export the object as `SceneDocObjectSchema` before the refine, and have `gen.ts` import `SceneDocObjectSchema` instead of `SceneDocSchema` for its derivation. The exported `SceneDocSchema` (with the refine) stays the one everything else parses with.
+
+- [ ] **Step 4: Extend the validator**
+
+In `packages/scene-schema/src/validator.ts`, add the codes to `IssueCode`:
+
+```ts
+  | 'LAUNCH_NEEDS_DYNAMIC' | 'LAB_EMPTY' | 'PLAYGROUND_HAS_LAB_FIELDS' | 'UNKNOWN_CHALLENGE_REF' | 'VARIABLE_RANGE'
+```
+
+call `checkLab(doc, err);` after `checkBlocklist(doc, err);` in `validateScene`, and add:
+
+```ts
+function checkLab(doc: SceneDoc, err: Report): void {
+  const ids = new Set(doc.entities.map((e) => e.id));
+  const tags = new Set(doc.entities.flatMap((e) => e.tags));
+  const concepts = new Set(doc.learning.concepts);
+  const hasLabFields = Boolean(doc.variables && Object.keys(doc.variables).length) || Boolean(doc.visuals?.length) || Boolean(doc.challenges?.length);
+
+  if (doc.tier === 'lab' && !(Object.keys(doc.variables ?? {}).length || doc.visuals?.length)) {
+    err('LAB_EMPTY', 'tier', 'a lab world needs at least one variable or visual');
+  }
+  if (doc.tier === 'playground' && hasLabFields) {
+    err('PLAYGROUND_HAS_LAB_FIELDS', 'tier', 'a playground world must not carry variables, visuals, or challenges');
+  }
+
+  for (const [name, v] of Object.entries(doc.variables ?? {})) {
+    const p = `variables.${name}`;
+    if (!(v.min < v.max) || v.value < v.min || v.value > v.max) err('VARIABLE_RANGE', `${p}.value`, `value ${v.value} must be within [${v.min}, ${v.max}]`);
+    if ('entity' in v.binds) {
+      const entity = doc.entities.find((e) => e.id === v.binds.entity);
+      if (!entity) err('UNKNOWN_ENTITY_REF', `${p}.binds.entity`, `no entity with id "${v.binds.entity}"`);
+      else if (v.binds.kind === 'launch' && entity.body.isStatic) err('LAUNCH_NEEDS_DYNAMIC', `${p}.binds`, `launch target "${entity.id}" must not be static`);
+    }
+  }
+
+  (doc.visuals ?? []).forEach((vis, i) => {
+    const p = `visuals.${i}`;
+    const entityRef = vis.type === 'plot' ? vis.y.entity : vis.type === 'numberLine' ? vis.marker.entity : 'entity' in vis ? vis.entity : null;
+    if (entityRef && !ids.has(entityRef)) err('UNKNOWN_ENTITY_REF', `${p}.entity`, `no entity with id "${entityRef}"`);
+    if (vis.type === 'histogram' && !tags.has(vis.source.tag)) err('UNKNOWN_TAG', `${p}.source.tag`, `no entity has tag "${vis.source.tag}"`);
+    if (vis.type === 'stopwatch') for (const end of ['a', 'b'] as const) if (!tags.has(vis.stopOn[end])) err('UNKNOWN_TAG', `${p}.stopOn.${end}`, `no entity has tag "${vis.stopOn[end]}"`);
+  });
+
+  const challengeIds = new Set((doc.challenges ?? []).map((c) => c.id));
+  (doc.challenges ?? []).forEach((c, i) => {
+    const p = `challenges.${i}`;
+    if (!concepts.has(c.concept)) err('LEARNING_CONCEPT_MISMATCH', `${p}.concept`, `challenge concept "${c.concept}" is not in learning.concepts`);
+    if (c.check.event === 'collision') for (const end of ['a', 'b'] as const) if (!tags.has(c.check[end])) err('UNKNOWN_TAG', `${p}.check.${end}`, `no entity has tag "${c.check[end]}"`);
+    if (c.check.event === 'histogramFilled' && !(doc.visuals ?? []).some((v) => v.type === 'histogram' && v.id === c.check.id)) err('UNKNOWN_ENTITY_REF', `${p}.check.id`, `no histogram with id "${c.check.id}"`);
+  });
+  doc.rules.forEach((r, i) => {
+    if (r.when.event === 'challengeComplete' && !challengeIds.has(r.when.id)) err('UNKNOWN_CHALLENGE_REF', `rules.${i}.when.id`, `no challenge with id "${r.when.id}"`);
+    r.then.forEach((a, j) => { if (a.action === 'launch' && !tags.has(a.target)) err('UNKNOWN_TAG', `rules.${i}.then.${j}.target`, `no entity has tag "${a.target}"`); });
+  });
+}
+```
+
+- [ ] **Step 5: Run the scene-schema tests to verify they pass**
+
+Run: `pnpm --filter @just-imagine/scene-schema test && pnpm --filter @just-imagine/scene-schema typecheck && pnpm --filter @just-imagine/scene-schema lint`
+Expected: all pass, including every earlier test.
+
+- [ ] **Step 6: Add the projectile lab fixture**
+
+`packages/fixtures/worlds/projectile-lab.json`:
+
+```json
+{
+  "schemaVersion": 1,
+  "worldId": "w_fixture_projectile_lab",
+  "tier": "lab",
+  "title": "Cannon and Cup",
+  "theme": {
+    "paletteHint": "bright science-lab teal and orange",
+    "timeOfDay": "day",
+    "backdropDescription": "cheerful cartoon science lab lawn with a chalkboard wall showing a faint grid",
+    "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+  },
+  "environment": { "gravity": { "x": 0, "y": 9.81 }, "wind": { "x": 0, "y": 0 }, "medium": "air", "bounds": { "width": 16, "height": 9 }, "seed": 11 },
+  "materials": {
+    "grass": { "density": 1, "friction": 0.8, "restitution": 0.1, "softness": 0, "buoyant": false, "breakable": false, "pretend": false },
+    "rubber": { "density": 1.1, "friction": 0.8, "restitution": 0.5, "softness": 0.2, "buoyant": false, "breakable": false, "pretend": false },
+    "metal": { "density": 6, "friction": 0.4, "restitution": 0.2, "softness": 0, "buoyant": false, "breakable": false, "pretend": false }
+  },
+  "entities": [
+    { "id": "ground", "kind": "ground", "name": "lawn", "description": "neat green lawn with chalk distance marks", "body": { "shape": "box", "material": "grass", "isStatic": true, "size": { "width": 16, "height": 1 } }, "transform": { "x": 8, "y": 8.5, "rotation": 0 }, "tags": ["ground"], "behaviors": [], "pretend": false },
+    { "id": "cannon", "kind": "sprite", "name": "toy cannon", "description": "friendly round toy cannon on wheels, pointing up and to the right", "body": { "shape": "box", "material": "metal", "isStatic": true, "size": { "width": 1.2, "height": 1 } }, "transform": { "x": 2, "y": 7.5, "rotation": 0 }, "tags": ["cannon"], "behaviors": [], "pretend": false },
+    { "id": "ball", "kind": "sprite", "name": "red ball", "description": "small bright red rubber ball", "body": { "shape": "circle", "material": "rubber", "isStatic": false, "size": { "width": 0.4, "height": 0.4 } }, "transform": { "x": 2.6, "y": 6.7, "rotation": 0 }, "tags": ["ball", "hero"], "behaviors": [], "pretend": false },
+    { "id": "cup", "kind": "sprite", "name": "big cup", "description": "big friendly orange cup with a smiley face", "body": { "shape": "box", "material": "metal", "isStatic": true, "size": { "width": 0.9, "height": 0.8 } }, "transform": { "x": 12, "y": 7.6, "rotation": 0 }, "tags": ["cup", "target"], "behaviors": [], "pretend": false }
+  ],
+  "joints": [],
+  "rules": [
+    { "id": "r_fire", "when": { "event": "tap", "target": "cannon" }, "then": [{ "action": "launch", "target": "hero" }, { "action": "sound", "cue": "whoosh" }], "once": false },
+    { "id": "r_land", "when": { "event": "collision", "a": "hero", "b": "ground", "minImpulse": 0.5 }, "then": [{ "action": "sound", "cue": "ding" }, { "action": "say", "text": "It curved! Gravity pulls down the whole time, so the path bends into an arc." }], "concept": "projectile", "once": true },
+    { "id": "r_done", "when": { "event": "challengeComplete", "id": "ch_cup" }, "then": [{ "action": "say", "text": "Right in the cup! Now try the same angle with a different speed." }], "concept": "graph", "once": true }
+  ],
+  "learning": {
+    "concepts": ["projectile", "gravity", "graph"],
+    "prediction": { "question": "If we make the angle bigger, will the ball go further or higher?", "options": ["further", "higher", "both"], "correctIndex": 1, "concept": "projectile" },
+    "dials": [],
+    "heroEntityId": "ball"
+  },
+  "narration": { "intro": "Welcome to the cannon lab! Set the speed and angle, then tap the cannon to fire." },
+  "variables": {
+    "launch_speed": { "label": "Launch speed", "min": 2, "max": 20, "step": 0.5, "value": 10, "unit": "m/s", "binds": { "kind": "launch", "entity": "ball", "prop": "speed" } },
+    "launch_angle": { "label": "Launch angle", "min": 0, "max": 90, "step": 1, "value": 45, "unit": "°", "binds": { "kind": "launch", "entity": "ball", "prop": "angle" } },
+    "gravity": { "label": "Gravity", "min": 1, "max": 25, "step": 0.1, "value": 9.81, "unit": "m/s²", "binds": { "kind": "gravity" } }
+  },
+  "visuals": [
+    { "type": "plot", "id": "height_plot", "title": "Height over time", "x": "time", "y": { "entity": "ball", "prop": "height" }, "maxSeconds": 6 },
+    { "type": "vector", "entity": "ball", "show": "velocity" },
+    { "type": "ruler", "from": { "x": 2, "y": 8.2 }, "to": { "x": 12, "y": 8.2 } },
+    { "type": "stopwatch", "startOn": "launch", "stopOn": { "event": "collision", "a": "hero", "b": "ground" } }
+  ],
+  "challenges": [
+    { "id": "ch_cup", "goal": "Land the ball in the cup", "check": { "event": "collision", "a": "hero", "b": "cup" }, "hint": "Forty-five degrees goes furthest. Then adjust the speed.", "concept": "projectile", "reward": [{ "action": "celebrate", "style": "confetti" }, { "action": "sound", "cue": "ding" }] }
+  ]
+}
+```
+
+In `packages/fixtures/src/worlds.ts` add the import and entry:
+
+```ts
+import projectileLab from '../worlds/projectile-lab.json' with { type: 'json' };
+// inside FIXTURE_WORLDS:
+  projectileLab: projectileLab as SceneDoc,
+```
+
+In `packages/fixtures/test/worlds.test.ts` add:
+
+```ts
+  it('ships one lab-tier fixture with variables, visuals, and a challenge', () => {
+    const lab = FIXTURE_WORLDS.projectileLab;
+    expect(lab.tier).toBe('lab');
+    expect(Object.keys(lab.variables ?? {})).toEqual(['launch_speed', 'launch_angle', 'gravity']);
+    expect(lab.visuals?.length).toBe(4);
+    expect(lab.challenges?.[0]?.id).toBe('ch_cup');
+  });
+```
+
+- [ ] **Step 7: Run the fixtures tests to verify they pass**
+
+Run: `pnpm --filter @just-imagine/fixtures test && pnpm --filter @just-imagine/fixtures typecheck`
+Expected: all pass; the "every fixture validates with no issues" test now covers four worlds.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add packages/scene-schema packages/fixtures
+git commit -m "feat(scene-schema): add lab extension with variables, visuals, challenges, and a projectile fixture"
+```
+
+---
+
+### Task 18: Curated concept bank
+
+**Files:**
+- Create: `packages/protocol/src/concept-bank.ts`
+- Modify: `packages/protocol/src/index.ts`
+- Test: `packages/protocol/test/concept-bank.test.ts`
+
+**Interfaces:**
+- Produces: `CONCEPT_BANK: Record<Concept, { title: string; realLifeNote: string; kidHint: string }>`, `conceptCard(concept): { title, realLifeNote }`.
+- Consumed by Plan B1 (`award_discovery` fills `title` and `realLifeNote` from here and takes only `kidExplanation` from the model) and Plan A3 (card rendering, Gallery filters).
+
+- [ ] **Step 1: Write the failing test**
+
+`packages/protocol/test/concept-bank.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { CONCEPTS } from '@just-imagine/scene-schema';
+import { CONCEPT_BANK, conceptCard } from '../src/concept-bank';
+
+describe('CONCEPT_BANK', () => {
+  it('has a card for every concept with short, non-empty copy', () => {
+    for (const c of CONCEPTS) {
+      const card = CONCEPT_BANK[c];
+      expect(card, c).toBeDefined();
+      expect(card.title.length).toBeGreaterThan(0);
+      expect(card.title.length).toBeLessThanOrEqual(30);
+      expect(card.realLifeNote.length).toBeGreaterThan(20);
+      expect(card.realLifeNote.length).toBeLessThanOrEqual(160);
+      expect(card.kidHint.length).toBeLessThanOrEqual(120);
+    }
+  });
+  it('returns only the fields the card shows', () => {
+    expect(conceptCard('bounce')).toEqual({ title: CONCEPT_BANK.bounce.title, realLifeNote: CONCEPT_BANK.bounce.realLifeNote });
+  });
+});
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `pnpm --filter @just-imagine/protocol test -- concept-bank`
+Expected: FAIL, module not found.
+
+- [ ] **Step 3: Write the bank**
+
+`packages/protocol/src/concept-bank.ts`:
+
+```ts
+import type { Concept } from '@just-imagine/scene-schema';
+
+export interface ConceptCardCopy {
+  title: string;        // on the Discovery Card
+  realLifeNote: string; // fixed, curated
+  kidHint: string;      // given to the model as the fact it must stay true to
+}
+
+export const CONCEPT_BANK: Record<Concept, ConceptCardCopy> = {
+  gravity: { title: 'Gravity pulls down', realLifeNote: 'Earth pulls everything toward the ground. That is why a dropped toy falls instead of floating away.', kidHint: 'Everything falls because the Earth pulls it down.' },
+  mass: { title: 'Heavy and light', realLifeNote: 'A full backpack is harder to lift than an empty one because it has more stuff inside, more mass.', kidHint: 'Mass is how much stuff is in a thing.' },
+  buoyancy: { title: 'Float or sink', realLifeNote: 'A rubber duck floats in the bath because the water pushes it up harder than it is pulled down.', kidHint: 'Water pushes up on things; light things float.' },
+  friction: { title: 'Rough and slippery', realLifeNote: 'Socks slide on a wooden floor but grip a carpet. Rough surfaces slow things down more.', kidHint: 'Rough surfaces slow sliding things down.' },
+  bounce: { title: 'Boing!', realLifeNote: 'A rubber ball squashes when it hits the floor and springs back, so it bounces. Clay just squashes and stays.', kidHint: 'Springy things squash and spring back.' },
+  momentum: { title: 'Hard to stop', realLifeNote: 'A fast, heavy shopping trolley is hard to stop. The faster and heavier, the more it keeps going.', kidHint: 'Fast and heavy things are hard to stop.' },
+  airResistance: { title: 'Air pushes back', realLifeNote: 'A feather drifts down slowly because the air pushes against it. A stone cuts through the air.', kidHint: 'Air slows down light, wide things.' },
+  balance: { title: 'Balanced', realLifeNote: 'A seesaw balances when both sides push down the same amount. Move one friend closer and it tips.', kidHint: 'Things balance when both sides push the same.' },
+  springiness: { title: 'Springy', realLifeNote: 'A trampoline stretches when you land and pushes you back up. Jelly wobbles for the same reason.', kidHint: 'Springy things stretch and then push back.' },
+  density: { title: 'Packed tight', realLifeNote: 'A stone and a sponge can be the same size, but the stone is packed tighter, so it is heavier and sinks.', kidHint: 'Density is how tightly stuff is packed.' },
+  force: { title: 'Push and pull', realLifeNote: 'Every push and pull is a force. A bigger push makes a toy car go faster.', kidHint: 'A force is a push or a pull.' },
+  speed: { title: 'Fast and slow', realLifeNote: 'Speed is how far something goes each second. A cheetah covers a whole playground in one second.', kidHint: 'Speed is how far something moves each second.' },
+  acceleration: { title: 'Speeding up', realLifeNote: 'A bike rolling down a hill goes faster and faster. Speeding up or slowing down is acceleration.', kidHint: 'Acceleration is speed changing.' },
+  energy: { title: 'Stored energy', realLifeNote: 'A ball held high has stored energy. Let go and it turns into moving energy as it falls.', kidHint: 'Energy can be stored and then turned into motion.' },
+  projectile: { title: 'The arc', realLifeNote: 'A thrown ball curves because it keeps moving forward while gravity pulls it down. Forty-five degrees goes furthest.', kidHint: 'A thrown thing curves because gravity pulls it down while it moves forward.' },
+  probability: { title: 'Likely or not', realLifeNote: 'Drop many balls through pegs and most land in the middle bins. Some outcomes are just more likely.', kidHint: 'Some outcomes happen more often than others.' },
+  fraction: { title: 'Parts of a whole', realLifeNote: 'Cut a pizza into four equal slices and each slice is one quarter. Two slices make a half.', kidHint: 'A fraction is equal parts of a whole.' },
+  graph: { title: 'The picture of numbers', realLifeNote: 'A graph draws how something changes. A height graph of a jump goes up, then comes back down.', kidHint: 'A graph shows how a number changes over time.' },
+  measurement: { title: 'Measure it', realLifeNote: 'A ruler tells you how far and a stopwatch tells you how long. Measuring turns a guess into a number.', kidHint: 'Measuring gives you a number you can compare.' },
+};
+
+export function conceptCard(concept: Concept): { title: string; realLifeNote: string } {
+  const { title, realLifeNote } = CONCEPT_BANK[concept];
+  return { title, realLifeNote };
+}
+```
+
+Add to `packages/protocol/src/index.ts`:
+
+```ts
+export * from './concept-bank';
+```
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `pnpm --filter @just-imagine/protocol test && pnpm --filter @just-imagine/protocol typecheck && pnpm --filter @just-imagine/protocol lint`
+Expected: all pass.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/protocol
+git commit -m "feat(protocol): add curated Discovery Card concept bank"
+```
+
+---
+
 ## Exit criterion for Plan 0
 
-`pnpm install && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test` is green on `main`, `pnpm --filter @just-imagine/fixtures dev` serves the jelly-dragon scenario, and the `ci` check is required on `main`. Dev A proceeds to Plan A1; Dev B proceeds to Plan B1.
+`pnpm install && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test` is green on `main`, `pnpm --filter @just-imagine/fixtures dev` serves the jelly-dragon scenario, and the `ci` check is required on `main`. Dev A proceeds to Plan A1; Dev B proceeds to Plan B1. Task order for Dev A is 2, 3, 4, 5, 6, 7, 17, 11, 12, 13; for Dev B it is 8, 9, 10, 18, 14, 15, 16.

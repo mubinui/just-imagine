@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build Just Imagine, a Google Cloud SaaS where a child aged 6 to 10 talks with three animal characters and turns imagination into an interactive, physics-respecting 2.5D world, in 4 to 6 weeks with two developers.
+**Goal:** Build Just Imagine, a Google Cloud SaaS where a child aged 6 to 13 talks with animal companions (6 to 10, Playgrounds) or summons guide characters (9 to 13, Labs) and turns imagination into an interactive, physics-respecting 2.5D world with live maths and physics visualizations, in 6 weeks with two developers.
 
 **Architecture:** A contract-first TypeScript monorepo. The browser streams audio to a Cloud Run WebSocket gateway that holds a Vertex AI Live session per child; a Genkit builder on Cloud Run turns conversation into a Zod-validated Scene DSL that a PixiJS plus Rapier2D engine renders; Firestore delivers worlds progressively; an api service handles accounts, quotas, and Stripe.
 
@@ -18,6 +18,8 @@ Every task in every module plan implicitly includes these. Values are copied fro
 - Zod 4 for every schema. Every message, job payload, Firestore document, and REST body that crosses a service boundary has a Zod schema in `packages/scene-schema` or `packages/protocol` and is parsed at the boundary.
 - Models, by exact ID, always through Vertex AI in `us-central1` with Application Default Credentials and never from the browser: `gemini-3.8-live` (voice), `gemini-4-argon` (world builder), `gemini-3.8-flash` (patches, summaries, moderation, image safety check), `gemini-nano-banana-2.1` (hero sprites, backdrops), `gemini-3.1-flash-lite-image` (props), `gemini-3.8-flash-tts` (cached reaction clips), `gemini-3-pro-image` (one-time mascot art).
 - Regions: Cloud Run and Vertex AI `us-central1`; Firestore `nam5`; Cloud Storage US multi-region.
+- Age bands `6-7`, `8-10`, `11-13`; tiers `playground` and `lab`. Characters by id: companions `mishti`, `bhombol`, `chandni`; guides `pori` (Physics Fairy, all bands), `onkomama` (Math Man, 8-10 and 11-13), `jadukaka` (Magic Man, all bands). Display names and voices live only in `packages/protocol/src/characters.ts`.
+- Lab extension of the DSL: at most 6 variables, 6 visuals, 3 challenges per world; spells are runtime messages, never document fields. Lab kinds this round in order: graphs and functions (projectile), probability and data (Galton board), fractions.
 - Scene DSL limits: 24 entities, 16 joints, 12 rules, 8 materials, 3 dials; sprite and particle size 0.2 to 8 m; ground and water up to 16 m; bounds 16 by 9 m; density 0.05 to 20; mass 0.01 to 2000 kg; 1 to 3 concepts per world.
 - Audio: client to gateway PCM16 mono 16 kHz in 20 ms frames (320 samples); gateway to client PCM16 mono 24 kHz in 20 ms frames (480 samples). Binary WebSocket frames carry audio only; JSON text frames carry everything else. World content never travels over the WebSocket; it is read from Firestore.
 - Latency budgets: first character audio p50 under 1.2 s and p95 under 2.0 s; Scene DSL generated and validated under 6 s; placeholders under 3 s; backdrop under 8 s; hero sprite under 10 s; world ready under 25 s; patch under 6 s; character handoff under 2 s.
@@ -43,7 +45,7 @@ Inputs the spec implies but that no happy-path test covers. Each line names the 
 
 | Plan | File | Owner | Weeks | Depends on | Produces |
 |---|---|---|---|---|---|
-| 0 Foundation and contracts | `2026-10-15-plan-0-foundation.md` | Both (pair week 1; Dev B owns `server-core`) | 1 | none | monorepo, `scene-schema`, `protocol`, `fixtures`, `server-core`, CI |
+| 0 Foundation and contracts | `2026-10-15-plan-0-foundation.md` | Both (pair week 1; Dev B owns `server-core`) | 1 | none | monorepo, `scene-schema` (with the lab extension), `protocol` (with the concept bank), `fixtures` (four worlds), `server-core`, CI |
 | A1 Engine | `2026-10-15-plan-a1-engine.md` | Dev A | 2 to 3 | 0 | `packages/engine` |
 | A2 Characters and audio | `2026-10-15-plan-a2-characters-audio.md` | Dev A | 3 | 0 | `packages/characters`, browser audio and WebSocket client |
 | A3 Web app | `2026-10-15-plan-a3-web.md` | Dev A | 3 to 5 | 0, A1, A2 | `apps/web` |
