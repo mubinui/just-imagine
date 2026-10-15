@@ -1,0 +1,142 @@
+# Gateway and builder direction check (2026-10-16)
+
+Read-only review of `services/gateway` and `services/builder` at commit `ba020da` (working tree clean at review time) against spec sections 3.2, 3.3, 3.6, 3.7, 4.3, 5, 8, 9, 12 to 15, the master plan, Plan 0 contracts, and Codex's handoff notes. Verification run locally: gateway unit 12/12, builder unit 14/14 (`vitest run`); emulator-backed suites (Firestore/Auth emulators): builder 17/17, gateway 14/14. No real Vertex call has ever been made from this tree.
+
+## 1. Verdict
+
+Both services are pointed the right way: the gateway implements the whole 8.1 lifecycle, every 8.3 tool, handoff, resumption, metering and the full 8.10 message set, and the builder implements both flows, the validator loop, the magenta asset pipeline, caching, image safety, progressive publish and a real 50-case eval harness. What is missing is mostly the "second half" of each requirement (the character is never told about the quota, prompts are one unversioned string, patches do not retry, backdrops are not 16:9) plus a class of silent failures that would hide the first real Vertex error. The single biggest risk is that neither service has ever spoken to Vertex and both send JSON Schemas with keywords outside Vertex's documented subset while bypassing the `toGeminiJsonSchema` helper Plan 0 built for exactly this (`services/builder/src/vertex.ts:56`, `services/gateway/src/tools.ts:35`); if Vertex rejects the Live setup message, the gateway's retry path swallows the error (`services/gateway/src/gateway.ts:236-238`) and the child just gets `bye: error` with nothing in the logs.
+
+## 2. Spec coverage
+
+Status: Done, Partial, Missing.
+
+### Gateway
+
+| Requirement | Status | Evidence | Note |
+|---|---|---|---|
+| 8.1 step 1 `hello` with token, childId, characterId, worldId | Done | `gateway.ts:553-593` | Plus optional `sessionId` for reconnect. |
+| 8.1 step 2 verify, load profile/plan, quota, session doc | Done | `store.ts:42-59`, `store.ts:60-97` | `claim` is transactional with a `sessionLocks` lease. |
+| 8.1 step 3 open Live with character config | Done | `gateway.ts:618`, `live.ts:32-46` | |
+| 8.1 step 4 end on child end / quota / target | Done | `gateway.ts:466-468`, `:628-634` | |
+| 8.1 step 5 usage, 3-sentence flash summary, discard transcript | Done | `gateway.ts:102-116`, `live.ts:115-122`, `store.ts:138-171` | Transcript cleared at `:113`. |
+| 8.2 model `gemini-3.8-live`, audio modality, voice per character | Done | `main.ts:15`, `live.ts:33-36`, `characters.ts:49-109` | Voices are placeholders pending listening test. |
+| 8.2 system instruction: persona, safety, name, band, world summary, learning goal, tool guide; templated and versioned in `src/prompts` | Partial | `live.ts:37` | One inline string; no `src/prompts` dir, no per-character personality text, no lab goal, world data injected as text later (`gateway.ts:314`). |
+| 8.2 tools only, no Google Search | Done | `live.ts:38` | |
+| 8.2 proactive audio, in/out transcription, resumption, compression 100k, VAD 900 ms | Done | `live.ts:39-44` | Field names verified against `@google/genai` 1.52 `LiveConnectConfig`. |
+| 8.2 strictest safety | Done | `live.ts:6-11,45` | `BLOCK_LOW_AND_ABOVE` on four categories. |
+| Affective dialog off, `thinkingConfig` omitted | Done | `live.ts:34-46` | Neither field set. |
+| 8.3 `build_world` | Done | `gateway.ts:329-358` | Adds `labKind`, blocklist check, Labs lock. |
+| 8.3 `modify_world` | Done | `gateway.ts:359-380` | |
+| 8.3 `set_dial` | Done | `gateway.ts:381-394` | Validates presets and world dials. |
+| 8.3 `ask_prediction` | Done | `gateway.ts:395-406` | |
+| 8.3 `award_discovery` (bank title/note) | Done | `gateway.ts:407-417`, `store.ts:206-245` | |
+| 8.3 `switch_character` / `summon_guide` | Done | `gateway.ts:418-426`, `:240-252` | `summon` sent before new Live opens; topic injected as text at `:424`. |
+| 8.3 `cast_spell` Jadu only | Done | `gateway.ts:427-435` | |
+| 8.3 `set_variable` / `start_challenge` Labs only | Done | `gateway.ts:436-457` | Snaps to step. |
+| 8.3 `end_session` | Done | `gateway.ts:458-460` | |
+| 8.3 Zod validation, structured error to model | Done | `tools.ts:4-31`, `gateway.ts:210-214` | Tool descriptions are just the name with spaces (`tools.ts:34`). |
+| 8.4 jobs return `{jobId}` immediately | Done | `gateway.ts:354-357` | Returns after Cloud Tasks enqueue, not after build. |
+| 8.4 milestone notes from Firestore (placeholders/hero/ready/failed) | Done | `gateway.ts:294-318`, `store.ts:257-267` | Note omits `narration.intro`. |
+| 8.4 `say` events injected | Partial | `gateway.ts:499-508` | Injects rule id and say actions; drops `concept`; 500 ms throttle at `:496`. |
+| 8.5 handoff with 5-sentence summary, new session, `ready` | Done | `gateway.ts:240-252`, `:230-235` | Summary prompt asks for three sentences for the parent (`live.ts:118`), reused for handoff. No latency metric. |
+| 8.6/3.3 beat every 90 s | Done | `pacing.ts:21-24`, `gateway.ts:632-640` | |
+| 3.3 target 8 min, +2 per 3 loops, cap 20 | Done | `store.ts:152-161`, `firestore.ts:30` | |
+| 3.3 Chandni runs 60 s recap | Partial | `gateway.ts:637-638` | Current character is asked to recap; no handoff to Chandni. |
+| 8.7 flash moderation per final child segment, parallel | Partial | `gateway.ts:183-196`, `live.ts:123-135` | Runs on the same serial chain as tool responses; model failure counts as `block`. |
+| 8.7 redirect/block notes, three blocks end | Done | `gateway.ts:188-195` | Same note for both verdicts. |
+| 8.8 handle in memory, `goAway` reconnect | Partial | `live.ts:74-80`, `gateway.ts:217-219` | Closes immediately on `goAway`; `timeLeft` ignored. |
+| 8.8 three retries with backoff, then fresh session with summary | Done | `gateway.ts:123-148` | Backoff 0.5/1/2/4 s; `characterState: thinking` as the "thinking" cue. |
+| 8.9 metering every 30 s and on close | Done | `gateway.ts:77-90`, `:621-646`, `store.ts:98-137` | Every 10 s, monotonic checkpoint. |
+| 8.9 refuse `hello` when exhausted | Done | `gateway.ts:563` | |
+| 8.9 warn the character 2 min before exhaustion | Missing | `gateway.ts:626-627` | Only the client gets `quota`; no Live note. |
+| 8.10 client messages (10) | Done | `gateway.ts:465-512`, `:531-535` | 640-byte PCM frames only. |
+| 8.10 server messages (16) | Partial | `gateway.ts:59-62` and call sites | `characterState` only ever sent as `thinking` during retry; `speaking` never reported. |
+| One active session per child | Done | `store.ts:70-76`, `gateway.ts:566-573`, test `gateway.test.ts:87-98` | |
+| Kill switch | Done | `gateway.ts:560`, `store.ts:185` | Polled per hello/enqueue. |
+| Transcript discard, no audio stored | Done | `gateway.ts:113`, `transcripts.ts:1` | Only `sessionId` in failure logs. |
+| Six personas, Bengali names | Done | `packages/protocol/src/characters.ts:38-111` | Gateway uses only displayName/title/catchphrase/leads. |
+| Lab goals in prompts | Missing | `live.ts:37` | No Labs or guide-domain instruction. |
+| 15 fake Live server over WebSocket | Missing | `test/gateway.test.ts:42-50` | In-process provider mock; `live.ts` has no tests. |
+
+### Builder
+
+| Requirement | Status | Evidence | Note |
+|---|---|---|---|
+| 9.1 imagineToScene on `gemini-4-argon` | Done | `pipeline.ts:18-37`, `vertex.ts:30-33`, `main.ts:17` | |
+| 9.1 retry once with validator issues, then fail | Done | `pipeline.ts:23-36`, `worker.ts:122-129` | Second failure publishes nearest fixture as `fallback`. |
+| 9.1 patchScene on flash, applied, validated, versioned | Partial | `pipeline.ts:38-69`, `worker.ts:292-338` | No retry-with-issues; no kid-friendly reason. |
+| Structured output via Zod schema with `toGeminiJsonSchema` | Partial | `vertex.ts:56` calls `generatedSceneJsonSchema()` raw | `toGeminiJsonSchema` (`json-schema.ts:7-33`) never called. |
+| 4.3 fallback to flash after two failures per session | Partial | `vertex.ts:34-44` | Falls back after one failure; session-scoped, bounded. |
+| 9.3 three lab kinds in prompts/fixtures | Done | `prompts/v1.ts:50-61`, `evals/prompts.ts:83-142` | `labKind` has no dedicated instruction text. |
+| 9.1 asset priority: backdrop/mid first, hero, platforms, props | Partial | `worker.ts:148-179` | Hero first; platforms vs props not ordered. |
+| 9.1 plan image cap; backdrop exempt | Done | `worker.ts:172` | |
+| 9.3 magenta prompt suffix, chroma key, feather | Done | `worker.ts:354`, `assets.ts:39-41` | |
+| 9.3 despeckle, trim, pad 4, WebP | Done | `outline.ts:138-143`, `assets.ts:90-94` | |
+| 9.3 magenta residue >2 % regenerate once | Done | `assets.ts:73,100`, `worker.ts:357` | Shares the 2-attempt budget with the safety retry. |
+| 9.3 collider: alpha 0.5, outline, DP ≤40, convex ≤12, JSON beside sprite | Done | `outline.ts:144-191`, `worker.ts:373-380` | Test `assets.test.ts:32-62`. |
+| 9.3 backdrop 16:9 2K | Partial | `vertex.ts:64-79`, `worker.ts:360-363` | No `imageConfig`; model output cover-cropped to 2048x1152. |
+| 9.4 cache by SHA-256(normalized desc, kind, style) | Done | `assets.ts:4-13`, `worker.ts:344-352` | |
+| 9.5 flash image safety, regenerate once | Done | `vertex.ts:80-102`, `worker.ts:353-364` | |
+| 9.1 publish building → per-asset → ready; failed | Done | `worker.ts:146,185-186,212,218-219,259` | Admission failures recorded at `:32-47`. |
+| Idempotent on jobId | Done | `worker.ts:68,114`, test `worker.integration.test.ts:65-68` | |
+| Kill switch | Done | `worker.ts:53,184` | |
+| 15 eval set of 50 prompts, validity ≥98 %, safety 0 | Done | `evals/prompts.ts:22-143`, `evals/evaluate.ts:72-124`, `.github/workflows/evals.yml` | Offline double only; never run on the real model. |
+| 13 telemetry: structured logs, traces, metrics | Partial | `worker.ts:122,285-290,348-351`, `server-core/telemetry.ts:57-62` | OTel opt-in via `OTEL_ENABLED`; no Genkit traces because Genkit is only a wrapper (`main.ts:33-36`). |
+| 9 Genkit with `@genkit-ai/google-genai` | Missing | `main.ts:33-36`, `vertex.ts:21-25` | Raw `@google/genai` instead; acceptable deviation, should be recorded. |
+
+## 3. Defects
+
+Ordered by severity. "First call" marks things that can break on the first real Vertex request.
+
+1. **P1, first call: JSON Schemas carry keywords outside Vertex's documented subset, and the plan's sanitizer is bypassed.** `vertex.ts:56` sends `generatedSceneJsonSchema()` raw; measured output has `$schema`, `additionalProperties`, `default`, 63 `const`, 45 `pattern`, 20 `minLength`, `propertyNames`, `exclusiveMinimum`. `tools.ts:35` does the same for all 11 function declarations (`$schema` draft-2020-12, `additionalProperties:false`, `pattern`). `toGeminiJsonSchema` (`packages/scene-schema/src/json-schema.ts:7-33`) exists for this and is unused; it also does not yet map `const` to `enum`. Scenario: `live.connect` setup is rejected with INVALID_ARGUMENT, or `generateContent` returns 400, on every call.
+2. **P1, silent: Live open errors are never logged.** `gateway.ts:236-238` catches the connect error and calls `retry()`; the retry loop (`:123-148`) logs nothing, so the first failing Vertex call surfaces as four `characterState: thinking` messages and `bye: error`. `live.ts:85-87` also discards the error object. Scenario: misconfigured ADC, region or model id is undiagnosable from logs.
+3. **P1: moderation serializes with tool responses.** `serial()` (`gateway.ts:63-76`) is one chain per session; moderation (`:184-196`, up to 5 s) and tool execution (`:201-215`) queue behind each other, so a `build_world` function response waits for the previous utterance's moderation call. Spec 8.7 requires moderation in parallel. Scenario: the model sits blocked waiting for `toolResult` and the character goes silent for seconds.
+4. **P1, silent: moderation outage ends sessions.** `gateway.ts:187` maps any `moderate()` failure to `block`; three failures end the session with reason `moderation` and a `moderation_hit` log. Scenario: a flash quota error ends every live session after three child turns and the parent dashboard records a safety event.
+5. **P2: the character is never warned about quota.** `gateway.ts:626-627` sends `quota` to the client only; spec 8.9 and section 14 require a note so the character wraps up.
+6. **P2: prompts are not templated, versioned or persona-specific.** `live.ts:37` is one sentence per concern; `tools.ts:34` gives the model "cast spell" as the entire tool description. Scenario: Mishti and Chandni sound identical; the model misuses `set_variable` because it has no parameter semantics.
+7. **P2: patch flow lacks retry-with-issues and a kid-friendly reason.** `pipeline.ts:43-56` throws on the first invalid patch; the gateway injects a generic failure note (`gateway.ts:285`). Spec 5.3 requires one retry with validator issues appended.
+8. **P2: backdrops are not generated at 16:9 2K.** `vertex.ts:65-73` passes no `imageConfig`, so the model returns its default square, and `worker.ts:360-363` cover-crops it to 2048x1152, discarding a third of the painting. SDK 1.52 supports `imageConfig: { aspectRatio, imageSize }`.
+9. **P2, silent: asset failures lose their reason.** `worker.ts:209-211` sets `failed` without logging the error; entities skipped by the 25 s deadline or kill switch (`:184`) never get an `assets` entry, so the world goes `ready` with silhouettes and no record. `store.ts:254,265` ignore `onSnapshot` errors, so a permissions problem silently stops all milestone notes.
+10. **P2: permanent builder failures return 503.** `main.ts:55-57` makes Cloud Tasks retry Labs-locked, saved-world-limit and validation-fallback outcomes; each retry re-runs admission and rewrites `builderJobs/{id}` (`worker.ts:32-47`).
+11. **P2, first call: tool calls without an `id` are dropped.** `live.ts:73` requires `call.id`; if Vertex omits ids the character's every tool call vanishes without a log. Also `goAway` (`live.ts:76-80`) closes the socket immediately and ignores `timeLeft`, dropping in-flight audio.
+12. **P3: interaction throttle drops Labs events.** `gateway.ts:496-498` drops any `interaction`, `simEvent`, `variable` or `challengeResult` within 500 ms of the previous one; a challenge completion right after a slider move is lost.
+13. **P3: fallback and retry budgets differ from spec.** `vertex.ts:34-44` downgrades after one argon failure, not two; `worker.ts:353-364` gives magenta residue and safety rejection one shared regeneration.
+14. **P3: `characterState.speaking` is never emitted** (`gateway.ts:125-130` is the only sender); recap is not handed to Chandni (`:637-638`).
+15. **P3: no test exercises `live.ts`.** The file most likely to break on first contact has zero coverage and the gateway suite mocks the provider in-process (`test/gateway.test.ts:42-50`); spec 15 asks for a fake Live server over WebSocket.
+
+## 4. Contract conformance
+
+- Protocol messages: every inbound frame is parsed with `ClientMessageSchema` (`gateway.ts:538`) and every outbound with `ServerMessageSchema` (`:61`). Jobs are built through `BuilderJobSchema` on both sides (`gateway.ts:337,365`; `worker.ts:28`). `labKind` on `build_world` matches `jobs.ts:22`. Audio mime strings match `AUDIO_IN`/`AUDIO_OUT` (`ws.ts:11,18`) but are hard-coded in `live.ts:98` rather than imported.
+- Firestore documents: `WorldDocSchema` is parsed on publish (`worker.ts:282`) and on watch (`store.ts:262`); `SessionDocSchema`, `DiscoveryDocSchema`, `AssetCacheDocSchema`, `UsageDailyDocSchema` likewise. The version document is written raw (`worker.ts:326-331`) without `WorldVersionDocSchema`, keyed by jobId while `paths.worldVersion` (`firestore.ts:151-152`) expects an integer.
+- Unschema'd collections: `builderJobs`, `worldLocks`, `sessionLocks`, `deletionLocks`, `worldDeletionLocks` have no Zod schema and no `paths` entry; the gateway reads `status` as a bare string (`store.ts:251-252`) and matches the literals `running|complete|fallback|failed` (`gateway.ts:273-281`) that the builder writes (`worker.ts:103-110,225,251`). This is the one cross-service contract that lives outside `packages/protocol`.
+- Scene schema: `GeneratedSceneSchema`, `fromGenerated`, `validateScene`, `applyScenePatch`, `PatchOpsSchema`, `MATERIAL_TABLE`, `findBlockedTerm`, presets are all used correctly; `toGeminiJsonSchema` is not (defect 1). `AssetRef` written by the builder includes `width`/`height`/`status` as required (`worker.ts:194-200`).
+- Collider JSON `{vertices, parts}` normalized to [-0.5, 0.5] (`assets.ts:84-88`) matches the engine's `parseCollider` (`packages/engine/src/collider.ts:2-42`, ≤40 points, ≤12 convex parts) but is hand-coded on both sides with no shared schema.
+- Characters: `CHARACTERS[id].bands` is enforced at hello and handoff (`gateway.ts:564,241`); guide ids reuse `GuideIdSchema` (`tools.ts:26`).
+
+## 5. Remaining work to reach the spec
+
+Ordered by value. Labels: **safe** = safe for a second agent in parallel; **conflicts** = conflicts with Codex's active work (builder eval/prompt/fixtures, `vertex.ts`, and backend-regression edits in `gateway.ts`/`store.ts`/`worker.ts`).
+
+1. Extend `toGeminiJsonSchema` to drop `pattern`, `minLength`, `maxLength`, `exclusiveMinimum`, `propertyNames` and rewrite single-value `const` to `enum`; then call it in `vertex.ts:56` and `tools.ts:35`. Files: `packages/scene-schema/src/json-schema.ts`, `test/json-schema.test.ts`, `services/gateway/src/tools.ts`. **safe** (contract edit needs the usual review); the `vertex.ts` call site **conflicts**.
+2. `logEvent('live_open_failed', {sessionId, count}, 'ERROR')` in `gateway.ts:236-238` and in `live.ts` `onerror`, with the error message in a separate stderr line. **conflicts** (gateway.ts) / **safe** (live.ts).
+3. Add real descriptions and parameter descriptions to every tool in `tools.ts`. **safe**.
+4. Create `services/gateway/src/prompts/v1.ts`: persona block per character id (personality from spec 3.2), safety policy, age-band tone, lab goal per `labKind`/guide domain, world summary slot, tool guide; use it in `live.ts:37` and record the version on the session doc. **safe** (live.ts, new file).
+5. Inject a wrap-up note at `gateway.ts:626` when `remaining <= 120` (once). **conflicts**.
+6. Run moderation on its own per-session promise outside `serial()`, keeping the block counter and the `end` call. **conflicts**.
+7. Patch retry-with-issues and a kid-friendly reason string stored on `builderJobs` for the gateway note. Files: `pipeline.ts:38-69`, `worker.ts:292-338`, `gateway.ts:282-285`. **conflicts**.
+8. `imageConfig: { aspectRatio: '16:9', imageSize: '2K' }` for backdrops and `'1K'` for sprites in `vertex.ts:64-79`; drop the cover-crop in `worker.ts:360-363`. **conflicts**.
+9. Log asset failure reasons and write `{status:'failed'}` for deadline/kill-switch skips (`worker.ts:184,209`); log `onSnapshot` errors in `store.ts:254,265`. **conflicts**.
+10. Return 200 with `{status:'failed', permanent:true}` for non-retryable errors in `main.ts:53-57`; keep 503 for lease contention and model errors. **safe**.
+11. Add `BuilderJobDocSchema`, `LockDocSchema` and `paths.builderJob/worldLock/sessionLock/...` to `packages/protocol/src/firestore.ts`; parse in `store.ts:251` and `worker.ts:103`. **safe** (contract edit).
+12. Fake Live server test: a `ws` server that speaks the setup/serverContent/toolCall/goAway shapes, driving `VertexLiveProvider` with a stubbed `GoogleGenAI` websocket factory. New file `services/gateway/test/live.test.ts`. **safe**.
+13. Honour `goAway.timeLeft`: open the replacement connection with the handle before closing the old one (`live.ts:76-80`, `gateway.ts:118-148`). **conflicts**.
+14. Exempt `challengeResult`, `variable` and `simEvent` from the 500 ms throttle and include `concept` in the simEvent note (`gateway.ts:496-508`); add `narration.intro` to the world note (`:314`). **conflicts**.
+15. Hand the recap to Chandni at `target - 1 min` when a companion holds the mic (`gateway.ts:637-638`). **conflicts**.
+16. Emit `characterState` with `speaking` on first audio chunk and on `turnComplete`/`interrupted` (`live.ts:54-67`, `gateway.ts:155-172`). **conflicts**.
+17. Run `pnpm --filter @just-imagine/builder eval:vertex` on staging once ADC exists and record the real validity/concept-recall numbers. External gate.
+
+## 6. Completion estimate
+
+**Gateway: 65 %.** Lifecycle, tools, handoff, resumption, metering, protocol and tests for the state machine are in place, but prompts, the character-facing quota warning, parallel moderation, operability logging and any evidence against real Vertex are not.
+
+**Builder: 70 %.** Both flows, the asset pipeline, caching, safety, progressive publish, idempotency and the eval harness exist and pass locally, but structured-output sanitization, patch retry, 16:9 backdrops, failure logging and a real-model eval run remain before the 9.6 budgets can be believed.

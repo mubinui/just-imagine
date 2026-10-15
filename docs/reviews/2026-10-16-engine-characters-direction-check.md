@@ -1,0 +1,92 @@
+# Engine and characters direction check (2026-10-16)
+
+Read-only review of `packages/engine`, `packages/characters` and `apps/web/lib/voice.ts` against spec sections 3.4, 3.6, 3.7, 5, 6, 7, 14, 15 and the master-plan constraints. Tests were run (`engine` 33/33, `characters` 8/8 pass). Numbers quoted below as "probe" come from throwaway Rapier scripts run from the scratchpad against the unmodified source; nothing in the tree was changed.
+
+## 1. Verdict
+
+The engine is going in the right direction: it consumes `SceneDoc` faithfully, implements every rule event, action, binding, visual and spell in the closed vocabulary on real Rapier with a fixed accumulator, and the two review rounds removed the structural lifecycle bugs. The characters package is a solid audio/transport core (16 kHz capture, 24 kHz ring buffer, barge-in flush, iOS unlock, `sessionId` reconnect) but stops there: Rive mounting is a thin shim and the cast/summon/reaction-clip/emotion layer the spec describes does not exist yet. The single biggest risk is the soft-body model: lattice bodies carry about 40 percent of their document mass and receive impulses, flicks and contact-impulse thresholds on one of nine nodes, so the flagship jelly-dragon fixture's `bounce` Discovery Card rule can never fire and flicking the dragon barely moves it (probe: 0.25 m versus 2.99 m for the same body made rigid).
+
+## 2. Spec coverage
+
+| Requirement | Status | Evidence | Note |
+|---|---|---|---|
+| Rendering: Pixi v8, WebGPU then WebGL, layers, DPR <= 2, 16:9 | partial | `renderer.ts:60-66, 20-24, 92-97` | No mid-layer parallax (`renderer.ts:115` treats it as a second static backdrop); particles and highlights share the overlay layer. |
+| Physics fixed 60 Hz step, accumulator, interpolation | diverges | `renderer.ts:195-199, 231-233`; `simulation.ts:805` | Accumulator and interpolation are correct, but time scale is implemented by changing `world.timestep`, so slow/fast time integrates differently rather than stepping less often. |
+| Body factory incl. `auto` collider | done | `simulation.ts:295-351`, `collider.ts`, `setCollider` `simulation.ts:631-641`, `bounded-json.ts` | Box until collider arrives; convex parts validated and bounded (64 KB). |
+| Soft-body 3x3 lattice + mesh deformation | diverges | `simulation.ts:307-318, 352-415`; `renderer.ts:157-161, 259-268` | Structure matches spec, but mass/impulse model is wrong (defect 1). |
+| Buoyancy, drag, space | partial | `simulation.ts:812-845` | Density-based buoyancy and water drag per step; space zeroes gravity and drag. `Material.buoyant` is never read (no reference in `packages/engine/src`). Water test uses the document AABB, ignoring rotation. |
+| Behaviors (6) | partial | `simulation.ts:851-870`; `renderer.ts:270-287` | wander/float/bounceIdle in physics; glow is a tint; emit uses one particle look for all four kinds; `face` is a no-op for rigid sprites (defect 4). |
+| Rule events: collision/tap/enterMedium/timer/dial/challengeComplete | done | `simulation.ts:513-547`, `once` at 515 | Soft-vs-soft collisions produce no events because outer node colliders have no active-event flags (`simulation.ts:376-382`). |
+| Actions incl. launch/setGravity/setTimeScale/scaleEntity | done | `simulation.ts:553-630` | `celebrate`, `sound` and the spell sparkle are emitted as events that nothing renders or plays (defect 5). |
+| Interactions: tap highlight, spring drag, 80 ms flick, 500 ms summaries | partial | `renderer.ts:404-450`, `gesture.ts:6-22`, `simulation.ts:658-701`, throttle `simulation.ts:136-148` | Mechanics are right; the shared throttle key drops flick summaries after any drag (defect 2). |
+| Dials | done | `simulation.ts:702-724` | Presets match 6.5; only document-exposed dials accepted; emits `dial` rule and gateway event. |
+| Variables and bindings, 300 ms per variable | done | `simulation.ts:725-772`, rebuild reapplication `simulation.ts:464-475` | Clamp + snap; all six binds. |
+| Visuals (8 types), 10 Hz ring buffers | done (low fidelity) | `renderer.ts:292-393`; sampling `simulation.ts:915, 927-972` | Vectors are plain lines, ruler has no ticks, plots have no axes. |
+| Challenges | done | `simulation.ts:896-898, 919-926, 965-971` | Collision and accumulated-histogram checks, reward actions, `challengeComplete` event. |
+| Spells as runtime overrides, restore | done | `simulation.ts:773-801` | Baseline captured once; restore clears scales/gravity/time/float. |
+| Progressive update without reset | done | `simulation.ts:417-501`; tests `review-regressions.test.ts:46-105, 325-397` | Renderer rebuilds the whole display list and refetches colliders on every update (defect 6). |
+| Determinism and replay | partial | inputs `simulation.ts:113, 136-138`; test `simulation.test.ts:5-18` | Deterministic (probe replayed a tap/flick/spell script identically), but no replay API and the determinism test has no input stream. |
+| Performance budget | unverified | `docs/handoff/engine-report.md` (810 KB gzip reported) | No device fps evidence; per-step `contactPairsWith` scan over every collider (`simulation.ts:900-913`). |
+| Rive mounting and five inputs | partial | `rive-character.ts:7-11, 27-43` | `emotion` is sent as an index 0-4 (`:29`); state machine name `Character` hardcoded; no `.riv` assets exist. |
+| Lip-sync mapper | partial | `audio.ts:92-96`; `browser-audio.ts:35, 46-47` | RMS is posted per 128-sample block, not per 20 ms; the smoothing argument is never passed. |
+| Emotion decay | missing | no code | — |
+| Cast controller / summon choreography | missing | `Studio.tsx:126-130` only swaps the face | No sparkle transition, catchphrase or reveal; nothing in `packages/characters`. |
+| Reaction clips | missing | no code | No cached-clip player or lookup. |
+| Capture worklet 16 kHz, 20 ms frames | done | `audio.ts:2-33`, `browser-audio.ts:28-32`; `audio.test.ts:4-11` | 320-sample Int16 frames, transferred. |
+| Playback ring buffer 24 kHz | done | `audio.ts:35-91` | 3 s cap, drops oldest, resamples to context rate. |
+| Barge-in flush | done | `voice-client.ts:89` → `browser-audio.ts:91-94`; `voice.test.ts:75-76` | — |
+| iOS unlock on profile tap | done | `browser-audio.ts:19-25, 51`; `voice-client.ts:45` | Review Focus 5's "mocked suspended context" test is absent (`browser-audio.test.ts:19` stubs `running`). |
+| Reconnect with sessionId | done | `voice-client.ts:84-85, 105-109, 115-126`; `voice.test.ts:58-84` | Five retries, 500 ms doubling. |
+
+## 3. Defects
+
+1. **Soft bodies have the wrong mass and receive forces on one node (high).** Lattice nodes are nine balls of radius `min(w,h)/8` (`simulation.ts:318, 354`), so the jelly dragon weighs 0.70 kg at runtime versus 1.85 kg in the document (probe). `applyImpulse` (`:568`), `launch` (`:575`), `flick` (`:699`) and the drag anti-gravity force (`:849`) act on the centre node only, and contact impulses are keyed per entity pair with last-write-wins (`:873-879`), so a lattice landing reports one node's impulse. Scenario: `jelly-dragon.json` `r_bounce` (`minImpulse: 2`, concept `bounce`) never fires; probe max impulse 1.49 when dropped from the top of the world, 28.1 for the rigid copy. Flick `(6,-4)` moves the dragon 0.25 m in 0.5 s versus 2.99 m rigid. The fixture's tap rule (`applyImpulse y:-6`) spikes the centre node to 12.3 m/s. The existing lattice test (`simulation.test.ts:110-125`) only checks nine finite nodes.
+2. **Flick summaries are dropped after a drag (high).** `simulation.ts:139-143` throttles tap, drag and flick under one key `interaction`. Scenario: child drags for 0.2 s and releases; the gateway receives `tap` only (probe: emitted types `[tap]`), so the character never hears about the signature gesture. Throttle is also in simulated seconds, so under `slowTime` the 500 ms window becomes 2 s.
+3. **Spawned entities never get textures or scale (medium).** `drawAssets` iterates `current.entities` only (`renderer.ts:120`); the ticker creates bare orange rectangles for runtime ids (`renderer.ts:219-228`) and skips scale for them (`:288`). Scenario: Galton `release` spawns balls that render as rectangles even when the `ball` asset is ready; Fractions halves likewise; `grow` on a spawned ball changes physics but not the drawing.
+4. **`face` behavior is a no-op for rigid sprites (medium).** `renderer.ts:275` flips `scale.x`, then `:289` overwrites both scale components every frame. Scenario: pond-float duck (`face: pointer`) never turns.
+5. **`celebrate`, `sound` and spell sparkle have no presentation (medium).** Emitted at `simulation.ts:563-565, 800`; the renderer never subscribes and `apps/web` only handles `rule`, `say`, `tap/drag/flick`, `challengeComplete` (`Studio.tsx:238-258`). Scenario: a rule fires `celebrate: confetti` + `sound: boing`; the child sees a caption and nothing else. Spec 6.5a requires a sparkle burst on spells.
+6. **Every document update refetches every collider and rebuilds every auto body (medium).** `renderer.ts:172-173` calls `loadCollider` unconditionally in `drawAssets`, and `setCollider` always rebuilds (`simulation.ts:636-640`), bypassing the source-identity check in `update` (`:430-435`). Scenario: a 24-entity world receiving one update per asset performs about 24x24 fetches during a build and resets contact state on every body mid-flight. The display list is also destroyed and recreated each update (`renderer.ts:105-107`).
+7. **Silent divergence at the 24-entity cap (medium).** `add` returns silently (`simulation.ts:292`) and `update` skips (`:453`). Probe: after spawn rules fill 24 slots, a patched-in entity never appears and no event or warning is produced. `spawn` truncates `count` silently too (`:620`).
+8. **Time scale alters the physics step (low-medium).** `simulation.ts:805` sets `timestep = timeScale/60`; at 2x the step is 1/30 s. Results differ from 1x rather than being the same motion faster; determinism is kept.
+9. **`buoyant` and `breakable` are ignored (low).** No reference in engine source. A `buoyant: true` material denser than 1 sinks; nothing ever splits.
+10. **`bounceIdle` re-triggers at the apex (low).** `simulation.ts:868-869` applies an impulse whenever `|vy| < 0.05`, including while airborne. Probe on moon-bounce: the ball rises to the ceiling at t=0 and keeps hopping.
+11. **Soft-vs-soft collisions are silent (low).** Node colliders lack `setActiveEvents` (`simulation.ts:376-382`); events appear only when the other collider is a rigid entity.
+12. **Lip-sync chunking and smoothing (low).** RMS is posted per worklet block (`browser-audio.ts:35`, about 375 messages/s at 48 kHz) and `mouthOpen` is called without `previous` (`:46-47`), so the smoothing in `audio.ts:95` never runs.
+13. **Tests that assert less than their names claim.** `simulation.test.ts:48-73` "caps spawned bodies" asserts `3 + 10` entities, never reaching 24; `simulation.test.ts:5-18` tests determinism with no inputs; `browser-audio.test.ts:19` stubs a `running` context, so the suspended-context path (master plan Review Focus 5) is untested; no test checks that a `say` text reaches the gateway.
+
+## 4. Contract conformance
+
+The engine reads `SceneDoc` as `packages/scene-schema/src/schema.ts` defines it; field names, enum members and limits line up. Drift and gaps:
+
+- `Entity.kind === 'particle'` is built as a full physical body (`simulation.ts:295-327`); the schema does not say what a particle entity is, so this should be pinned down with the schema owner.
+- `Material.buoyant`, `breakable` and `pretend` are never read (defect 9; `pretend` is presentation-only and acceptable).
+- `Behavior.emit.particle` kinds are indistinguishable in the renderer (`renderer.ts:52, 282-286`).
+- Dial values are an open string in `RuleWhenSchema` (`schema.ts:115`) and in the protocol `dial` message; the engine only accepts lowercase `earth|moon|jupiter|none` and `none|breeze|storm` (`simulation.ts:706, 712`). The fixtures use `earth`, but nothing stops a builder emitting `Earth`. A shared enum belongs in the schema.
+- `setGravity.y` writes gravity even when `medium === 'space'` (`simulation.ts:586-589`), contradicting 6.2's zero gravity.
+- `height` plots and histogram bins hardcode the 16x9 bounds (`simulation.ts:939, 963`); consistent with the schema literal but worth deriving from `environment.bounds`.
+- `EngineEvent.type` is `string` (`simulation.ts:22`), so the web matches strings by hand. The engine emits `rule` and `say` as separate events (`:543, :556`) while the protocol `simEvent` carries `say` alongside `ruleId` (`ws.ts:66-71`); `Studio.tsx:238-243` forwards `rule` without the text, so the character never speaks rule text (spec 6.3, 8.4). Attaching `say` to the `rule` event is the cheapest fix.
+- Engine `Spell` (`simulation.ts:12-20`) is a superset of protocol `SpellSchema` (legacy `slowMotion`, `float`); harmless, but the engine should import the protocol type once the dependency is allowed.
+- Characters: `rive-character.ts:29` maps `emotion` to a number 0-4; the spec names an enum input. This is fine for Rive (inputs are numeric) but must be written into the Rive authoring brief.
+
+## 5. Remaining work to reach the spec
+
+Codex's checkpoint says engine review fixes are closed and whole-workspace verification is next, so `simulation.ts`/`renderer.ts` may still be touched for lint/format; anything editing them is marked as conflicting.
+
+1. Fix soft-body mass and force distribution: set node density so nine nodes sum to `density x area`, spread `applyImpulse`/`launch`/`flick`/hold across nodes, sum contact impulses per pair per step, add active events to node colliders. `packages/engine/src/simulation.ts`, new test in `packages/engine/test/soft-body.test.ts`. Conflicts with Codex's active work.
+2. Throttle interactions per kind (always emit tap and flick, coalesce drag) on wall-clock or step count. `simulation.ts:136-148`. Conflicts.
+3. Attach `say` to the `rule` event and type `EngineEvent.type` as a union; then one-line web change. `simulation.ts:21-29, 541-546`. Conflicts (and touches `Studio.tsx`, the web reviewer's area).
+4. Give spawned entities the template's texture and scale; keep a per-entity `templateId`. `renderer.ts:218-228, 288`. Conflicts.
+5. Fix `face` by applying the flip after the scale call. `renderer.ts:272-289`. Conflicts.
+6. Render `celebrate` and spell sparkle bursts in the renderer; play `sound` cues in the web (web plan). `renderer.ts` + new `packages/engine/src/effects.ts`. New file is safe for a second agent; wiring conflicts.
+7. Cache collider JSON by URL and skip `setCollider` when the source is unchanged; keep existing display objects on asset-only updates. `renderer.ts:101-189`. Conflicts.
+8. Emit a `capacity` event when an entity is dropped at the cap. `simulation.ts:292, 453, 620`. Conflicts.
+9. Honour `buoyant`/`breakable`, derive bounds from the document, zero `setGravity` in space. `simulation.ts`. Conflicts.
+10. Strengthen tests: spawn to the real cap, determinism with a recorded input stream and a `replay(inputs)` helper, suspended-AudioContext unlock, soft-body landing impulse. New files `packages/engine/test/replay.test.ts`, `packages/characters/test/unlock.test.ts`. Safe for a second agent in parallel.
+11. Characters: `CastController` (one mic holder, others idle/react), summon choreography (sparkle, catchphrase from `CHARACTERS[id].catchphrase`, reveal), reaction-clip player with a cached-clip map, emotion decay to idle after N seconds without `characterState`. New files `packages/characters/src/cast.ts`, `reactions.ts`, `emotion.ts` plus tests. Safe for a second agent in parallel.
+12. Lip-sync: accumulate 20 ms (480-sample at 24 kHz) RMS in the worklet and pass `previous` to `mouthOpen`. `browser-audio.ts:28-47`. Safe (Codex is not listed as active in characters).
+13. Add a shared dial-value enum to `scene-schema` and consume it in the engine and protocol. Requires schema owner review per the checkpoint rule.
+14. Device evidence: iPad frame-rate run of a 24-entity fixture and a first-paint timing. No code; QA gate.
+
+## 6. Completion estimate
+
+About 60 percent for the engine and 35 percent for characters, roughly 55 percent for the area combined: the simulation and renderer cover the whole DSL vocabulary with real-physics tests, but the soft-body model, interaction summaries and presentation of effects are wrong in ways that break the flagship fixture, and the character layer beyond audio transport has not been started.

@@ -99,3 +99,19 @@ Web review fixes implemented for saved-world voice identity, microphone cancella
 - Opened draft PR #1 (`feat/full-development` → `main`) so CI runs on this branch. First run failed only at `pnpm format:check` (4 files); lint, typecheck and tests did not run. Fixes: added `apps/web/next-env.d.ts` to `.prettierignore` (Next regenerates it), ran prettier on `README.md`, and ran prettier (whitespace only, no logic change) on `services/gateway/src/gateway.ts` and `services/gateway/test/gateway.test.ts`. If an anchored edit on those two files fails for you, re-read them; nothing else changed.
 - Moved the icon generator into the repo as `scripts/make-icons.cjs` (run from the root with `node scripts/make-icons.cjs`); it resolves sharp through `services/builder`.
 - Please run `prettier --check .` before each commit so the CI gate stays green; it is the first step and blocks the others.
+
+## Parallel session notes (Claude Code, 2026-10-16 00:17) — files claimed
+
+Claude Code is now redesigning the child Studio surface per docs/reviews/2026-10-16-web-direction-check.md (stage layout, Imagine-phase listening state, cast strip, dial tray, Discovery toast, summon overlay, spell flourish, six distinct character faces). Files taken until the next note here:
+- apps/web/components/Studio.tsx, apps/web/components/CharacterFace.tsx, apps/web/app/globals.css (studio and character sections), apps/web/lib/strings/en.ts (child-facing strings only)
+- new: apps/web/components/SummonOverlay.tsx, apps/web/components/SpellFlourish.tsx, apps/web/components/studio/*, apps/web/app/studio.css
+Codex: please keep to services/, packages/ and the parent area while this is in progress; if you must touch one of these files, append a note here first.
+
+## Parallel session notes (Claude Code, 2026-10-16 00:21) — review findings for Codex
+
+Four direction-check reports are in docs/reviews/ (summary: docs/reviews/2026-10-16-direction-check-summary.md). Findings in your areas, highest value first; all have file:line references in the reports:
+1. builder `src/vertex.ts:56` and gateway `src/tools.ts:35` send raw JSON Schema (`$schema`, `additionalProperties`, `propertyNames`) to Vertex; wrap with `toGeminiJsonSchema` from scene-schema.
+2. gateway `src/gateway.ts:236-238` swallows Live setup errors; the child gets `bye: error` with nothing logged. Also: quota warning never reaches the character; prompts are one unversioned string.
+3. engine soft bodies: lattice carries ~40% of document mass, impulses land on one node, so the jelly dragon's `bounce` rule never fires (engine report defect 1, with a probe).
+4. api `src/store.ts:124` leaks world existence with 403 (spec says 404); `src/deletion.ts:72-100` leaves builderJobs behind.
+Claude Code is on the Studio stage (files listed in the note above) and will not touch these.
