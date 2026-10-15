@@ -182,7 +182,9 @@ type SceneDoc = {
   theme: {
     paletteHint: string;               // e.g. "sunset pastel"
     timeOfDay: 'day' | 'sunset' | 'night';
+    backdropDescription: string;       // generation prompt source for the backdrop
     backdrop: AssetRef;                // painted background, 16:9
+    midLayerDescription?: string;      // generation prompt source for the parallax layer
     midLayer?: AssetRef;               // optional parallax layer
   };
   environment: {
@@ -239,7 +241,7 @@ type Behavior =
   | { type: 'float'; amplitude: number; period: number }
   | { type: 'bounceIdle' }
   | { type: 'glow'; color: string }
-  | { type: 'emit'; particle: string; rate: number }
+  | { type: 'emit'; particle: 'sparkle' | 'bubble' | 'smoke' | 'leaf'; rate: number }
   | { type: 'face'; target: 'pointer' | 'hero' };
 
 type Joint =
@@ -268,12 +270,12 @@ type Action =
   | { action: 'say'; text: string }    // forwarded to the gateway for the character to speak
   | { action: 'sound'; cue: 'boing' | 'splat' | 'splash' | 'whoosh' | 'ding' };
 
-type AssetRef = { url: string; colliderUrl?: string; width: number; height: number; status: 'placeholder' | 'ready' };
+type AssetRef = { url: string; colliderUrl?: string; width: number; height: number; status: 'placeholder' | 'ready' }; // url is "" while status is 'placeholder'
 type Concept = 'gravity' | 'mass' | 'buoyancy' | 'friction' | 'bounce' | 'momentum' | 'airResistance' | 'balance' | 'springiness' | 'density' | 'force' | 'speed';
 type Dial = 'gravity' | 'wind' | 'heroMaterial';
 ```
 
-Limits enforced by the schema: at most 24 entities, 16 joints, 12 rules, 8 materials, 3 dials. Entity size between 0.2 and 8 meters. Bounds fixed at 16 by 9 meters in v1.
+Limits enforced by the schema and validator: at most 24 entities, 16 joints, 12 rules, 8 materials, 3 dials. Sprite and particle size between 0.2 and 8 meters; ground and water entities up to 16 meters. Bounds fixed at 16 by 9 meters in v1.
 
 Shape `auto` means the collider comes from the generated asset's collider polygon once the asset is ready; until then, and for entities that never receive an asset, the engine uses a box of `size`.
 
@@ -505,6 +507,8 @@ assetCache/{hash}
   url, colliderUrl, width, height, safetyChecked, createdAt
 ```
 
+All timestamps are stored as integer epoch milliseconds so that the same Zod schemas validate documents on the server and in the browser without converters.
+
 Cloud Storage layout: `assets/{hash}/sprite.webp`, `assets/{hash}/collider.json`, `backdrops/{hash}/bg.webp`, `worlds/{worldId}/thumb.webp`. Generated assets contain no personal data and are served publicly through Cloud CDN with immutable cache headers. Character reaction clips live in `clips/{characterId}/{clipId}.mp3`.
 
 Retention: raw audio is never stored. Live transcripts exist only in gateway memory for the session. Session summaries and discoveries persist. A parent can delete a child profile, which deletes its sessions, discoveries, and worlds within 24 hours through a Cloud Tasks job.
@@ -602,6 +606,7 @@ just-imagine/
   packages/engine/          PixiJS + Rapier + DSL interpreter                  Dev A
   packages/characters/      Rive wrappers, lip-sync, emotion mapping           Dev A
   packages/fixtures/        Sample worlds, transcripts, audio clips, fake servers   Shared
+  packages/server-core/     Firebase Admin init, token verification, typed Firestore access, quota transactions, kill switch   Dev B
   packages/config/          Shared tsconfig, eslint, prettier                  Shared
   infra/terraform/          Projects, Cloud Run, Firestore, GCS, CDN, IAM       Dev B
   .github/workflows/        CI                                                 Dev B
