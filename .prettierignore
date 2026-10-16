@@ -18,3 +18,4 @@ infra/terraform/.terraform/
 apps/web/next-env.d.ts
 
 **/.impeccable/hook.cache.json
+CHECKPOINT.md

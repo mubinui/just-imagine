@@ -137,6 +137,22 @@ The four controls form one cluster at the strip's bottom-right, in reach of the 
 - **Telemetry.** A tiny client reporter sends errors and quality metrics (first paint, show duration, fps p5, audio underruns, reconnects) to Cloud Logging; dashboards and alerts extend the existing ones; a weekly quality review reads them.
 - **Automated.** Playwright flows run with device emulation for all four classes; a fake-mode soak test runs twenty minutes in CI nightly; memory growth is asserted across world switches.
 
+## 9b. Super admin panel
+
+Just Imagine is a SaaS; the operator needs one place to run it.
+
+**Access.** A Firebase custom claim `admin: true` on an operator account, granted and revoked only by `node scripts/grant-admin.mjs <email> [--revoke]` run with Admin SDK credentials (never from the browser). The api verifies the claim on every `/v1/admin/*` route (`requireAdmin`); the web panel at `/admin` checks the claim from the verified session cookie and is not linked from the parent or child areas. Admin accounts must not also be parent accounts in production. Every admin write is recorded in `adminAudit/{id}` (who, what, target, before, after, at) and the audit log is read-only.
+
+**Pages.**
+- **Overview:** families, children, active subscriptions by tier, sessions and voice minutes today and over 7 and 30 days, worlds built, image generations, builder failure rate, moderation blocks, and an estimated model cost per day from usage counters.
+- **Families:** search by parent email; per family: plan, subscription status, children count, usage against limits, created date; actions: change plan (comp a Family plan), reset today's quota, suspend or reinstate the account, trigger data deletion (with typed confirmation). Child first names are not shown; children appear as counts and age bands only.
+- **Safety:** the moderation log (blocked and redirected transcript events, with the classifier's category and session id, never the transcript text), image safety rejections, and worlds that failed validation; a toggle to hide a saved world from its family pending review.
+- **Content:** Learning World packs and versions, generated-game smoke results (pass rate, top failure reasons), the asset library QA status.
+- **System:** the runtime kill switch with a reason field, per-service health from the existing health endpoints, model ids in use, and recent deploy versions.
+- **Audit log.**
+
+**Privacy.** Admins see parent emails because they run billing and support; they never see child names, photos, generated chibi art, transcripts or world content beyond titles. All reads go through the api, never directly to Firestore from the browser.
+
 ## 10. Team split and sequence
 
 Five working weeks after this spec is approved. Each row is independently testable and demoable.
