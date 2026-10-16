@@ -163,4 +163,16 @@ export const s = {
   challengeDone: 'Completed!',
   labOpen: 'Open lab tools',
   labClose: 'Hide lab tools',
+  show: {
+    heard: 'Got it! Let me grab my brush...',
+    backdrop: 'Painting the sky and the ground...',
+    props: 'Adding the things you asked for...',
+    hero: 'Drawing your {name}... this is the best part',
+    heroDefault: 'star of the show',
+    reveal: 'Ta-da!',
+    loop1: 'While I paint, what colour should it be?',
+    loop2: 'Should it be big or tiny?',
+    late: 'My paint spilled! Want to pick a world instead?',
+    pickWorld: 'Pick a world instead',
+  },
 } as const;

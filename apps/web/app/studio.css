@@ -1627,3 +1627,547 @@
     width: auto;
   }
 }
+
+/* generation show */
+/* The wait is the friend's performance: brush out, backdrop wipes in far to near, silhouettes
+   drop and settle, a shimmering stand-in waits for the hero, then confetti. The wipe is the
+   one authored motion moment; everything else stays small. Reduced motion zeroes every
+   animation and the beats switch by opacity only. */
+.show {
+  --show-sky: #cfe8f3;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: #2f5b4f;
+  color: var(--ground);
+  overflow: hidden;
+}
+.show-inner {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 4%;
+  padding: 4% 6% 1%;
+}
+.show-friend {
+  position: relative;
+  width: 100%;
+  max-width: clamp(140px, 30vmin, 260px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.show-friend .character-face,
+.show-friend .companion-art {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+.show-friend .character-face svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 18px 24px #0007);
+}
+.show-brush {
+  position: absolute;
+  right: -4%;
+  bottom: 2%;
+  width: 34%;
+  aspect-ratio: 1;
+  z-index: 2;
+  transform-origin: 50% 90%;
+  transform: rotate(28deg);
+  filter: drop-shadow(0 8px 10px #0007);
+  animation:
+    show-brush-out 420ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    show-brush-sway 3s ease-in-out 420ms infinite alternate;
+}
+.show-brush svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.show.is-backdrop .show-brush {
+  animation: show-brush-paint 360ms ease-in-out infinite alternate;
+}
+.show.is-late .show-brush {
+  animation: none;
+  transform: rotate(118deg) translateY(10%);
+}
+@keyframes show-brush-out {
+  from {
+    transform: rotate(28deg) scale(0) translateY(40%);
+  }
+  70% {
+    transform: rotate(22deg) scale(1.12);
+  }
+  to {
+    transform: rotate(28deg) scale(1);
+  }
+}
+@keyframes show-brush-sway {
+  from {
+    transform: rotate(24deg);
+  }
+  to {
+    transform: rotate(32deg);
+  }
+}
+@keyframes show-brush-paint {
+  from {
+    transform: rotate(12deg) translate(-8%, 4%);
+  }
+  to {
+    transform: rotate(40deg) translate(8%, -4%);
+  }
+}
+
+/* The easel: a peach board holding cream paper, propped at a slight tilt. Sized from the
+   world frame so the 4:3 canvas never fights the caption row for height. */
+.show-easel {
+  position: relative;
+  width: min(100%, calc(min(100cqh, 56.25cqw) * 0.78));
+  aspect-ratio: 4 / 3;
+  padding: 3.5%;
+  border-radius: 22px;
+  background: var(--stage-warm);
+  box-shadow: 0 22px 44px -22px #000c;
+  transform: rotate(-1.5deg);
+}
+.show-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  background: var(--ground);
+  overflow: hidden;
+}
+.show-layer {
+  position: absolute;
+  opacity: 0;
+  -webkit-mask-image: linear-gradient(to right, transparent 0 45%, var(--ink) 55% 100%);
+  mask-image: linear-gradient(to right, transparent 0 45%, var(--ink) 55% 100%);
+  -webkit-mask-size: 220% 100%;
+  mask-size: 220% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 100% 0;
+  mask-position: 100% 0;
+}
+.show-layer.is-painted {
+  opacity: 1;
+  animation: show-wipe 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.show-sky {
+  inset: 0;
+  background: var(--show-sky);
+}
+.show-hills {
+  left: -8%;
+  right: -8%;
+  bottom: 22%;
+  height: 40%;
+  border-radius: 999px 999px 0 0;
+  background: var(--mint);
+}
+.show-hills.is-painted {
+  animation-delay: 650ms;
+}
+.show-ground {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26%;
+  background: var(--stage-warm);
+}
+.show-ground.is-painted {
+  animation-delay: 1300ms;
+}
+@keyframes show-wipe {
+  from {
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
+  }
+  to {
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+  }
+}
+/* The brush head that leads each wipe: three passes, far sky to near ground, over 2 s. */
+.show-stroke {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9%;
+  height: 12%;
+  border-radius: 50%;
+  background: var(--stage-live);
+  box-shadow: 0 4px 10px -4px #0008;
+  opacity: 0;
+}
+.show-stroke.is-painted {
+  animation: show-stroke 2s linear both;
+}
+@keyframes show-stroke {
+  0% {
+    transform: translate(-100%, 110%);
+    opacity: 1;
+  }
+  33% {
+    transform: translate(1111%, 110%);
+    opacity: 1;
+  }
+  34% {
+    transform: translate(-100%, 420%);
+    opacity: 0;
+  }
+  36% {
+    opacity: 1;
+  }
+  66% {
+    transform: translate(1111%, 420%);
+    opacity: 1;
+  }
+  67% {
+    transform: translate(-100%, 690%);
+    opacity: 0;
+  }
+  69% {
+    opacity: 1;
+  }
+  98% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(1111%, 690%);
+    opacity: 0;
+  }
+}
+/* Silhouettes: three cream stand-ins that drop onto the ground line and settle with a squash. */
+.show-props {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 20%;
+  height: 42%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  opacity: 0;
+}
+.show-props.is-painted {
+  opacity: 1;
+}
+.show-props i {
+  display: block;
+  background: var(--ground);
+  opacity: 0.92;
+  transform-origin: 50% 100%;
+  box-shadow: 0 10px 18px -12px #0008;
+}
+.show-props i:nth-child(1) {
+  width: 20%;
+  height: 88%;
+  border-radius: 999px;
+}
+.show-props i:nth-child(2) {
+  width: 26%;
+  height: 50%;
+  border-radius: 999px;
+}
+.show-props i:nth-child(3) {
+  width: 24%;
+  height: 38%;
+  border-radius: 16px;
+}
+.show-props.is-painted i {
+  animation: show-drop 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.show-props.is-painted i:nth-child(2) {
+  animation-delay: 120ms;
+}
+.show-props.is-painted i:nth-child(3) {
+  animation-delay: 240ms;
+}
+@keyframes show-drop {
+  0% {
+    transform: translateY(-160%) scale(0.9, 1.1);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(0) scale(1.16, 0.82);
+    opacity: 1;
+  }
+  78% {
+    transform: translateY(-5%) scale(0.96, 1.05);
+  }
+  100% {
+    transform: none;
+  }
+}
+/* The hero's stand-in: a sunshine disc with a sheen that keeps moving until the sprite lands. */
+.show-hero {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 24%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--stage-live);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 12px 24px -10px #0008;
+  opacity: 0;
+  overflow: hidden;
+}
+.show-hero.is-painted {
+  opacity: 1;
+  animation: show-pop 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.show-hero::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(115deg, transparent 42%, #fff9eeaa 50%, transparent 58%);
+  animation: show-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes show-pop {
+  from {
+    transform: translate(-50%, -50%) scale(0);
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes show-shimmer {
+  from {
+    transform: translateX(-60%);
+  }
+  to {
+    transform: translateX(60%);
+  }
+}
+/* Confetti on the reveal: at most 24 bits, in the four stage colours. */
+.show-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.show-confetti i {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 10px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--stage-warm);
+  transform: translate(-50%, -50%);
+  animation: show-confetti 1300ms cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  animation-delay: var(--delay);
+}
+.show-confetti i:nth-child(4n + 1) {
+  background: var(--stage-live);
+}
+.show-confetti i:nth-child(4n + 2) {
+  background: var(--mint);
+}
+.show-confetti i:nth-child(4n + 3) {
+  background: var(--show-sky);
+}
+@keyframes show-confetti {
+  0% {
+    transform: translate(-50%, -50%) rotate(0) scale(0.4);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 40px)) rotate(var(--spin))
+      scale(1);
+    opacity: 0;
+  }
+}
+/* The spilled paint, only when the friend has to apologise. */
+.show-spill {
+  position: absolute;
+  right: -6%;
+  bottom: -8%;
+  width: 34%;
+  height: 22%;
+  border-radius: 999px;
+  background: var(--stage-warm);
+  box-shadow: 0 8px 16px -10px #0008;
+  opacity: 0;
+  transform: rotate(-8deg);
+}
+.show.is-late .show-spill {
+  opacity: 1;
+  animation: show-spill 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes show-spill {
+  from {
+    transform: rotate(-8deg) scale(0);
+  }
+}
+/* Narration: one cream pill, re-mounted per line so it rises in; on the reveal it becomes
+   the Ta-da chip in sunshine. */
+.show-caption-wrap {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4% 3%;
+}
+.show-caption {
+  display: inline-flex;
+  align-items: center;
+  min-height: 64px;
+  max-width: min(92%, 44ch);
+  padding: 12px 26px;
+  border-radius: 999px;
+  background: var(--stage-pill);
+  color: var(--ink);
+  font:
+    800 22px/1.15 Baloo,
+    sans-serif;
+  text-align: center;
+  text-wrap: balance;
+  box-shadow: 0 10px 24px -12px #000b;
+  animation: show-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.show.is-reveal .show-caption {
+  background: var(--stage-live);
+  font-size: 27px;
+  animation: show-tada 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.pill.show-offer {
+  min-height: 64px;
+  padding: 12px 26px;
+  font:
+    800 21px/1.1 Baloo,
+    sans-serif;
+  animation: show-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+@keyframes show-rise {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+}
+@keyframes show-tada {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12) rotate(-2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+/* Small stages (phones, compact-height landscape): the world frame is the size container,
+   so key the compact sizing off the actual world height rather than the viewport. */
+@container (max-height: 460px) {
+  .show-inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 3%;
+    padding: 2% 4% 0;
+  }
+  .show-friend {
+    max-width: clamp(84px, 28cqh, 140px);
+  }
+  .show-easel {
+    width: min(100%, calc(min(100cqh, 56.25cqw) * 0.62));
+    padding: 3%;
+    border-radius: 16px;
+  }
+  .show-canvas {
+    border-radius: 12px;
+  }
+  .show-caption-wrap {
+    gap: 8px;
+    padding: 0 3% 2%;
+  }
+  .show-caption {
+    min-height: 44px;
+    padding: 6px 16px;
+    font-size: 15px;
+  }
+  .show.is-reveal .show-caption {
+    font-size: 21px;
+  }
+  .pill.show-offer {
+    min-height: 48px;
+    padding: 8px 18px;
+    font-size: 17px;
+  }
+}
+/* Very short worlds (portrait phones): the easel is keyed to the world height so the row
+   above the pills, the caption and the offer always add up to less than the world. */
+@container (max-height: 260px) {
+  .show-inner {
+    gap: 2%;
+    padding: 1% 3% 0;
+  }
+  .show-friend {
+    max-width: clamp(56px, 22cqh, 100px);
+  }
+  .show-easel {
+    width: min(100%, calc(36cqh * 4 / 3));
+    padding: 2.5%;
+    border-radius: 12px;
+  }
+  .show-canvas {
+    border-radius: 10px;
+  }
+  .show-caption-wrap {
+    gap: 6px;
+    padding: 0 3% 1%;
+  }
+  .show-caption {
+    min-height: 40px;
+    padding: 4px 14px;
+    font-size: 13px;
+  }
+  .show.is-reveal .show-caption {
+    font-size: 17px;
+  }
+  .pill.show-offer {
+    min-height: 44px;
+    padding: 6px 16px;
+    font-size: 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .show-brush,
+  .show-layer,
+  .show-stroke,
+  .show-props i,
+  .show-hero,
+  .show-hero::after,
+  .show-confetti i,
+  .show-spill,
+  .show-caption,
+  .pill.show-offer {
+    animation: none !important;
+  }
+  .show-confetti,
+  .show-hero::after {
+    display: none;
+  }
+}

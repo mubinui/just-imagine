@@ -48,6 +48,7 @@ import {
   type JobStatus,
 } from './studio/parts';
 import { LabDrawer } from './studio/LabDrawer';
+import { GenerationShow } from './studio/GenerationShow';
 
 type Prediction = Extract<ServerMessage, { type: 'prediction' }>;
 type Discovery = Extract<ServerMessage, { type: 'discovery' }>;
@@ -81,6 +82,8 @@ export function Studio() {
     [world, setWorld] = useState<WorldWithId>(),
     [status, setStatus] = useState('connecting'),
     [job, setJob] = useState<JobStatus>(),
+    // When the current wish was heard: the generation show's 25 s fallback clock.
+    [showStartedAt, setShowStartedAt] = useState<number>(),
     [error, setError] = useState(''),
     [ended, setEnded] = useState(false),
     [character, setCharacter] = useState<CharacterId>(DEFAULT_CHARACTER),
@@ -199,9 +202,12 @@ export function Studio() {
           if (hello.current) delete hello.current.worldId;
           previousDoc.current = undefined;
           setJob(undefined);
+          setShowStartedAt(undefined);
           setCaption('');
           break;
-        case 'worldJob':
+        case 'worldJob': {
+          const heardAt = Date.now();
+          setShowStartedAt((t) => (message.status === 'queued' ? heardAt : (t ?? heardAt)));
           setJob(message.status);
           if (!env.fake) {
             // A queued world does not exist yet; Firestore correctly denies reads without an owner.
@@ -212,6 +218,7 @@ export function Studio() {
               selectWorldId(undefined);
           }
           break;
+        }
         case 'transcript':
           if (message.role === 'character' && !env.fake) setCaption(message.text);
           break;
@@ -289,6 +296,7 @@ export function Studio() {
       worldId,
       (doc) => {
         setWorld(doc);
+        setShowStartedAt(undefined);
         if (doc.status === 'ready') setJob('ready');
         const old = previousDoc.current;
         setValues((current) =>
@@ -542,16 +550,29 @@ export function Studio() {
         <div className="world-frame">
           <div className="stage-world">
             <div className="engine-host" ref={host} />
-            {!world && (
-              <Listening
-                name={personal?.name}
+            {!world && building ? (
+              <GenerationShow
+                job={job}
+                startedAt={showStartedAt ?? 0}
                 character={character}
+                name={personal?.name}
                 face={face}
-                building={building}
-                status={status}
-                live={live}
-                onAsk={() => startVoice()}
+                onOfferFallback={
+                  env.fake ? () => switchWorld('jellyDragon' as FixtureWorldKey) : undefined
+                }
               />
+            ) : (
+              !world && (
+                <Listening
+                  name={personal?.name}
+                  character={character}
+                  face={face}
+                  building={building}
+                  status={status}
+                  live={live}
+                  onAsk={() => startVoice()}
+                />
+              )
             )}
             {world && !env.fake && (
               <EntityActions

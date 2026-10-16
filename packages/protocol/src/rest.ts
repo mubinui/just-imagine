@@ -44,6 +44,7 @@ export const CreateChildBodySchema = ChildDocSchema.pick({
   firstName: true,
   avatar: true,
   ageBand: true,
+  language: true,
 })
   .extend({ companion: PresetCompanionSchema.optional() })
   .strict();
@@ -57,6 +58,7 @@ export const UpdateChildBodySchema = ChildDocSchema.pick({
   labsUnlocked: true,
   captions: true,
   sessionTargetMinutes: true,
+  language: true,
 })
   .extend({ companion: PresetCompanionSchema.nullable().optional() })
   .partial()

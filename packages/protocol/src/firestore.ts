@@ -10,6 +10,15 @@ const epochMs = EpochMsSchema;
 
 export const AvatarSchema = z.enum(['fox', 'owl', 'panda', 'bunny', 'whale', 'robot']);
 
+export const LanguageSchema = z.enum(['en', 'bn']);
+export type Language = z.infer<typeof LanguageSchema>;
+export const DEFAULT_LANGUAGE: Language = 'en';
+
+/** The language a child profile or builder job speaks. Records written before the field existed are English. */
+export function languageOf(record: { language?: Language | null }): Language {
+  return record.language ?? DEFAULT_LANGUAGE;
+}
+
 export const UserDocSchema = z.object({
   email: z.string(),
   displayName: z.string(),
@@ -28,6 +37,8 @@ export const ChildDocSchema = z.object({
   tier: TierSchema,
   labsUnlocked: z.boolean(),
   captions: z.boolean(),
+  // Absent on profiles created before the language setting existed; read it through languageOf().
+  language: LanguageSchema.optional(),
   sessionTargetMinutes: z.number().int().min(8).max(20),
   loopsCompleted: z.number().int().min(0),
   createdAt: epochMs,
