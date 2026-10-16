@@ -27,7 +27,8 @@ Everything in the 2026-10-15 master plan still applies. Added:
 2. **A wish in Bangla that names something outside the library.** Expected: the builder answers in Bangla, picks the nearest library stand-in, flags the hero for live generation, and the show narrates the wait in Bangla. Pinned in F4 and B5.
 3. **WebGL context loss mid-session (tab backgrounded on iPad).** Expected: the watchdog recreates the renderer from the current document and the voice session survives. Pinned in G2.
 4. **Frame rate drops under 45 fps with full effects.** Expected: the quality tier steps down (fewer particles, no shader water) within one second and steps back up when stable. Pinned in A6.
-5. **The music bed keeps playing when a character speaks or the parent mutes sound.** Expected: ducking within 100 ms of speech start, hard mute on the setting. Pinned in C3.
+5. **A generated script tries to reach the network or spawn without limit.** Expected: the static check or the budget watchdog stops it before or during the smoke run, and the child never sees it. Pinned in E1 and E2.
+6. **The music bed keeps playing when a character speaks or the parent mutes sound.** Expected: ducking within 100 ms of speech start, hard mute on the setting. Pinned in C3.
 
 ---
 
@@ -39,7 +40,7 @@ Everything in the 2026-10-15 master plan still applies. Added:
 | B. Asset library and builder v2 | Dev B | Claude Code (library runs and QA), Codex (builder) | 1 to 3 |
 | C. Sound and haptics | Dev A | Claude Code | 1 to 2 |
 | D. Generation show and draw mode | Dev A | Claude Code (impeccable passes) | 2 |
-| E. Games, creatures and vehicles | Dev A (UI), Dev B (DSL and builder) | Codex | 2 to 3 |
+| E. Generated games, creatures and vehicles | Dev B (runtime, builder), Dev A (bridge, HUD) | Codex (runtime, builder), Claude Code (bridge, HUD, safety review) | 2 to 4 |
 | F. Voice and language | Dev B | Codex (gateway), Claude Code (Bangla UI and review) | 1 to 3 |
 | G. Stability and telemetry | Dev A (client), Dev B (pipeline) | both | 4 to 5 |
 | H. Demo, docs, submission | both | both | 5 |
@@ -100,17 +101,21 @@ Each task lists its files, the interface it produces, and its acceptance test. E
 
 **D4. Impeccable passes.** (1) The show, draw tray and game chrome go through the impeccable skill (design direction already recorded in the Studio surface brief; refinement path).
 
-### E. Games, creatures and vehicles
+### E. Generated games, creatures and vehicles
 
-**E1. Game block in the DSL.** (1) Files: `packages/scene-schema/src/schema.ts`, `validator.ts`. Produces: `game?: { goal, score, lives, timeLimit, levels }`, actions `addScore`, `win`, `lose`, `nextLevel`, events `score`, `win`, `lose`. Acceptance: schema and validator tests; fixtures `catapult.json`, `marble-run.json`, `stack-tower.json`.
+**E1. Game API and sandbox runtime.** (3) Files: new package `packages/game-runtime` (`src/api.d.ts` the contract shipped to the model, `src/worker-shim.ts`, `src/static-check.ts` using `acorn`, `src/host.ts` the main-thread bridge, `src/budgets.ts`). Produces: `checkScript(source): { ok, errors }`, `createGameWorker(source, bridge): GameHandle` with `start`, `stop`, `onCommand`, `pushEvent`, `pushState`, budget enforcement and termination. Acceptance: the red-team set of twenty scripts is blocked (fetch, XHR, WebSocket, importScripts, indexedDB, eval, Function, infinite loop, 10,000 spawns, prototype tricks); a valid script receives events and emits commands in a unit test.
 
-**E2. Game runtime and chrome.** (2) Files: `packages/engine/src/game.ts`, `apps/web/components/studio/GameChrome.tsx`. Produces: score, lives, timer, level transitions, star rating; win and lose sheets. Acceptance: headless game loop test; Playwright flow for the catapult fixture.
+**E2. Headless smoke runner.** (2) Files: `packages/game-runtime/src/smoke.ts`, `services/builder/src/flows/smoke.ts`. Produces: `smokeRun(doc, source, { seconds: 10, language })` in a Node worker with the headless engine and scripted inputs; returns pass or a structured failure for the retry prompt. Acceptance: the eight few-shot games pass; each red-team script fails for the right reason.
 
-**E3. Parts tray for marble runs.** (1.5) Files: `apps/web/components/studio/PartsTray.tsx`, engine `placePart(libraryId, at)`. Produces: drag ramps, planks, funnels and bumpers from a tray into the world. Acceptance: placed parts persist in the document as entities tagged `placed`.
+**E3. Engine bridge and HUD.** (2) Files: `packages/engine/src/script-bridge.ts`, `apps/web/components/studio/GameHud.tsx`, `app/studio.css`. Produces: 20 Hz state and event streaming to the worker, command application through the engine API, score pill, lives, timer, level banner, win and lose sheets, `ask` prompts as a sheet, the "game got tangled" recovery state. Acceptance: the few-shot games play end to end in Playwright with the fake world source.
 
-**E4. Creatures and vehicles.** (2) Files: `packages/engine/src/behaviors.ts`, `packages/scene-schema/src/schema.ts`. Produces: behaviors `follow`, `flee`, `patrol`, `swim`, `fly`; `wheel` joint with motor; fixtures `fox-and-rabbit.json`, `cart-race.json`. Acceptance: headless behaviour tests.
+**E4. Builder `imagineGame` flow.** (2) Files: `services/builder/src/flows/imagine-game.ts`, `src/prompts/game-api.ts`, `src/prompts/games/*.ts` (eight few-shot programmes with scenes). Produces: playground-or-game decision, scene composition from the library, script generation on `gemini-4-argon`, static check, smoke run, one retry with the error, fallback, `SceneDoc.game.script` publishing; patch flow rewrites scripts from spoken changes. Acceptance: sixty-wish game eval at 95 percent first-try pass; red-team prompts never reach the engine.
 
-**E5. Builder v2 for all kinds.** (2) Files: `services/builder/src/prompts/kinds/*.ts`, `evals/imagination-prompts.json` (100 wishes, both languages). Produces: kind selection, remix suggestions, "surprise me". Acceptance: eval validity 98 percent, every kind covered.
+**E5. Draw, creatures and vehicles as script-reachable primitives.** (2) Files: `packages/engine/src/behaviors.ts`, `packages/scene-schema/src/schema.ts`. Produces: behaviors `follow`, `flee`, `patrol`, `swim`, `fly`; `wheel` joint with a motor; drawn bodies tagged `drawn`; all addressable from scripts by tag. Acceptance: headless behaviour tests; a few-shot "chase" game uses `follow`.
+
+**E6. Hand-built kinds as fallbacks and examples.** (1.5) Files: fixtures `catapult.json`, `marble-run.json`, `stack-tower.json`, `cart-race.json` with scripts; `apps/web/components/studio/PartsTray.tsx` for marble-run parts. Acceptance: each plays in the Studio and doubles as a few-shot example.
+
+**E7. Safety review.** (1) A written threat model for the sandbox (`docs/security/game-sandbox.md`), the red-team set in CI, and a reviewer sign-off before any generated script runs on a child's device.
 
 ### F. Voice and language
 
@@ -151,7 +156,7 @@ Each task lists its files, the interface it produces, and its acceptance test. E
 | Week | Exit |
 |---|---|
 | 1 | Staging speaks through Vertex; meadow and pond library batches QA'd; engine renders a library world with depth and juice; sound pack wired; `bn.ts` exists with fonts loading |
-| 2 | Generation show runs end to end; draw mode works; catapult game playable; builder composes from the catalogue |
-| 3 | Marble run, stacking, creatures and vehicles playable; personas and Bangla voice tuned on real sessions; Bangla UI parity |
+| 2 | Generation show runs end to end; draw mode works; Game API, sandbox and smoke runner pass the red-team set; builder composes from the catalogue |
+| 3 | A spoken game idea becomes a playable generated game on staging; creatures and vehicles playable; personas and Bangla voice tuned; Bangla UI parity |
 | 4 | Telemetry live; soak round one done with fix list closed |
 | 5 | Soak round two clean; production deployed; demo worlds and video ready |
