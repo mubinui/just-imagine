@@ -23,6 +23,8 @@ import {
 } from '../lib/preview-worlds';
 import type { Engine, EngineEvent } from '@just-imagine/engine';
 import { getVoice, releaseVoice, ensureChildVoice } from '../lib/voice';
+import { getMixer, soundForEngineEvents } from '../lib/sound';
+import { musicThemeFor } from '../lib/sound/theme';
 import { createWorldSource } from '../lib/world-source';
 import { recordDemoDiscovery } from '../lib/demo';
 import { env } from '../lib/env';
@@ -370,15 +372,41 @@ export function Studio() {
     };
   });
   const hasWorld = Boolean(world);
+  // Sound: unlock on the first touch inside the Studio, a music bed per world, ducking under speech.
+  useEffect(() => {
+    const mixer = getMixer();
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+    mixer.setReducedMotion(reduce.matches);
+    const onReduce = () => mixer.setReducedMotion(reduce.matches);
+    reduce.addEventListener('change', onReduce);
+    const unlock = () => {
+      void mixer.unlock().then(() => mixer.preload());
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    return () => {
+      reduce.removeEventListener('change', onReduce);
+      window.removeEventListener('pointerdown', unlock);
+      mixer.stopMusic();
+    };
+  }, []);
+  const musicTheme = world?.status === 'ready' ? musicThemeFor(world.doc) : undefined;
+  useEffect(() => {
+    if (musicTheme) getMixer().playMusic(musicTheme);
+  }, [musicTheme]);
+  useEffect(() => {
+    getMixer().setSpeaking(speaking);
+  }, [speaking]);
   useEffect(() => {
     if (!host.current || !hasWorld) return;
     let active = true;
     const target = host.current;
     void import('@just-imagine/engine')
       .then(async ({ mountEngine }) => {
-        const mounted = await mountEngine(target, worldRef.current!.doc, (event) =>
-          eventRef.current(event),
-        );
+        const playSound = soundForEngineEvents(getMixer());
+        const mounted = await mountEngine(target, worldRef.current!.doc, (event) => {
+          playSound(event);
+          eventRef.current(event);
+        });
         if (!active) {
           mounted.dispose();
           return;
