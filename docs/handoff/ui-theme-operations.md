@@ -2,6 +2,12 @@
 
 The real-service app is http://localhost:3300. Operator sign-in is http://localhost:3300/admin/sign-in with the local demo account `admin@justimagine.test` / `OperateJoy!2026`. This account is separate from `parent@justimagine.test` / `ImaginePlay!2026`. Both identities are local emulator demos; real Gemini services still use the private server key in root `.env.local`.
 
+To recreate the operator on another local emulator installation (not a production account), run:
+
+```sh
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GOOGLE_CLOUD_PROJECT=demo-just-imagine-local node scripts/grant-admin.mjs admin@justimagine.test --create --password 'OperateJoy!2026' --project demo-just-imagine-local
+```
+
 ## Publish a theme
 
 Open **Admin → Appearance**. Choose Forest, Ocean or Terracotta, inspect the scoped brand/stage/paper preview, then Apply. Reset preview returns to the published choice. Preview never publishes by itself. The publishing browser updates immediately; other open pages read the change on focus/visibility or within30 seconds. Reload also reads the published value. Forest is restored as the release default.

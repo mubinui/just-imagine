@@ -1,6 +1,6 @@
 # Implementation todo
 
-## UI consistency, themes and tagged release — release candidate verified
+## UI consistency, themes and tagged release — completed
 
 Plan: [ui-consistency-theme-release-plan.md](docs/handoff/ui-consistency-theme-release-plan.md).
 
@@ -9,7 +9,9 @@ Plan: [ui-consistency-theme-release-plan.md](docs/handoff/ui-consistency-theme-r
 - [x] Add persisted, guarded and audited admin theme personalization.
 - [x] Recolour shared brand mark, browser icon and interface consistently.
 - [x] Check interactions/themes/contrast, build, fresh review and documentation.
-- [ ] Update checkpoint, inspect release files, commit, push and create annotated tag.
+- [x] Update checkpoint, inspect release files, commit, push and create annotated tag.
+
+Release: `feat/full-development`, implementation commit `5546062`, annotated tag `demo-2026-10-16`. Real app remains on3300. Admin → Appearance offers three coordinated palettes; local operator details and reproducibility are in [ui-theme-operations.md](docs/handoff/ui-theme-operations.md). Full fixture13/13 and real operator3/3 browser checks passed.
 
 ## Story, stage and specialist experience — implemented locally
 
