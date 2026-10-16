@@ -1,4 +1,5 @@
 import { MATERIAL_TABLE, type SceneDoc, type GeneratedScene } from '@just-imagine/scene-schema';
+import { WORLD_DESIGN_RULES } from './world-design';
 import { FIXTURE_WORLDS, LAB_WORLDS } from '@just-imagine/fixtures/browser';
 import type { BuildWorldJob } from '@just-imagine/protocol';
 
@@ -65,6 +66,7 @@ export function scenePromptV1(job: BuildWorldJob): string {
   return [
     `Scene builder prompt ${PROMPT_VERSION}. Return only the requested structured JSON.`,
     STYLE_BIBLE,
+    WORLD_DESIGN_RULES,
     SAFETY_POLICY,
     `Age-band tone guide: ${JSON.stringify(AGE_GUIDE)}. Apply ${job.ageBand}.`,
     `Physics reference table (density relative to water; property arrays are inclusive ranges): ${JSON.stringify(MATERIAL_TABLE)}`,
