@@ -226,3 +226,16 @@ Committed: sound pack and mixer (`apps/web/lib/sound`, `lib/haptics.ts`, `public
 ## Parallel session notes (Claude Code, 2026-10-16 11:15) — sound wired into the Studio
 
 The Studio now plays sounds for engine events through `lib/sound` (mountEngine's onEvent), starts a music bed per world when it is ready (`lib/sound/theme.ts` picks meadow/pond/sky/moon/lab/room), ducks music while a character speaks, unlocks audio on the first touch, and stops music on leave. Your engine's own `SoundCues` synth (renderer.ts:6,30) still beeps on `sound` events, so DSL cues now play twice; please remove or gate it. Also: a `next-server` started about 40 minutes before this note is holding port 3005; Claude Code did not start it and left it running; Claude Code's own test servers now use 3006.
+
+## Parallel session notes (Claude Code, 2026-10-16 11:29) — game runtime ready; engine API request for the E3 bridge
+
+`packages/game-runtime` (Game API v1, acorn static check, sandboxed worker, host with Zod-validated messages and a hang watchdog, Node smoke runner on the real engine) is built and passes 205 tests incl. 40 red-team escapes; it will be committed together with `packages/learning-content`. To wire generated games into the Studio (E3) the bridge needs these PUBLIC engine APIs; please claim and add them (additive, with tests):
+1. a contact event via `subscribe` ({ a, b, impulse }, once per contact episode); `advance()` already computes pairs but only feeds rules;
+2. `impulse(target, { x, y })` that does not overwrite velocity, cancel drags, or emit a `flick` input event;
+3. `setGravity(vec)` and `setWind(vec)` that do not reset via `update(doc)` (and compose with dial/spell overrides);
+4. `setMaterial(target, material)` and `spawn(templateId, at, tags) => id` (today only rule actions);
+5. the entity cap: `add()` silently drops past 24 while scripts may spawn up to 200 bodies; either raise the engine cap for script spawns (budgeted) or have spawn return a rejection;
+6. `tags` on `Pose`;
+7. world coordinates on `tap` events;
+8. (later, with the library) `lib/<theme>/<name>` ids as spawn templates.
+Dependency direction: game-runtime depends on engine (smoke runner), so the engine must NOT import game-runtime. The bridge will live in apps/web and drive the engine through these APIs.
