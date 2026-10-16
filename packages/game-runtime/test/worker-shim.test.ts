@@ -10,8 +10,14 @@ afterEach(async () => {
 
 const ofType = (type: string) => (m: Record<string, unknown>) => m.type === type;
 
+// Tests that are not about timing get generous wall-clock budgets so slow CI runners
+// (first-call JIT, stack capture on throw) cannot trip the 8 ms handler limit.
+const RELAXED_TIMING = { handlerMs: 1000, aggregateMsPerSecond: 5000 };
+
 async function boot(script: string, budgets?: Record<string, number>, seed = 7) {
-  const worker = spawnEvalWorker(buildWorkerSource(script, { budgets }));
+  const worker = spawnEvalWorker(
+    buildWorkerSource(script, { budgets: { ...RELAXED_TIMING, ...budgets } }),
+  );
   workers.push(worker);
   await worker.until(ofType('ready'));
   worker.send({ type: 'start', seed });
