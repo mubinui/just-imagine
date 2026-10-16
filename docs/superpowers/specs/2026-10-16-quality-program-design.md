@@ -85,6 +85,27 @@ Additive DSL and engine work so the same loop covers eight kinds of play.
 
 **Builder v2.** Prompts know the eight kinds, pick one from the wish, and can propose a remix. A "surprise me" wish picks a kind and theme at random. Few-shot examples for every kind; the eval set grows to 100 wishes covering all kinds and both languages.
 
+## 6b. Learning Worlds: fixed sections with characters you can call
+
+Alongside imagined worlds, a Learning Map offers fixed, authored sections. Each is a painted world on the same stage where the things themselves are characters with a Gemini voice: a planet, a tooth, the stomach, a lion. The child taps a character, it comes close and introduces itself in a funny voice, the child asks it anything, and the child can "call" it on a toy phone. Learning happens while playing: every section explains its ideas in the moment of interaction, not in a lesson.
+
+**Sections (all six are built; order for the demo: Space, Animals, then Human Body, Food and Nutrition, Hygiene, Exercise).**
+
+- **Space.** The Sun and the planets as characters with personalities (Mercury is in a hurry, Venus is vain about her clouds, Mars is a red-dust adventurer, Jupiter is the big show-off, Saturn is proud of her rings). Tap a planet: it swoops close, says its facts in character, answers questions, and offers a challenge ("How many moons do I have? More than you, I bet!"). A "call Saturn" button rings a toy phone and connects.
+- **Animals.** Farm, jungle and ocean scenes. Tap an animal: it makes its real sound (licensed CC0 recordings with provenance), then talks in its Gemini voice about what it eats, where it lives, and one surprising thing. Challenges ask the child to find the animal that matches a clue.
+- **Human Body.** Body parts introduce themselves and why they matter: the heart that never takes a break, the lungs that are balloons, the stomach that is a mixing bowl, the brain that is the boss, bones, skin, eyes, ears and teeth. Challenges: "Which part helps you hear me right now?"
+- **Food and Nutrition.** A plate the child builds; foods explain their vitamins and minerals in character (the carrot and Vitamin A for eyes, milk and calcium for bones, the orange and Vitamin C). Challenges reward a balanced plate.
+- **Hygiene.** Brushing teeth with a two-minute brushing game guided by the Tooth characters, handwashing with the twenty-second song, bath time; the Germ characters flee when done right.
+- **Exercise.** A coach character leads short move-along challenges ("jump ten times, I will count!"), with the stage characters cheering; counts are voice-confirmed by the child.
+
+**How a section works.** A section is a World Pack: an authored scene in the Scene DSL (library assets, painted), a list of pack characters (name, look, voice, personality, a facts sheet, and the language variants), hotspots mapping entities to characters, sounds (animal calls), and challenges (question, answer key with accepted variations, hint, points, pet reward). Packs are content, versioned in the repo, QA'd like library assets, and authored in both languages.
+
+**Characters you can call.** Tapping a hotspot or pressing "Call" hands the voice session to the pack character the way a guide is summoned: the gateway builds the system instruction from the pack's persona and facts sheet (trusted authored content), pins the child's language, and the stage plays the "comes closer" moment (the character portrait grows to centre, the world dims, a toy-phone ring for calls). Companions and guides stay in the strip; "hang up" returns to the friend.
+
+**Challenges, points and pets.** The character asks a challenge by a tool (`ask_quiz`) that carries the answer key only server-side; the child answers by voice; the character judges with the key and calls `award_points` (validated by the gateway against the challenge's maximum) or gives the hint once. Points accumulate on the child profile; thresholds unlock eight collectible pets with authored art and sounds. An unlocked pet sits in the cast strip, follows the hero in imagined worlds, reacts to discoveries, and can be chosen as the child's companion. Pets do not speak, so they cost nothing per session. The parent dashboard shows points, pets and sections explored.
+
+**Learning while playing.** In imagined worlds, the Discovery Card loop already explains physics at the moment it happens; Learning Worlds extend that: every interaction has an in-character explanation line, and the pacing engine's attention beats become questions from the characters.
+
 ## 7. Voice that feels alive
 
 - **First real sessions.** The staging project runs `gemini-3.8-live` through Vertex AI in week one of this program; every later item is tuned against real latency.
@@ -148,6 +169,7 @@ Native apps; languages beyond Bangla and English; multiplayer; user-uploaded ima
 |---|---|---|
 | Art pipeline | Hybrid library plus live hero | Fully generated per wish; library only |
 | Play kinds this round | Draw, catapult and targets, marble runs and bridges, creatures and vehicles | Fewer kinds |
+| Learning Worlds | Six fixed sections as World Packs with callable characters; Space and Animals first; real CC0 animal recordings; voice-judged challenges with an answer key; eight collectible pets as stage companions | Generated learning content; tap-to-answer quizzes; gallery-only pets |
 | Game logic | Generated game scripts in a sandboxed worker, with static check, budgets and a headless smoke run | Richer declarative rules only; scripts without a smoke run |
 | Bangla depth | UI, captions and voice, per child | UI and captions only |
 | Devices | iPad 2021+, Android tablet, laptop Chrome, phones | Tablet only |

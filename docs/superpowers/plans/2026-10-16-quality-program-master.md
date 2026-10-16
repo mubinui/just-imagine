@@ -43,6 +43,7 @@ Everything in the 2026-10-15 master plan still applies. Added:
 | E. Generated games, creatures and vehicles | Dev B (runtime, builder), Dev A (bridge, HUD) | Codex (runtime, builder), Claude Code (bridge, HUD, safety review) | 2 to 4 |
 | F. Voice and language | Dev B | Codex (gateway), Claude Code (Bangla UI and review) | 1 to 3 |
 | G. Stability and telemetry | Dev A (client), Dev B (pipeline) | both | 4 to 5 |
+| I. Learning Worlds | Dev A (screens, pets), Dev B (gateway tools, api) | Claude Code (content package, packs, screens), Codex (protocol, gateway, api) | 2 to 4 |
 | H. Demo, docs, submission | both | both | 5 |
 
 Each task lists its files, the interface it produces, and its acceptance test. Estimates are in half-days.
@@ -144,6 +145,20 @@ Each task lists its files, the interface it produces, and its acceptance test. E
 **G4. Device soak.** (2 per round, two rounds) Files: `docs/qa/soak-checklist.md`, `docs/qa/soak-<date>-<device>.md`. Produces: results per device; fix lists. Acceptance: zero crashes and stuck states on round two.
 
 **G5. CI soak and device emulation.** (1) Files: `apps/web/e2e/soak.spec.ts`, `playwright.config.ts` projects. Produces: a 20-minute fake-mode soak nightly; four device projects; memory growth assertion. Acceptance: green nightly.
+
+### I. Learning Worlds
+
+**I1. World Pack schema and content package.** (2) Files: new `packages/learning-content` (`src/schema.ts` with `WorldPackSchema`: id, title, scene (SceneDoc), characters (id, name, look, voice, personality, facts, en/bn), hotspots (entityId to characterId, comesCloser style), sounds (entityId to file, provenance), challenges (id, characterId, question, answerKey, accepted[], hint, points, petReward?), `src/packs/*.json`, `src/index.ts`, `assets/sounds/`). Produces: `loadPack(id)`, `PACKS`, validation that every hotspot entity exists in the scene and every challenge character exists. Acceptance: schema tests; Space and Animals packs validate in both languages.
+
+**I2. Space and Animals packs.** (3) Content: eight planet characters plus the Sun; twelve animals across farm, jungle and ocean with CC0 recordings and provenance in `docs/art/animal-sounds-provenance.md`; ten challenges each with answer keys; scenes composed from library assets (placeholders until the library lands). Acceptance: content review checklist signed; recordings under 200 KB each.
+
+**I3. Human Body, Food and Nutrition, Hygiene, Exercise packs.** (4) Same shape; the brushing game and the handwashing song are scripted scenes with timers; the exercise coach's counts are voice-confirmed.
+
+**I4. Protocol and gateway: pack characters, quiz, points, pets.** (2, Codex) Files: `packages/protocol` (client `summonPersona { packId, characterId }`, `hangUp`; server `persona` (ready for a pack character), `quiz` (question, options?), `points` (total, delta, reason), `petUnlocked` (petId); `ChildDoc.points`, `ChildDoc.pets[]`, `learnProgress` subcollection), `services/gateway` (persona system instruction built from the pack, language pinned; tools `ask_quiz`, `award_points` validated against the challenge maximum, `give_hint`; `summon_pack_character` for voice-initiated calls), `services/api` (points, pets, progress endpoints; parent dashboard data). Acceptance: emulator tests; a scripted quiz conversation awards points once and unlocks a pet at the threshold.
+
+**I5. Learn Map and section screens.** (3) Files: `apps/web/app/(child)/learn/page.tsx`, `app/(child)/learn/[pack]/page.tsx`, `components/learn/*` (map of six islands with progress rings, section stage reusing the Studio stage with hotspots, the comes-closer overlay, the toy-phone call overlay with ring and hang-up, challenge sheet, points toast, pet unlock celebration), `components/pets/*` (eight pets, art and sounds, cast-strip slot, follow-the-hero behaviour hook). Acceptance: Playwright flow through Space: tap Saturn, hear facts in the fake gateway script, answer a challenge, earn points, unlock the first pet.
+
+**I6. Content QA and native review.** (1) Every pack reviewed for accuracy by the two developers and for Bangla by the native reader; answer keys tested against ten paraphrases each in the gateway's judge prompt eval.
 
 ### H. Demo, docs, submission
 
