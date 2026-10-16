@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import type { ByeReason } from './contracts';
 import { WebSocketServer, WebSocket, type RawData } from 'ws';
 import {
@@ -162,12 +163,14 @@ export function startGateway(options: {
               });
               session.awaitingAudioAt = undefined;
             }
-            if (
-              isCurrent() &&
-              session.socket?.readyState === 1 &&
-              session.socket.bufferedAmount < 960 * 150
-            )
+            if (isCurrent() && session.socket?.readyState === 1) {
+              // Live may generate faster than playback. Never silently omit syllables.
+              if (session.socket.bufferedAmount > 24000 * 2 * 30) {
+                session.socket.close(1013, 'Audio connection is too slow; reconnect');
+                return;
+              }
               session.socket.send(data);
+            }
           },
           interrupted: () => {
             if (isCurrent()) send(session, { type: 'interrupted' });
@@ -221,9 +224,21 @@ export function startGateway(options: {
                   if (terminal) connection?.toolResult(id, name, { accepted: true });
                   const result = await execute(session, name, args);
                   if (!terminal) connection?.toolResult(id, name, result);
-                } catch {
+                } catch (error) {
+                  logEvent(
+                    'tool_failed',
+                    {
+                      sessionId: session.record.id,
+                      ...liveErrorDetails(error),
+                      milestone: `tool:${Object.hasOwn(toolSchemas, name) ? name : 'unknown'}`,
+                    },
+                    'WARNING',
+                  );
                   session.live?.toolResult(id, name, {
-                    error: 'This action is not available. Try a safe supported action.',
+                    error:
+                      error instanceof ZodError
+                        ? `Check the tool arguments: ${error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ')}`
+                        : 'This action is not available. Try a safe supported action.',
                   });
                 }
               });

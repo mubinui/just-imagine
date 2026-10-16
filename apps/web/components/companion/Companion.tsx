@@ -150,6 +150,11 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
               <p>{companion.name}, your AI play friend</p>
             </div>
           </div>
+          <p className="companion-invitation">
+            {env.fake
+              ? 'Choose where we go together.'
+              : 'You can say “Show my saved worlds” or “Let’s make a game.”'}
+          </p>
           {caption && (
             <p className="companion-caption" aria-live="polite">
               {caption}
@@ -214,21 +219,10 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
         aria-label={`Explore with ${companion.name}`}
         onClick={() => setOpen(!open)}
       >
-        {!inline && <CompanionArt companion={companion} speaking={speaking} />}
-        <span>{inline ? 'Explore together' : companion.name}</span>
-        {inline && (
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden="true"
-          >
-            <path d="M5 5h14v11h-8l-6 4V5Z" />
-          </svg>
-        )}
+        <CompanionArt companion={companion} speaking={speaking} />
+        <span className="companion-toggle-label" title={`Ask ${companion.name}`}>
+          Ask {companion.name}
+        </span>
       </button>
     </div>
   );

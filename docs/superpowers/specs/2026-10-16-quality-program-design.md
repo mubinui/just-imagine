@@ -87,6 +87,12 @@ Additive DSL and engine work so the same loop covers eight kinds of play.
 - **Language.** The child's language is pinned in the system instruction; input and output transcription run in that language; voice names are chosen per language from a listening test.
 - **Reaction clips.** Side-character clips regenerated with `gemini-3.8-flash-tts` in both languages.
 
+## 7a. Voice on demand and Studio controls
+
+Voice is off until the child asks for it. Entering the Studio opens no Live session and shows no mic ring; the stage says "Tap a friend to start". Tapping any friend in the cast strip, or the "Ask <friend>" button, starts the session with that friend; the mic ring and "Listening" chip appear only then. "Stop" ends the session but keeps the world playable; "Finish playing" ends the session and leaves the Studio. "Build a game" asks the current friend to build a game (starting the session first if it is off); in the local preview it opens the nearest game fixture.
+
+The four controls form one cluster at the strip's bottom-right, in reach of the friends and away from the exits: Ask (sunshine, mic icon, the primary action), Stop (clay #ad6524, square icon, shown only while voice is live and replacing Ask), Build a game (cream, spark icon), Finish playing (quiet outline). All 64 px, labels hidden on phones except Ask. The quota note and preview label move to the status chip.
+
 ## 8. Language: Bangla and English
 
 - A `language` field on the child profile ('en' or 'bn'), set in parent Settings and in the profile picker, with English default.

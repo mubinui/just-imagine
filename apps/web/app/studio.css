@@ -273,6 +273,42 @@
   color: var(--ground);
   box-shadow: none;
 }
+.pill.primary {
+  background: var(--stage-live);
+  color: var(--ink);
+}
+.pill.primary:hover {
+  filter: brightness(1.05);
+}
+.pill.stop {
+  background: #ad6524;
+  color: var(--ground);
+}
+.pill.stop:hover {
+  filter: brightness(1.08);
+}
+.pill.build {
+  background: var(--stage-pill);
+  color: var(--ink);
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.listening-ask {
+  margin-top: 6px;
+  min-height: 64px;
+}
+.listening.is-off .mic-ring {
+  display: none;
+}
+.listening.is-off .mic-badge {
+  opacity: 0.45;
+}
+.status-chip .note {
+  color: var(--soft);
+}
 .pill.quiet:hover {
   background: #fff9ee3a;
 }
@@ -808,10 +844,10 @@
 .cast-list {
   display: flex;
   align-items: center;
-  justify-content: safe center;
+  justify-content: flex-start;
   gap: 12px;
   height: 100%;
-  padding: 12px 188px;
+  padding: 12px 540px 12px 24px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -1185,13 +1221,13 @@
     min-height: 44px;
     padding: 8px 10px;
     justify-content: center;
-    flex: 1;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: max-content;
   }
   .status-chip strong {
     font-size: 12px;
     gap: 6px;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
   }
   .status-chip strong::before {
     flex: none;
@@ -1287,7 +1323,10 @@
     grid-row: 2;
     padding: 12px;
     gap: 8px;
-    justify-content: safe center;
+    justify-content: flex-start;
+  }
+  .controls .pill:not(.primary):not(.stop) > span {
+    display: none;
   }
   .friend {
     min-width: 76px;

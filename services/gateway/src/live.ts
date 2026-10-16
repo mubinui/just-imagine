@@ -53,7 +53,13 @@ export class VertexLiveProvider implements LiveProvider {
         model: this.config.liveModel,
         config: {
           responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: character.voice } } },
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: character.kind === 'companion' ? 'Sulafat' : character.voice,
+              },
+            },
+          },
           systemInstruction: livePromptV1(record, summary),
           tools: [{ functionDeclarations: toolDeclarations }],
           inputAudioTranscription: {},

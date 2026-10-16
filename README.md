@@ -30,6 +30,12 @@ pnpm install
 pnpm lint && pnpm typecheck && pnpm test
 ```
 
+## Full local app with Gemini
+
+Run `node scripts/local.mjs start` with Docker Desktop running, then open **http://localhost:3300**. Put the server-only `GEMINI_API_KEY` in root `.env.local`; `node scripts/local.mjs reload-key` applies key changes. This runs real voice, game generation, companion creation and persistence with local Firebase services. The separate3200 preview remains fixture-only.
+
+See [local app and demo account instructions](docs/handoff/local-development.md).
+
 ## Local fixtures
 
 Start the scripted WebSocket gateway without Firebase or Vertex AI credentials:

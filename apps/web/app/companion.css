@@ -65,6 +65,21 @@
 .companion-dock.is-inline .companion-toggle span {
   font: inherit;
 }
+.companion-dock.is-inline .companion-toggle > .companion-art {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.companion-toggle > .companion-art > svg {
+  width: 100%;
+  height: 100%;
+}
+.companion-toggle-label {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .companion-menu {
   position: absolute;
   bottom: calc(100% + 12px);
@@ -105,6 +120,9 @@
   margin-bottom: 12px;
   max-height: 90px;
   overflow: auto;
+}
+.companion-menu .companion-invitation {
+  margin-bottom: 16px;
 }
 .companion-menu nav {
   display: grid;
@@ -299,8 +317,8 @@
   .companion-dock.is-inline .companion-menu {
     position: fixed;
     right: 12px;
-    bottom: 150px;
-    max-height: calc(100dvh - 180px);
+    bottom: 184px;
+    max-height: calc(100dvh - 216px);
   }
   .companion-dock.is-inline .companion-toggle {
     min-height: 44px;

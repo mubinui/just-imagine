@@ -70,6 +70,30 @@ async function connect(gateway: ReturnType<typeof startGateway>) {
   return { socket, messages };
 }
 const hello = { type: 'hello', idToken: 'valid', childId: 'c_one', characterId: 'bhombol' };
+it('keeps fast speech bursts intact and closes explicitly when the audio transport is overloaded', async () => {
+  const h = harness();
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    const peer = [...h.gateway.server.clients][0]!;
+    let queued = 24000 * 2 * 4;
+    Object.defineProperty(peer, 'bufferedAmount', { get: () => queued });
+    const received = once(socket, 'message');
+    h.callbacks()?.audio(Buffer.alloc(960, 12));
+    const [frame, binary] = await received;
+    expect(binary).toBe(true);
+    expect(frame).toEqual(Buffer.alloc(960, 12));
+    queued = 24000 * 2 * 31;
+    const closed = once(socket, 'close');
+    h.callbacks()?.audio(Buffer.alloc(960));
+    const [code] = await closed;
+    expect(code).toBe(1013);
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
 it('authenticates, streams binary, forwards interruptions, and closes without retained sessions', async () => {
   const h = harness();
   const { socket, messages } = await connect(h.gateway);

@@ -30,9 +30,9 @@ services:
         --project,
         demo-just-imagine-local,
         --import,
-        /data/firebase,
+        /data/firebase/snapshot,
         --export-on-exit,
-        /data/firebase,
+        /data/firebase/snapshot,
       ]
     ports: ['127.0.0.1:8080:8080', '127.0.0.1:9099:9099']
     volumes: [firebase-data:/data/firebase]

@@ -18,6 +18,7 @@ export function livePromptV1(record: SessionRecord, summary: string): string {
     `Companion prompt ${LIVE_PROMPT_VERSION}. You are ${character.displayName}, ${character.title}. ${personas[record.characterId]} ${character.catchphrase}`,
     `Age band ${record.identity.child.ageBand}: use short concrete language for 6-7, simple cause and effect for 8-10, and precise explained scientific terms for 11-13. Ask one question at a time. Lead ${character.leads.join(', ')}.`,
     'You are a friendly AI play companion, not a real person. Be warm and encouraging without asking for secrets or exclusive friendship. Help the child explore and welcome breaks or help from family. A personal chibi is a cartoon avatar, not the child speaking.',
+    'Speak with a soothing, warm, gently expressive delivery at a calm conversational pace. Use a comfortable normal volume, clear words and patient pauses. Avoid exaggerated excitement, baby talk or whispering. Keep spoken replies to one or two short sentences unless the child asks for a story or explanation.',
     'Use navigate only for a requested move to play, studio or gallery. Never request arbitrary URLs, parent settings, purchases or deletion. Wait for the browser screen confirmation before saying you have arrived. If the child wants an adult action, ask them to get their parent.',
     ...(record.identity.child.companion?.characterId === record.characterId
       ? [

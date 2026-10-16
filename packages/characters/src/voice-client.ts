@@ -45,6 +45,10 @@ export class VoiceClient {
   onStatus: (status: VoiceStatus) => void = () => {};
   constructor(private options: VoiceOptions) {
     this.audio = options.audio ?? new BrowserAudio();
+    this.audio.onPlaybackError = () => {
+      this.end();
+      this.setStatus('error');
+    };
     this.audio.onFrame = (frame) => {
       if (this.socket?.readyState === 1 && this.socket.bufferedAmount < 640 * 10)
         this.socket.send(frame);

@@ -21,6 +21,7 @@ function harness(capture = false) {
     play: vi.fn(),
     dispose: vi.fn(),
     onFrame: () => {},
+    onPlaybackError: () => {},
   };
   const client = new VoiceClient({
     url: 'ws://localhost',
@@ -49,6 +50,19 @@ const hello = {
   characterId: 'bhombol' as const,
 };
 afterEach(() => vi.useRealTimers());
+it('ends an overloaded playback stream explicitly and allows a fresh retry', async () => {
+  const { client, audio, sockets } = harness(true);
+  await client.connect(hello);
+  audio.onPlaybackError();
+  expect(client.status).toBe('error');
+  expect(audio.stopCapture).toHaveBeenCalledOnce();
+  expect(audio.flush).toHaveBeenCalledOnce();
+  expect(sockets[0]?.close).toHaveBeenCalledOnce();
+  expect(client.session).toBeUndefined();
+  await client.connect(hello);
+  expect(sockets).toHaveLength(2);
+  client.end();
+});
 it('refuses connect before profile audio unlock', async () => {
   const { client, audio, sockets } = harness();
   audio.unlocked = false;

@@ -31,10 +31,25 @@ Current handoff: [CHECKPOINT.md](CHECKPOINT.md). Historical evidence and scoped 
 - [x] Preserve the companion/voice session across child screens and add bounded Gemini navigation tools.
 - [x] Verify photo ownership, input limits, attempt limits, concurrent/deletion fences, and same-session navigation.
 
+## Creative freedom follow-up — 2026-10-16
+
+Plan: [creative-freedom-plan.md](docs/handoff/creative-freedom-plan.md).
+
+- [x] Investigate continuous crackling; repair jitter/burst handling, smooth PCM transitions and reduce audio-thread/UI traffic.
+- [x] Configure the personal companion's soothing Sulafat voice and verify real Gemini Live speech.
+- [x] Show the personal avatar in the Studio navigation trigger with an explicit Ask action.
+- [ ] Verify updated sound on the user's actual speakers/headphones; synthetic audio tests are not listening acceptance.
+- [ ] Preserve open-ended creation intent through planning, generation and honest fallback.
+- [ ] Extend validated engine mechanics and generate controls from actual game capabilities.
+- [ ] Make artwork coherent, durable and regenerated when the child changes its appearance.
+- [ ] Add conversational undo and safe owned-world navigation by name.
+- [ ] Evaluate diverse original ideas, repeated spoken edits, mobile performance and child enjoyment.
+
 ## Remaining implementation / acceptance work
 
-- [ ] Connect Gemini credentials and verify real parent photo→chibi generation, generated-art quality and Gemini3.8Live microphone/navigation behavior.
-- [ ] Implement the Docker Compose/local service adapters discussed in the local full-stack feasibility check.
+- [x] Connect Gemini credentials; verify real voice→generated world→render→gallery and parent upload→generated chibi→save/reload using synthetic image input.
+- [ ] Verify likeness on a parent-supplied child photo and speech usability with the actual child/device.
+- [x] Implement Docker Compose, guarded local durable queue, filesystem assets, server-only key configuration and separate test emulators.
 
 - [ ] Review bounded backend follow-through in `docs/handoff/backend-direction-fixes.md`: safe parallel moderation/tool gating, Live transport lifecycle coverage, permanent/transient task classification and asset failure diagnostics.
 - [ ] Implement explicit buoyant-flag behavior and automatic splitting for breakable materials; density-based buoyancy alone does not cover the spec.

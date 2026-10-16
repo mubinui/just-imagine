@@ -199,7 +199,7 @@ export class FirestoreSessionStore implements SessionStore {
             uid: job.uid,
             childId: job.childId,
             worldId: job.worldId,
-            payload: job,
+            payload: JSON.parse(JSON.stringify(job)),
             state: 'queued',
             attempts: 0,
             nextAt: Date.now(),

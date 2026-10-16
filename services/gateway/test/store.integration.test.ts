@@ -92,3 +92,45 @@ it('persists learning progress once when finish is retried', async () => {
     active: false,
   });
 });
+
+it('delivers local jobs with optional fields through Firestore without undefined values', async () => {
+  const previous = process.env['LOCAL_DEV'];
+  process.env['LOCAL_DEV'] = '1';
+  const store = new FirestoreSessionStore({
+    project: 'demo-just-imagine',
+    queue: 'test',
+    builderUrl: 'https://example.test',
+    serviceAccount: 'test@example.test',
+  });
+  const ref = db().doc('localBuildTasks/j_local_optional');
+  try {
+    await store.enqueue({
+      kind: 'build',
+      jobId: 'j_local_optional',
+      worldId: 'w_local_optional',
+      uid: 'local_queue_parent',
+      childId: 'c_local_queue',
+      sessionId: 's_local_queue',
+      plan: 'free',
+      description: 'A friendly bouncing ball',
+      concepts: ['bounce'],
+      ageBand: '8-10',
+      tier: 'playground',
+      labKind: undefined,
+      promptVersion: 'v1',
+      styleVersion: 'v1',
+      conversationSummary: '',
+    });
+    const task = (await ref.get()).data();
+    expect(task).toMatchObject({
+      worldId: 'w_local_optional',
+      state: 'queued',
+      payload: { kind: 'build' },
+    });
+    expect(task?.['payload']).not.toHaveProperty('labKind');
+  } finally {
+    if (previous === undefined) delete process.env['LOCAL_DEV'];
+    else process.env['LOCAL_DEV'] = previous;
+    await ref.delete();
+  }
+});

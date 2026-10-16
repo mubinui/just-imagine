@@ -96,6 +96,8 @@ Each task lists its files, the interface it produces, and its acceptance test. E
 
 **D3. Draw mode.** (2) Files: `packages/engine/src/draw.ts`, `apps/web/components/studio/DrawTray.tsx`. Produces: `engine.beginStroke / addPoint / endStroke(material)` creating simplified, decomposed, thickened polygon bodies tagged `drawn`; eraser; three material pills. Acceptance: Review Focus 1; a drawn bridge holds a rolling ball in a headless test.
 
+**D0. Voice on demand and Studio controls.** (1, first task of the programme, implemented ahead of approval as a bounded change at the user's request) Files: `apps/web/components/Studio.tsx`, `components/studio/parts.tsx`, `app/studio.css`, `lib/strings/en.ts`, `lib/voice.ts`. Produces: no Live session on mount; `startVoice(characterId)` from an avatar tap or the Ask pill; `stopVoice()` keeps the world; a control cluster (Ask or Stop, Build a game, Finish playing) in the strip corner at 64 px; "Build a game" starts voice if needed and sends the wish. Acceptance: Playwright asserts no `hello` is sent until a friend is tapped; Stop ends the session and the world stays interactive; existing flows updated accordingly.
+
 **D4. Impeccable passes.** (1) The show, draw tray and game chrome go through the impeccable skill (design direction already recorded in the Studio surface brief; refinement path).
 
 ### E. Games, creatures and vehicles

@@ -20,6 +20,8 @@ test('parent chooses a friend and the same voice session follows navigation acro
   await expect(setup).toContainText('Photo drawing needs the connected Gemini service');
   await page.goto('/play');
   await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
+  await expect(page.locator('.engine-host canvas')).toBeVisible();
+  await page.getByRole('button', { name: /^Ask / }).first().click();
   await page.getByRole('button', { name: 'bounce', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pip', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Explore with Pip' }).click();

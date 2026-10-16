@@ -42,6 +42,7 @@ import {
   Storybook,
   SummonOverlay,
   TopBar,
+  StudioControls,
   CloseIcon,
   quotaCopy,
   type JobStatus,
@@ -73,6 +74,7 @@ export function Studio() {
   const previousDoc = useRef<WorldWithId | undefined>(undefined);
   const discovered = useRef(new Set<string>());
   const hello = useRef<Hello | undefined>(undefined);
+  const pendingIntent = useRef<'newGame' | undefined>(undefined);
   const [child, setChild] = useState<ChildResponse>(),
     [fixture, setFixture] = useState<FixtureWorldKey>('jellyDragon'),
     [worldId, setWorldId] = useState<string>(),
@@ -186,6 +188,10 @@ export function Studio() {
         case 'ready':
           if (message.worldId && !env.fake) selectWorldId(message.worldId);
           setCharacter(message.characterId);
+          if (pendingIntent.current === 'newGame' && !env.fake) {
+            pendingIntent.current = undefined;
+            getVoice().send({ type: 'newGame' });
+          }
           break;
         case 'newGame':
           selectWorldId(undefined);
@@ -197,7 +203,14 @@ export function Studio() {
           break;
         case 'worldJob':
           setJob(message.status);
-          if (!env.fake) selectWorldId(message.worldId);
+          if (!env.fake) {
+            // A queued world does not exist yet; Firestore correctly denies reads without an owner.
+            // Subscribe only after the builder publishes the first playable document.
+            if (['placeholders', 'hero', 'ready'].includes(message.status))
+              selectWorldId(message.worldId);
+            else if (message.status === 'queued' && selectedWorld.current !== message.worldId)
+              selectWorldId(undefined);
+          }
           break;
         case 'transcript':
           if (message.role === 'character' && !env.fake) setCaption(message.text);
@@ -261,12 +274,7 @@ export function Studio() {
           break;
       }
     });
-    let active = true;
-    void (async () => {
-      if (active) await connectVoice();
-    })();
     return () => {
-      active = false;
       clearPending();
       timers.forEach(clearTimeout);
       unsubscribe();
@@ -464,6 +472,34 @@ export function Studio() {
     getVoice().end();
     setEnded(true);
   }
+  const live = status === 'connected' || status === 'connecting' || status === 'reconnecting';
+  function startVoice(id?: CharacterId) {
+    if (id) {
+      setCharacter(id);
+      if (hello.current) hello.current.characterId = id;
+    }
+    void connectVoice();
+  }
+  function stopVoice() {
+    pendingIntent.current = undefined;
+    clearPending();
+    getVoice().end();
+    setSpeaking(false);
+  }
+  function buildGame() {
+    if (env.fake) {
+      const key = (Object.keys(FIXTURE_WORLDS) as FixtureWorldKey[]).find((k) =>
+        /projectile|cannon|game/i.test(k),
+      );
+      if (key) switchWorld(key);
+      return;
+    }
+    if (live) send({ type: 'newGame' });
+    else {
+      pendingIntent.current = 'newGame';
+      startVoice();
+    }
+  }
   if (ended)
     return (
       <main className="bye">
@@ -494,8 +530,8 @@ export function Studio() {
         captions={captions}
         onCaptions={() => setCaptions(!captions)}
         onReset={resetWorld}
-        onNewGame={env.fake ? undefined : () => send({ type: 'newGame' })}
         onRetry={() => void connectVoice()}
+        note={quota !== undefined ? quotaCopy(quota) : undefined}
         storybook={
           env.fake ? (
             <Storybook worlds={FIXTURE_WORLDS} selected={fixture} onSelect={switchWorld} />
@@ -513,6 +549,8 @@ export function Studio() {
                 face={face}
                 building={building}
                 status={status}
+                live={live}
+                onAsk={() => startVoice()}
               />
             )}
             {world && !env.fake && (
@@ -591,20 +629,24 @@ export function Studio() {
         speaking={speaking}
         activeFace={world ? face : undefined}
         onPick={(id) => {
+          if (!live) {
+            startVoice(id);
+            return;
+          }
           setCharacter(id);
           send({ type: 'switchCharacter', characterId: id });
         }}
-        left={
-          quota !== undefined ? <span className="quota-note">{quotaCopy(quota)}</span> : undefined
-        }
         right={
-          <>
-            <CompanionMenu inline />
-            <button type="button" className="pill" onClick={finish}>
-              {s.end}
-            </button>
-          </>
+          <StudioControls
+            live={live}
+            name={personal?.name ?? CHARACTERS[character].displayName}
+            onAsk={() => startVoice()}
+            onStop={stopVoice}
+            onBuild={buildGame}
+            onFinish={finish}
+          />
         }
+        left={<CompanionMenu inline />}
       />
       {summoning && <SummonOverlay character={summoning} />}
       {keypad && (

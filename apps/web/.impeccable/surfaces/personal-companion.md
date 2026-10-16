@@ -36,7 +36,7 @@ A saved companion's artwork and name appear in the explorer picker, matching act
 
 Preview supports persistent ready-made selection and tap navigation. It explicitly states that photo drawing needs the connected Gemini service, disables the draw action and offers a ready-made friend. It labels the companion Preview friend · tap to explore and omits microphone controls. A local photo preview is source input, not generated-art evidence.
 
-Real photo generation requires parent permission and configured Gemini access. The app keeps generated artwork in the private child profile and does not save the source photo; provider-side retention is governed by the selected Gemini service. Real photo fidelity, model availability and microphone/Live conversation remain credentialed acceptance gates. Source wiring to Gemini 3.8 Live does not establish a completed live-provider test.
+Real photo generation requires parent permission and configured Gemini access. The app keeps generated artwork in the private child profile and does not save the source photo; provider-side retention is governed by the selected Gemini service. Later credentialed checks verified Gemini3.8Live speech, browser microphone transcription, voice-driven world creation and parent upload→generated chibi→save/reload. Image input was synthetic artwork; likeness on a parent-supplied photo and real child/device usability remain acceptance work. See CHECKPOINT.md and the local-development handoff for evidence.
 
 ## Evidence and finish
 

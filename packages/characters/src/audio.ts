@@ -31,15 +31,22 @@ export class PcmCapture {
     return frames;
   }
 }
-/** Bounded ring buffer; overflow drops oldest audio rather than building latency. */
+/** Bounded PCM queue with a short jitter cushion; never silently discard syllables. */
 export class PcmPlayback {
   private data: Float32Array;
   private start = 0;
   private length = 0;
   private phase = 0;
+  private playing = false;
+  private waiting = 0;
+  private gain = 0;
+  private last = 0;
+  private fade = 0;
+  private readonly rampSamples: number;
+  private readonly prebuffer: number;
   constructor(
     private outputRate: number,
-    capacity = 24000 * 3,
+    capacity = 24000 * 30,
   ) {
     if (
       !Number.isFinite(outputRate) ||
@@ -49,36 +56,66 @@ export class PcmPlayback {
     )
       throw new RangeError('Invalid playback configuration');
     this.data = new Float32Array(capacity);
+    this.rampSamples = Math.max(1, Math.round(outputRate * 0.005));
+    this.prebuffer = Math.min(capacity, 2400);
   }
   get queuedSamples() {
     return this.length;
   }
-  push(samples: Int16Array) {
+  /** A false return requests explicit recovery instead of dropping earlier speech. */
+  push(samples: Int16Array): boolean {
+    if (samples.length > this.data.length - this.length) return false;
     for (const sample of samples) {
-      if (this.length === this.data.length) {
-        this.start = (this.start + 1) % this.data.length;
-        this.length--;
-      }
       this.data[(this.start + this.length) % this.data.length] = sample / 32768;
       this.length++;
     }
+    return true;
   }
   clear() {
     this.start = 0;
     this.length = 0;
     this.phase = 0;
-    this.data.fill(0);
+    this.playing = false;
+    this.waiting = 0;
+    this.gain = 0;
+    this.fade = this.rampSamples;
   }
   read(size: number): Float32Array {
     const output = new Float32Array(size);
-    for (let i = 0; i < size; i++) {
+    this.readInto(output);
+    return output;
+  }
+  /** Called on the audio thread: reuse the browser's output array. */
+  readInto(output: Float32Array): void {
+    output.fill(0);
+    for (let i = 0; i < output.length; i++) {
+      // Fade residual output over5ms on interruption or starvation, never a hard cut.
+      if (this.fade > 0) {
+        output[i] = this.last * (--this.fade / this.rampSamples);
+        if (!this.fade) this.last = 0;
+        continue;
+      }
+      if (!this.playing) {
+        if (!this.length) continue;
+        this.waiting++;
+        // Short replies must also start: a maximum150ms wait needs no turn-end event.
+        if (this.length < this.prebuffer && this.waiting < this.outputRate * 0.15) continue;
+        this.playing = true;
+        this.waiting = 0;
+        this.gain = 0;
+      }
       if (!this.length) {
+        this.playing = false;
         this.phase = 0;
-        break;
+        this.fade = this.rampSamples;
+        output[i] = this.last;
+        continue;
       }
       const a = this.data[this.start] ?? 0;
       const b = this.length > 1 ? (this.data[(this.start + 1) % this.data.length] ?? a) : a;
-      output[i] = a + (b - a) * this.phase;
+      this.gain = Math.min(1, this.gain + 1 / this.rampSamples);
+      this.last = (a + (b - a) * this.phase) * this.gain;
+      output[i] = this.last;
       this.phase += 24000 / this.outputRate;
       while (this.phase >= 1 && this.length > 0) {
         this.start = (this.start + 1) % this.data.length;
@@ -86,7 +123,6 @@ export class PcmPlayback {
         this.phase--;
       }
     }
-    return output;
   }
 }
 export function mouthOpen(rms: number, previous = 0): number {

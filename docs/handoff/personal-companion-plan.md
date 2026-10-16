@@ -12,7 +12,7 @@ Implementation:
 4. Add parent companion setup, profile artwork, and a child companion navigation surface using the incumbent design. Keep parent account/billing actions outside the voice destination set. Photo generation is honest about missing credentials in preview.
 5. Test schema/auth/image bounds, concurrent/deletion behavior, navigation validation, voice lifecycle and browser route transitions. Update checkpoint and TODO.
 
-Source photo exists only for the generation request; no raw photo is written to app storage. Provider-side retention remains governed by the selected Gemini service. Generated artwork is an animated portrait, not a rigged Rive character. Credentialed photo generation and real microphone/live verification require configured Gemini access. Docker orchestration from the preceding feasibility discussion remains a separate unimplemented task.
+Source photo exists only for the generation request; no raw photo is written to app storage. Provider-side retention remains governed by the selected Gemini service. Generated artwork is an animated portrait, not a rigged Rive character. Credentialed photo generation and real microphone/live verification require configured Gemini access. Docker orchestration is now implemented; see `docs/handoff/local-development.md`.
 
 ## Implemented source
 
@@ -28,4 +28,4 @@ API service: `GEMINI_API_KEY` (or `COMPANION_VERTEX=1` with ADC/project), `COMPA
 
 Photo generation is synchronous with bounded provider timeouts and 120s request leases; use a request-capable hosting timeout for this endpoint. Upload limit: 4MiB encoded-source bytes / 16MP / one image; output: at most130KB WebP (512px). Stored profile art is excluded from Firestore indexing. Private profile art is small enough to return with the profile rather than expose a public child-photo asset URL.
 
-Generated-art fidelity, live microphone conversation, API-key model availability and real photo generation remain credentialed acceptance gates. Photo motion currently responds with a gentle speaking gesture; this is not a rigged face/lip-sync animation. Source provider data retention is outside the app's in-memory source-photo lifetime. Local Docker orchestration has not been implemented in this feature pass.
+Real Gemini Live speech, browser microphone transcription, tool-driven game creation and parent upload→generated chibi→save/reload are verified. The image test used synthetic artwork; likeness fidelity still needs a parent-supplied photo. Photo motion currently responds with a gentle speaking gesture; this is not a rigged face/lip-sync animation. Source provider data retention is outside the app's in-memory source-photo lifetime. The Docker3300 app uses real services and persistent demo identities, with the key in root `.env.local`.

@@ -12,6 +12,7 @@ export class BrowserAudio {
   private capturePending?: Promise<void>;
   onFrame: (frame: ArrayBuffer) => void = () => {};
   onMouth: (value: number) => void = () => {};
+  onPlaybackError: () => void = () => {};
   get unlocked() {
     return this.context?.state === 'running';
   }
@@ -31,8 +32,8 @@ export class BrowserAudio {
         process(inputs){const channel=inputs[0]?.[0];if(channel)for(const frame of this.capture.push(channel))this.port.postMessage(frame.buffer,[frame.buffer]);return true;}
       }
       class ImaginePlayback extends AudioWorkletProcessor {
-        constructor(){super();this.buffer=new PcmPlayback(sampleRate);this.port.onmessage=e=>{if(e.data==='clear')this.buffer.clear();else this.buffer.push(new Int16Array(e.data));};}
-        process(_inputs,outputs){const out=outputs[0]?.[0];if(out){out.set(this.buffer.read(out.length));let sum=0;for(const x of out)sum+=x*x;this.port.postMessage(Math.sqrt(sum/out.length));}return true;}
+        constructor(){super();this.buffer=new PcmPlayback(sampleRate);this.elapsed=0;this.port.onmessage=e=>{if(e.data==='clear')this.buffer.clear();else if(!this.buffer.push(new Int16Array(e.data))){this.buffer.clear();this.port.postMessage('overflow');}};}
+        process(_inputs,outputs){const out=outputs[0]?.[0];if(out){this.buffer.readInto(out);this.elapsed+=out.length;if(this.elapsed>=sampleRate/30){this.elapsed=0;let sum=0;for(const x of out)sum+=x*x;this.port.postMessage(Math.sqrt(sum/out.length));}}return true;}
       }
       registerProcessor('imagine-capture',ImagineCapture);registerProcessor('imagine-playback',ImaginePlayback);`;
     const url = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
@@ -43,8 +44,10 @@ export class BrowserAudio {
     }
     if (this.disposed) return;
     this.playback = new AudioWorkletNode(context, 'imagine-playback', { outputChannelCount: [1] });
-    this.playback.port.onmessage = (event: MessageEvent<number>) =>
-      this.onMouth(mouthOpen(event.data));
+    this.playback.port.onmessage = (event: MessageEvent<number | 'overflow'>) => {
+      if (event.data === 'overflow') this.onPlaybackError();
+      else this.onMouth(mouthOpen(event.data));
+    };
     this.playback.connect(context.destination);
   }
   async startCapture() {

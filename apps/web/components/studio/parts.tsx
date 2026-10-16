@@ -117,7 +117,67 @@ const SparkIcon = () => (
     <path d="M12 2.5 14.2 9.8 21.5 12l-7.3 2.2L12 21.5l-2.2-7.3L2.5 12l7.3-2.2Z" />
   </svg>
 );
+const StopIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+    <rect x="5" y="5" width="14" height="14" rx="3.5" />
+  </svg>
+);
+const ExitIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14 4h4.5a1.5 1.5 0 0 1 1.5 1.5v13a1.5 1.5 0 0 1-1.5 1.5H14M4 12h11M11 8l4 4-4 4" />
+  </svg>
+);
 export { CloseIcon, ChevronIcon };
+
+export function StudioControls({
+  live,
+  name,
+  onAsk,
+  onStop,
+  onBuild,
+  onFinish,
+  menu,
+}: {
+  live: boolean;
+  name: string;
+  onAsk: () => void;
+  onStop: () => void;
+  onBuild: () => void;
+  onFinish: () => void;
+  menu?: React.ReactNode;
+}) {
+  return (
+    <div className="controls" role="group" aria-label={s.guides}>
+      {live ? (
+        <button type="button" className="pill stop" onClick={onStop}>
+          <StopIcon />
+          <span>{s.stop}</span>
+        </button>
+      ) : (
+        <button type="button" className="pill primary" onClick={onAsk}>
+          <MicIcon />
+          <span>{s.ask.replace('{name}', name)}</span>
+        </button>
+      )}
+      <button type="button" className="pill build" onClick={onBuild}>
+        <SparkIcon />
+        <span>{s.buildGame}</span>
+      </button>
+      {menu}
+      <button type="button" className="pill quiet" onClick={onFinish} aria-label={s.end}>
+        <ExitIcon />
+      </button>
+    </div>
+  );
+}
 const StarIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
     <path d="m12 2.5 2.6 6.1 6.6.6-5 4.4 1.5 6.5L12 16.7l-5.7 3.4 1.5-6.5-5-4.4 6.6-.6Z" />
@@ -130,18 +190,18 @@ export function TopBar({
   captions,
   onCaptions,
   onReset,
-  onNewGame,
   onRetry,
   storybook,
+  note,
 }: {
   status: VoiceStatus;
   job?: JobStatus;
   captions: boolean;
   onCaptions: () => void;
   onReset: () => void;
-  onNewGame?: () => void;
   onRetry: () => void;
   storybook?: React.ReactNode;
+  note?: string;
 }) {
   const state =
     status === 'connected' && job && job !== 'ready' && job !== 'failed' ? 'building' : status;
@@ -158,16 +218,6 @@ export function TopBar({
         <GalleryIcon />
         <span>{s.gallery}</span>
       </Link>
-      {onNewGame && (
-        <button
-          className="pill"
-          type="button"
-          onClick={onNewGame}
-          disabled={status !== 'connected'}
-        >
-          Build a game
-        </button>
-      )}
       {storybook}
       <span className="spacer" />
       <button className="pill quiet" type="button" onClick={onReset} aria-label={s.reset}>
@@ -188,6 +238,7 @@ export function TopBar({
         <small>
           {s.speak}: {status}
         </small>
+        {note && <small className="note">{note}</small>}
         {status === 'error' && (
           <button type="button" onClick={onRetry}>
             {s.retry}
@@ -233,16 +284,24 @@ export function Listening({
   face,
   building,
   status,
+  live,
+  onAsk,
 }: {
   name?: string;
   character: CharacterId;
   face: React.ReactNode;
   building: boolean;
   status: VoiceStatus;
+  live: boolean;
+  onAsk: () => void;
 }) {
   const name = personalName ?? CHARACTERS[character].displayName;
   return (
-    <div className={building ? 'listening is-building' : 'listening'}>
+    <div
+      className={['listening', building ? 'is-building' : '', live ? '' : 'is-off']
+        .filter(Boolean)
+        .join(' ')}
+    >
       <div className="listening-inner">
         <div className="listening-friend">
           <span className="spotlight" aria-hidden="true" />
@@ -256,15 +315,23 @@ export function Listening({
             <MicIcon />
           </span>
         </div>
-        <h1>{building ? s.building : s.listening.replace('{name}', name)}</h1>
+        <h1>{building ? s.building : live ? s.listening.replace('{name}', name) : s.tapFriend}</h1>
         {building ? (
           <span className="building-dots" aria-hidden="true">
             <i />
             <i />
             <i />
           </span>
-        ) : (
+        ) : live ? (
           <p>{s.listeningHint}</p>
+        ) : (
+          <>
+            <p>{s.tapFriendHint}</p>
+            <button type="button" className="pill primary listening-ask" onClick={onAsk}>
+              <MicIcon />
+              <span>{s.ask.replace('{name}', name)}</span>
+            </button>
+          </>
         )}
       </div>
     </div>

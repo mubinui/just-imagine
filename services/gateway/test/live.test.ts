@@ -53,6 +53,8 @@ it('accepts setup, delivers padded PCM tails, and closes intentionally without r
     events = cb;
     expect(config).not.toHaveProperty('proactivity');
     expect(config).not.toHaveProperty('safetySettings');
+    expect(config.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe('Sulafat');
+    expect(config.systemInstruction).toContain('calm conversational pace');
     queueMicrotask(() => cb.onmessage({ setupComplete: {} }));
     return {
       close,
