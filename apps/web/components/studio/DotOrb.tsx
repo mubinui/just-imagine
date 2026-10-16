@@ -18,6 +18,16 @@ export function DotOrb({ mode, className }: { mode: OrbMode; className?: string 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let frame = 0;
     let start = performance.now();
+    let warmColour = '#f7d76e',
+      lightColour = '#fff9ee';
+    const paletteChanged = () => {
+      const style = getComputedStyle(el);
+      warmColour = style.getPropertyValue('--yellow').trim() || warmColour;
+      lightColour = style.getPropertyValue('--ground').trim() || lightColour;
+      if (reduce) frame = requestAnimationFrame(draw);
+    };
+    const observer = new MutationObserver(paletteChanged);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
     const draw = (now: number) => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       const w = el.clientWidth;
@@ -38,7 +48,7 @@ export function DotOrb({ mode, className }: { mode: OrbMode; className?: string 
       for (const q of projected) {
         const warm = q.depth > 0.62;
         ctx.globalAlpha = q.alpha;
-        ctx.fillStyle = warm ? '#f7d76e' : '#fff9ee';
+        ctx.fillStyle = warm ? warmColour : lightColour;
         ctx.beginPath();
         ctx.arc(cx + q.sx, cy + q.sy, q.size, 0, Math.PI * 2);
         ctx.fill();
@@ -46,9 +56,13 @@ export function DotOrb({ mode, className }: { mode: OrbMode; className?: string 
       ctx.globalAlpha = 1;
       if (!reduce) frame = requestAnimationFrame(draw);
     };
+    paletteChanged();
     start = performance.now();
     frame = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
   }, []);
   return <canvas ref={canvas} className={className ?? 'dot-orb'} aria-hidden="true" />;
 }

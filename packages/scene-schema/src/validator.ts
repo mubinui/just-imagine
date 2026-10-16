@@ -1,4 +1,10 @@
-import { SceneDocSchema, type Action, type Entity, type SceneDoc } from './schema';
+import {
+  GAME_SCRIPT_MAX_BYTES,
+  SceneDocSchema,
+  type Action,
+  type Entity,
+  type SceneDoc,
+} from './schema';
 import { LIMITS } from './limits';
 import { lookupMaterialRange } from './materials-table';
 import { findBlockedTerm } from './blocklist';
@@ -29,7 +35,8 @@ export type IssueCode =
   | 'LAB_EMPTY'
   | 'PLAYGROUND_HAS_LAB_FIELDS'
   | 'UNKNOWN_CHALLENGE_REF'
-  | 'VARIABLE_RANGE';
+  | 'VARIABLE_RANGE'
+  | 'GAME_SCRIPT_TOO_LARGE';
 
 export interface Issue {
   code: IssueCode;
@@ -72,9 +79,22 @@ export function validateScene(input: unknown): ValidationResult {
   checkLearning(doc, err);
   checkBlocklist(doc, err);
   checkLab(doc, err);
+  checkGame(doc, err);
 
   const ok = issues.every((i) => i.severity !== 'error');
   return ok ? { ok: true, doc, issues } : { ok: false, doc, issues };
+}
+
+function checkGame(doc: SceneDoc, err: Report): void {
+  const source = doc.game?.script.source;
+  if (source === undefined) return;
+  const bytes = new TextEncoder().encode(source).length;
+  if (bytes > GAME_SCRIPT_MAX_BYTES)
+    err(
+      'GAME_SCRIPT_TOO_LARGE',
+      'game.script.source',
+      `the game script is ${bytes} bytes; the limit is ${GAME_SCRIPT_MAX_BYTES}`,
+    );
 }
 
 function checkIds(doc: SceneDoc, err: Report): void {
@@ -198,7 +218,7 @@ function checkEntities(doc: SceneDoc, err: Report, warn: Report): void {
 function checkGround(doc: SceneDoc, err: Report): void {
   if (doc.environment.medium === 'space') return;
   const grounds = doc.entities.filter((e) => e.kind === 'ground');
-  if (grounds.length === 0)
+  if (grounds.length === 0 && doc.learning.mode !== 'incidental')
     err('GROUND_MISSING', 'entities', 'a ground entity is required unless the medium is space');
   if (grounds.length > 1) err('GROUND_MULTIPLE', 'entities', 'only one ground entity is allowed');
 }
@@ -316,7 +336,7 @@ function checkLearning(doc: SceneDoc, err: Report): void {
       `no entity with id "${doc.learning.heroEntityId}"`,
     );
   }
-  if (!doc.rules.some((r) => r.concept))
+  if (doc.learning.mode !== 'incidental' && !doc.rules.some((r) => r.concept))
     err('NO_CONCEPT_RULE', 'rules', 'at least one rule must carry a concept');
   if (doc.learning.dials.includes('heroMaterial') && Object.keys(doc.materials).length < 2) {
     err('DIAL_UNUSABLE', 'learning.dials', 'the heroMaterial dial needs at least two materials');
@@ -335,9 +355,12 @@ function checkBlocklist(doc: SceneDoc, err: Report): void {
   doc.learning.prediction.options.forEach((text, i) =>
     texts.push([`learning.prediction.options.${i}`, text]),
   );
-  doc.entities.forEach((e, i) =>
-    texts.push([`entities.${i}.name`, e.name], [`entities.${i}.description`, e.description]),
-  );
+  doc.entities.forEach((e, i) => {
+    texts.push([`entities.${i}.name`, e.name], [`entities.${i}.description`, e.description]);
+    if (e.character)
+      for (const [key, value] of Object.entries(e.character))
+        texts.push([`entities.${i}.character.${key}`, value]);
+  });
   doc.rules.forEach((r, i) =>
     r.then.forEach((a, j) => {
       if (a.action === 'say') texts.push([`rules.${i}.then.${j}.text`, a.text]);
@@ -377,11 +400,18 @@ function checkLab(doc: SceneDoc, err: Report): void {
   if (doc.tier === 'lab' && !(Object.keys(doc.variables ?? {}).length || doc.visuals?.length)) {
     err('LAB_EMPTY', 'tier', 'a lab world needs at least one variable or visual');
   }
-  if (doc.tier === 'playground' && hasLabFields) {
+  const onlyGameVariables = Object.values(doc.variables ?? {}).every(
+    (v) => v.binds.kind === 'game',
+  );
+  if (
+    doc.tier === 'playground' &&
+    hasLabFields &&
+    (!onlyGameVariables || Boolean(doc.visuals?.length) || Boolean(doc.challenges?.length))
+  ) {
     err(
       'PLAYGROUND_HAS_LAB_FIELDS',
       'tier',
-      'a playground world must not carry variables, visuals, or challenges',
+      'a playground may carry game-rule variables, but physics variables, visuals and challenges need a lab',
     );
   }
 

@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { FirestoreStoryStore, storyRoutes } from './stories';
 import cors from '@fastify/cors';
 import { z } from 'zod';
 import {
@@ -11,6 +12,8 @@ import {
 import { ApiFault } from './errors';
 import type { CompanionService } from './companion';
 import type { ApiStore } from './store';
+import { registerAdminRoutes, suspensionCheckFor, type AdminRouteOptions } from './admin';
+import { FirestoreLearnStore, learnRoutes, type LearnStore } from './learn';
 
 export interface Billing {
   checkout(uid: string): Promise<{ url: string }>;
@@ -23,6 +26,12 @@ export interface ApiOptions {
   verifyToken(token: string): Promise<{ uid: string }>;
   billing?: Billing;
   companion?: CompanionService;
+  /** Super admin routes (`/v1/admin/*`); defaults use Firestore and the admin claim. */
+  admin?: AdminRouteOptions;
+  /** Refuses parent routes for suspended accounts; defaults to Firestore when the store is. */
+  isSuspended?: (uid: string) => Promise<boolean>;
+  learn?: LearnStore;
+  stories?: FirestoreStoryStore;
   origins: string[];
 }
 export function createApi(options: ApiOptions) {
@@ -68,9 +77,15 @@ export function createApi(options: ApiOptions) {
       return reply.send({ received: true });
     });
   });
+  registerAdminRoutes(
+    app,
+    { store: options.store, billingConfigured: Boolean(options.billing) },
+    options.admin,
+  );
+  const isSuspended = options.isSuspended ?? suspensionCheckFor(options.store);
   app.register(async (routes) => {
     routes.decorateRequest('parentUid', '');
-    routes.addHook('preHandler', async (req) => {
+    routes.addHook('preHandler', async (req, reply) => {
       const header = req.headers.authorization;
       if (!header?.startsWith('Bearer '))
         throw new ApiFault(401, 'UNAUTHENTICATED', 'Sign in to continue.');
@@ -79,6 +94,13 @@ export function createApi(options: ApiOptions) {
       } catch {
         throw new ApiFault(401, 'UNAUTHENTICATED', 'Sign in again to continue.');
       }
+      if (await isSuspended?.(req.parentUid))
+        return reply.status(403).send({
+          error: {
+            code: 'ACCOUNT_SUSPENDED',
+            message: 'This account is paused. Please contact support.',
+          },
+        });
     });
     const id = (params: unknown, key: string) =>
       DocumentIdSchema.parse(z.record(z.string(), z.unknown()).parse(params)[key]);
@@ -128,6 +150,8 @@ export function createApi(options: ApiOptions) {
       return reply.status(204).send();
     });
     routes.get('/v1/usage/today', (req) => options.store.usageToday(req.parentUid));
+    learnRoutes(routes, options.learn ?? new FirestoreLearnStore());
+    storyRoutes(routes, options.stories ?? new FirestoreStoryStore());
     routes.post('/v1/me/delete', async (req, reply) => {
       const me = await options.store.me(req.parentUid);
       if (me.user.stripeCustomerId && !options.billing)

@@ -6,6 +6,18 @@ export function placeholder(entity: Entity) {
     g = new Graphics(),
     material = entity.body.material;
   if (entity.tags.includes('painted_ground') || entity.tags.includes('painted_water')) return g;
+  if (entity.tags.includes('star')) {
+    // A collectible star is precise game geometry, also available while its art is pending.
+    for (let i = 0; i <= 10; i++) {
+      const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+      const radius = i % 2 === 0 ? 0.5 : 0.23;
+      const x = Math.cos(angle) * w * radius;
+      const y = Math.sin(angle) * h * radius;
+      if (i === 0) g.moveTo(x, y);
+      else g.lineTo(x, y);
+    }
+    return g.fill(0xf7d76e).stroke({ width: 0.025, color: 0xd69a40 });
+  }
   if (entity.tags.includes('striped_ball')) {
     const r = Math.min(w, h) / 2;
     g.circle(0, 0, r).fill(0xe49b47).stroke({ width: 0.035, color: 0x885831 });

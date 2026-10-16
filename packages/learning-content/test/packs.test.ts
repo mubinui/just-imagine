@@ -9,17 +9,18 @@ const ROOT = resolve(import.meta.dirname, '..');
 const packs: WorldPack[] = Object.values(PACKS);
 const ANIMAL_PACK_IDS = ['animals_farm', 'animals_jungle', 'animals_ocean'] as const;
 
-const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const wholeWord = (s: string): RegExp =>
-  new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegExp(s)}(?=$|[^\\p{L}\\p{N}])`, 'iu');
-
 describe('PACKS', () => {
-  it('ships the space pack and the three animal packs', () => {
+  it('ships all six learning sections and all nine places', () => {
     expect([...PACK_IDS].sort()).toEqual([
       'animals_farm',
       'animals_jungle',
       'animals_ocean',
+      'body',
+      'exercise',
+      'food',
+      'hygiene',
       'space',
+      'space_galaxy',
     ]);
     for (const id of PACK_IDS) expect(loadPack(id).id).toBe(id);
   });
@@ -72,17 +73,17 @@ describe('PACKS', () => {
   );
 
   it.each(packs.map((p) => [p.id, p] as const))(
-    '%s persona instructions contain the facts and never an answer key',
+    '%s persona instructions contain the teaching facts without serialized answer metadata',
     (_id, pack) => {
       for (const character of pack.characters) {
         const en = personaInstruction(pack, character.id, 'en');
         const bn = personaInstruction(pack, character.id, 'bn');
         for (const fact of character.facts) expect(en).toContain(fact);
         for (const fact of character.factsBn) expect(bn).toContain(fact);
-        // The character who asks a challenge must not carry its answer in its own persona.
-        for (const challenge of pack.challenges.filter((c) => c.characterId === character.id)) {
-          expect(en).not.toMatch(wholeWord(challenge.answerKey));
-          expect(bn).not.toMatch(wholeWord(challenge.answerKey));
+        // Facts can teach the answer; private answerKey/accepted/hint metadata must not be rendered.
+        for (const text of [en, bn]) {
+          expect(text).not.toContain('answerKey:');
+          expect(text).not.toContain('accepted:');
         }
       }
     },

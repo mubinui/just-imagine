@@ -22,6 +22,7 @@ export const CommandSchema = z.discriminatedUnion('type', [
   SpawnCommandSchema,
   z.object({ type: z.literal('remove'), target: TargetSchema }),
   z.object({ type: z.literal('impulse'), target: TargetSchema, x: finite, y: finite }),
+  z.object({ type: z.literal('move'), target: TargetSchema, x: finite, y: finite }),
   z.object({ type: z.literal('setGravity'), x: finite, y: finite }),
   z.object({ type: z.literal('setWind'), x: finite, y: finite }),
   z.object({

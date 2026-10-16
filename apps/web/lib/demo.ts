@@ -161,6 +161,12 @@ export function demoRequest(
       localStorage.setItem('ji-deleted-worlds', JSON.stringify(removed));
       return {};
     }
+    case 'listStories':
+      return { stories: [] };
+    case 'createStory':
+      throw new Error(
+        'Open the running app at localhost:3300 to generate a real illustrated story.',
+      );
     case 'listSessions':
       return { sessions: [] };
     case 'listDiscoveries':

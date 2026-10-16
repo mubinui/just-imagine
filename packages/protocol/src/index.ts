@@ -8,3 +8,10 @@ export * from './world-source';
 export * from './rest';
 export * from './concept-bank';
 export * from './primitives';
+export * from './learn';
+export * from './admin';
+
+export * from './stories';
+export * from './specialists';
+
+export * from './appearance';

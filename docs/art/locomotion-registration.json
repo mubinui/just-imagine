@@ -1,0 +1,1244 @@
+[
+  {
+    "habitat": "farm",
+    "source": "docs/art/sources/animals-farm-locomotion-source-v2.png",
+    "frames": [
+      {
+        "row": 0,
+        "col": 0,
+        "source": {
+          "id": 5,
+          "count": 25296,
+          "left": 17,
+          "right": 244,
+          "top": 33,
+          "bottom": 258
+        },
+        "scale": 0.8583690987124464,
+        "width": 195,
+        "height": 193,
+        "left": 30,
+        "top": 35
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "source": {
+          "id": 1,
+          "count": 25838,
+          "left": 283,
+          "right": 511,
+          "top": 29,
+          "bottom": 258
+        },
+        "scale": 0.8583690987124464,
+        "width": 196,
+        "height": 197,
+        "left": 286,
+        "top": 31
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "source": {
+          "id": 3,
+          "count": 25314,
+          "left": 536,
+          "right": 768,
+          "top": 32,
+          "bottom": 259
+        },
+        "scale": 0.8583690987124464,
+        "width": 199,
+        "height": 195,
+        "left": 540,
+        "top": 33
+      },
+      {
+        "row": 0,
+        "col": 3,
+        "source": {
+          "id": 2,
+          "count": 26716,
+          "left": 790,
+          "right": 1019,
+          "top": 29,
+          "bottom": 262
+        },
+        "scale": 0.8583690987124464,
+        "width": 197,
+        "height": 200,
+        "left": 797,
+        "top": 28
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "source": {
+          "id": 4,
+          "count": 27343,
+          "left": 1051,
+          "right": 1281,
+          "top": 32,
+          "bottom": 262
+        },
+        "scale": 0.8583690987124464,
+        "width": 197,
+        "height": 197,
+        "left": 1053,
+        "top": 31
+      },
+      {
+        "row": 0,
+        "col": 5,
+        "source": {
+          "id": 6,
+          "count": 24761,
+          "left": 1300,
+          "right": 1532,
+          "top": 34,
+          "bottom": 260
+        },
+        "scale": 0.8583690987124464,
+        "width": 199,
+        "height": 194,
+        "left": 1308,
+        "top": 34
+      },
+      {
+        "row": 1,
+        "col": 0,
+        "source": {
+          "id": 7,
+          "count": 26187,
+          "left": 32,
+          "right": 249,
+          "top": 287,
+          "bottom": 499
+        },
+        "scale": 0.9345794392523364,
+        "width": 203,
+        "height": 198,
+        "left": 26,
+        "top": 286
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "source": {
+          "id": 9,
+          "count": 25912,
+          "left": 290,
+          "right": 508,
+          "top": 288,
+          "bottom": 496
+        },
+        "scale": 0.9345794392523364,
+        "width": 204,
+        "height": 194,
+        "left": 282,
+        "top": 290
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "source": {
+          "id": 8,
+          "count": 26098,
+          "left": 546,
+          "right": 766,
+          "top": 287,
+          "bottom": 501
+        },
+        "scale": 0.9345794392523364,
+        "width": 206,
+        "height": 200,
+        "left": 537,
+        "top": 284
+      },
+      {
+        "row": 1,
+        "col": 3,
+        "source": {
+          "id": 10,
+          "count": 25604,
+          "left": 801,
+          "right": 1018,
+          "top": 288,
+          "bottom": 502
+        },
+        "scale": 0.9345794392523364,
+        "width": 203,
+        "height": 200,
+        "left": 794,
+        "top": 284
+      },
+      {
+        "row": 1,
+        "col": 4,
+        "source": {
+          "id": 11,
+          "count": 26156,
+          "left": 1065,
+          "right": 1278,
+          "top": 288,
+          "bottom": 499
+        },
+        "scale": 0.9345794392523364,
+        "width": 199,
+        "height": 197,
+        "left": 1052,
+        "top": 287
+      },
+      {
+        "row": 1,
+        "col": 5,
+        "source": {
+          "id": 12,
+          "count": 25902,
+          "left": 1310,
+          "right": 1524,
+          "top": 289,
+          "bottom": 500
+        },
+        "scale": 0.9345794392523364,
+        "width": 200,
+        "height": 197,
+        "left": 1308,
+        "top": 287
+      },
+      {
+        "row": 2,
+        "col": 0,
+        "source": {
+          "id": 17,
+          "count": 23075,
+          "left": 35,
+          "right": 241,
+          "top": 522,
+          "bottom": 733
+        },
+        "scale": 0.9090909090909091,
+        "width": 187,
+        "height": 192,
+        "left": 34,
+        "top": 548
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "source": {
+          "id": 13,
+          "count": 23972,
+          "left": 299,
+          "right": 513,
+          "top": 518,
+          "bottom": 736
+        },
+        "scale": 0.9090909090909091,
+        "width": 195,
+        "height": 198,
+        "left": 286,
+        "top": 542
+      },
+      {
+        "row": 2,
+        "col": 2,
+        "source": {
+          "id": 16,
+          "count": 23287,
+          "left": 554,
+          "right": 763,
+          "top": 521,
+          "bottom": 737
+        },
+        "scale": 0.9090909090909091,
+        "width": 190,
+        "height": 196,
+        "left": 545,
+        "top": 544
+      },
+      {
+        "row": 2,
+        "col": 3,
+        "source": {
+          "id": 15,
+          "count": 23552,
+          "left": 809,
+          "right": 1021,
+          "top": 520,
+          "bottom": 737
+        },
+        "scale": 0.9090909090909091,
+        "width": 193,
+        "height": 197,
+        "left": 799,
+        "top": 543
+      },
+      {
+        "row": 2,
+        "col": 4,
+        "source": {
+          "id": 14,
+          "count": 23711,
+          "left": 1066,
+          "right": 1276,
+          "top": 519,
+          "bottom": 739
+        },
+        "scale": 0.9090909090909091,
+        "width": 191,
+        "height": 200,
+        "left": 1056,
+        "top": 540
+      },
+      {
+        "row": 2,
+        "col": 5,
+        "source": {
+          "id": 18,
+          "count": 22762,
+          "left": 1317,
+          "right": 1523,
+          "top": 522,
+          "bottom": 737
+        },
+        "scale": 0.9090909090909091,
+        "width": 187,
+        "height": 195,
+        "left": 1314,
+        "top": 545
+      },
+      {
+        "row": 3,
+        "col": 0,
+        "source": {
+          "id": 19,
+          "count": 31069,
+          "left": 10,
+          "right": 252,
+          "top": 760,
+          "bottom": 997
+        },
+        "scale": 0.8249027237354085,
+        "width": 200,
+        "height": 196,
+        "left": 28,
+        "top": 800
+      },
+      {
+        "row": 3,
+        "col": 1,
+        "source": {
+          "id": 22,
+          "count": 30121,
+          "left": 272,
+          "right": 513,
+          "top": 761,
+          "bottom": 992
+        },
+        "scale": 0.8249027237354085,
+        "width": 199,
+        "height": 191,
+        "left": 284,
+        "top": 805
+      },
+      {
+        "row": 3,
+        "col": 2,
+        "source": {
+          "id": 20,
+          "count": 30428,
+          "left": 533,
+          "right": 767,
+          "top": 760,
+          "bottom": 996
+        },
+        "scale": 0.8249027237354085,
+        "width": 193,
+        "height": 195,
+        "left": 543,
+        "top": 801
+      },
+      {
+        "row": 3,
+        "col": 3,
+        "source": {
+          "id": 24,
+          "count": 33006,
+          "left": 776,
+          "right": 1033,
+          "top": 762,
+          "bottom": 995
+        },
+        "scale": 0.8249027237354085,
+        "width": 212,
+        "height": 192,
+        "left": 790,
+        "top": 804
+      },
+      {
+        "row": 3,
+        "col": 4,
+        "source": {
+          "id": 23,
+          "count": 31876,
+          "left": 1038,
+          "right": 1281,
+          "top": 761,
+          "bottom": 990
+        },
+        "scale": 0.8249027237354085,
+        "width": 200,
+        "height": 189,
+        "left": 1052,
+        "top": 807
+      },
+      {
+        "row": 3,
+        "col": 5,
+        "source": {
+          "id": 21,
+          "count": 29448,
+          "left": 1292,
+          "right": 1525,
+          "top": 760,
+          "bottom": 998
+        },
+        "scale": 0.8249027237354085,
+        "width": 192,
+        "height": 196,
+        "left": 1312,
+        "top": 800
+      }
+    ]
+  },
+  {
+    "habitat": "jungle",
+    "source": "docs/art/sources/animals-jungle-locomotion-source-v2.png",
+    "frames": [
+      {
+        "row": 0,
+        "col": 0,
+        "source": {
+          "id": 1,
+          "count": 28911,
+          "left": 14,
+          "right": 268,
+          "top": 51,
+          "bottom": 261
+        },
+        "scale": 0.8346456692913385,
+        "width": 212,
+        "height": 175,
+        "left": 22,
+        "top": 53
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "source": {
+          "id": 4,
+          "count": 26601,
+          "left": 283,
+          "right": 517,
+          "top": 66,
+          "bottom": 263
+        },
+        "scale": 0.8346456692913385,
+        "width": 195,
+        "height": 164,
+        "left": 286,
+        "top": 64
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "source": {
+          "id": 3,
+          "count": 26546,
+          "left": 532,
+          "right": 767,
+          "top": 52,
+          "bottom": 242
+        },
+        "scale": 0.8346456692913385,
+        "width": 196,
+        "height": 159,
+        "left": 542,
+        "top": 69
+      },
+      {
+        "row": 0,
+        "col": 3,
+        "source": {
+          "id": 5,
+          "count": 28415,
+          "left": 777,
+          "right": 1014,
+          "top": 66,
+          "bottom": 268
+        },
+        "scale": 0.8346456692913385,
+        "width": 198,
+        "height": 169,
+        "left": 797,
+        "top": 59
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "source": {
+          "id": 6,
+          "count": 27127,
+          "left": 1034,
+          "right": 1282,
+          "top": 77,
+          "bottom": 266
+        },
+        "scale": 0.8346456692913385,
+        "width": 207,
+        "height": 158,
+        "left": 1048,
+        "top": 70
+      },
+      {
+        "row": 0,
+        "col": 5,
+        "source": {
+          "id": 2,
+          "count": 27079,
+          "left": 1294,
+          "right": 1526,
+          "top": 51,
+          "bottom": 251
+        },
+        "scale": 0.8346456692913385,
+        "width": 194,
+        "height": 167,
+        "left": 1311,
+        "top": 61
+      },
+      {
+        "row": 1,
+        "col": 0,
+        "source": {
+          "id": 7,
+          "count": 33659,
+          "left": 19,
+          "right": 291,
+          "top": 291,
+          "bottom": 504
+        },
+        "scale": 0.7794117647058824,
+        "width": 212,
+        "height": 166,
+        "left": 22,
+        "top": 318
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "source": {
+          "id": 8,
+          "count": 32776,
+          "left": 285,
+          "right": 521,
+          "top": 291,
+          "bottom": 508
+        },
+        "scale": 0.7794117647058824,
+        "width": 184,
+        "height": 169,
+        "left": 292,
+        "top": 315
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "source": {
+          "id": 12,
+          "count": 32674,
+          "left": 531,
+          "right": 775,
+          "top": 295,
+          "bottom": 509
+        },
+        "scale": 0.7794117647058824,
+        "width": 190,
+        "height": 167,
+        "left": 545,
+        "top": 317
+      },
+      {
+        "row": 1,
+        "col": 3,
+        "source": {
+          "id": 9,
+          "count": 33165,
+          "left": 776,
+          "right": 1041,
+          "top": 292,
+          "bottom": 507
+        },
+        "scale": 0.7794117647058824,
+        "width": 207,
+        "height": 168,
+        "left": 792,
+        "top": 316
+      },
+      {
+        "row": 1,
+        "col": 4,
+        "source": {
+          "id": 10,
+          "count": 33152,
+          "left": 1037,
+          "right": 1270,
+          "top": 294,
+          "bottom": 509
+        },
+        "scale": 0.7794117647058824,
+        "width": 182,
+        "height": 168,
+        "left": 1061,
+        "top": 316
+      },
+      {
+        "row": 1,
+        "col": 5,
+        "source": {
+          "id": 11,
+          "count": 31962,
+          "left": 1282,
+          "right": 1531,
+          "top": 294,
+          "bottom": 508
+        },
+        "scale": 0.7794117647058824,
+        "width": 194,
+        "height": 167,
+        "left": 1311,
+        "top": 317
+      },
+      {
+        "row": 2,
+        "col": 0,
+        "source": {
+          "id": 14,
+          "count": 27328,
+          "left": 27,
+          "right": 254,
+          "top": 522,
+          "bottom": 758
+        },
+        "scale": 0.847457627118644,
+        "width": 192,
+        "height": 200,
+        "left": 32,
+        "top": 540
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "source": {
+          "id": 15,
+          "count": 25693,
+          "left": 285,
+          "right": 494,
+          "top": 524,
+          "bottom": 753
+        },
+        "scale": 0.847457627118644,
+        "width": 177,
+        "height": 194,
+        "left": 295,
+        "top": 546
+      },
+      {
+        "row": 2,
+        "col": 2,
+        "source": {
+          "id": 13,
+          "count": 27514,
+          "left": 531,
+          "right": 758,
+          "top": 520,
+          "bottom": 754
+        },
+        "scale": 0.847457627118644,
+        "width": 192,
+        "height": 198,
+        "left": 544,
+        "top": 542
+      },
+      {
+        "row": 2,
+        "col": 3,
+        "source": {
+          "id": 16,
+          "count": 26309,
+          "left": 803,
+          "right": 1022,
+          "top": 524,
+          "bottom": 760
+        },
+        "scale": 0.847457627118644,
+        "width": 186,
+        "height": 200,
+        "left": 803,
+        "top": 540
+      },
+      {
+        "row": 2,
+        "col": 4,
+        "source": {
+          "id": 18,
+          "count": 23306,
+          "left": 1055,
+          "right": 1256,
+          "top": 528,
+          "bottom": 759
+        },
+        "scale": 0.847457627118644,
+        "width": 170,
+        "height": 196,
+        "left": 1067,
+        "top": 544
+      },
+      {
+        "row": 2,
+        "col": 5,
+        "source": {
+          "id": 17,
+          "count": 26675,
+          "left": 1293,
+          "right": 1515,
+          "top": 524,
+          "bottom": 754
+        },
+        "scale": 0.847457627118644,
+        "width": 188,
+        "height": 195,
+        "left": 1314,
+        "top": 545
+      },
+      {
+        "row": 3,
+        "col": 0,
+        "source": {
+          "id": 19,
+          "count": 25647,
+          "left": 29,
+          "right": 252,
+          "top": 759,
+          "bottom": 979
+        },
+        "scale": 0.7794117647058824,
+        "width": 174,
+        "height": 171,
+        "left": 41,
+        "top": 810
+      },
+      {
+        "row": 3,
+        "col": 1,
+        "source": {
+          "id": 22,
+          "count": 21186,
+          "left": 265,
+          "right": 523,
+          "top": 809,
+          "bottom": 980
+        },
+        "scale": 0.7794117647058824,
+        "width": 201,
+        "height": 133,
+        "left": 283,
+        "top": 829
+      },
+      {
+        "row": 3,
+        "col": 2,
+        "source": {
+          "id": 23,
+          "count": 21402,
+          "left": 517,
+          "right": 789,
+          "top": 815,
+          "bottom": 979
+        },
+        "scale": 0.7794117647058824,
+        "width": 212,
+        "height": 128,
+        "left": 534,
+        "top": 832
+      },
+      {
+        "row": 3,
+        "col": 3,
+        "source": {
+          "id": 24,
+          "count": 19543,
+          "left": 795,
+          "right": 1056,
+          "top": 816,
+          "bottom": 967
+        },
+        "scale": 0.7794117647058824,
+        "width": 203,
+        "height": 118,
+        "left": 794,
+        "top": 837
+      },
+      {
+        "row": 3,
+        "col": 4,
+        "source": {
+          "id": 21,
+          "count": 19090,
+          "left": 1060,
+          "right": 1287,
+          "top": 788,
+          "bottom": 972
+        },
+        "scale": 0.7794117647058824,
+        "width": 177,
+        "height": 143,
+        "left": 1063,
+        "top": 824
+      },
+      {
+        "row": 3,
+        "col": 5,
+        "source": {
+          "id": 20,
+          "count": 25494,
+          "left": 1301,
+          "right": 1522,
+          "top": 760,
+          "bottom": 982
+        },
+        "scale": 0.7794117647058824,
+        "width": 172,
+        "height": 173,
+        "left": 1322,
+        "top": 809
+      }
+    ]
+  },
+  {
+    "habitat": "ocean",
+    "source": "docs/art/sources/animals-ocean-locomotion-source-v2.png",
+    "frames": [
+      {
+        "row": 0,
+        "col": 0,
+        "source": {
+          "id": 5,
+          "count": 21237,
+          "left": 20,
+          "right": 273,
+          "top": 94,
+          "bottom": 263
+        },
+        "scale": 0.8379446640316206,
+        "width": 212,
+        "height": 142,
+        "left": 22,
+        "top": 57
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "source": {
+          "id": 1,
+          "count": 20128,
+          "left": 282,
+          "right": 532,
+          "top": 91,
+          "bottom": 263
+        },
+        "scale": 0.8379446640316206,
+        "width": 209,
+        "height": 144,
+        "left": 279,
+        "top": 56
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "source": {
+          "id": 3,
+          "count": 19605,
+          "left": 546,
+          "right": 785,
+          "top": 93,
+          "bottom": 260
+        },
+        "scale": 0.8379446640316206,
+        "width": 200,
+        "height": 140,
+        "left": 540,
+        "top": 58
+      },
+      {
+        "row": 0,
+        "col": 3,
+        "source": {
+          "id": 2,
+          "count": 21021,
+          "left": 794,
+          "right": 1042,
+          "top": 92,
+          "bottom": 264
+        },
+        "scale": 0.8379446640316206,
+        "width": 208,
+        "height": 144,
+        "left": 792,
+        "top": 56
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "source": {
+          "id": 4,
+          "count": 20578,
+          "left": 1048,
+          "right": 1288,
+          "top": 93,
+          "bottom": 265
+        },
+        "scale": 0.8379446640316206,
+        "width": 201,
+        "height": 144,
+        "left": 1051,
+        "top": 56
+      },
+      {
+        "row": 0,
+        "col": 5,
+        "source": {
+          "id": 6,
+          "count": 20585,
+          "left": 1296,
+          "right": 1525,
+          "top": 94,
+          "bottom": 260
+        },
+        "scale": 0.8379446640316206,
+        "width": 192,
+        "height": 139,
+        "left": 1312,
+        "top": 58
+      },
+      {
+        "row": 1,
+        "col": 0,
+        "source": {
+          "id": 7,
+          "count": 25705,
+          "left": 12,
+          "right": 273,
+          "top": 309,
+          "bottom": 510
+        },
+        "scale": 0.8122605363984674,
+        "width": 212,
+        "height": 163,
+        "left": 22,
+        "top": 302
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "source": {
+          "id": 10,
+          "count": 23955,
+          "left": 275,
+          "right": 532,
+          "top": 343,
+          "bottom": 512
+        },
+        "scale": 0.8122605363984674,
+        "width": 209,
+        "height": 137,
+        "left": 279,
+        "top": 315
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "source": {
+          "id": 9,
+          "count": 24228,
+          "left": 534,
+          "right": 783,
+          "top": 341,
+          "bottom": 510
+        },
+        "scale": 0.8122605363984674,
+        "width": 202,
+        "height": 137,
+        "left": 539,
+        "top": 315
+      },
+      {
+        "row": 1,
+        "col": 3,
+        "source": {
+          "id": 12,
+          "count": 22431,
+          "left": 785,
+          "right": 1031,
+          "top": 346,
+          "bottom": 511
+        },
+        "scale": 0.8122605363984674,
+        "width": 200,
+        "height": 134,
+        "left": 796,
+        "top": 317
+      },
+      {
+        "row": 1,
+        "col": 4,
+        "source": {
+          "id": 11,
+          "count": 23378,
+          "left": 1041,
+          "right": 1288,
+          "top": 343,
+          "bottom": 510
+        },
+        "scale": 0.8122605363984674,
+        "width": 201,
+        "height": 136,
+        "left": 1051,
+        "top": 316
+      },
+      {
+        "row": 1,
+        "col": 5,
+        "source": {
+          "id": 8,
+          "count": 23907,
+          "left": 1294,
+          "right": 1530,
+          "top": 313,
+          "bottom": 510
+        },
+        "scale": 0.8122605363984674,
+        "width": 192,
+        "height": 160,
+        "left": 1312,
+        "top": 304
+      },
+      {
+        "row": 2,
+        "col": 0,
+        "source": {
+          "id": 13,
+          "count": 24291,
+          "left": 11,
+          "right": 288,
+          "top": 575,
+          "bottom": 735
+        },
+        "scale": 0.7653429602888087,
+        "width": 212,
+        "height": 122,
+        "left": 22,
+        "top": 579
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "source": {
+          "id": 18,
+          "count": 20355,
+          "left": 296,
+          "right": 546,
+          "top": 582,
+          "bottom": 723
+        },
+        "scale": 0.7653429602888087,
+        "width": 191,
+        "height": 108,
+        "left": 288,
+        "top": 586
+      },
+      {
+        "row": 2,
+        "col": 2,
+        "source": {
+          "id": 16,
+          "count": 20362,
+          "left": 557,
+          "right": 802,
+          "top": 576,
+          "bottom": 729
+        },
+        "scale": 0.7653429602888087,
+        "width": 188,
+        "height": 117,
+        "left": 546,
+        "top": 581
+      },
+      {
+        "row": 2,
+        "col": 3,
+        "source": {
+          "id": 17,
+          "count": 21466,
+          "left": 803,
+          "right": 1057,
+          "top": 580,
+          "bottom": 741
+        },
+        "scale": 0.7653429602888087,
+        "width": 194,
+        "height": 123,
+        "left": 799,
+        "top": 578
+      },
+      {
+        "row": 2,
+        "col": 4,
+        "source": {
+          "id": 14,
+          "count": 20135,
+          "left": 1038,
+          "right": 1283,
+          "top": 575,
+          "bottom": 742
+        },
+        "scale": 0.7653429602888087,
+        "width": 188,
+        "height": 128,
+        "left": 1058,
+        "top": 576
+      },
+      {
+        "row": 2,
+        "col": 5,
+        "source": {
+          "id": 15,
+          "count": 20740,
+          "left": 1296,
+          "right": 1532,
+          "top": 575,
+          "bottom": 724
+        },
+        "scale": 0.7653429602888087,
+        "width": 181,
+        "height": 114,
+        "left": 1317,
+        "top": 583
+      },
+      {
+        "row": 3,
+        "col": 0,
+        "source": {
+          "id": 22,
+          "count": 23054,
+          "left": 32,
+          "right": 278,
+          "top": 788,
+          "bottom": 948
+        },
+        "scale": 0.8446215139442231,
+        "width": 208,
+        "height": 135,
+        "left": 24,
+        "top": 828
+      },
+      {
+        "row": 3,
+        "col": 1,
+        "source": {
+          "id": 23,
+          "count": 24280,
+          "left": 285,
+          "right": 536,
+          "top": 788,
+          "bottom": 960
+        },
+        "scale": 0.8446215139442231,
+        "width": 212,
+        "height": 145,
+        "left": 278,
+        "top": 823
+      },
+      {
+        "row": 3,
+        "col": 2,
+        "source": {
+          "id": 24,
+          "count": 24289,
+          "left": 540,
+          "right": 780,
+          "top": 789,
+          "bottom": 961
+        },
+        "scale": 0.8446215139442231,
+        "width": 203,
+        "height": 145,
+        "left": 538,
+        "top": 823
+      },
+      {
+        "row": 3,
+        "col": 3,
+        "source": {
+          "id": 25,
+          "count": 22734,
+          "left": 796,
+          "right": 1035,
+          "top": 789,
+          "bottom": 949
+        },
+        "scale": 0.8446215139442231,
+        "width": 202,
+        "height": 135,
+        "left": 795,
+        "top": 828
+      },
+      {
+        "row": 3,
+        "col": 4,
+        "source": {
+          "id": 26,
+          "count": 22312,
+          "left": 1063,
+          "right": 1285,
+          "top": 789,
+          "bottom": 950
+        },
+        "scale": 0.8446215139442231,
+        "width": 188,
+        "height": 136,
+        "left": 1058,
+        "top": 828
+      },
+      {
+        "row": 3,
+        "col": 5,
+        "source": {
+          "id": 21,
+          "count": 22813,
+          "left": 1301,
+          "right": 1523,
+          "top": 783,
+          "bottom": 945
+        },
+        "scale": 0.8446215139442231,
+        "width": 188,
+        "height": 137,
+        "left": 1314,
+        "top": 827
+      }
+    ]
+  }
+]

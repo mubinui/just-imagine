@@ -2,6 +2,7 @@
 import type { Variable, Challenge } from '@just-imagine/scene-schema';
 import { s } from '../../lib/strings/en';
 import { ChevronIcon } from './parts';
+import { useLanguage } from '../../lib/i18n';
 
 export function LabDrawer({
   variables,
@@ -24,20 +25,30 @@ export function LabDrawer({
   onChange: (id: string, value: number, v: Variable) => void;
   onKeypad: (id: string, v: Variable) => void;
 }) {
+  const { t } = useLanguage();
+  const gameRules = Object.values(variables).every((v) => v.binds.kind === 'game');
+  const title = gameRules ? t('worldCast.remix') : s.lab;
   return (
-    <section className={open ? 'lab-drawer' : 'lab-drawer is-closed'} aria-label={s.lab}>
+    <section className={open ? 'lab-drawer' : 'lab-drawer is-closed'} aria-label={title}>
       <div className="lab-head">
-        <h2>{s.lab}</h2>
+        <h2>{title}</h2>
         <button
           type="button"
           aria-expanded={open}
-          aria-label={open ? s.labClose : s.labOpen}
+          aria-label={
+            gameRules
+              ? t(open ? 'worldCast.closeRules' : 'worldCast.openRules')
+              : open
+                ? s.labClose
+                : s.labOpen
+          }
           onClick={onToggle}
         >
           <ChevronIcon />
         </button>
       </div>
       <div className="lab-body">
+        {gameRules && <p className="game-rules-hint">{t('worldCast.rulesHint')}</p>}
         {Object.entries(variables).map(([id, v]) => (
           <div className="variable" key={id}>
             <label htmlFor={id}>

@@ -20,7 +20,8 @@
     "local:stop": "node scripts/local.mjs stop",
     "local:status": "node scripts/local.mjs status",
     "local:logs": "node scripts/local.mjs logs",
-    "local:reload-key": "node scripts/local.mjs reload-key"
+    "local:reload-key": "node scripts/local.mjs reload-key",
+    "admin:grant": "node scripts/grant-admin.mjs"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

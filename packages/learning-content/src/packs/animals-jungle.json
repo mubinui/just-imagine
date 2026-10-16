@@ -13,15 +13,34 @@
       "paletteHint": "lush emerald greens with golden savanna light",
       "timeOfDay": "day",
       "backdropDescription": "lush green jungle with tall trees and hanging vines, opening on the left into golden savanna grass",
-      "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" },
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      },
       "midLayerDescription": "big tropical leaves and ferns framing the scene",
-      "midLayer": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+      "midLayer": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
     },
     "environment": {
-      "gravity": { "x": 0, "y": 9.81 },
-      "wind": { "x": 0, "y": 0 },
+      "gravity": {
+        "x": 0,
+        "y": 9.81
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
       "medium": "air",
-      "bounds": { "width": 16, "height": 9 },
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
       "seed": 12
     },
     "materials": {
@@ -68,14 +87,26 @@
         "kind": "ground",
         "name": "jungle floor",
         "description": "jungle floor of soft earth, moss and fallen leaves fading into golden grass on the left",
-        "asset": { "url": "", "width": 1920, "height": 128, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 1920,
+          "height": 128,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "box",
           "material": "grass",
           "isStatic": true,
-          "size": { "width": 16, "height": 1 }
+          "size": {
+            "width": 16,
+            "height": 1
+          }
         },
-        "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+        "transform": {
+          "x": 8,
+          "y": 8.5,
+          "rotation": 0
+        },
         "tags": ["ground"],
         "behaviors": [],
         "pretend": false
@@ -85,16 +116,33 @@
         "kind": "sprite",
         "name": "Lion",
         "description": "proud golden lion with a big fluffy brown mane, sitting tall in long grass",
-        "asset": { "url": "", "width": 448, "height": 320, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 448,
+          "height": 320,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "fur",
           "isStatic": true,
-          "size": { "width": 2, "height": 1.4 }
+          "size": {
+            "width": 2,
+            "height": 1.4
+          }
         },
-        "transform": { "x": 2.2, "y": 7.3, "rotation": 0 },
+        "transform": {
+          "x": 2.2,
+          "y": 7.3,
+          "rotation": 0
+        },
         "tags": ["lion", "animal"],
-        "behaviors": [{ "type": "face", "target": "pointer" }],
+        "behaviors": [
+          {
+            "type": "face",
+            "target": "pointer"
+          }
+        ],
         "pretend": false
       },
       {
@@ -102,16 +150,33 @@
         "kind": "sprite",
         "name": "Elephant",
         "description": "gentle grey elephant with big flappy ears, a curled trunk and small white tusks",
-        "asset": { "url": "", "width": 640, "height": 560, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 640,
+          "height": 560,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "fur",
           "isStatic": true,
-          "size": { "width": 3, "height": 2.6 }
+          "size": {
+            "width": 3,
+            "height": 2.6
+          }
         },
-        "transform": { "x": 5.8, "y": 6.7, "rotation": 0 },
+        "transform": {
+          "x": 5.8,
+          "y": 6.7,
+          "rotation": 0
+        },
         "tags": ["elephant", "animal"],
-        "behaviors": [{ "type": "face", "target": "pointer" }],
+        "behaviors": [
+          {
+            "type": "face",
+            "target": "pointer"
+          }
+        ],
         "pretend": false
       },
       {
@@ -119,16 +184,32 @@
         "kind": "sprite",
         "name": "Parrot",
         "description": "bright green parrot with a red beak and a rose-pink ring around its neck, perched on a vine",
-        "asset": { "url": "", "width": 160, "height": 224, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 160,
+          "height": 224,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "feather",
           "isStatic": true,
-          "size": { "width": 0.6, "height": 0.8 }
+          "size": {
+            "width": 0.6,
+            "height": 0.8
+          }
         },
-        "transform": { "x": 8.2, "y": 3.2, "rotation": 0 },
+        "transform": {
+          "x": 8.2,
+          "y": 3.2,
+          "rotation": 0
+        },
         "tags": ["parrot", "animal"],
-        "behaviors": [{ "type": "bounceIdle" }],
+        "behaviors": [
+          {
+            "type": "bounceIdle"
+          }
+        ],
         "pretend": false
       },
       {
@@ -136,14 +217,26 @@
         "kind": "sprite",
         "name": "jungle tree",
         "description": "tall jungle tree with a thick twisted trunk, hanging vines and a leafy crown",
-        "asset": { "url": "", "width": 384, "height": 1024, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 384,
+          "height": 1024,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "box",
           "material": "wood",
           "isStatic": true,
-          "size": { "width": 1.6, "height": 4.5 }
+          "size": {
+            "width": 1.6,
+            "height": 4.5
+          }
         },
-        "transform": { "x": 9.6, "y": 5.75, "rotation": 0 },
+        "transform": {
+          "x": 9.6,
+          "y": 5.75,
+          "rotation": 0
+        },
         "tags": ["tree"],
         "behaviors": [],
         "pretend": false
@@ -153,16 +246,34 @@
         "kind": "sprite",
         "name": "Monkey",
         "description": "cheeky brown monkey hanging by its curly tail from a vine, holding a banana",
-        "asset": { "url": "", "width": 224, "height": 224, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 224,
+          "height": 224,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "fur",
           "isStatic": true,
-          "size": { "width": 0.9, "height": 0.9 }
+          "size": {
+            "width": 0.9,
+            "height": 0.9
+          }
         },
-        "transform": { "x": 11, "y": 3.9, "rotation": 0 },
+        "transform": {
+          "x": 11,
+          "y": 3.9,
+          "rotation": 0
+        },
         "tags": ["monkey", "animal"],
-        "behaviors": [{ "type": "float", "amplitude": 0.15, "period": 2.5 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.15,
+            "period": 2.5
+          }
+        ],
         "pretend": false
       },
       {
@@ -170,14 +281,26 @@
         "kind": "sprite",
         "name": "coconut",
         "description": "round brown hairy coconut",
-        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 128,
+          "height": 128,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "wood",
           "isStatic": false,
-          "size": { "width": 0.6, "height": 0.6 }
+          "size": {
+            "width": 0.6,
+            "height": 0.6
+          }
         },
-        "transform": { "x": 13, "y": 7.7, "rotation": 0 },
+        "transform": {
+          "x": 13,
+          "y": 7.7,
+          "rotation": 0
+        },
         "tags": ["coconut", "hero"],
         "behaviors": [],
         "pretend": false
@@ -187,14 +310,26 @@
         "kind": "sprite",
         "name": "fern bush",
         "description": "big leafy green fern bush with a few pink flowers",
-        "asset": { "url": "", "width": 448, "height": 256, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 448,
+          "height": 256,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "box",
           "material": "wood",
           "isStatic": true,
-          "size": { "width": 2, "height": 1.2 }
+          "size": {
+            "width": 2,
+            "height": 1.2
+          }
         },
-        "transform": { "x": 14.6, "y": 7.4, "rotation": 0 },
+        "transform": {
+          "x": 14.6,
+          "y": 7.4,
+          "rotation": 0
+        },
         "tags": ["bush"],
         "behaviors": [],
         "pretend": false
@@ -204,18 +339,39 @@
     "rules": [
       {
         "id": "r_tap_coconut",
-        "when": { "event": "tap", "target": "coconut" },
+        "when": {
+          "event": "tap",
+          "target": "coconut"
+        },
         "then": [
-          { "action": "applyImpulse", "target": "coconut", "impulse": { "x": 0, "y": -2.5 } },
-          { "action": "sound", "cue": "whoosh" }
+          {
+            "action": "applyImpulse",
+            "target": "coconut",
+            "impulse": {
+              "x": 0,
+              "y": -2.5
+            }
+          },
+          {
+            "action": "sound",
+            "cue": "whoosh"
+          }
         ],
         "once": false
       },
       {
         "id": "r_coconut_lands",
-        "when": { "event": "collision", "a": "coconut", "b": "ground", "minImpulse": 1 },
+        "when": {
+          "event": "collision",
+          "a": "coconut",
+          "b": "ground",
+          "minImpulse": 1
+        },
         "then": [
-          { "action": "sound", "cue": "ding" },
+          {
+            "action": "sound",
+            "cue": "ding"
+          },
           {
             "action": "say",
             "text": "Thump! The coconut fell straight back down. Gravity pulls it to the ground."
@@ -363,10 +519,26 @@
     }
   ],
   "hotspots": [
-    { "entityId": "lion", "characterId": "lion", "comesCloser": "grow" },
-    { "entityId": "elephant", "characterId": "elephant", "comesCloser": "grow" },
-    { "entityId": "monkey", "characterId": "monkey", "comesCloser": "swoop" },
-    { "entityId": "parrot", "characterId": "parrot", "comesCloser": "swoop" }
+    {
+      "entityId": "lion",
+      "characterId": "lion",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "elephant",
+      "characterId": "elephant",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "monkey",
+      "characterId": "monkey",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "parrot",
+      "characterId": "parrot",
+      "comesCloser": "swoop"
+    }
   ],
   "sounds": [
     {
@@ -475,6 +647,40 @@
       "hint": "He has a big shaggy mane and a huge roar.",
       "hintBn": "তার বড় ঝাঁকড়া কেশর আর বিশাল গর্জন।",
       "points": 3
+    }
+  ],
+  "activities": [
+    {
+      "characterId": "lion",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
+    },
+    {
+      "characterId": "elephant",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
+    },
+    {
+      "characterId": "monkey",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
+    },
+    {
+      "characterId": "parrot",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
     }
   ]
 }

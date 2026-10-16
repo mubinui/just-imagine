@@ -16,12 +16,13 @@ const JobBase = z.object({
 
 export const BuildWorldJobSchema = JobBase.extend({
   kind: z.literal('build'),
-  description: z.string().min(1).max(1000),
+  description: z.string().min(1).max(4000),
   concepts: z.array(ConceptSchema).max(LIMITS.maxConcepts),
   ageBand: AgeBandSchema,
   tier: TierSchema,
   // The child's language for titles, narration and say lines; jobs queued before it existed are English.
   language: LanguageSchema.optional(),
+  experience: z.enum(['game', 'freeplay']).optional(),
   labKind: z.enum(['projectile', 'galton', 'fractions']).optional(),
   styleVersion: z.string().min(1),
   promptVersion: z.string().min(1),
@@ -34,13 +35,17 @@ export type BuildWorldJob = z.infer<typeof BuildWorldJobSchema>;
 
 export const PatchWorldJobSchema = JobBase.extend({
   kind: z.literal('patch'),
-  instruction: z.string().min(1).max(500),
+  instruction: z.string().min(1).max(2000),
   promptVersion: z.string().min(1),
 });
 export type PatchWorldJob = z.infer<typeof PatchWorldJobSchema>;
 
+export const UndoWorldJobSchema = JobBase.extend({ kind: z.literal('undo') });
+export type UndoWorldJob = z.infer<typeof UndoWorldJobSchema>;
+
 export const BuilderJobSchema = z.discriminatedUnion('kind', [
   BuildWorldJobSchema,
   PatchWorldJobSchema,
+  UndoWorldJobSchema,
 ]);
 export type BuilderJob = z.infer<typeof BuilderJobSchema>;

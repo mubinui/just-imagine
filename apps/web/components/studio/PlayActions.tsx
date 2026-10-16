@@ -34,6 +34,12 @@ const ACTIVITIES: Record<PreviewKey, { title: string; hint: string; action: stri
     hint: 'Split the block, then drag the two halves together.',
     action: 'Split into halves',
   },
+  // Generated-game worlds draw their own HUD; the Studio hides these actions for them.
+  catchTheFlies: {
+    title: 'Catch the flies',
+    hint: 'Tap the flies before the owl wakes up.',
+    action: 'Catch a fly',
+  },
 };
 export function PlayActions({
   world,

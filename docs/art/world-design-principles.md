@@ -2,6 +2,8 @@
 
 How Just Imagine composes worlds and games. These borrow the working habits of theme-park and animation studios: story before scenery, one strong visual magnet, reveals that reward curiosity, and the child as the hero whose choices change what happens. The builder's prompts include `services/builder/src/prompts/world-design.ts`, which is the same rules in prompt form; change both together.
 
+The child is the author. Their requested form, pacing, cast and rules override the optional storytelling suggestions below. Open play, a quiet conversation or a toy need no obstacle, levels, collection, score, mandatory reveal or compulsory extra.
+
 ## 1. Story first, scenery second
 
 Every world answers one question before any entity is placed: who is the hero, what do they want, and what is in the way. "A jelly dragon on a cloud" becomes "the dragon wants to reach the rainbow, the gap is too wide, and the child decides how to help". Props exist because the story needs them.
@@ -18,9 +20,9 @@ The child's choice must visibly change the world within one second: a drop, a bo
 
 Hide one surprise that appears only after the first success, the way a ride saves its best scene for the turn. Reveal it with motion and sound, then let the friend explain the science of what just happened in one sentence.
 
-## 5. Something is always alive
+## 5. Motion has a cause
 
-At least one ambient motion in every world: a cloud drifting, a fish turning, leaves falling. A still world feels broken to a child. Motion stays gentle and never competes with the magnet.
+Characters move to a chosen destination or in response to input. Use real strides, swimming strokes and rolling wheels through locomotion metadata; random wandering, whole-image bobbing and arbitrary vertical drift do not replace those actions. Ambient scenery may move gently when natural to the setting. Resting actors stop. Keep gait phase proportional to travelled distance, wheel rotation proportional to travel/radius, and swimming turns aligned with the route.
 
 ## 6. Scale tells the story
 

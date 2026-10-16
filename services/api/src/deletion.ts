@@ -80,6 +80,11 @@ export async function processDeletion(
     if (job.childId === null) await cancelBilling?.(job.uid);
     for (const [collection, owner] of [
       ['worlds', 'ownerUid'],
+      ['stories', 'ownerUid'],
+      ['storyBuildLocks', 'uid'],
+      ['storyDrafts', 'uid'],
+      ['storyImageAttempts', 'uid'],
+      ['storyDeletionLocks', 'uid'],
       ['sessions', 'uid'],
       ['builderJobs', 'uid'],
       ['localBuildTasks', 'uid'],

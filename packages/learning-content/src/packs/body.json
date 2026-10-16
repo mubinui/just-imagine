@@ -1,0 +1,560 @@
+{
+  "id": "body",
+  "section": "body",
+  "title": "Inside the Body",
+  "titleBn": "শরীরের ভেতর",
+  "notes": "Authored bilingual educational play. Sources: docs/art/learning-content-sources.md. Diagrams and characters are simplified, not to anatomical scale.",
+  "scene": {
+    "schemaVersion": 1,
+    "worldId": "w_pack_body",
+    "tier": "playground",
+    "title": "Inside the Body",
+    "theme": {
+      "paletteHint": "warm forest, cream, peach and soft world colours",
+      "timeOfDay": "day",
+      "backdropDescription": "Inside the Body with warm layers, a clear central play space and calm forest framing",
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
+    },
+    "environment": {
+      "gravity": {
+        "x": 0,
+        "y": 9.81
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
+      "medium": "air",
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
+      "seed": 11
+    },
+    "materials": {
+      "grass": {
+        "density": 1,
+        "friction": 0.8,
+        "restitution": 0.1,
+        "softness": 0,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "fur": {
+        "density": 0.4,
+        "friction": 0.7,
+        "restitution": 0.2,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "feather": {
+        "density": 0.08,
+        "friction": 0.7,
+        "restitution": 0.1,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "wood": {
+        "density": 0.6,
+        "friction": 0.5,
+        "restitution": 0.3,
+        "softness": 0.05,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "rubber": {
+        "density": 1.1,
+        "friction": 0.8,
+        "restitution": 0.8,
+        "softness": 0.2,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "cloud": {
+        "density": 0.06,
+        "friction": 0.9,
+        "restitution": 0.1,
+        "softness": 0.4,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": true
+      }
+    },
+    "entities": [
+      {
+        "id": "ground",
+        "kind": "ground",
+        "name": "farmyard",
+        "description": "grassy farmyard ground with a dirt path and tiny daisies",
+        "asset": {
+          "url": "",
+          "width": 1920,
+          "height": 128,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "box",
+          "material": "grass",
+          "isStatic": true,
+          "size": {
+            "width": 16,
+            "height": 1
+          }
+        },
+        "transform": {
+          "x": 8,
+          "y": 8.5,
+          "rotation": 0
+        },
+        "tags": ["ground"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "heart",
+        "kind": "sprite",
+        "name": "Captain Heart",
+        "description": "A coral heart with tiny gloved hands and a courier satchel.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 2.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "lungs",
+        "kind": "sprite",
+        "name": "Breeze & Puff",
+        "description": "Two soft pink lungs with a branching airway and friendly faces.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 5.0,
+          "y": 4.1,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "brain",
+        "kind": "sprite",
+        "name": "Professor Brain",
+        "description": "A lavender folded brain with a little bow tie and bright eyes.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 8.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "stomach",
+        "kind": "sprite",
+        "name": "Chef Tummy",
+        "description": "A peach stomach with a chef scarf and a soft curved silhouette.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 11.0,
+          "y": 4.1,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "bone",
+        "kind": "sprite",
+        "name": "Boni the Builder",
+        "description": "A friendly ivory long bone with rounded ends and a green tool belt.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 14.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      }
+    ],
+    "joints": [],
+    "rules": [],
+    "learning": {
+      "concepts": ["gravity"],
+      "prediction": {
+        "question": "If you throw the ball up high, will it come back down?",
+        "options": ["yes, it comes down", "no, it stays up"],
+        "correctIndex": 0,
+        "concept": "gravity"
+      },
+      "dials": [],
+      "heroEntityId": "heart",
+      "mode": "incidental"
+    },
+    "narration": {
+      "intro": "Tap a friend, try an activity, or call them to ask your own questions."
+    }
+  },
+  "characters": [
+    {
+      "id": "heart",
+      "name": "Captain Heart",
+      "nameBn": "হৃদয় ক্যাপ্টেন",
+      "look": "A coral heart with tiny gloved hands and a courier satchel.",
+      "voice": "Sulafat",
+      "personality": "A cheerful delivery captain; blood is the delivery route, not a literal parcel service.",
+      "facts": [
+        "I am a muscle inside your chest.",
+        "I squeeze to send blood around your body.",
+        "Blood carries oxygen and nutrients to your cells.",
+        "I keep working while you sleep.",
+        "My four chambers work together.",
+        "When you move, I can beat faster to help your muscles."
+      ],
+      "factsBn": [
+        "আমি তোমার বুকের ভেতরের একটি পেশি।",
+        "আমি সংকুচিত হয়ে সারা শরীরে রক্ত পাঠাই।",
+        "রক্ত কোষে অক্সিজেন ও পুষ্টি নিয়ে যায়।",
+        "তুমি ঘুমালেও আমি কাজ করি।",
+        "আমার চারটি প্রকোষ্ঠ একসঙ্গে কাজ করে।",
+        "তুমি নড়াচড়া করলে পেশিকে সাহায্য করতে আমি দ্রুত চলতে পারি।"
+      ],
+      "catchphrase": "Delivery for every cell!",
+      "catchphraseBn": "প্রতিটি কোষে পৌঁছে দিই!",
+      "funnyAngle": "A cheerful delivery captain; blood is the delivery route, not a literal parcel service."
+    },
+    {
+      "id": "lungs",
+      "name": "Breeze & Puff",
+      "nameBn": "বাতাস আর ফুঁ",
+      "look": "Two soft pink lungs with a branching airway and friendly faces.",
+      "voice": "Sulafat",
+      "personality": "A gentle double act who love balloon jokes but explain lungs are not balloons.",
+      "facts": [
+        "We are a pair of organs in your chest.",
+        "Air enters through your nose or mouth.",
+        "Oxygen from air moves into your blood in our tiny air sacs.",
+        "Carbon dioxide moves from blood into air you breathe out.",
+        "Your diaphragm helps move air in and out.",
+        "We work with your heart to supply your body."
+      ],
+      "factsBn": [
+        "আমরা বুকের ভেতরের এক জোড়া অঙ্গ।",
+        "নাক বা মুখ দিয়ে বাতাস ঢোকে।",
+        "আমাদের ছোট বায়ুথলি থেকে অক্সিজেন রক্তে যায়।",
+        "রক্তের কার্বন ডাইঅক্সাইড নিঃশ্বাসে বের হয়।",
+        "ডায়াফ্রাম বাতাস ঢোকাতে ও বের করতে সাহায্য করে।",
+        "আমরা হৃদয়ের সঙ্গে শরীরকে সাহায্য করি।"
+      ],
+      "catchphrase": "Room for a little fresh air!",
+      "catchphraseBn": "একটু বাতাসের জায়গা দাও!",
+      "funnyAngle": "A gentle double act who love balloon jokes but explain lungs are not balloons."
+    },
+    {
+      "id": "brain",
+      "name": "Professor Brain",
+      "nameBn": "মগজ মামা",
+      "look": "A lavender folded brain with a little bow tie and bright eyes.",
+      "voice": "Sulafat",
+      "personality": "A curious switchboard operator who sometimes loses a pretend pencil.",
+      "facts": [
+        "I help you think, learn and remember.",
+        "I receive messages from your senses.",
+        "I send messages that help you move.",
+        "Nerves carry messages between me and your body.",
+        "Different areas of me do different jobs.",
+        "Sleep helps your brain and body rest."
+      ],
+      "factsBn": [
+        "আমি ভাবতে, শিখতে আর মনে রাখতে সাহায্য করি।",
+        "ইন্দ্রিয় থেকে আমি খবর পাই।",
+        "আমি নড়াচড়ার জন্য খবর পাঠাই।",
+        "স্নায়ু আমার আর শরীরের মধ্যে খবর নিয়ে যায়।",
+        "আমার ভিন্ন অংশ ভিন্ন কাজ করে।",
+        "ঘুম মস্তিষ্ক ও শরীরকে বিশ্রাম দেয়।"
+      ],
+      "catchphrase": "One bright idea coming through!",
+      "catchphraseBn": "একটা বুদ্ধি আসছে!",
+      "funnyAngle": "A curious switchboard operator who sometimes loses a pretend pencil."
+    },
+    {
+      "id": "stomach",
+      "name": "Chef Tummy",
+      "nameBn": "পেটু রাঁধুনি",
+      "look": "A peach stomach with a chef scarf and a soft curved silhouette.",
+      "voice": "Sulafat",
+      "personality": "A mixer chef who makes squishy sound effects, never gross or scary.",
+      "facts": [
+        "I am a stretchy organ, not your whole belly.",
+        "Food reaches me after you swallow.",
+        "My muscles mix food with digestive juices.",
+        "Digestion breaks food into smaller parts.",
+        "Your small intestine absorbs most nutrients.",
+        "Many organs share the job of digestion."
+      ],
+      "factsBn": [
+        "আমি প্রসারিত হতে পারা একটি অঙ্গ, পুরো পেট নই।",
+        "গিলে ফেলার পর খাবার আমার কাছে আসে।",
+        "আমার পেশি খাবারকে পাচকরসের সঙ্গে মেশায়।",
+        "হজম খাবারকে ছোট অংশে ভাঙে।",
+        "ক্ষুদ্রান্ত্র বেশির ভাগ পুষ্টি শোষণ করে।",
+        "অনেক অঙ্গ মিলে হজমের কাজ করে।"
+      ],
+      "catchphrase": "Mix, squish, pass it on!",
+      "catchphraseBn": "মেশাও, নাড়ো, পাঠিয়ে দাও!",
+      "funnyAngle": "A mixer chef who makes squishy sound effects, never gross or scary."
+    },
+    {
+      "id": "bone",
+      "name": "Boni the Builder",
+      "nameBn": "হাড়ু মিস্ত্রি",
+      "look": "A friendly ivory long bone with rounded ends and a green tool belt.",
+      "voice": "Sulafat",
+      "personality": "A careful builder who calls joints the body’s bendy door hinges.",
+      "facts": [
+        "Bones form your skeleton.",
+        "Your skeleton supports your body.",
+        "Your skull helps protect your brain.",
+        "Ribs help protect your heart and lungs.",
+        "Muscles pull on bones to help you move.",
+        "Joints are places where bones meet."
+      ],
+      "factsBn": [
+        "হাড় মিলে তোমার কঙ্কাল তৈরি করে।",
+        "কঙ্কাল শরীরকে অবলম্বন দেয়।",
+        "খুলি মস্তিষ্ককে রক্ষা করে।",
+        "পাঁজর হৃদয় ও ফুসফুস রক্ষা করে।",
+        "পেশি হাড়কে টেনে নড়তে সাহায্য করে।",
+        "দুটি হাড় যেখানে মেলে সেটাই সন্ধি।"
+      ],
+      "catchphrase": "Let’s build a brilliant bend!",
+      "catchphraseBn": "চলো মজার বাঁক বানাই!",
+      "funnyAngle": "A careful builder who calls joints the body’s bendy door hinges."
+    }
+  ],
+  "hotspots": [
+    {
+      "entityId": "heart",
+      "characterId": "heart",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "lungs",
+      "characterId": "lungs",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "brain",
+      "characterId": "brain",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "stomach",
+      "characterId": "stomach",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "bone",
+      "characterId": "bone",
+      "comesCloser": "grow"
+    }
+  ],
+  "sounds": [],
+  "challenges": [
+    {
+      "id": "ch_heart_01",
+      "characterId": "heart",
+      "question": "What do I pump around your body?",
+      "questionBn": "আমি সারা শরীরে কী পাম্প করি?",
+      "answerKey": "blood",
+      "accepted": ["blood", "your blood", "the blood", "রক্ত", "রক্তকে", "rokto"],
+      "hint": "It travels through blood vessels.",
+      "hintBn": "এটা রক্তনালি দিয়ে চলে।",
+      "points": 3
+    },
+    {
+      "id": "ch_lungs_01",
+      "characterId": "lungs",
+      "question": "Which gas do we help move from air into your blood?",
+      "questionBn": "বাতাসের কোন গ্যাস রক্তে দিতে আমরা সাহায্য করি?",
+      "answerKey": "oxygen",
+      "accepted": ["oxygen", "the oxygen", "o2", "অক্সিজেন", "অক্সিজেন গ্যাস", "oxijen"],
+      "hint": "Plants release this gas when they make food in sunlight.",
+      "hintBn": "সূর্যের আলোয় খাবার তৈরির সময় গাছ এই গ্যাস ছাড়ে।",
+      "points": 3
+    },
+    {
+      "id": "ch_brain_01",
+      "characterId": "brain",
+      "question": "What carries messages between my brain and body?",
+      "questionBn": "মস্তিষ্ক আর শরীরের মধ্যে খবর কী নিয়ে যায়?",
+      "answerKey": "nerves",
+      "accepted": ["nerves", "the nerves", "nerve cells", "স্নায়ু", "স্নায়ুকোষ", "snayu"],
+      "hint": "Think of the body’s message network.",
+      "hintBn": "শরীরের খবর পাঠানোর জালের কথা ভাবো।",
+      "points": 3
+    },
+    {
+      "id": "ch_stomach_01",
+      "characterId": "stomach",
+      "question": "Where are most nutrients absorbed after food leaves the stomach?",
+      "questionBn": "পাকস্থলীর পর বেশির ভাগ পুষ্টি কোথায় শোষিত হয়?",
+      "answerKey": "small intestine",
+      "accepted": [
+        "small intestine",
+        "the small intestine",
+        "small bowel",
+        "ক্ষুদ্রান্ত্র",
+        "ক্ষুদ্র অন্ত্র",
+        "khudranto"
+      ],
+      "hint": "It is a long coiled tube after me.",
+      "hintBn": "এটা আমার পরের লম্বা প্যাঁচানো নালি।",
+      "points": 3
+    },
+    {
+      "id": "ch_bone_01",
+      "characterId": "bone",
+      "question": "What do we call the place where bones meet?",
+      "questionBn": "দুটি হাড় যেখানে মেলে তাকে কী বলে?",
+      "answerKey": "joint",
+      "accepted": ["joint", "a joint", "joints", "সন্ধি", "হাড়ের সন্ধি", "shondhi"],
+      "hint": "Your elbow has one.",
+      "hintBn": "তোমার কনুইয়ে এটা আছে।",
+      "points": 3
+    }
+  ],
+  "activities": [
+    {
+      "characterId": "heart",
+      "kind": "pulse",
+      "title": "Send a heartbeat",
+      "titleBn": "হৃদস্পন্দন পাঠাও",
+      "explanation": "Each squeeze moves blood. The dots show a route, not the real speed or colour of blood.",
+      "explanationBn": "প্রতিটি সংকোচনে রক্ত চলে। বিন্দুগুলো পথ দেখায়, রক্তের আসল গতি বা রং নয়।"
+    },
+    {
+      "characterId": "lungs",
+      "kind": "breathe",
+      "title": "Breathe with us",
+      "titleBn": "আমাদের সঙ্গে শ্বাস নাও",
+      "explanation": "Watch the lungs expand and relax. Breathe normally and comfortably; no holding your breath.",
+      "explanationBn": "ফুসফুসের প্রসারণ দেখো। আরাম করে স্বাভাবিক শ্বাস নাও; শ্বাস আটকে রেখো না।"
+    },
+    {
+      "characterId": "brain",
+      "kind": "signal",
+      "title": "Pass the message",
+      "titleBn": "খবরটা পাঠাও",
+      "explanation": "A signal travels along nerves. This slow trail helps us see a message that normally travels much faster.",
+      "explanationBn": "স্নায়ু দিয়ে সংকেত যায়। আসলে দ্রুত চলা সংকেত বোঝাতে এখানে ধীর করে দেখানো হয়েছে।"
+    },
+    {
+      "characterId": "stomach",
+      "kind": "digest",
+      "title": "Follow a bite",
+      "titleBn": "এক কামড়ের পথ দেখো",
+      "explanation": "Mouth, food pipe, stomach, small intestine: digestion is a team journey, not just one organ.",
+      "explanationBn": "মুখ, খাদ্যনালি, পাকস্থলী, ক্ষুদ্রান্ত্র: হজম অনেক অঙ্গের যৌথ যাত্রা।"
+    },
+    {
+      "characterId": "bone",
+      "kind": "assemble",
+      "title": "Bend an elbow",
+      "titleBn": "কনুই বাঁকাও",
+      "explanation": "Muscles pull on bones at joints. The elbow acts like a hinge; your bones do not bend like rubber.",
+      "explanationBn": "পেশি সন্ধিতে হাড় টানে। কনুই কবজার মতো চলে; হাড় রাবারের মতো বাঁকে না।"
+    }
+  ]
+}

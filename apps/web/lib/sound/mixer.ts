@@ -38,6 +38,11 @@ export interface Mixer {
   unlock(): Promise<void>;
   preload(names?: readonly CueName[]): Promise<void>;
   playCue(name: CueName, opts?: CueOptions): void;
+  /**
+   * Plays a same-origin clip outside the cue pack (an animal's real call, the toy-phone ring),
+   * given as a path without extension; resolves to its length in seconds, or 0 when silent.
+   */
+  playClip(path: string, opts?: CueOptions): Promise<number>;
   playMusic(theme: MusicTheme): void;
   stopMusic(): void;
   setSpeaking(speaking: boolean): void;
@@ -309,6 +314,13 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
       void cueBuffer(name).then((audio) => {
         if (audio) startCue(audio, opts);
       });
+    },
+    async playClip(path, opts = {}) {
+      if (!ready() || muted || !/^\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+$/.test(path)) return 0;
+      const audio = await buffer(`clip:${path}`, (formats) => formats.map((f) => `${path}.${f}`));
+      if (!audio || !ready() || muted) return 0;
+      startCue(audio, opts);
+      return audio.duration / clamp(opts.rate ?? 1, 0.25, 4, 1);
     },
     playMusic(theme) {
       pendingTheme = theme;

@@ -9,15 +9,20 @@ service cloud.firestore {
         match /discoveries/{concept} { allow read: if parent(uid); }
       }
     }
+    // An admin can hide a world from its family pending review (adminAudit records who and why).
+    function visibleTo(world) { return parent(world.ownerUid) && world.get('hidden', false) != true; }
     match /worlds/{worldId} {
-      allow read: if parent(resource.data.ownerUid);
+      allow read: if visibleTo(resource.data);
       match /versions/{version} {
-        allow read: if parent(get(/databases/$(database)/documents/worlds/$(worldId)).data.ownerUid);
+        allow read: if visibleTo(get(/databases/$(database)/documents/worlds/$(worldId)).data);
       }
     }
     match /sessions/{sessionId} { allow read: if parent(resource.data.uid); }
     match /usageDaily/{usageId} { allow read: if parent(resource.data.uid); }
     match /subscriptions/{uid} { allow read: if parent(uid); }
+    // Super admin data is server-only: the api reads and writes it with the Admin SDK.
+    match /adminAudit/{auditId} { allow read, write: if false; }
+    match /adminFlags/{uid} { allow read, write: if false; }
     match /{document=**} { allow write: if false; }
   }
 }

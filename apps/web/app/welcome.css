@@ -156,7 +156,7 @@
 }
 .planet-switch button[aria-pressed='true'] {
   background: var(--surface);
-  box-shadow: 0 3px 8px -4px #243e3638;
+  box-shadow: 0 3px 8px -4px color-mix(in srgb, var(--ink) 21.961%, transparent);
 }
 .gravity-drop {
   display: flex;

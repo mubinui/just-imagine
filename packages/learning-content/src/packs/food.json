@@ -1,0 +1,567 @@
+{
+  "id": "food",
+  "section": "food",
+  "title": "The Food Garden",
+  "titleBn": "খাবারের বাগান",
+  "notes": "Authored bilingual educational play. Sources: docs/art/learning-content-sources.md. Diagrams and characters are simplified, not to anatomical scale.",
+  "scene": {
+    "schemaVersion": 1,
+    "worldId": "w_pack_food",
+    "tier": "playground",
+    "title": "The Food Garden",
+    "theme": {
+      "paletteHint": "warm forest, cream, peach and soft world colours",
+      "timeOfDay": "day",
+      "backdropDescription": "The Food Garden with warm layers, a clear central play space and calm forest framing",
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
+    },
+    "environment": {
+      "gravity": {
+        "x": 0,
+        "y": 9.81
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
+      "medium": "air",
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
+      "seed": 11
+    },
+    "materials": {
+      "grass": {
+        "density": 1,
+        "friction": 0.8,
+        "restitution": 0.1,
+        "softness": 0,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "fur": {
+        "density": 0.4,
+        "friction": 0.7,
+        "restitution": 0.2,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "feather": {
+        "density": 0.08,
+        "friction": 0.7,
+        "restitution": 0.1,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "wood": {
+        "density": 0.6,
+        "friction": 0.5,
+        "restitution": 0.3,
+        "softness": 0.05,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "rubber": {
+        "density": 1.1,
+        "friction": 0.8,
+        "restitution": 0.8,
+        "softness": 0.2,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "cloud": {
+        "density": 0.06,
+        "friction": 0.9,
+        "restitution": 0.1,
+        "softness": 0.4,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": true
+      }
+    },
+    "entities": [
+      {
+        "id": "ground",
+        "kind": "ground",
+        "name": "farmyard",
+        "description": "grassy farmyard ground with a dirt path and tiny daisies",
+        "asset": {
+          "url": "",
+          "width": 1920,
+          "height": 128,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "box",
+          "material": "grass",
+          "isStatic": true,
+          "size": {
+            "width": 16,
+            "height": 1
+          }
+        },
+        "transform": {
+          "x": 8,
+          "y": 8.5,
+          "rotation": 0
+        },
+        "tags": ["ground"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "carrot",
+        "kind": "sprite",
+        "name": "Cara Carrot",
+        "description": "A bright orange carrot with leafy hair and a small apron.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 2.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "milk",
+        "kind": "sprite",
+        "name": "Mina Milk",
+        "description": "A cream milk carton with a forest-green cap and friendly face.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 5.0,
+          "y": 4.1,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "bean",
+        "kind": "sprite",
+        "name": "Benny Bean",
+        "description": "A curved burgundy bean with tiny boots and a warm grin.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 8.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "rice",
+        "kind": "sprite",
+        "name": "Rafi Rice",
+        "description": "A small bowl of rice with a green rim and steam curls.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 11.0,
+          "y": 4.1,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "water",
+        "kind": "sprite",
+        "name": "Wavy Water",
+        "description": "A clear blue water droplet with little ripples and bright eyes.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 14.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      }
+    ],
+    "joints": [],
+    "rules": [],
+    "learning": {
+      "concepts": ["gravity"],
+      "prediction": {
+        "question": "If you throw the ball up high, will it come back down?",
+        "options": ["yes, it comes down", "no, it stays up"],
+        "correctIndex": 0,
+        "concept": "gravity"
+      },
+      "dials": [],
+      "heroEntityId": "carrot",
+      "mode": "incidental"
+    },
+    "narration": {
+      "intro": "Tap a friend, try an activity, or call them to ask your own questions."
+    }
+  },
+  "characters": [
+    {
+      "id": "carrot",
+      "name": "Cara Carrot",
+      "nameBn": "গাজর গুড়ি",
+      "look": "A bright orange carrot with leafy hair and a small apron.",
+      "voice": "Sulafat",
+      "personality": "A proud gardener who says her leafy hair needs no comb.",
+      "facts": [
+        "I am a root vegetable.",
+        "My orange colour comes from pigments including beta-carotene.",
+        "Your body can use beta-carotene to make vitamin A.",
+        "Vitamin A supports normal vision.",
+        "Vegetables provide different nutrients.",
+        "No single food supplies everything your body needs."
+      ],
+      "factsBn": [
+        "আমি একটি মূলজাতীয় সবজি।",
+        "বিটা-ক্যারোটিনসহ রঞ্জক থেকে আমার কমলা রং আসে।",
+        "শরীর বিটা-ক্যারোটিন থেকে ভিটামিন এ বানাতে পারে।",
+        "ভিটামিন এ স্বাভাবিক দৃষ্টিশক্তিতে সাহায্য করে।",
+        "ভিন্ন সবজিতে ভিন্ন পুষ্টি থাকে।",
+        "একটি খাবারেই শরীরের সব পুষ্টি পাওয়া যায় না।"
+      ],
+      "catchphrase": "Orange you glad we met?",
+      "catchphraseBn": "কমলা রঙের বন্ধুকে কেমন লাগল!",
+      "funnyAngle": "A proud gardener who says her leafy hair needs no comb."
+    },
+    {
+      "id": "milk",
+      "name": "Mina Milk",
+      "nameBn": "দুধ মিনা",
+      "look": "A cream milk carton with a forest-green cap and friendly face.",
+      "voice": "Sulafat",
+      "personality": "A calcium delivery friend who welcomes fortified soy alternatives too.",
+      "facts": [
+        "Milk contains calcium.",
+        "Calcium helps build and maintain bones and teeth.",
+        "Milk also contains protein.",
+        "Some milk is fortified with vitamin D.",
+        "Fortified soy drinks can offer similar nutrients.",
+        "People have different food needs; ask your grown-up about yours."
+      ],
+      "factsBn": [
+        "দুধে ক্যালসিয়াম থাকে।",
+        "ক্যালসিয়াম হাড় ও দাঁত গড়তে ও ঠিক রাখতে সাহায্য করে।",
+        "দুধে প্রোটিনও থাকে।",
+        "কিছু দুধে ভিটামিন ডি যোগ করা হয়।",
+        "পুষ্টি যোগ করা সয়া পানীয়েও একই ধরনের পুষ্টি থাকতে পারে।",
+        "মানুষের খাবারের চাহিদা আলাদা; বড়দের সঙ্গে নিজেরটা নিয়ে কথা বলো।"
+      ],
+      "catchphrase": "Bone buddies, assemble!",
+      "catchphraseBn": "হাড়ের বন্ধুরা, এক হও!",
+      "funnyAngle": "A calcium delivery friend who welcomes fortified soy alternatives too."
+    },
+    {
+      "id": "bean",
+      "name": "Benny Bean",
+      "nameBn": "শিমু বিন",
+      "look": "A curved burgundy bean with tiny boots and a warm grin.",
+      "voice": "Sulafat",
+      "personality": "A tiny builder with a big toolbox of nutrients.",
+      "facts": [
+        "Beans belong to the protein foods group.",
+        "Protein helps your body grow and repair tissues.",
+        "Beans also provide fibre.",
+        "Fibre helps food move through your digestive system.",
+        "Beans contain minerals including iron.",
+        "Many different foods can help meet your protein needs."
+      ],
+      "factsBn": [
+        "শিমজাতীয় বীজ প্রোটিন খাবারের দলে পড়ে।",
+        "প্রোটিন বৃদ্ধি ও কলা মেরামতে সাহায্য করে।",
+        "ডাল ও বিনে আঁশও থাকে।",
+        "আঁশ হজমের পথে খাবার চলতে সাহায্য করে।",
+        "বিনে আয়রনসহ খনিজ থাকে।",
+        "বিভিন্ন খাবার থেকে প্রোটিন পাওয়া যায়।"
+      ],
+      "catchphrase": "Small bean, big team!",
+      "catchphraseBn": "ছোট্ট বিন, বড় দল!",
+      "funnyAngle": "A tiny builder with a big toolbox of nutrients."
+    },
+    {
+      "id": "rice",
+      "name": "Rafi Rice",
+      "nameBn": "ভাতু রাফি",
+      "look": "A small bowl of rice with a green rim and steam curls.",
+      "voice": "Sulafat",
+      "personality": "An energetic grain who calls meals little fuel stops.",
+      "facts": [
+        "Rice is a grain.",
+        "Grains provide carbohydrates your body uses for energy.",
+        "Whole grains keep more parts of the grain.",
+        "Whole grains provide fibre.",
+        "Other grains include oats, wheat and corn.",
+        "Enjoy different food groups together."
+      ],
+      "factsBn": [
+        "চাল একটি শস্য।",
+        "শস্যের শর্করা শরীরকে শক্তি দেয়।",
+        "গোটা শস্যে দানার বেশি অংশ থাকে।",
+        "গোটা শস্যে আঁশ থাকে।",
+        "ওটস, গম ও ভুট্টাও শস্য।",
+        "বিভিন্ন খাদ্যগোষ্ঠী একসঙ্গে উপভোগ করো।"
+      ],
+      "catchphrase": "Ready, steady, rice!",
+      "catchphraseBn": "ভাত খেয়ে, চলো এগিয়ে!",
+      "funnyAngle": "An energetic grain who calls meals little fuel stops."
+    },
+    {
+      "id": "water",
+      "name": "Wavy Water",
+      "nameBn": "পানি টলমল",
+      "look": "A clear blue water droplet with little ripples and bright eyes.",
+      "voice": "Sulafat",
+      "personality": "A cheerful splash who never claims to be a magic cure.",
+      "facts": [
+        "Water helps your body work.",
+        "Water helps move nutrients around your body.",
+        "Sweat helps your body cool down.",
+        "You lose water when you sweat.",
+        "Water is a useful drink during active play.",
+        "Your grown-up can help you find safe drinking water."
+      ],
+      "factsBn": [
+        "পানি শরীরের কাজে সাহায্য করে।",
+        "পানি শরীরে পুষ্টি চলাচলে সাহায্য করে।",
+        "ঘাম শরীর ঠান্ডা হতে সাহায্য করে।",
+        "ঘামে শরীর থেকে পানি বের হয়।",
+        "খেলাধুলার সময় পানি উপকারী পানীয়।",
+        "নিরাপদ পানি পেতে বড়রা সাহায্য করতে পারে।"
+      ],
+      "catchphrase": "Splash! Time for a sip?",
+      "catchphraseBn": "ছপাৎ! একটু পানি খাবে?",
+      "funnyAngle": "A cheerful splash who never claims to be a magic cure."
+    }
+  ],
+  "hotspots": [
+    {
+      "entityId": "carrot",
+      "characterId": "carrot",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "milk",
+      "characterId": "milk",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "bean",
+      "characterId": "bean",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "rice",
+      "characterId": "rice",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "water",
+      "characterId": "water",
+      "comesCloser": "grow"
+    }
+  ],
+  "sounds": [],
+  "challenges": [
+    {
+      "id": "ch_carrot_01",
+      "characterId": "carrot",
+      "question": "Which vitamin can your body make from beta-carotene?",
+      "questionBn": "বিটা-ক্যারোটিন থেকে শরীর কোন ভিটামিন বানাতে পারে?",
+      "answerKey": "vitamin A",
+      "accepted": ["vitamin a", "a", "vit a", "ভিটামিন এ", "এ ভিটামিন", "retinol"],
+      "hint": "It is named with the first English letter.",
+      "hintBn": "ইংরেজি প্রথম অক্ষর দিয়ে এর নাম।",
+      "points": 3
+    },
+    {
+      "id": "ch_milk_01",
+      "characterId": "milk",
+      "question": "Which mineral in milk helps your bones and teeth?",
+      "questionBn": "দুধের কোন খনিজ হাড় ও দাঁতে সাহায্য করে?",
+      "answerKey": "calcium",
+      "accepted": [
+        "calcium",
+        "the calcium",
+        "calcium mineral",
+        "ক্যালসিয়াম",
+        "ক্যালসিয়াম খনিজ",
+        "calshiam"
+      ],
+      "hint": "Its name starts with a C in English.",
+      "hintBn": "ইংরেজিতে এর নাম সি দিয়ে শুরু।",
+      "points": 3
+    },
+    {
+      "id": "ch_bean_01",
+      "characterId": "bean",
+      "question": "Which nutrient helps your body grow and repair tissues?",
+      "questionBn": "কোন পুষ্টি শরীরের বৃদ্ধি ও কলা মেরামতে সাহায্য করে?",
+      "answerKey": "protein",
+      "accepted": ["protein", "proteins", "the protein", "প্রোটিন", "আমিষ", "protin"],
+      "hint": "It is the name of my food group.",
+      "hintBn": "আমার খাদ্যগোষ্ঠীর নামটিই ভাবো।",
+      "points": 3
+    },
+    {
+      "id": "ch_rice_01",
+      "characterId": "rice",
+      "question": "Which nutrient in grains is a major energy source?",
+      "questionBn": "শস্যের কোন পুষ্টি শক্তির বড় উৎস?",
+      "answerKey": "carbohydrate",
+      "accepted": [
+        "carbohydrate",
+        "carbohydrates",
+        "carbs",
+        "শর্করা",
+        "কার্বোহাইড্রেট",
+        "shorkora"
+      ],
+      "hint": "People sometimes shorten the word to carbs.",
+      "hintBn": "ইংরেজিতে একে ছোট করে কার্বস বলে।",
+      "points": 3
+    },
+    {
+      "id": "ch_water_01",
+      "characterId": "water",
+      "question": "What helps cool your body when it evaporates from your skin?",
+      "questionBn": "ত্বক থেকে শুকিয়ে গিয়ে কী শরীর ঠান্ডা করে?",
+      "answerKey": "sweat",
+      "accepted": ["sweat", "sweating", "perspiration", "ঘাম", "ঘাম শুকানো", "gham"],
+      "hint": "It can appear on your skin when you play.",
+      "hintBn": "খেলার সময় ত্বকে এটা দেখা যায়।",
+      "points": 3
+    }
+  ],
+  "activities": [
+    {
+      "characterId": "carrot",
+      "kind": "plate",
+      "title": "Build a colourful plate",
+      "titleBn": "রঙিন থালা সাজাও",
+      "explanation": "Different food groups bring different nutrients. Variety helps; this pretend plate is not a portion prescription.",
+      "explanationBn": "ভিন্ন খাদ্যগোষ্ঠী ভিন্ন পুষ্টি দেয়। বৈচিত্র্য ভালো; এই থালা খাবারের পরিমাণের নির্দেশ নয়।"
+    },
+    {
+      "characterId": "milk",
+      "kind": "plate",
+      "title": "Give your plate variety",
+      "titleBn": "থালায় বৈচিত্র্য আনো",
+      "explanation": "Calcium is a mineral. Dairy and fortified alternatives are some sources; different bodies need different choices.",
+      "explanationBn": "ক্যালসিয়াম একটি খনিজ। দুধ ও পুষ্টি যোগ করা বিকল্পে এটি মেলে; সবার পছন্দ এক নয়।"
+    },
+    {
+      "characterId": "bean",
+      "kind": "plate",
+      "title": "Make a food team",
+      "titleBn": "খাবারের দল বানাও",
+      "explanation": "Protein helps build and repair tissues. Beans, eggs, fish and other foods can be part of a varied diet.",
+      "explanationBn": "প্রোটিন কলা গড়ে ও মেরামত করে। ডাল, ডিম, মাছসহ নানা খাবার বৈচিত্র্য আনে।"
+    },
+    {
+      "characterId": "rice",
+      "kind": "plate",
+      "title": "Fuel the food team",
+      "titleBn": "খাবারের দল সাজাও",
+      "explanation": "Carbohydrates provide energy. A varied meal brings other nutrients too.",
+      "explanationBn": "শর্করা শক্তি দেয়। বৈচিত্র্যময় খাবারে অন্য পুষ্টিও আসে।"
+    },
+    {
+      "characterId": "water",
+      "kind": "plate",
+      "title": "Meet your food team",
+      "titleBn": "খাবারের দলকে চেনো",
+      "explanation": "Water supports your body. You can enjoy a drink break during active play.",
+      "explanationBn": "পানি শরীরকে সাহায্য করে। খেলার মধ্যে পানি খাওয়ার বিরতি নিতে পারো।"
+    }
+  ]
+}

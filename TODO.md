@@ -1,5 +1,81 @@
 # Implementation todo
 
+## UI consistency, themes and tagged release — release candidate verified
+
+Plan: [ui-consistency-theme-release-plan.md](docs/handoff/ui-consistency-theme-release-plan.md).
+
+- [x] Fix Learn map overlap/alignment at wide, short and phone sizes.
+- [x] Unify microphone and action icons; remove decorative sparkle UI.
+- [x] Add persisted, guarded and audited admin theme personalization.
+- [x] Recolour shared brand mark, browser icon and interface consistently.
+- [x] Check interactions/themes/contrast, build, fresh review and documentation.
+- [ ] Update checkpoint, inspect release files, commit, push and create annotated tag.
+
+## Story, stage and specialist experience — implemented locally
+
+Plan: [story-stage-specialists-plan.md](docs/handoff/story-stage-specialists-plan.md). Execute in order; keep this list and checkpoint current.
+
+- [x] Research all 40 chapters, actor pipeline, companion hit areas, voice, parent controls, persistence and generation.
+- [x] Persist the deep implementation plan and every requested task.
+- [x] Enlarge the chat icon and remove the visible Explore label while preserving accessible navigation.
+- [x] Define specialist expertise and abilities for all six friends; show distinct entrances, demonstrations and building performances linked to actual job steps.
+- [x] Upgrade every learning book with an immersive animated game stage, tactile props, action consequences and interactive educational story beats. Preserve all 40 playable chapters and progress.
+- [x] Add the dedicated original storyteller character and animations in the approved tactile style.
+- [x] Add parent-managed learning goals and story preferences, persisted per child.
+- [x] Implement owned story schemas, API, durable generation, genuine generated images, safety/quotas/retries and deletion protection.
+- [x] Add the story room: child topic by text or voice, long multi-scene stories, HTML visuals, choices, questions, saved progress and replay.
+- [x] Connect real Gemini narration, scene/beat synchronization, actual playback-drain advance, pause/question/resume and honest error recovery.
+- [x] Join Story room to Learn and companion navigation with English/Bangla copy.
+- [x] Run meaningful checks and real-service acceptance; inspect desktop/phone/reduced motion and all chapter inputs.
+- [x] Complete fresh Impeccable finish review and documentation; clean QA accounts, export data and finish checkpoint.
+
+Reviewer scored all three requested corrections resolved, disposition ship at correction scope. Real Ari Bangla book is ready in Katha’s room. Handoff: [story-stage-operations.md](docs/handoff/story-stage-operations.md). Keep film rigging, generated-world animation-art reliability, real-child enjoyment and production release separate from this completed illustrated2D extension.
+
+## Tooth Town acting standard across the app
+
+- [x] Research actor consumers, voice amplitude, game motion and Tooth Town reference; persist plan.
+- [x] Generate/register consistent eight-pose predefined cast atlases and provenance.
+- [x] Shared discrete acting clock, speech and bounded reactions; pause/reduced-motion handling.
+- [x] Integrate Learn, Studio friends, companion navigation/setup and pets; replace misleading whole-image motion.
+- [x] Browser acceptance, source checks, running build, review and final checkpoint.
+
+Remaining scope: custom photo/outfit images still have no articulated pose set, and old/generated-world animation-art reliability remains open below. This pass ships predefined sprite acting, not continuous rigs.
+
+## Action-based game motion
+
+- [x] Research renderer, physics, generated artwork and learning inputs; persist action-motion plan.
+- [x] Add distance-driven gait/facing/swim pitch, no-slip wheels, idle stops and grounded upright actors.
+- [x] Register 72 articulated animal poses; integrate Lion/Seal/Dolphin/Horse and Mars rover.
+- [x] Queue legal route inputs with acceleration/braking and commit progress on arrival; pause hidden-tab gaps.
+- [x] Add optional backward-compatible generated locomotion/atlas metadata, validated nine-pose processing and art reuse for stride-only edits.
+- [x] Play all 11 affected learning chapters, verify saved progress/zero rewards and desktop/phone motion; fresh design review: ship for Learn scope.
+- [x] Finish authored-motion acceptance, QA cleanup/export and checkpoint; record generated-world failures honestly.
+- [ ] Improve generated animation-art reliability: all four full creation attempts failed required art checks. Direct production asset generation passed separately; this is not end-to-end acceptance.
+
+## Story-led learning completion
+
+- [x] Research current games, content, persistence and voice boundaries.
+- [x] Author nine bilingual adventures and 40 character chapters.
+- [x] Implement causal game rules, direct manipulation boards, story endings and open chapter replay.
+- [x] Add authenticated transactional chapter completion, offline retry and trusted current-character story context.
+- [x] Build, playtest every chapter, verify persistence/retry and real Gemini story context.
+- [x] Finish fresh review, bounded phone fixes, documentation, QA cleanup/data export and checkpoint.
+
+## Current learning-worlds and craft pass
+
+- [x] Research existing packs/protocol/rewards before changing implementation.
+- [x] Open Body, Food, Hygiene and Exercise; add Galaxy/Moon/Star characters.
+- [x] Replace the first button-only demonstrations with six distinct manipulation games.
+- [x] Add authored observation context, motion and asynchronous imagined costumes to Live.
+- [x] Prevent unattempted and duplicate challenge payouts.
+- [x] Move Pip into a reserved Learn dock tile; fix clipped Studio invitation layout.
+- [x] Generate cinematic environments and an eight-pose Twinkle acting sheet; embed provenance.
+- [x] Source checks and real Gemini spoken answer, dance, outfit, pinned explanation, points/pet acceptance; temporary QA explorer deleted.
+- [x] Deploy final source; confirm all six games, desktop/phone Studio clipping, Pip hit targets and real timed handwashing.
+- [x] Fresh Impeccable finish review: ship at raster-acting scope; source-backed documentation and final checkpoint.
+- [x] Carry the approved Twinkle craft across all 40 characters and six environments with speaking/celebration poses and distinct coach arm poses.
+- [ ] Broader continuous acting/rigging, durable wardrobe and actual-child enjoyment remain follow-up quality work; do not claim film-quality animation.
+
 Current handoff: [CHECKPOINT.md](CHECKPOINT.md). Historical evidence and scoped reports: [docs/handoff/](docs/handoff/). Source coverage is distinct from staging/release acceptance.
 
 ## Implemented locally
@@ -30,6 +106,31 @@ Current handoff: [CHECKPOINT.md](CHECKPOINT.md). Historical evidence and scoped 
 - [x] Add optional parent-photo companion service and ready-made friend setup with personal names.
 - [x] Preserve the companion/voice session across child screens and add bounded Gemini navigation tools.
 - [x] Verify photo ownership, input limits, attempt limits, concurrent/deletion fences, and same-session navigation.
+
+## Creative authorship — 2026-10-16
+
+The child directs the idea, cast, appearance, actions and rules. See the accepted slice in [creative-freedom-plan.md](docs/handoff/creative-freedom-plan.md).
+
+- [x] Give open play generated behavior without mandatory scores, endings, floors or sliders.
+- [x] Preserve intent and recompose structural edits with the dedicated script compiler.
+- [x] Regenerate changed art, retain unchanged owned art, and keep the previous world on failed edits.
+- [x] Implement real revision snapshots and successive undo with ownership/concurrency tests.
+- [x] Add free-text authoring alongside voice, English/Bangla, and separate Play settings copy.
+- [x] Verify real creation, drag-to-moon transformation, new Lumi portal rule, exact undo and absence of lesson overlays.
+- [x] Confirm the final no-default-score HUD build and stable desktop/phone rendering.
+- [x] Export the current saved data after final session finish.
+- [ ] Complete the broader idea/capability/child-usability evaluation before calling unrestricted creative development finished.
+
+## Planet-character acceptance — 2026-10-16
+
+User's concrete example and implementation: [planet-characters-upgrade.md](docs/handoff/planet-characters-upgrade.md).
+
+- [x] Identify stale builder image and Lab-profile routing bypassing generated games.
+- [x] Add generated-world character contracts, owned-world live handoff and discoverable Studio cast.
+- [x] Add custom game-rule variables to ordinary worlds and prove actual script effects.
+- [x] Preserve English/Bangla and authored Learning Worlds; rebuild all app services together.
+- [x] Verify a newly generated planet adventure, character voices, custom rules and saved replay in the real app.
+- [x] Inspect desktop/phone and record remaining visual or interaction limitations honestly.
 
 ## Creative freedom follow-up — 2026-10-16
 

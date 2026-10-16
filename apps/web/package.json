@@ -17,6 +17,8 @@
     "@just-imagine/characters": "workspace:*",
     "@just-imagine/engine": "workspace:*",
     "@just-imagine/fixtures": "workspace:*",
+    "@just-imagine/game-runtime": "workspace:*",
+    "@just-imagine/learning-content": "workspace:*",
     "@just-imagine/protocol": "workspace:*",
     "@just-imagine/scene-schema": "workspace:*",
     "@just-imagine/server-core": "workspace:*",

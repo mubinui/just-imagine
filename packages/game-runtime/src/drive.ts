@@ -37,6 +37,8 @@ export interface Stage {
 
 export interface DriveOptions {
   seconds: number;
+  /** Open-ended toys need no score or terminal win condition. Defaults to true. */
+  requireGoal?: boolean;
   seed?: number;
   worker?: WorkerFactory;
   budgets?: Partial<Budgets>;
@@ -113,7 +115,7 @@ export async function driveScript(
   const check = checkScript(source);
   if (!check.ok) return { ok: false, reason: 'static', detail: { errors: check.errors }, stats };
   const calls = scanApiCalls(source);
-  if (!calls.has('win') && !calls.has('score'))
+  if (options.requireGoal !== false && !calls.has('win') && !calls.has('score'))
     return {
       ok: false,
       reason: 'no-goal',
@@ -221,7 +223,7 @@ export async function driveScript(
   if (breach) return { ok: false, reason: 'budget', detail: breach, stats };
   const error = errors[0];
   if (error) return { ok: false, reason: 'runtime', detail: error, stats };
-  if (!stats.won && (stats.commands.score ?? 0) === 0)
+  if (options.requireGoal !== false && !stats.won && (stats.commands.score ?? 0) === 0)
     return {
       ok: false,
       reason: 'no-goal',

@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { CHARACTERS, type CharacterId } from '@just-imagine/protocol';
+import { SPECIALISTS, CHARACTERS, type CharacterId } from '@just-imagine/protocol';
+import { CharacterArt } from './CharacterArt';
+import { useLanguage } from '../../lib/i18n';
 import { s } from '../../lib/strings/en';
 import type { JobStatus } from './parts';
 
@@ -94,15 +96,6 @@ const CONFETTI = Array.from({ length: CONFETTI_COUNT }, (_, i) => {
   };
 });
 
-const BrushIcon = () => (
-  <svg viewBox="0 0 48 48" aria-hidden="true">
-    <rect x="21" y="2" width="6" height="25" rx="3" fill="#ad6524" />
-    <rect x="18.5" y="25" width="11" height="6" rx="2" fill="#fff9ee" />
-    <path d="M18 31h12v5c0 4.4-2.7 8-6 8s-6-3.6-6-8z" fill="#f7d76e" />
-    <ellipse cx="24" cy="43" rx="4.6" ry="2.4" fill="#f9ceb0" />
-  </svg>
-);
-
 // origin is the show's own start when the caller passes 0 for an unknown startedAt.
 type Clock = { now: number; job: JobStatus | undefined; statusAt: number; origin: number };
 
@@ -112,7 +105,6 @@ export function GenerationShow({
   character,
   name,
   heroName,
-  face,
   onOfferFallback,
 }: {
   job?: JobStatus;
@@ -147,6 +139,9 @@ export function GenerationShow({
       clearInterval(timer);
     };
   }, [job, startedAt]);
+  const { language } = useLanguage();
+  const lang = language === 'bn' ? 1 : 0;
+  const specialist = SPECIALISTS[character];
   const elapsed = clock.now - clock.origin;
   const sinceStatus = clock.job === job ? clock.now - clock.statusAt : 0;
   const beat = showBeatFor(job, elapsed, sinceStatus);
@@ -159,10 +154,10 @@ export function GenerationShow({
       <div className="show-inner">
         <div className="show-friend" role="img" aria-label={friend}>
           <span className="spotlight" aria-hidden="true" />
-          {face}
-          <span className="show-brush" aria-hidden="true">
-            <BrushIcon />
-          </span>
+          <CharacterArt
+            id={character}
+            action={job === 'failed' ? 'listen' : job === 'ready' ? 'cheer' : 'build'}
+          />
         </div>
         <div className="show-easel" aria-hidden="true">
           <div className="show-canvas">
@@ -198,6 +193,16 @@ export function GenerationShow({
         </div>
       </div>
       <div className="show-caption-wrap">
+        <p className="specialist-role">
+          {friend} · {specialist.role[lang]}
+        </p>
+        <p className="specialist-making">
+          {job === 'ready'
+            ? lang
+              ? 'তোমার জগত তৈরি'
+              : 'Your world is ready'
+            : specialist.making[lang]}
+        </p>
         <p className="show-caption" key={line} role="status" aria-live="polite">
           {line}
         </p>

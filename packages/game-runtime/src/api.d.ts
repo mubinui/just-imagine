@@ -162,6 +162,12 @@ export interface GameApi {
    * are capped at 20 m/s. `{ x: 0, y: -5 }` throws it upward.
    */
   impulse(idOrTag: string, vector: Vector): void;
+  /**
+   * Positions an actor or prop at stage coordinates, including static bodies.
+   * Use for scripted paths/orbits; for physical pushes use impulse instead.
+   * Positions stay within the stage. This is illustrated motion, not an orbit simulation.
+   */
+  move(idOrTag: string, position: Vector): void;
   /** Sets gravity. A number sets the vertical pull (9.81 is Earth, 1.62 the Moon). */
   setGravity(gravity: number | Vector): void;
   /** Sets wind. A number sets a horizontal breeze (positive blows right). */

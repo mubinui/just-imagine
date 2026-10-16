@@ -14,13 +14,13 @@ export function CharacterFace({ character }: { character: CharacterId }) {
       rig: Awaited<ReturnType<typeof mountCharacter>> | undefined,
       emotion: Emotion = 'idle';
     const voice = getVoice(),
-      audio = voice.audio,
-      previous = audio.onMouth;
-    const mouth = (value: number) => {
+      audio = voice.audio;
+    const mouth = (energy: number) => {
+      const value = voice.speakerId === character ? energy : 0;
       host.current?.style.setProperty('--mouth-open', String(value));
       rig?.setMouth(value);
     };
-    audio.onMouth = mouth;
+    const unsubscribeMouth = audio.subscribeMouth(mouth);
     const unsubscribe = voice.subscribe((message) => {
       if (message.type === 'characterState' && message.characterId === character) {
         emotion = message.emotion;
@@ -50,12 +50,12 @@ export function CharacterFace({ character }: { character: CharacterId }) {
     return () => {
       active = false;
       unsubscribe();
-      if (audio.onMouth === mouth) audio.onMouth = previous;
+      unsubscribeMouth();
       rig?.dispose();
     };
   }, [character]);
   return (
-    <div ref={host} className="character-face" aria-hidden="true">
+    <div ref={host} className="character-face" data-voice-character={character} aria-hidden="true">
       {env.characterAssetBaseUrl && !failed ? (
         <canvas ref={canvas} width={220} height={220} />
       ) : (

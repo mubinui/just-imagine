@@ -187,3 +187,34 @@
     font-size: 26px;
   }
 }
+
+.story-parent-form {
+  max-width: 660px;
+  padding-block: 24px;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+}
+.story-parent-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+}
+.story-parent-form textarea,
+.story-parent-form input,
+.story-parent-form select {
+  width: 100%;
+  padding: 12px;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.story-parent-form p {
+  color: var(--soft);
+  max-width: 62ch;
+}
+.story-parent-form button {
+  justify-self: start;
+}

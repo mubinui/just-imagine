@@ -159,3 +159,45 @@ it('allows retry after microphone permission was denied during connection', asyn
   expect(sockets).toHaveLength(1);
   client.end();
 });
+
+it.each([
+  'QUOTA_EXHAUSTED',
+  'SESSION_ACTIVE_ELSEWHERE',
+  'FORBIDDEN',
+  'UNAUTHENTICATED',
+  'KILL_SWITCH',
+])('stops capture and automatic reconnect after terminal %s', async (code) => {
+  vi.useFakeTimers();
+  const { client, audio, sockets } = harness(true);
+  const received = vi.fn();
+  client.subscribe(received);
+  await client.connect(hello);
+  const error = { type: 'error', code, message: 'Please retry when available.' };
+  sockets[0]?.onmessage?.({ data: JSON.stringify(error) });
+  sockets[0]?.onclose?.();
+  await vi.advanceTimersByTimeAsync(30000);
+  expect(client.status).toBe('error');
+  expect(client.session).toBeUndefined();
+  expect(audio.stopCapture).toHaveBeenCalledOnce();
+  expect(sockets).toHaveLength(1);
+  expect(received).toHaveBeenCalledWith(error);
+  await client.connect(hello);
+  expect(sockets).toHaveLength(2);
+  client.end();
+});
+
+it('keeps a guest as playback owner across ready messages and returns ownership to the friend', async () => {
+  const { client, sockets } = harness();
+  await client.connect(hello);
+  const send = (data: unknown) => sockets[0]!.onmessage?.({ data: JSON.stringify(data) });
+  expect(client.speakerId).toBe('bhombol');
+  send({ type: 'persona', packId: 'space', characterId: 'saturn', name: 'Saturn' });
+  send({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  expect(client.speakerId).toBe('saturn');
+  send({ type: 'worldCharacter', entityId: null, name: 'Pip' });
+  expect(client.speakerId).toBe('bhombol');
+  send({ type: 'worldCharacter', entityId: 'talking_fox', name: 'Fox' });
+  expect(client.speakerId).toBe('talking_fox');
+  client.end();
+  expect(client.speakerId).toBeUndefined();
+});

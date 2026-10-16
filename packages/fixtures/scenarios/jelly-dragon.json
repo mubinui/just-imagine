@@ -1,13 +1,23 @@
 {
   "onHello": [
-    { "type": "characterState", "characterId": "bhombol", "emotion": "happy", "speaking": true },
+    {
+      "type": "characterState",
+      "characterId": "bhombol",
+      "emotion": "happy",
+      "speaking": true
+    },
     {
       "type": "transcript",
       "role": "character",
       "text": "Hi! I am {characterName}. What shall we build today?",
       "final": true
     },
-    { "type": "characterState", "characterId": "bhombol", "emotion": "idle", "speaking": false }
+    {
+      "type": "characterState",
+      "characterId": "bhombol",
+      "emotion": "idle",
+      "speaking": false
+    }
   ],
   "onInteraction": [
     {
@@ -22,7 +32,12 @@
       "text": "Whoa, look at it wobble!",
       "final": true
     },
-    { "type": "characterState", "characterId": "bhombol", "emotion": "idle", "speaking": false }
+    {
+      "type": "characterState",
+      "characterId": "bhombol",
+      "emotion": "idle",
+      "speaking": false
+    }
   ],
   "onSwitchCharacter": [
     {
@@ -96,6 +111,16 @@
         "realLifeNote": "A rubber ball bounces for the same reason."
       }
     },
-    { "afterMs": 12000, "message": { "type": "quota", "voiceSecondsLeft": 120 } }
-  ]
+    {
+      "afterMs": 12000,
+      "message": {
+        "type": "quota",
+        "voiceSecondsLeft": 120
+      }
+    }
+  ],
+  "learn": {
+    "startingPoints": 6,
+    "quizDelayMs": 900
+  }
 }

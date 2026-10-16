@@ -1,0 +1,713 @@
+.story-room {
+  min-height: 100dvh;
+  max-width: none;
+  padding: 0;
+  background: var(--ink);
+  color: var(--ground);
+}
+.story-room button,
+.story-room textarea {
+  font: inherit;
+}
+.story-room button {
+  cursor: pointer;
+}
+.story-room button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.story-room a {
+  color: inherit;
+}
+.story-room button:focus-visible,
+.story-room a:focus-visible,
+.story-room textarea:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 4px;
+}
+.story-room-header {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 2fr) 1fr;
+  gap: 24px;
+  align-items: center;
+  padding: 20px 32px;
+  min-height: 88px;
+}
+.story-room-header h1 {
+  font:
+    700 clamp(20px, 2vw, 30px)/1.2 Baloo,
+    sans-serif;
+  text-align: center;
+  margin: 0;
+}
+.story-room-header > a {
+  text-decoration: none;
+  font-weight: 700;
+}
+.story-room-header > button {
+  justify-self: end;
+}
+.story-room button {
+  color: var(--ink);
+  background: var(--ground);
+  border: 0;
+  border-radius: 100px;
+  min-height: 48px;
+  padding: 10px 22px;
+  font-weight: 700;
+}
+.story-room-header > button {
+  color: var(--ground);
+  background: #ffffff0c;
+}
+.story-invitation {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: 4%;
+  max-width: 1200px;
+  margin: auto;
+  padding: 36px 48px 60px;
+}
+.story-invitation::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url('/learn/cinematic/animals-jungle-world-v1.webp') center/cover;
+  opacity: 0.08;
+  mask-image: linear-gradient(transparent, black 20%, black 65%, transparent);
+}
+.story-invitation h2 {
+  white-space: pre-line;
+  font:
+    700 clamp(40px, 4.8vw, 68px)/1.04 Baloo,
+    sans-serif;
+  margin: 0 0 22px;
+  letter-spacing: -0.025em;
+}
+.story-invitation-copy > p {
+  max-width: 40ch;
+  font-size: 20px;
+  line-height: 1.6;
+  color: #e0e9df;
+}
+.story-invitation form {
+  margin-top: 28px;
+  display: grid;
+  gap: 12px;
+}
+.story-invitation label {
+  font-weight: 700;
+  font-size: 18px;
+}
+.story-invitation textarea {
+  display: block;
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid #c5d2bc;
+  background: var(--ground);
+  color: var(--ink);
+}
+.story-invitation .story-room-note {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #bfcfc1;
+}
+.story-room-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 16px 0;
+}
+.story-room .story-room-primary {
+  background: var(--yellow, var(--yellow));
+}
+.story-invitation-friend {
+  align-self: center;
+  text-align: center;
+}
+.story-invitation-friend .katha {
+  width: 100%;
+  max-width: 430px;
+  aspect-ratio: 1;
+  filter: drop-shadow(0 24px 20px #0d251b66);
+}
+.story-invitation-friend p {
+  font:
+    600 22px/1.4 Baloo,
+    sans-serif;
+  max-width: 24ch;
+  margin: 0 auto;
+}
+.story-room-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.story-room-footer > span {
+  font-size: 14px;
+  color: #c0cebf;
+}
+.story-library {
+  max-width: 1200px;
+  margin: auto;
+  padding: 24px 48px 48px;
+}
+.story-library h2 {
+  font:
+    700 30px Baloo,
+    sans-serif;
+}
+.story-library > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 26px;
+}
+.story-library button {
+  text-align: left;
+  display: grid;
+  gap: 10px;
+  background: transparent;
+  color: var(--ground);
+  border-radius: 0;
+  padding: 0 0 16px;
+}
+.story-library button > img,
+.story-library button > svg {
+  width: 100%;
+  aspect-ratio: 16/10;
+  object-fit: cover;
+  border-radius: 12px 22px 22px 12px;
+  box-shadow: 0 15px 25px -20px #000;
+}
+.story-library strong {
+  font:
+    600 22px/1.25 Baloo,
+    sans-serif;
+}
+.story-library span {
+  font-size: 14px;
+  color: #c0cebf;
+}
+.story-workshop {
+  min-height: 60dvh;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  padding: 36px;
+  text-align: center;
+}
+.story-workshop .katha {
+  width: 240px;
+  height: 240px;
+}
+.story-workshop h2 {
+  font:
+    700 clamp(26px, 4vw, 42px)/1.2 Baloo,
+    sans-serif;
+  margin: 0;
+}
+.story-workshop > p {
+  max-width: 52ch;
+}
+.narrative-stage {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  aspect-ratio: 16/8.5;
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  background: #142e27;
+}
+.narrative-plate {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.025);
+  transition: transform 1s ease-out;
+}
+.narrative-stage[data-reading='true'] .narrative-plate {
+  animation: story-camera 24s ease-out both;
+}
+.narrative-stage[data-action='observe'] .narrative-plate {
+  transform-origin: 65% 40%;
+}
+.narrative-stage[data-action='travel'] .narrative-plate {
+  transform-origin: 20% 50%;
+}
+.narrative-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(0deg, #0d251b7a, transparent 45%);
+}
+.narrative-ripple {
+  position: absolute;
+  width: 70%;
+  height: 16%;
+  bottom: 12%;
+  left: 10%;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.narrative-stage[data-atmosphere='ocean'][data-reading='true'] .narrative-ripple {
+  border: 2px solid #e4fbf1;
+  animation: story-water 7s ease-out 2;
+}
+.narrative-focus {
+  position: absolute;
+  top: 22px;
+  left: 24px;
+  max-width: min(48ch, 70%);
+  background: #173a2be0;
+  color: var(--ground);
+  padding: 10px 18px;
+  border-radius: 14px;
+  font:
+    600 18px/1.3 Baloo,
+    sans-serif;
+  animation: story-focus 400ms ease-out both;
+}
+.narrative-guide {
+  position: absolute;
+  right: 2%;
+  bottom: 0;
+  width: clamp(110px, 18%, 220px);
+  pointer-events: none;
+}
+.narrative-guide .katha {
+  width: 100%;
+  display: block;
+}
+.narrative-discovery {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 65%;
+  text-align: left;
+  box-shadow: 0 8px 26px -16px #000;
+}
+.narrative-discovery svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+.narrative-unpainted {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  align-content: center;
+  padding: 16px;
+}
+.narrative-unpainted .katha {
+  width: 140px;
+}
+.narrative-script {
+  max-width: 1000px;
+  margin: auto;
+  padding: 28px 36px 32px;
+}
+.narrative-page-heading {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.narrative-page-heading h2 {
+  font:
+    700 clamp(24px, 3vw, 34px)/1.2 Baloo,
+    sans-serif;
+  margin: 0;
+}
+.narrative-page-heading > span {
+  color: #c0cebf;
+  font-size: 14px;
+}
+.narrative-page-heading > span:last-child {
+  margin-left: auto;
+}
+.narrative-prose {
+  font-size: clamp(19px, 2vw, 23px);
+  line-height: 1.65;
+  max-width: 70ch;
+  margin: 20px 0;
+}
+.story-auto {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  font-size: 15px;
+  color: #d5e1d2;
+}
+.story-auto input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--yellow);
+}
+.narrative-beats {
+  display: flex;
+  gap: 8px;
+  margin-block: 24px;
+}
+.narrative-beats > button {
+  width: 48px;
+  padding: 8px;
+  background: #ffffff12;
+  color: var(--ground);
+}
+.narrative-beats > button[aria-current='step'] {
+  background: var(--yellow);
+  color: var(--ink);
+}
+.narrative-choices {
+  margin: 32px 0;
+}
+.narrative-choices h3 {
+  font:
+    600 26px/1.3 Baloo,
+    sans-serif;
+}
+.narrative-choices > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.narrative-choices button {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  text-align: left;
+  border-radius: 18px;
+  padding: 18px 22px;
+  min-height: 76px;
+}
+.narrative-choices button[aria-pressed='true'] {
+  background: var(--yellow);
+}
+.narrative-lesson {
+  color: #cee0cc;
+  line-height: 1.6;
+}
+.narrative-turn-page {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 28px 0;
+}
+.narrative-finding {
+  padding: 22px 26px;
+  background: #34574a;
+  border-radius: 18px;
+  margin-top: 20px;
+  line-height: 1.6;
+}
+.narrative-finding strong {
+  font:
+    600 24px Baloo,
+    sans-serif;
+}
+.story-finale {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding-block: 24px;
+}
+.story-finale .katha {
+  width: 140px;
+  flex-shrink: 0;
+}
+.story-finale h3 {
+  font:
+    700 30px/1.2 Baloo,
+    sans-serif;
+}
+.story-scene-index {
+  padding-block: 20px;
+  line-height: 1.6;
+}
+.story-scene-index summary {
+  cursor: pointer;
+  min-height: 44px;
+}
+.story-scene-index nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.story-scene-index button {
+  font-size: 15px;
+}
+.story-generation-note,
+.story-room-error,
+.story-live-caption {
+  margin: 12px auto;
+  max-width: 928px;
+  padding: 18px 24px;
+  line-height: 1.6;
+}
+.story-generation-note button,
+.story-room-error button {
+  margin-left: 16px;
+}
+.story-room-error {
+  background: #f5d8c4;
+  color: #603a24;
+  border-radius: 16px;
+}
+.story-live-caption {
+  border-top: 1px solid #ffffff1a;
+}
+@keyframes story-camera {
+  from {
+    transform: scale(1.025);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+@keyframes story-water {
+  from {
+    transform: scale(0.75);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+@keyframes story-focus {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (max-width: 700px) {
+  .story-room-header {
+    padding: 16px;
+    gap: 10px;
+    grid-template-columns: 1fr auto;
+  }
+  .story-room-header h1 {
+    grid-row: 2;
+    grid-column: 1/-1;
+    text-align: left;
+    padding-top: 8px;
+  }
+  .story-room-header a,
+  .story-room-header button {
+    font-size: 14px;
+  }
+  .story-invitation {
+    grid-template-columns: 1fr;
+    padding: 20px 24px 36px;
+  }
+  .story-invitation h2 {
+    font-size: 43px;
+  }
+  .story-invitation-friend {
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    text-align: left;
+    margin-bottom: 20px;
+  }
+  .story-invitation-friend .katha {
+    width: 130px;
+    flex-shrink: 0;
+  }
+  .story-invitation-friend p {
+    font-size: 20px;
+  }
+  .story-invitation-copy > p {
+    font-size: 18px;
+  }
+  .story-room-actions {
+    gap: 10px;
+  }
+  .story-room button {
+    padding-inline: 17px;
+  }
+  .story-library {
+    padding: 10px 24px 30px;
+  }
+  .story-library > div {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .story-library strong {
+    font-size: 18px;
+  }
+  .story-library span {
+    font-size: 12px;
+  }
+  .narrative-stage {
+    aspect-ratio: 4/3;
+  }
+  .narrative-focus {
+    top: 12px;
+    left: 12px;
+    padding: 8px 12px;
+    font-size: 15px;
+  }
+  .narrative-discovery {
+    left: 12px;
+    bottom: 12px;
+    font-size: 14px;
+    max-width: 68%;
+    gap: 6px;
+  }
+  .narrative-script {
+    padding: 22px 20px;
+  }
+  .narrative-page-heading {
+    gap: 8px 14px;
+  }
+  .narrative-page-heading h2 {
+    width: 100%;
+    order: 1;
+  }
+  .narrative-prose {
+    font-size: 19px;
+  }
+  .narrative-choices > div {
+    grid-template-columns: 1fr;
+  }
+  .narrative-turn-page button {
+    font-size: 14px;
+  }
+  .story-room-footer {
+    padding: 18px 20px;
+    gap: 12px;
+  }
+  .story-room-footer > span {
+    order: 3;
+    width: 100%;
+  }
+  .story-finale {
+    align-items: start;
+    gap: 10px;
+  }
+  .story-finale .katha {
+    width: 80px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .narrative-plate,
+  .narrative-focus,
+  .narrative-ripple {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* The child stays in the theatre; reading and illustration remain together. */
+[data-world='child']:has(.story-room) > .header {
+  display: none;
+}
+.story-room p {
+  color: #e4ecdf;
+}
+.story-room .narrative-prose {
+  color: var(--ground);
+}
+.story-room .story-invitation-friend p {
+  color: #e4ecdf;
+}
+.story-room .story-room-note,
+.story-room .story-generation-note {
+  color: #c6d5c3;
+}
+.story-room .story-room-error {
+  color: #603a24;
+}
+.story-auto {
+  flex-direction: row;
+  font-weight: 600;
+}
+.narrative-spread {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(350px, 400px);
+  align-items: start;
+  width: min(1600px, 100%);
+  min-height: calc(100dvh - 190px);
+  margin: auto;
+}
+.narrative-spread .narrative-stage {
+  width: 100%;
+  align-self: center;
+  aspect-ratio: 16/10;
+}
+.narrative-spread .narrative-script {
+  padding: 24px;
+  max-height: calc(100dvh - 190px);
+  overflow-y: auto;
+  scrollbar-color: #8aa38c var(--ink);
+}
+.narrative-spread .narrative-prose {
+  font-size: 19px;
+  line-height: 1.65;
+}
+.narrative-spread .narrative-page-heading h2 {
+  width: 100%;
+  font-size: 28px;
+}
+.narrative-spread .narrative-choices > div {
+  grid-template-columns: 1fr;
+}
+.narrative-spread .story-room-actions {
+  gap: 10px;
+}
+.narrative-spread .narrative-turn-page {
+  flex-wrap: wrap;
+}
+.story-room .story-room-header h1 {
+  font-size: clamp(23px, 2.2vw, 32px);
+}
+@media (max-width: 900px) {
+  .narrative-spread {
+    display: block;
+    min-height: 0;
+  }
+  .narrative-spread .narrative-stage {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    aspect-ratio: 16/10;
+  }
+  .narrative-spread .narrative-script {
+    max-height: none;
+    overflow: visible;
+    padding: 24px;
+  }
+  .story-room .story-invitation h2 {
+    font-size: 43px;
+    line-height: 1.1;
+  }
+}

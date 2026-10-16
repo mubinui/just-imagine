@@ -13,6 +13,7 @@ import {
 } from '@just-imagine/protocol';
 import { int16ToBytes, pcm16Tone, splitPcm16Frames } from './audio';
 import jellyDragonScenario from '../scenarios/jelly-dragon.json' with { type: 'json' };
+import { createFakeLearn } from './fake-learn';
 
 export const ScenarioSchema = z.object({
   onHello: z.array(ServerMessageSchema),
@@ -21,6 +22,13 @@ export const ScenarioSchema = z.object({
   timeline: z.array(
     z.object({ afterMs: z.number().int().min(0).max(2_147_483_647), message: ServerMessageSchema }),
   ),
+  // Learning Worlds preview: the explorer's earlier points and the pause before a challenge.
+  learn: z
+    .object({
+      startingPoints: z.number().int().min(0).default(0),
+      quizDelayMs: z.number().int().min(0).max(60_000).default(900),
+    })
+    .default({ startingPoints: 0, quizDelayMs: 900 }),
 });
 export type Scenario = z.infer<typeof ScenarioSchema>;
 
@@ -35,7 +43,7 @@ export interface FakeGateway {
 
 export async function startFakeGateway(opts: {
   port: number;
-  scenario: Scenario;
+  scenario: z.input<typeof ScenarioSchema>;
   tone?: boolean;
 }): Promise<FakeGateway> {
   const scenario = ScenarioSchema.parse(opts.scenario);
@@ -43,6 +51,7 @@ export async function startFakeGateway(opts: {
   const wss = new WebSocketServer({ host: '127.0.0.1', port, maxPayload: 64 * 1024 });
   const received: ClientMessage[] = [];
   const cleanups = new Set<() => void>();
+  const learn = createFakeLearn(scenario.learn);
 
   wss.on('connection', (ws: WsSocket) => {
     const timers = new Set<ReturnType<typeof setTimeout>>();
@@ -50,6 +59,9 @@ export async function startFakeGateway(opts: {
     let characterId: CharacterId | undefined;
     let worldId: string | undefined;
     let ended = false;
+    let persona: ReturnType<ReturnType<typeof createFakeLearn>> | undefined;
+    // Once a Learning World character holds the call, the canned world timeline stays quiet.
+    let quietTimeline = false;
     const send = (message: ServerMessage): void => {
       if (ws.readyState === ws.OPEN) ws.send(encodeMessage(message));
     };
@@ -110,6 +122,7 @@ export async function startFakeGateway(opts: {
         }
         characterId = message.characterId;
         worldId = message.worldId;
+        persona = learn(message.childId, send, (callback, afterMs) => schedule(callback, afterMs));
         send({ type: 'ready', sessionId: 's_fake', characterId, ...(worldId ? { worldId } : {}) });
         sendAll(scenario.onHello);
         if (opts.tone) {
@@ -127,7 +140,9 @@ export async function startFakeGateway(opts: {
           });
         }
         scenario.timeline.forEach((step) =>
-          schedule(() => sendScenario(step.message), step.afterMs),
+          schedule(() => {
+            if (!quietTimeline) sendScenario(step.message);
+          }, step.afterMs),
         );
         return;
       }
@@ -136,6 +151,11 @@ export async function startFakeGateway(opts: {
         return;
       }
       if (message.type === 'interaction') sendAll(scenario.onInteraction);
+      if (message.type === 'summonPersona') quietTimeline = true;
+      if (message.type === 'summonPersona')
+        persona?.summon(message.packId, message.characterId, characterId, 's_fake');
+      if (message.type === 'hangUp') persona?.hangUp(characterId, 's_fake');
+      if (message.type === 'text') persona?.answer(message.text);
       if (message.type === 'switchCharacter') {
         toneTimers.forEach((handle) => {
           clearTimeout(handle);

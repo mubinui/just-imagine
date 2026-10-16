@@ -1,4 +1,5 @@
 'use client';
+import { StoryPreferencesForm } from './StoryPreferencesForm';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -330,6 +331,13 @@ export function ParentPanel({
                       }
                     />
                   </div>
+                ))}
+              </section>
+              <section className="parent-section">
+                <h2>Learning through stories</h2>
+                <p>Choose what your child discovers with Katha, their storytelling friend.</p>
+                {data.children.map((child) => (
+                  <StoryPreferencesForm key={child.id} child={child} />
                 ))}
               </section>
               <section className="parent-section danger">

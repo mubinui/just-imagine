@@ -33,11 +33,12 @@ it('repairs invalid structured output exactly once before publishing', async () 
   expect(doc.worldId).toBe(job.worldId);
   expect(generate).toHaveBeenCalledTimes(2);
   expect(generate.mock.calls[1]?.[0]).toContain('Validation');
+  expect(generate.mock.calls[1]?.[0]).toContain('Previous candidate JSON');
 });
-it('fails after two invalid scenes and rejects identity changes in patches', async () => {
+it('fails after three invalid scenes and rejects identity changes in patches', async () => {
   const generate = vi.fn().mockResolvedValue({});
   await expect(buildScene(job, generate)).rejects.toThrow();
-  expect(generate).toHaveBeenCalledTimes(2);
+  expect(generate).toHaveBeenCalledTimes(3);
   await expect(
     patchScene(fixture, 'change id', async () => [
       { op: 'replace', path: '/worldId', value: 'w_other' },

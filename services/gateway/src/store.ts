@@ -4,6 +4,7 @@ import { CloudTasksClient } from '@google-cloud/tasks';
 import { z } from 'zod';
 import {
   ChildDocSchema,
+  StoryDocSchema,
   UserDocSchema,
   WorldDocSchema,
   SessionDocSchema,
@@ -15,6 +16,10 @@ import {
   yyyymmdd,
   type BuilderJob,
   type WorldDoc,
+  LearnProgressDocSchema,
+  learnPaths,
+  petsOf,
+  pointsOf,
 } from '@just-imagine/protocol';
 import { ConceptSchema, findBlockedTerm } from '@just-imagine/scene-schema';
 import {
@@ -26,7 +31,8 @@ import {
   reserveWorld,
   isKillSwitchOn,
 } from '@just-imagine/server-core';
-import type { SessionStore, SessionRecord, Identity } from './contracts';
+import type { SessionStore, SessionRecord, Identity, PointsAward } from './contracts';
+import { petsUnlocked, ToolRefusal } from './learn';
 export class FirestoreSessionStore implements SessionStore {
   private owner = randomUUID();
   private tasks = new CloudTasksClient();
@@ -182,6 +188,23 @@ export class FirestoreSessionStore implements SessionStore {
       throw new Error('FORBIDDEN');
     return world;
   }
+  async story(record: SessionRecord, id: string) {
+    const { uid, childId } = record.identity;
+    const [book, user, child, ud, cd, sd] = await Promise.all([
+      db().doc(`stories/${id}`).get(),
+      db().doc(paths.user(uid)).get(),
+      db().doc(paths.child(uid, childId)).get(),
+      db().doc(`deletionLocks/${uid}`).get(),
+      db().doc(`users/${uid}/deletionLocks/${childId}`).get(),
+      db().doc(`storyDeletionLocks/${id}`).get(),
+    ]);
+    if (!book.exists || !user.exists || !child.exists || ud.exists || cd.exists || sd.exists)
+      throw new Error('FORBIDDEN');
+    const value = StoryDocSchema.parse(book.data());
+    if (value.ownerUid !== uid || value.childId !== childId || !value.manuscript)
+      throw new Error('FORBIDDEN');
+    return value;
+  }
   async enqueue(job: BuilderJob) {
     if (await isKillSwitchOn()) throw new Error('KILL_SWITCH');
     if (job.kind === 'build') await reserveWorld(job.uid, job.plan);
@@ -266,6 +289,38 @@ export class FirestoreSessionStore implements SessionStore {
       kidExplanation: explanation,
       realLifeNote: card.realLifeNote,
     };
+  }
+  // The gateway has already checked the challenge, its maximum and once-per-session; this adds the
+  // points to the profile, unlocks pets and records the pack's progress in one transaction.
+  async awardPoints(record: SessionRecord, award: PointsAward) {
+    const { uid, childId } = record.identity;
+    const childRef = db().doc(paths.child(uid, childId)),
+      progressRef = db().doc(learnPaths.progress(uid, childId, award.packId));
+    return db().runTransaction(async (tx) => {
+      const [userDelete, childDelete, child, progress] = await Promise.all([
+        tx.get(db().doc(`deletionLocks/${uid}`)),
+        tx.get(db().doc(`users/${uid}/deletionLocks/${childId}`)),
+        tx.get(childRef),
+        tx.get(progressRef),
+      ]);
+      if (userDelete.exists || childDelete.exists || !child.exists) throw new Error('FORBIDDEN');
+      const profile = ChildDocSchema.parse(child.data()),
+        total = pointsOf(profile) + award.points,
+        unlocked = petsUnlocked(petsOf(profile), total, award.petReward);
+      const prior = progress.exists ? LearnProgressDocSchema.parse(progress.data()) : undefined;
+      if (prior?.challengesDone.includes(award.challengeId))
+        throw new ToolRefusal('This challenge has already earned points. Try another one.');
+      tx.set(childRef, { ...profile, points: total, pets: [...petsOf(profile), ...unlocked] });
+      tx.set(
+        progressRef,
+        LearnProgressDocSchema.parse({
+          packId: award.packId,
+          challengesDone: [...new Set([...(prior?.challengesDone ?? []), award.challengeId])],
+          updatedAt: Date.now(),
+        }),
+      );
+      return { total, unlocked };
+    });
   }
   watchJob(id: string, callback: (status: string) => void) {
     return db()

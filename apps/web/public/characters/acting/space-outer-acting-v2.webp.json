@@ -1,0 +1,4 @@
+{
+  "prompt": "Edit this existing acting atlas ONLY to fix sprite registration. Preserve the exact 4 characters, all eight facial/limb poses in each row and their order. EXACTLY eight columns and 4 rows. Scale every character down to 68 percent of its current size, using the SAME scale across every pose of that character, and centre each COMPLETE silhouette in its own grid cell with a consistent baseline. There MUST be fully transparent empty gutters at least 20 pixels between every pair of silhouettes and around all four outside edges. No wing, ring, tail, hand or foot may touch another sprite or the image edge. Separate the Saturn rings / elephant ears / butterfly wings as applicable. All bodies intact; no scenery, labels, drop shadows or new decorations. True alpha transparent background. Do not add or remove a frame.",
+  "createdAt": "2026-10-16T13:27:16.479Z"
+}

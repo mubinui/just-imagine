@@ -18,6 +18,7 @@ export type SmokeLanguage = 'en' | 'bn';
 export interface SmokeOptions {
   /** Simulated seconds to run. The builder uses 10. */
   seconds: number;
+  requireGoal?: boolean;
   language: SmokeLanguage;
   /** Returns true when a child-facing string is safe in the given language. */
   moderate?: (text: string, language: SmokeLanguage) => Promise<boolean>;
@@ -198,6 +199,10 @@ export async function createEngineStage(source: SceneDoc): Promise<Stage> {
     },
     apply(command) {
       switch (command.type) {
+        case 'move':
+          sim.move(command.target, { x: command.x, y: command.y });
+          refresh();
+          return;
         case 'spawn':
           doc.entities.push(spawnEntity(command));
           templates.set(command.id, command.template);
@@ -256,6 +261,7 @@ export async function smokeRun(
   const stage = await createEngineStage(doc);
   const result = await driveScript(source, stage, {
     seconds: options.seconds,
+    requireGoal: options.requireGoal,
     seed: doc.environment.seed,
     worker: nodeWorkerFactory,
     ...(options.budgets ? { budgets: options.budgets } : {}),

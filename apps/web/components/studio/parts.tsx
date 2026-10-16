@@ -13,129 +13,21 @@ import {
 import { s } from '../../lib/strings/en';
 import { CharacterArt } from './CharacterArt';
 import { DotOrb } from './DotOrb';
+import { UiIcon } from '../UiIcon';
 
 export type VoiceStatus = 'connecting' | 'connected' | 'reconnecting' | 'error' | 'closed' | string;
 export type JobStatus = Extract<ServerMessage, { type: 'worldJob' }>['status'];
 
-const HomeIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3 11.5 12 4l9 7.5" />
-    <path d="M5.5 10.5V20h13v-9.5" />
-  </svg>
-);
-const GalleryIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
-    <path d="m6.5 16 4-5 3 3.5 2-2.5 2 4" />
-    <circle cx="16" cy="9" r="1.3" />
-  </svg>
-);
-const ResetIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M4 12a8 8 0 1 0 2.5-5.8" />
-    <path d="M4 4v5h5" />
-  </svg>
-);
-const CaptionIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="3" y="5" width="18" height="14" rx="3" />
-    <path d="M7 12h6M7 15.5h10" />
-  </svg>
-);
-const CloseIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.6"
-    strokeLinecap="round"
-  >
-    <path d="M6 6l12 12M18 6 6 18" />
-  </svg>
-);
-const ChevronIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="m6 9 6 6 6-6" />
-  </svg>
-);
-const MicIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="9" y="3" width="6" height="11" rx="3" />
-    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
-  </svg>
-);
-const SparkIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-    <path d="M12 2.5 14.2 9.8 21.5 12l-7.3 2.2L12 21.5l-2.2-7.3L2.5 12l7.3-2.2Z" />
-  </svg>
-);
-const StopIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-    <rect x="5" y="5" width="14" height="14" rx="3.5" />
-  </svg>
-);
-const ExitIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M14 4h4.5a1.5 1.5 0 0 1 1.5 1.5v13a1.5 1.5 0 0 1-1.5 1.5H14M4 12h11M11 8l4 4-4 4" />
-  </svg>
-);
+const HomeIcon = () => <UiIcon name="home" />;
+const GalleryIcon = () => <UiIcon name="gallery" />;
+const ResetIcon = () => <UiIcon name="restart" />;
+const CaptionIcon = () => <UiIcon name="captions" />;
+const CloseIcon = () => <UiIcon name="close" />;
+const ChevronIcon = () => <UiIcon name="chevron" />;
+const MicIcon = () => <UiIcon name="mic" />;
+const GameIcon = () => <UiIcon name="game" />;
+const StopIcon = () => <UiIcon name="stop" />;
+const ExitIcon = () => <UiIcon name="finish" />;
 export { CloseIcon, ChevronIcon };
 
 export function StudioControls({
@@ -169,7 +61,7 @@ export function StudioControls({
         </button>
       )}
       <button type="button" className="pill build" onClick={onBuild}>
-        <SparkIcon />
+        <GameIcon />
         <span>{s.buildGame}</span>
       </button>
       {menu}
@@ -305,7 +197,7 @@ export function Listening({
     >
       <div className="listening-inner">
         <div className="listening-friend">
-          <DotOrb mode={speaking ? 'speaking' : status === 'connected' ? 'listening' : 'idle'} />
+          {live && <DotOrb mode={speaking ? 'speaking' : 'listening'} />}
           <span className="listening-portrait">{face}</span>
           {live && (
             <span className="mic-badge" aria-hidden="true">
@@ -398,7 +290,7 @@ export function EntityActions({
   onTap: (id: string) => void;
   onFlick: (id: string, direction: { x: number; y: number }) => void;
 }) {
-  const dynamic = tappableEntities(doc);
+  const dynamic = tappableEntities(doc).filter((entity) => !entity.character);
   if (!dynamic.length) return null;
   return (
     <section aria-label="World actions" className="entity-actions">
@@ -533,10 +425,7 @@ export function CastStrip({
                   <CharacterArt id={c.id} />
                 )}
               </span>
-              <span className="name">
-                {c.displayName}
-                {c.kind === 'guide' && <SparkIcon />}
-              </span>
+              <span className="name">{c.displayName}</span>
             </button>
           );
         })}
@@ -548,27 +437,8 @@ export function CastStrip({
 
 export function SummonOverlay({ character }: { character: CharacterId }) {
   const c = CHARACTERS[character];
-  const sparks = Array.from({ length: 14 }, (_, i) => {
-    const angle = (i / 14) * Math.PI * 2;
-    const dist = 140 + (i % 3) * 60;
-    return {
-      dx: `${Math.cos(angle) * dist}px`,
-      dy: `${Math.sin(angle) * dist - 80}px`,
-      delay: `${(i % 5) * 60}ms`,
-    };
-  });
   return (
     <div className="summon" role="status" aria-live="assertive">
-      <div className="sparkles" aria-hidden="true">
-        {sparks.map((sp, i) => (
-          <i
-            key={i}
-            style={
-              { '--dx': sp.dx, '--dy': sp.dy, animationDelay: sp.delay } as React.CSSProperties
-            }
-          />
-        ))}
-      </div>
       <div className="summon-inner">
         <span className="art">
           <CharacterArt id={character} />

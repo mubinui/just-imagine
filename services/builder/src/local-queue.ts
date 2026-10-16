@@ -42,9 +42,17 @@ export function startLocalQueue(worker: Pick<BuilderWorker, 'run'>) {
       let retry = false;
       try {
         await worker.run(claimed.payload);
-      } catch {
-        retry = true;
-        logEvent('local_build_retry', { jobId: task.id, count: claimed.attempts });
+      } catch (error) {
+        retry = !(
+          error &&
+          typeof error === 'object' &&
+          'retryable' in error &&
+          error.retryable === false
+        );
+        logEvent(retry ? 'local_build_retry' : 'local_build_failed', {
+          jobId: task.id,
+          count: claimed.attempts,
+        });
       } finally {
         clearInterval(renew);
       }

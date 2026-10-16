@@ -30,8 +30,28 @@ export function CompanionArt({
   companion: Companion;
   speaking?: boolean;
 }) {
+  const art = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const node = art.current;
+    if (!speaking) {
+      node?.style.setProperty('--mouth-open', '0');
+      return;
+    }
+    const unsubscribe = getVoice().audio.subscribeMouth((value) =>
+      node?.style.setProperty('--mouth-open', String(value)),
+    );
+    return () => {
+      unsubscribe();
+      node?.style.setProperty('--mouth-open', '0');
+    };
+  }, [speaking]);
   return (
-    <span className={`companion-art${speaking ? ' is-speaking' : ''}`} aria-hidden="true">
+    <span
+      ref={art}
+      data-voice-character={companion.kind === 'preset' ? companion.characterId : undefined}
+      className={`companion-art${speaking ? ' is-speaking' : ''}`}
+      aria-hidden="true"
+    >
       {companion.kind === 'chibi' ? (
         <img src={companion.image} alt="" width={160} height={160} />
       ) : (
@@ -62,8 +82,9 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       setCaption('');
     });
     const voice = getVoice();
-    const screen = Object.entries(CHILD_DESTINATIONS).find(([, path]) => path === pathname)?.[0] as
-      ChildDestination | undefined;
+    const screen = Object.entries(CHILD_DESTINATIONS).find(
+      ([, path]) => path === pathname || (path === '/learn' && pathname.startsWith('/learn/')),
+    )?.[0] as ChildDestination | undefined;
     const sendScreen = () => {
       if (screen && voice.session && voice.status === 'connected')
         voice.send({ type: 'screen', destination: screen });
@@ -71,6 +92,11 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     queueMicrotask(() => setStatus(voice.status));
     sendScreen();
     const offStatus = voice.subscribeStatus(setStatus);
+    const offMouth = voice.audio.subscribeMouth((value) =>
+      setSpeaking(
+        value > 0.06 && voice.speakerId === (selected?.companion?.characterId ?? 'bhombol'),
+      ),
+    );
     const off = voice.subscribe((message) => {
       if (message.type === 'ready') sendScreen();
       if (message.type === 'navigate') router.push(CHILD_DESTINATIONS[message.destination]);
@@ -99,7 +125,11 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
   return (
     <CompanionContext.Provider value={{ child, speaking, caption, status, error, start }}>
       {children}
-      {pathname !== '/studio' && <CompanionMenu />}
+      {pathname !== '/studio' && pathname !== '/stories' && !pathname.startsWith('/learn') && (
+        <div className="companion-shelf">
+          <CompanionMenu inline />
+        </div>
+      )}
     </CompanionContext.Provider>
   );
 }
@@ -183,6 +213,20 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
             >
               Choose explorer <DestinationArrow />
             </button>
+            <button
+              type="button"
+              aria-current={pathname.startsWith('/learn') ? 'page' : undefined}
+              onClick={() => go('learn')}
+            >
+              Learning worlds <DestinationArrow />
+            </button>
+            <button
+              type="button"
+              aria-current={pathname === '/stories' ? 'page' : undefined}
+              onClick={() => go('stories')}
+            >
+              Katha’s story room <DestinationArrow />
+            </button>
           </nav>
           <div className="companion-voice">
             <span role="status">
@@ -216,13 +260,14 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
         ref={trigger}
         className={inline ? 'dock-tile companion-toggle' : 'companion-toggle'}
         aria-expanded={open}
-        aria-label={`Explore with ${companion.name}`}
+        aria-label={`Chat with ${companion.name}`}
         onClick={() => setOpen(!open)}
       >
         <CompanionArt companion={companion} speaking={speaking} />
-        <span className="companion-toggle-label">
-          {inline ? 'Explore' : `Ask ${companion.name}`}
-        </span>
+        <svg className="companion-chat-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-5 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+          <path d="M8 10h.01M12 10h.01M16 10h.01" />
+        </svg>
       </button>
     </div>
   );

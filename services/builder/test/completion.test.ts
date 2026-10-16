@@ -115,7 +115,7 @@ describe('builder completion', () => {
     expect(evaluateScene(test, unsafe).safetyHits).toContain('gun');
     const report = await runEvaluation('recorded', () => async () => ({}), [test]);
     expect(report.passed).toBe(false);
-    expect(report.results[0]?.attempts).toBe(2);
+    expect(report.results[0]?.attempts).toBe(3);
   });
 });
 

@@ -5,6 +5,7 @@ import {
   type FixtureWorldKey,
   fixtureWorldDoc,
   LAB_WORLDS,
+  GAME_WORLDS,
 } from '@just-imagine/fixtures/browser';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { firebase } from './firebase';
@@ -26,12 +27,15 @@ function previewArt(world: WorldWithId, key: PreviewKey): WorldWithId {
 export function createWorldSource(key: PreviewKey = 'jellyDragon'): WorldSource {
   if (env.fake)
     return new FakeWorldSource(
-      (key in LAB_WORLDS
+      (key in LAB_WORLDS || key in GAME_WORLDS
         ? [
             {
               afterMs: 0,
               world: fixtureWorldDoc('projectileLab', {
-                doc: LAB_WORLDS[key as keyof typeof LAB_WORLDS],
+                doc:
+                  key in GAME_WORLDS
+                    ? GAME_WORLDS[key as keyof typeof GAME_WORLDS]
+                    : LAB_WORLDS[key as keyof typeof LAB_WORLDS],
               }),
             },
           ]

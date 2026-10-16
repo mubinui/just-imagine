@@ -135,6 +135,29 @@ export const PackChallengeSchema = z.object({
 });
 export type PackChallenge = z.infer<typeof PackChallengeSchema>;
 
+export const ActivityKindSchema = z.enum([
+  'orbit',
+  'listen',
+  'wash',
+  'brush',
+  'pulse',
+  'breathe',
+  'signal',
+  'digest',
+  'assemble',
+  'plate',
+  'move',
+]);
+export const LearningActivitySchema = z.object({
+  characterId: IdSchema,
+  kind: ActivityKindSchema,
+  title: sentence,
+  titleBn: sentence,
+  explanation: sentence,
+  explanationBn: sentence,
+});
+export type LearningActivity = z.infer<typeof LearningActivitySchema>;
+
 export const WorldPackSchema = z.object({
   id: IdSchema,
   section: PackSectionSchema,
@@ -146,6 +169,7 @@ export const WorldPackSchema = z.object({
   hotspots: z.array(HotspotSchema).max(24),
   sounds: z.array(PackSoundSchema).max(24),
   challenges: z.array(PackChallengeSchema).max(20),
+  activities: z.array(LearningActivitySchema).max(24).default([]),
 });
 export type WorldPack = z.infer<typeof WorldPackSchema>;
 
@@ -219,6 +243,15 @@ export function validatePack(input: unknown): PackIssue[] {
   pack.sounds.forEach((s, i) => {
     if (!entityIds.has(s.entityId))
       report('UNKNOWN_ENTITY_REF', `sounds.${i}.entityId`, `no entity "${s.entityId}" in scene`);
+  });
+
+  const activityCharacters = new Set<string>();
+  pack.activities.forEach((a, i) => {
+    if (!characterIds.has(a.characterId))
+      report('UNKNOWN_CHARACTER_REF', `activities.${i}.characterId`, 'Unknown activity character');
+    if (activityCharacters.has(a.characterId))
+      report('DUPLICATE_ID', `activities.${i}.characterId`, 'One activity per character');
+    activityCharacters.add(a.characterId);
   });
 
   const challengeIds = new Set<string>();

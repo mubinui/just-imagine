@@ -14,12 +14,45 @@ export type Vec2 = z.infer<typeof Vec2Schema>;
 export const ConceptSchema = z.enum(CONCEPTS);
 export const DialSchema = z.enum(DIALS);
 
+/** Optional presentation metadata; old worlds keep their original physics and art. */
+export const MotionAtlasSchema = z
+  .object({
+    columns: z.number().int().min(1).max(8),
+    rows: z.number().int().min(1).max(8),
+    frames: z.number().int().min(2).max(32),
+    anchor: z.object({ x: unit, y: unit }).optional(),
+    content: z
+      .object({ width: z.number().positive().max(1), height: z.number().positive().max(1) })
+      .optional(),
+  })
+  .refine((a) => a.frames <= a.columns * a.rows, 'frames exceed atlas cells');
+export const LocomotionSchema = z.object({
+  kind: z.enum(['walk', 'run', 'swim', 'fly', 'roll']),
+  /** World metres per complete stride or propulsion cycle. */
+  stride: z.number().min(0.1).max(8),
+  facing: z.enum(['right', 'left']),
+  /** Vehicle wheel centres/radii, as fractions of the unscaled body dimensions. */
+  wheels: z
+    .array(
+      z.object({
+        x: z.number().min(-0.5).max(0.5),
+        y: z.number().min(-0.5).max(0.5),
+        radius: z.number().min(0.03).max(0.3),
+      }),
+    )
+    .min(1)
+    .max(6)
+    .optional(),
+});
+export type Locomotion = z.infer<typeof LocomotionSchema>;
+
 export const AssetRefSchema = z.object({
   url: z.string(),
   colliderUrl: z.string().optional(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   status: z.enum(['placeholder', 'ready']),
+  animation: MotionAtlasSchema.optional(),
 });
 export type AssetRef = z.infer<typeof AssetRefSchema>;
 
@@ -75,6 +108,15 @@ export type Body = z.infer<typeof BodySchema>;
 
 export const EntityKindSchema = z.enum(['sprite', 'ground', 'water', 'particle']);
 
+/** A character created for this world, rather than a fixed member of the app's cast. */
+export const SceneCharacterSchema = z.object({
+  name: z.string().trim().min(1).max(40),
+  personality: z.string().trim().min(1).max(240),
+  greeting: z.string().trim().min(1).max(160),
+  topic: z.string().trim().min(1).max(160),
+});
+export type SceneCharacter = z.infer<typeof SceneCharacterSchema>;
+
 export const EntitySchema = z.object({
   id: IdSchema,
   kind: EntityKindSchema,
@@ -86,6 +128,8 @@ export const EntitySchema = z.object({
   tags: z.array(TagSchema).max(8),
   behaviors: z.array(BehaviorSchema).max(4),
   pretend: z.boolean(),
+  character: SceneCharacterSchema.optional(),
+  locomotion: LocomotionSchema.optional(),
 });
 export type Entity = z.infer<typeof EntitySchema>;
 
@@ -147,6 +191,7 @@ export type Action = z.infer<typeof ActionSchema>;
 export const LAB_LIMITS = { maxVariables: 6, maxVisuals: 6, maxChallenges: 3 } as const;
 
 export const VariableBindSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('game') }),
   z.object({ kind: z.literal('gravity') }),
   z.object({ kind: z.literal('wind') }),
   z.object({ kind: z.literal('timeScale') }),
@@ -267,6 +312,8 @@ export const PredictionSchema = z
 export type Prediction = z.infer<typeof PredictionSchema>;
 
 export const LearningSchema = z.object({
+  /** Creative play does not require a ground or a scripted teaching rule. */
+  mode: z.enum(['guided', 'incidental']).optional(),
   concepts: z.array(ConceptSchema).min(1).max(LIMITS.maxConcepts),
   prediction: PredictionSchema,
   dials: z.array(DialSchema).max(LIMITS.maxDials),
@@ -321,5 +368,28 @@ export const SceneDocObjectSchema = z.object({
   visuals: z.array(VisualSchema).max(LAB_LIMITS.maxVisuals).optional(),
   challenges: z.array(ChallengeSchema).max(LAB_LIMITS.maxChallenges).optional(),
 });
-export const SceneDocSchema = SceneDocObjectSchema;
+/** Largest generated game script, in UTF-8 bytes (the game runtime's budget). */
+export const GAME_SCRIPT_MAX_BYTES = 20 * 1024;
+
+/**
+ * A generated game programme written against Game API version 1. The scene
+ * schema checks shape and size only; the game runtime's static check and
+ * sandbox decide whether it may run.
+ */
+export const GameScriptSchema = z.object({
+  apiVersion: z.literal(1),
+  source: z.string().min(1).max(GAME_SCRIPT_MAX_BYTES),
+  /** Hex digest of the source (the builder writes SHA-256). */
+  hash: z.string().regex(/^[a-f0-9]{16,64}$/),
+});
+export type GameScript = z.infer<typeof GameScriptSchema>;
+export const GameSchema = z.object({
+  script: GameScriptSchema,
+  /** Older saved scripts are goal-based games. Open play may have no score or ending. */
+  mode: z.enum(['game', 'freeplay']).optional(),
+});
+export type Game = z.infer<typeof GameSchema>;
+
+// `game` sits outside SceneDocObjectSchema so the scene model's output contract never offers it.
+export const SceneDocSchema = SceneDocObjectSchema.extend({ game: GameSchema.optional() });
 export type SceneDoc = z.infer<typeof SceneDocSchema>;

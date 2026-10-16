@@ -6,7 +6,8 @@ import { FirestoreCompanionService, GeminiCompanionGenerator } from './companion
 import { createApi } from './app';
 import { FirestoreApiStore } from './store';
 import { StripeBilling } from './billing';
-import { deletionQueue } from './tasks';
+import { FirestoreStoryStore } from './stories';
+import { deletionQueue, storyQueue } from './tasks';
 import { processDeletion, retryDeletions } from './deletion';
 const stopTelemetry = startTelemetry('api');
 const env = z
@@ -25,6 +26,8 @@ const env = z
     STRIPE_PRICE_ID: z.string().optional(),
     GOOGLE_CLOUD_PROJECT: z.string().optional(),
     API_AUDIENCE: z.url().optional(),
+    BUILDER_URL: z.url().optional(),
+    BUILDER_QUEUE: z.string().default('builds'),
     TASK_SERVICE_ACCOUNT: z.email().optional(),
     DELETION_QUEUE: z.string().default('deletions'),
   })
@@ -67,6 +70,16 @@ const app = createApi({
         )
       : undefined,
   billing,
+  stories: new FirestoreStoryStore(
+    !local && env.GOOGLE_CLOUD_PROJECT && env.BUILDER_URL && env.TASK_SERVICE_ACCOUNT
+      ? storyQueue({
+          project: env.GOOGLE_CLOUD_PROJECT,
+          queue: env.BUILDER_QUEUE,
+          url: env.BUILDER_URL,
+          serviceAccount: env.TASK_SERVICE_ACCOUNT,
+        })
+      : undefined,
+  ),
   origins: [env.WEB_URL],
 });
 const auth = new OAuth2Client();

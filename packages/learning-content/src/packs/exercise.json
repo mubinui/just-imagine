@@ -1,0 +1,393 @@
+{
+  "id": "exercise",
+  "section": "exercise",
+  "title": "Move & Groove Park",
+  "titleBn": "নড়াচড়ার পার্ক",
+  "notes": "Authored bilingual educational play. Sources: docs/art/learning-content-sources.md. Diagrams and characters are simplified, not to anatomical scale.",
+  "scene": {
+    "schemaVersion": 1,
+    "worldId": "w_pack_exercise",
+    "tier": "playground",
+    "title": "Move & Groove Park",
+    "theme": {
+      "paletteHint": "warm forest, cream, peach and soft world colours",
+      "timeOfDay": "day",
+      "backdropDescription": "Move & Groove Park with warm layers, a clear central play space and calm forest framing",
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
+    },
+    "environment": {
+      "gravity": {
+        "x": 0,
+        "y": 9.81
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
+      "medium": "air",
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
+      "seed": 11
+    },
+    "materials": {
+      "grass": {
+        "density": 1,
+        "friction": 0.8,
+        "restitution": 0.1,
+        "softness": 0,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "fur": {
+        "density": 0.4,
+        "friction": 0.7,
+        "restitution": 0.2,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "feather": {
+        "density": 0.08,
+        "friction": 0.7,
+        "restitution": 0.1,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "wood": {
+        "density": 0.6,
+        "friction": 0.5,
+        "restitution": 0.3,
+        "softness": 0.05,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "rubber": {
+        "density": 1.1,
+        "friction": 0.8,
+        "restitution": 0.8,
+        "softness": 0.2,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "cloud": {
+        "density": 0.06,
+        "friction": 0.9,
+        "restitution": 0.1,
+        "softness": 0.4,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": true
+      }
+    },
+    "entities": [
+      {
+        "id": "ground",
+        "kind": "ground",
+        "name": "farmyard",
+        "description": "grassy farmyard ground with a dirt path and tiny daisies",
+        "asset": {
+          "url": "",
+          "width": 1920,
+          "height": 128,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "box",
+          "material": "grass",
+          "isStatic": true,
+          "size": {
+            "width": 16,
+            "height": 1
+          }
+        },
+        "transform": {
+          "x": 8,
+          "y": 8.5,
+          "rotation": 0
+        },
+        "tags": ["ground"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "coach",
+        "kind": "sprite",
+        "name": "Coach Coco",
+        "description": "A welcoming childlike coach in forest sportswear with an ochre headband.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 2.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "muscle",
+        "kind": "sprite",
+        "name": "Milo Muscle",
+        "description": "A coral curved muscle with soft rounded hands and a green wristband.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 8.0,
+          "y": 4.1,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "rest",
+        "kind": "sprite",
+        "name": "Rumi Rest",
+        "description": "A small cloud-shaped cushion wearing a soft nightcap.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 14.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      }
+    ],
+    "joints": [],
+    "rules": [],
+    "learning": {
+      "concepts": ["gravity"],
+      "prediction": {
+        "question": "If you throw the ball up high, will it come back down?",
+        "options": ["yes, it comes down", "no, it stays up"],
+        "correctIndex": 0,
+        "concept": "gravity"
+      },
+      "dials": [],
+      "heroEntityId": "coach",
+      "mode": "incidental"
+    },
+    "narration": {
+      "intro": "Tap a friend, try an activity, or call them to ask your own questions."
+    }
+  },
+  "characters": [
+    {
+      "id": "coach",
+      "name": "Coach Coco",
+      "nameBn": "কোচ কোকো",
+      "look": "A welcoming childlike coach in forest sportswear with an ochre headband.",
+      "voice": "Sulafat",
+      "personality": "An encouraging coach who celebrates small moves and seated versions equally.",
+      "facts": [
+        "Active play helps your heart, muscles and bones.",
+        "Children aged six to seventeen should aim for at least sixty minutes of activity a day.",
+        "Activity can be spread across the day.",
+        "Dancing, running and cycling are ways to move.",
+        "Choose movement that fits your body and space.",
+        "Stop and tell a grown-up if a movement hurts."
+      ],
+      "factsBn": [
+        "খেলাধুলা হৃদয়, পেশি ও হাড়ের উপকার করে।",
+        "ছয় থেকে সতেরো বছরের শিশুদের দিনে অন্তত ষাট মিনিট সক্রিয় থাকার লক্ষ্য ভালো।",
+        "সারাদিন ভাগ করে সক্রিয় থাকা যায়।",
+        "নাচ, দৌড় ও সাইকেল চালানো নড়াচড়ার উপায়।",
+        "শরীর ও জায়গার সঙ্গে মানায় এমন নড়াচড়া বেছে নাও।",
+        "ব্যথা হলে থেমে বড়দের বলো।"
+      ],
+      "catchphrase": "Your move is a good move!",
+      "catchphraseBn": "তোমার মতো করেই নড়ো!",
+      "funnyAngle": "An encouraging coach who celebrates small moves and seated versions equally."
+    },
+    {
+      "id": "muscle",
+      "name": "Milo Muscle",
+      "nameBn": "পেশি মিলু",
+      "look": "A coral curved muscle with soft rounded hands and a green wristband.",
+      "voice": "Sulafat",
+      "personality": "A gentle strong friend who lifts pretend feathers and explains teamwork.",
+      "facts": [
+        "Muscles pull to help you move.",
+        "Many muscles work together.",
+        "You can strengthen muscles through play.",
+        "Climbing and some playground games use muscles.",
+        "Muscles also need rest.",
+        "People move in different ways, and that is okay."
+      ],
+      "factsBn": [
+        "পেশি টেনে নড়তে সাহায্য করে।",
+        "অনেক পেশি একসঙ্গে কাজ করে।",
+        "খেলার মাধ্যমে পেশি শক্ত হতে পারে।",
+        "চড়া ও মাঠের কিছু খেলায় পেশি কাজে লাগে।",
+        "পেশির বিশ্রামও দরকার।",
+        "মানুষ নানাভাবে নড়ে, সেটাই স্বাভাবিক।"
+      ],
+      "catchphrase": "Teamwork makes the wiggle work!",
+      "catchphraseBn": "সবাই মিলে নড়ি!",
+      "funnyAngle": "A gentle strong friend who lifts pretend feathers and explains teamwork."
+    },
+    {
+      "id": "rest",
+      "name": "Rumi Rest",
+      "nameBn": "বিশ্রাম রুমি",
+      "look": "A small cloud-shaped cushion wearing a soft nightcap.",
+      "voice": "Sulafat",
+      "personality": "A cosy friend who knows pausing is part of play.",
+      "facts": [
+        "Rest helps you recover after active play.",
+        "Sleep supports learning and memory.",
+        "A regular bedtime can help your sleep routine.",
+        "Quiet activities can help you wind down.",
+        "A water break is useful during play.",
+        "Ask a grown-up if you feel dizzy or unwell."
+      ],
+      "factsBn": [
+        "খেলার পর বিশ্রাম শক্তি ফিরে পেতে সাহায্য করে।",
+        "ঘুম শেখা ও স্মৃতিতে সাহায্য করে।",
+        "নিয়মিত শোবার সময় ঘুমের অভ্যাসে সাহায্য করে।",
+        "শান্ত কাজ ঘুমের প্রস্তুতিতে সাহায্য করে।",
+        "খেলার মধ্যে পানি খাওয়ার বিরতি ভালো।",
+        "মাথা ঘুরলে বা খারাপ লাগলে বড়দের বলো।"
+      ],
+      "catchphrase": "Pause is part of play.",
+      "catchphraseBn": "বিশ্রামও খেলার অংশ।",
+      "funnyAngle": "A cosy friend who knows pausing is part of play."
+    }
+  ],
+  "hotspots": [
+    {
+      "entityId": "coach",
+      "characterId": "coach",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "muscle",
+      "characterId": "muscle",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "rest",
+      "characterId": "rest",
+      "comesCloser": "grow"
+    }
+  ],
+  "sounds": [],
+  "challenges": [
+    {
+      "id": "ch_coach_01",
+      "characterId": "coach",
+      "question": "Can active play be spread throughout the day?",
+      "questionBn": "সারাদিন ভাগ করে সক্রিয় খেলা যায় কি?",
+      "answerKey": "yes",
+      "accepted": ["yes", "yes it can", "throughout the day", "হ্যাঁ", "যায়", "ha"],
+      "hint": "A little now and a little later can add up.",
+      "hintBn": "এখন একটু, পরে একটু মিলে অনেক হয়।",
+      "points": 3
+    },
+    {
+      "id": "ch_muscle_01",
+      "characterId": "muscle",
+      "question": "Do muscles push or pull to move bones?",
+      "questionBn": "হাড় নাড়াতে পেশি ঠেলে নাকি টানে?",
+      "answerKey": "pull",
+      "accepted": ["pull", "they pull", "pulling", "টানে", "টান", "tane"],
+      "hint": "Think of tugging on a rope.",
+      "hintBn": "দড়ি টানার কথা ভাবো।",
+      "points": 3
+    },
+    {
+      "id": "ch_recover_03",
+      "characterId": "rest",
+      "question": "What helps your body recover after active play?",
+      "questionBn": "খেলার পর শরীরকে চাঙ্গা হতে কী সাহায্য করে?",
+      "answerKey": "rest",
+      "accepted": ["rest", "resting", "a rest", "বিশ্রাম", "বিশ্রাম নেওয়া", "bishram"],
+      "hint": "Even a busy friend needs a pause.",
+      "hintBn": "ব্যস্ত বন্ধুরও বিরতি লাগে।",
+      "points": 3
+    }
+  ],
+  "activities": [
+    {
+      "characterId": "coach",
+      "kind": "move",
+      "title": "Copy Coco’s moves",
+      "titleBn": "কোকোর সঙ্গে নড়ো",
+      "explanation": "Try comfortable moves, standing or seated. These few moves are a play break, not your whole day of activity.",
+      "explanationBn": "দাঁড়িয়ে বা বসে আরাম করে নড়ো। এটা খেলার বিরতি, পুরো দিনের ব্যায়াম নয়।"
+    },
+    {
+      "characterId": "muscle",
+      "kind": "move",
+      "title": "Make a muscle move",
+      "titleBn": "পেশির নড়াচড়া দেখো",
+      "explanation": "Muscles contract and pull. You can follow the rhythm with a hand or any comfortable movement.",
+      "explanationBn": "পেশি সংকুচিত হয়ে টানে। হাত বা আরামদায়ক নড়াচড়ায় তাল মেলাতে পারো।"
+    },
+    {
+      "characterId": "rest",
+      "kind": "breathe",
+      "title": "Take a quiet moment",
+      "titleBn": "একটু শান্ত হও",
+      "explanation": "Let the cloud expand and settle. Breathe normally; take a break whenever you need one.",
+      "explanationBn": "মেঘের ওঠানামা দেখো। স্বাভাবিক শ্বাস নাও, দরকার হলে বিরতি নাও।"
+    }
+  ]
+}

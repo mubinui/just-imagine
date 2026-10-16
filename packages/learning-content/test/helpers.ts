@@ -141,6 +141,7 @@ export function minimalPack(overrides: Partial<WorldPack> = {}): WorldPack {
       },
     ],
     challenges: [minimalChallenge()],
+    activities: [],
     ...overrides,
   };
 }

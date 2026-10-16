@@ -110,6 +110,32 @@ vi.mock('pixi.js', () => {
       if (state.fail) throw new Error('GPU failure');
     }
   }
+  class Texture {
+    width = 768;
+    height = 512;
+    source: unknown;
+    frame: unknown;
+    destroy = vi.fn();
+    constructor(options: any = {}) {
+      this.source = options.source ?? {};
+      this.frame = options.frame;
+    }
+    static from(bitmap?: { width?: number; height?: number }) {
+      const t = new Texture();
+      t.width = bitmap?.width ?? t.width;
+      t.height = bitmap?.height ?? t.height;
+      state.textures.push(t);
+      return t;
+    }
+  }
+  class Rectangle {
+    constructor(
+      public x: number,
+      public y: number,
+      public width: number,
+      public height: number,
+    ) {}
+  }
   return {
     Application,
     Container,
@@ -117,14 +143,83 @@ vi.mock('pixi.js', () => {
     Sprite,
     Text,
     MeshPlane,
-    Texture: {
-      from: () => {
-        const t = { destroy: vi.fn() };
-        state.textures.push(t);
-        return t;
-      },
+    Texture,
+    Rectangle,
+  };
+});
+
+it('plays registered frames from actual travel, faces reversal and releases atlas views', async () => {
+  const doc = structuredClone(FIXTURE_WORLDS.moonBounce),
+    hero = doc.entities.find((e) => e.id === doc.learning.heroEntityId)!;
+  hero.locomotion = { kind: 'run', stride: 0.3, facing: 'right' };
+  hero.body.isStatic = true;
+  hero.behaviors = [];
+  hero.asset = {
+    url: '/run.webp',
+    width: 768,
+    height: 512,
+    status: 'ready',
+    animation: { columns: 3, rows: 2, frames: 6 },
+  };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: true, blob: async () => new Blob() })),
+  );
+  vi.stubGlobal('createImageBitmap', async () => ({ close: vi.fn() }));
+  const engine = await mountEngine(setup(), doc),
+    app = state.apps[0],
+    tick = app.ticker.add.mock.calls[0][0],
+    view = app.stage.children[0].children[1].children[doc.entities.indexOf(hero)];
+  await vi.waitFor(() => expect(view.children[0].texture?.frame).toBeDefined());
+  tick();
+  engine.move(hero.id, { x: hero.transform.x + 0.06, y: hero.transform.y });
+  tick();
+  const running = view.children[0].texture;
+  expect(running.frame.x).toBe(256);
+  expect(running.frame.width).toBe(256);
+  engine.move(hero.id, { x: hero.transform.x, y: hero.transform.y });
+  tick();
+  expect(view.scale.x).toBeLessThan(0);
+  tick();
+  expect(view.children[0].texture.frame.x).toBe(0);
+  engine.dispose();
+  expect(running.destroy).toHaveBeenCalledWith(false);
+  expect(state.textures[0].destroy).toHaveBeenCalledWith(true);
+});
+
+it('preserves generated pose proportions and pins its ground anchor to the body feet', async () => {
+  const doc = structuredClone(FIXTURE_WORLDS.moonBounce),
+    hero = doc.entities.find((e) => e.id === doc.learning.heroEntityId)!;
+  hero.body.size = { width: 2, height: 1.2 };
+  hero.body.isStatic = true;
+  hero.locomotion = { kind: 'run', stride: 1.2, facing: 'right' };
+  hero.asset = {
+    url: '/anchored.webp',
+    width: 768,
+    height: 768,
+    status: 'ready',
+    animation: {
+      columns: 3,
+      rows: 3,
+      frames: 9,
+      anchor: { x: 0.5, y: 0.9375 },
+      content: { width: 0.875, height: 0.5 },
     },
   };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: true, blob: async () => new Blob() })),
+  );
+  vi.stubGlobal('createImageBitmap', async () => ({ width: 768, height: 768, close: vi.fn() }));
+  const engine = await mountEngine(setup(), doc),
+    view = state.apps[0].stage.children[0].children[1].children[doc.entities.indexOf(hero)];
+  await vi.waitFor(() => expect(view.children[0].texture?.frame).toBeDefined());
+  const sprite = view.children[0];
+  expect(sprite.width).toBeCloseTo(sprite.height);
+  expect(sprite.width).toBeCloseTo(2 / 0.875);
+  expect(sprite.anchor.set).toHaveBeenLastCalledWith(0.5, 0.9375);
+  expect(sprite.position.set).toHaveBeenLastCalledWith(0, 0.6);
+  engine.dispose();
 });
 import { mountEngine } from '../src/renderer';
 afterEach(() => {
@@ -360,4 +455,56 @@ it('keeps a tap impulse alive on pointer release instead of replacing it with a 
   expect(engine.snapshot().inputs.filter((event) => event.type === 'flick')).toHaveLength(0);
   expect(engine.frame().entities.find((e) => e.id === 'dragon')!.vy).toBeLessThan(-0.5);
   engine.dispose();
+});
+
+it('reports a tap on empty stage with world coordinates and no target', async () => {
+  const engine = await mountEngine(setup(), FIXTURE_WORLDS.moonBounce);
+  const app = state.apps[0];
+  const taps: unknown[] = [];
+  engine.subscribe((e) => {
+    if (e.type === 'tap') taps.push({ target: e.target, value: e.value });
+  });
+  for (const type of ['pointerdown', 'pointerup']) {
+    const event = new Event(type);
+    Object.assign(event, { pointerId: 1, clientX: 14 * 60, clientY: 5 * 60 });
+    app.canvas.dispatchEvent(event);
+  }
+  expect(taps).toEqual([{ target: undefined, value: { x: 14, y: 5 } }]);
+  engine.dispose();
+});
+
+it('forwards the game APIs to the simulation', async () => {
+  const engine = await mountEngine(setup(), FIXTURE_WORLDS.moonBounce);
+  const id = engine.spawn('ball', { x: 12, y: 2 }, ['extra']);
+  expect(engine.frame().entities.find((p) => p.id === id)?.tags).toContain('extra');
+  engine.setGravity({ x: 0, y: 0 });
+  expect(engine.frame().gravity).toEqual({ x: 0, y: 0 });
+  expect(engine.remove('extra')).toBe(1);
+  engine.dispose();
+});
+
+it('lets a child select a fixed world character directly on the canvas without an artificial tap rule', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => new Promise(() => {})),
+  );
+  const doc = structuredClone(FIXTURE_WORLDS.moonBounce);
+  const actor = doc.entities.find((e) => e.id === 'bolt_toy')!;
+  actor.body.isStatic = true;
+  actor.character = { name: 'Earth', personality: 'Curious', greeting: 'Hello!', topic: 'Space' };
+  const events: any[] = [];
+  const engine = await mountEngine(setup(), doc, (e) => events.push(e));
+  try {
+    const app = state.apps[0];
+    const at = engine.frame().entities.find((p) => p.id === actor.id)!;
+    for (const type of ['pointerdown', 'pointerup']) {
+      const event = new Event(type);
+      Object.assign(event, { pointerId: 1, clientX: at.x * 60, clientY: at.y * 60 });
+      app.canvas.dispatchEvent(event);
+    }
+    expect(events.some((e) => e.type === 'tap' && e.target === actor.id)).toBe(true);
+    expect(events.some((e) => e.type === 'flick')).toBe(false);
+  } finally {
+    engine.dispose();
+  }
 });

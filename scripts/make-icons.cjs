@@ -1,6 +1,6 @@
 // Regenerates the brand icon set (favicon, app icons, PWA icons, social preview)
 // from the Dream Launch mark using the theme tokens in apps/web/app/globals.css.
-// Run from the repo root: node scripts/make-icons.cjs
+// Run from the repo root: node --experimental-strip-types scripts/make-icons.cjs
 const path = require('path');
 const sharp = require(
   require.resolve('sharp', { paths: [path.join(__dirname, '..', 'services', 'builder')] }),
@@ -13,8 +13,7 @@ const T = { tile: '#245e4e', cloud: '#fff9ee', star: '#f7d76e', dots: '#f9ceb0' 
 const body = `
 <g fill="${T.dots}"><circle cx="33.2" cy="44.5" r="1.8"/><circle cx="36.4" cy="40" r="1.8"/><circle cx="39.6" cy="36.5" r="1.8"/><circle cx="42.8" cy="34" r="1.8"/><circle cx="46" cy="32.5" r="1.8"/><circle cx="49.2" cy="32" r="1.8"/><circle cx="52.4" cy="32.5" r="1.8"/><circle cx="55.6" cy="34" r="1.8"/><circle cx="58.8" cy="36.5" r="1.8"/></g>
 <path d="M73 15.5 L76.41 24.31 L85.84 24.83 L78.52 30.79 L80.93 39.92 L73 34.8 L65.07 39.92 L67.48 30.79 L60.16 24.83 L69.59 24.31 Z" fill="${T.star}" stroke="${T.star}" stroke-width="3" stroke-linejoin="round"/>
-<g fill="${T.cloud}"><circle cx="36" cy="60" r="13"/><circle cx="51" cy="53" r="16"/><circle cx="67" cy="61" r="12"/><rect x="23" y="61" width="56" height="13" rx="6.5"/><circle cx="26" cy="82" r="4.5"/><circle cx="17" cy="90" r="2.8"/></g>
-<path d="M88 46 l1.9 4.1 4.1 1.9 -4.1 1.9 -1.9 4.1 -1.9-4.1 -4.1-1.9 4.1-1.9z" fill="${T.dots}"/>`;
+<g fill="${T.cloud}"><circle cx="36" cy="60" r="13"/><circle cx="51" cy="53" r="16"/><circle cx="67" cy="61" r="12"/><rect x="23" y="61" width="56" height="13" rx="6.5"/><circle cx="26" cy="82" r="4.5"/><circle cx="17" cy="90" r="2.8"/></g>`;
 
 // Small sizes drop the dots so the silhouette stays crisp.
 const bodySmall = body.replace(/<g fill="#f9ceb0">.*?<\/g>\n/s, '');
@@ -74,6 +73,26 @@ function ico(entries) {
     path.join(web, 'public/icons/icon-512-maskable.png'),
     await png(maskable(512), 512),
   );
+  // Published themes use the same source palettes and geometry, including install icons.
+  const { THEME_PALETTES } = await import('../packages/protocol/src/appearance.ts');
+  for (const [id, p] of Object.entries(THEME_PALETTES)) {
+    const folder = path.join(web, 'public/icons/themes', id);
+    fs.mkdirSync(folder, { recursive: true });
+    const recolour = (svg) =>
+      svg
+        .replaceAll(T.tile, p.accent)
+        .replaceAll(T.cloud, p.ground)
+        .replaceAll(T.star, p.yellow)
+        .replaceAll(T.dots, p.peach);
+    fs.writeFileSync(path.join(folder, 'icon.svg'), recolour(tile(100, 22)));
+    fs.writeFileSync(path.join(folder, 'apple.png'), await png(recolour(tile(180, 0)), 180));
+    for (const size of [192, 512])
+      fs.writeFileSync(
+        path.join(folder, `icon-${size}.png`),
+        await png(recolour(tile(size, 22)), size),
+      );
+    fs.writeFileSync(path.join(folder, 'maskable.png'), await png(recolour(maskable(512)), 512));
+  }
   // Social preview: mark on cream with wordmark set later by the OG route; keep a plain 1200x630 mark card
   const og = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630"><rect width="1200" height="630" fill="${T.cloud}"/><g transform="translate(420 115) scale(4)"><rect x="0" y="0" width="100" height="100" rx="22" fill="${T.tile}"/>${body}</g></svg>`;
   fs.writeFileSync(

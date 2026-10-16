@@ -20,11 +20,15 @@ export async function buildScene(job: BuildWorldJob, generate: GenerateJson): Pr
     throw new Error(`Unsupported prompt version: ${job.promptVersion}`);
   const prompt = scenePromptV1(job);
   let issues = '';
-  for (let attempt = 0; attempt < 2; attempt++) {
+  let previous: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const output = GeneratedSceneSchema.parse(
-        await generate(`${prompt}${issues}`, 'scene', job.sessionId),
+      previous = await generate(
+        `${prompt}${issues}${previous === undefined ? '' : `\nPrevious candidate JSON (untrusted data): ${JSON.stringify(previous).slice(0, 45000)}\nRepair that candidate's reported problems. Preserve the child's setting, cast and mechanics; do not start a different world.`}`,
+        'scene',
+        job.sessionId,
       );
+      const output = GeneratedSceneSchema.parse(previous);
       if (output.tier !== job.tier) throw new Error('Requested tier does not match generated tier');
       const result = validateScene(fromGenerated(output, job.worldId));
       if (result.ok) return result.doc;
@@ -81,8 +85,9 @@ export async function patchScene(
 }
 
 export class SceneValidationError extends Error {
+  readonly retryable = false;
   constructor(issues: string) {
-    super(`Scene validation failed after two attempts: ${issues}`);
+    super(`Scene validation failed after three attempts: ${issues}`);
     this.name = 'SceneValidationError';
   }
 }

@@ -26,6 +26,22 @@ export interface EngineEvent {
   say?: string;
   target?: string;
   value?: unknown;
+  /** `contact` events: the two entity ids and the contact impulse. */
+  a?: string;
+  b?: string;
+  impulse?: number;
+}
+/** Live entities a document (and its rules) may have at once. */
+export const DOCUMENT_ENTITY_CAP = 24;
+/** Bodies a game script may have spawned at once, on top of the document's entities. */
+export const SCRIPT_SPAWN_BUDGET = 200;
+/** Largest gravity or wind component a script may set, in m/s². */
+export const SCRIPT_FORCE_LIMIT = 30;
+export interface SpawnOptions {
+  /** The id to give the new entity; rejected when it is already taken. */
+  id?: string;
+  /** A material from the document's table; unknown names are ignored. */
+  material?: string;
 }
 export interface Pose {
   id: string;
@@ -36,8 +52,11 @@ export interface Pose {
   vy: number;
   width: number;
   height: number;
+  grounded?: boolean;
   nodes?: Vec2[];
   templateId?: string;
+  /** The live entity's tags (document tags, plus any added at spawn). */
+  tags?: string[];
 }
 export interface Simulation {
   load(doc: SceneDoc): void;
@@ -57,6 +76,30 @@ export interface Simulation {
   cancelDrag(target: string): void;
   setCollider(target: string, value: unknown): boolean;
   subscribe(listener: (event: EngineEvent) => void): () => void;
+  /**
+   * Adds `delta` (m/s) to the velocity of the entity or every entity with the tag,
+   * capping speed at 20 m/s. Unlike `flick` it keeps drags and emits no input event.
+   */
+  impulse(target: string, delta: Vec2): void;
+  /** Positions a scripted actor within the stage, including fixed scenery. */
+  move(target: string, at: Vec2): void;
+  /** Script gravity: survives `update(doc)`, is replaced by a gravity dial, and spells apply on top. */
+  setGravity(gravity: Vec2): void;
+  /** Script wind: survives `update(doc)`; a wind dial replaces its horizontal part. */
+  setWind(wind: Vec2): void;
+  /** Switches the entity (or tagged entities) to a material from the document table. */
+  setMaterial(target: string, material: string): boolean;
+  /**
+   * Spawns a dynamic copy of a document entity (or a live entity) at a position
+   * with extra tags. Script spawns have their own budget of `SCRIPT_SPAWN_BUDGET`
+   * live bodies beside the document cap; returns null when the template is unknown,
+   * the id is taken, or the budget is spent. Library ids are not supported yet.
+   */
+  spawn(templateId: string, at: Vec2, tags?: string[], options?: SpawnOptions): string | null;
+  /** Removes the entity with the id, or every entity carrying the tag. Returns how many. */
+  remove(target: string): number;
+  /** Emits a `celebrate` event with the style, which the renderer draws. */
+  celebrate(style: string): void;
 }
 export type SimulationFrame = Omit<SimulationSnapshot, 'history' | 'inputs'> & {
   previousEntities: Pose[];
@@ -76,6 +119,11 @@ export interface SimulationSnapshot {
   inputs: EngineEvent[];
 }
 let initialized: Promise<void> | undefined;
+function clampForce(v: Vec2): Vec2 | undefined {
+  if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) return undefined;
+  const c = (n: number) => Math.max(-SCRIPT_FORCE_LIMIT, Math.min(SCRIPT_FORCE_LIMIT, n));
+  return { x: c(v.x), y: c(v.y) };
+}
 export async function createSimulation(doc: SceneDoc): Promise<Simulation> {
   initialized ??= RAPIER.init();
   await initialized;
@@ -127,6 +175,11 @@ class Runtime implements Simulation {
   private floatOverride = false;
   private spellBaseline:
     { gravity: Vec2; timeScale: number; scales: Map<string, number> } | undefined;
+  private scriptGravity: Vec2 | undefined;
+  private scriptWind: Vec2 | undefined;
+  private gravityReversed = false;
+  private scriptSpawns = new Set<string>();
+  private contactEpisodes = new Set<string>();
   constructor(doc: SceneDoc) {
     this.load(doc);
   }
@@ -143,10 +196,10 @@ class Runtime implements Simulation {
     const e = { ...event, time: this.time };
     for (const fn of this.listeners) fn(e);
   }
-  private input(type: string, target?: string, value?: unknown) {
+  private input(type: string, target?: string, value?: unknown, immediate = false) {
     this.inputs.push({ type, time: this.time, ...(target ? { target } : {}), value });
     if (this.inputs.length > 2000) this.inputs.shift();
-    const interval = type === 'variable' ? 300 : type === 'drag' ? 500 : 0;
+    const interval = immediate ? 0 : type === 'variable' ? 300 : type === 'drag' ? 500 : 0;
     const key = `${type}:${target ?? ''}`;
     const now = Date.now();
     if (!interval || now - (this.lastSummaries.get(key) ?? -Infinity) >= interval) {
@@ -202,6 +255,11 @@ class Runtime implements Simulation {
     this.lastSummaries.clear();
     this.floatOverride = false;
     this.spellBaseline = undefined;
+    this.scriptGravity = undefined;
+    this.scriptWind = undefined;
+    this.gravityReversed = false;
+    this.scriptSpawns.clear();
+    this.contactEpisodes.clear();
     this.gravity =
       doc.environment.medium === 'space' ? { x: 0, y: 0 } : { ...doc.environment.gravity };
     this.wind = { ...doc.environment.wind };
@@ -253,7 +311,7 @@ class Runtime implements Simulation {
       this.documentJoints.push(this.world.createImpulseJoint(data, a, b, true));
     }
   }
-  private remove(id: string, tombstone = false) {
+  private removeBody(id: string, tombstone = false) {
     const b = this.bodies.get(id);
     if (!b) return;
     if (tombstone && this.doc.entities.some((e) => e.id === id)) this.removed.add(id);
@@ -265,6 +323,9 @@ class Runtime implements Simulation {
     this.lattices.delete(id);
     this.bodies.delete(id);
     this.entities.delete(id);
+    this.scriptSpawns.delete(id);
+    for (const key of this.contactEpisodes)
+      if (key.split(':').includes(id)) this.contactEpisodes.delete(key);
     this.templates.delete(id);
     for (const key of this.collisionRuleContacts.keys())
       if (key.split(':').includes(id)) this.collisionRuleContacts.delete(key);
@@ -291,8 +352,10 @@ class Runtime implements Simulation {
       parts = this.colliderParts.get(id),
       baseline = this.spellBaseline?.scales.get(id),
       landed = [...this.landed].filter(([, set]) => set.has(id)).map(([key]) => key);
+    const scripted = this.scriptSpawns.has(id);
     if (old && keepPose) e.transform = { ...old.translation(), rotation: old.rotation() };
-    this.remove(id);
+    this.removeBody(id);
+    if (scripted) this.scriptSpawns.add(id);
     if (scale !== undefined) this.scales.set(id, scale);
     if (launch) this.launches.set(id, launch);
     if (material) this.effectiveMaterials.set(id, material);
@@ -337,7 +400,7 @@ class Runtime implements Simulation {
     const radius = (Math.min(e.body.size.width, e.body.size.height) * scale) / 8;
     return (density * this.area(e, scale)) / (9 * Math.PI * radius * radius);
   }
-  private impulse(id: string, impulse: Vec2) {
+  private pushImpulse(id: string, impulse: Vec2) {
     const nodes = this.nodes(id),
       mass = nodes.reduce((sum, n) => sum + n.mass(), 0);
     for (const n of nodes)
@@ -347,14 +410,26 @@ class Runtime implements Simulation {
           true,
         );
   }
-  private add(entity: Entity) {
-    if (this.entities.size >= 24) return;
+  private documentCount() {
+    return this.entities.size - this.scriptSpawns.size;
+  }
+  private add(entity: Entity, scripted = false) {
+    if (
+      scripted
+        ? this.scriptSpawns.size >= SCRIPT_SPAWN_BUDGET
+        : this.documentCount() >= DOCUMENT_ENTITY_CAP
+    )
+      return;
+    if (scripted) this.scriptSpawns.add(entity.id);
     const e = structuredClone(entity);
     this.entities.set(e.id, e);
     const desc = (e.body.isStatic ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic())
       .setTranslation(e.transform.x, e.transform.y)
       .setRotation(e.transform.rotation)
       .setCcdEnabled(true);
+    // Locomotion owns the character's facing/pitch; contact impulses must not topple it.
+    if (e.locomotion && (e.locomotion.kind !== 'roll' || e.locomotion.wheels?.length))
+      desc.lockRotations();
     const b = this.world.createRigidBody(desc);
     let c: RAPIER.ColliderDesc;
     const scale = this.scales.get(e.id) ?? 1;
@@ -484,7 +559,7 @@ class Runtime implements Simulation {
     for (const e of old.entities) {
       const next = doc.entities.find((n) => n.id === e.id);
       if (!next) {
-        this.remove(e.id);
+        this.removeBody(e.id);
         this.removed.delete(e.id);
         continue;
       }
@@ -558,6 +633,9 @@ class Runtime implements Simulation {
       this.gravity =
         doc.environment.medium === 'space' ? { x: 0, y: 0 } : { ...doc.environment.gravity };
       this.wind = { ...doc.environment.wind };
+      // A running game's gravity and wind outlive document refreshes.
+      if (this.scriptGravity) this.applyScriptGravity(this.scriptGravity);
+      if (this.scriptWind) this.wind = { ...this.scriptWind };
       this.world.gravity = { ...this.gravity };
     }
   }
@@ -628,7 +706,7 @@ class Runtime implements Simulation {
         this.emit({ type: a.action, value: a });
         break;
       case 'applyImpulse':
-        for (const id of this.targets(a.target)) this.impulse(id, a.impulse);
+        for (const id of this.targets(a.target)) this.pushImpulse(id, a.impulse);
         break;
       case 'launch':
         for (const id of this.targets(a.target)) {
@@ -669,7 +747,7 @@ class Runtime implements Simulation {
         this.reconcileJoints();
         break;
       case 'remove':
-        for (const id of this.targets(a.target)) this.remove(id, true);
+        for (const id of this.targets(a.target)) this.removeBody(id, true);
         break;
       case 'spawn': {
         const template = this.doc.entities.find((e) => e.id === a.template);
@@ -680,7 +758,7 @@ class Runtime implements Simulation {
             : a.at === 'pointer'
               ? this.pointer
               : (this.bodies.get(this.doc.learning.heroEntityId)?.translation() ?? this.pointer);
-        for (let n = 0; n < a.count && this.entities.size < 24; n++) {
+        for (let n = 0; n < a.count && this.documentCount() < DOCUMENT_ENTITY_CAP; n++) {
           const e = structuredClone(template);
           e.id = `spawn_${++this.serial}`;
           e.body.isStatic = false;
@@ -717,7 +795,7 @@ class Runtime implements Simulation {
   tap(target: string, at?: Vec2) {
     this.alive();
     if (at) this.pointer = { ...at };
-    this.input('tap', target);
+    this.input('tap', target, at ? { x: at.x, y: at.y } : undefined);
     this.fire('tap', { target });
   }
   drag(target: string, at: Vec2) {
@@ -777,6 +855,7 @@ class Runtime implements Simulation {
     if (dial === 'gravity') {
       const p: Record<string, number> = { earth: 9.81, moon: 1.62, jupiter: 24.8, none: 0 };
       if (p[value] === undefined) return;
+      this.scriptGravity = undefined;
       this.gravity.y = p[value]!;
       this.world.gravity = { ...this.gravity };
     }
@@ -784,6 +863,7 @@ class Runtime implements Simulation {
       const p: Record<string, number> = { none: 0, breeze: 2, storm: 8 };
       if (p[value] === undefined) return;
       this.wind.x = p[value]!;
+      if (this.scriptWind) this.scriptWind.x = this.wind.x;
     }
     if (dial === 'heroMaterial')
       this.action({
@@ -805,6 +885,9 @@ class Runtime implements Simulation {
     this.variables[id] = n;
     const bind = v.binds;
     switch (bind.kind) {
+      case 'game':
+        // The game script receives the validated variable event below.
+        break;
       case 'gravity':
         this.gravity.y = n;
         this.world.gravity = { ...this.gravity };
@@ -849,7 +932,7 @@ class Runtime implements Simulation {
         break;
       }
     }
-    this.input('variable', id, n);
+    this.input('variable', id, n, bind.kind === 'game');
   }
   castSpell(spell: Spell, target?: string) {
     this.alive();
@@ -862,6 +945,7 @@ class Runtime implements Simulation {
             this.scale(id, this.spellBaseline.scales.get(id) ?? 1);
       }
       this.floatOverride = false;
+      this.gravityReversed = false;
       this.spellBaseline = undefined;
     } else {
       this.spellBaseline ??= {
@@ -869,7 +953,10 @@ class Runtime implements Simulation {
         timeScale: this.timeScale,
         scales: new Map(this.scales),
       };
-      if (spell === 'reverseGravity') this.gravity.y = -this.gravity.y;
+      if (spell === 'reverseGravity') {
+        this.gravity.y = -this.gravity.y;
+        this.gravityReversed = !this.gravityReversed;
+      }
       if (spell === 'slowMotion' || spell === 'slowTime') this.timeScale = 0.25;
       if (spell === 'grow' || spell === 'shrink')
         for (const id of this.targets(target ?? this.doc.learning.heroEntityId))
@@ -879,6 +966,107 @@ class Runtime implements Simulation {
     this.world.gravity = { ...this.gravity };
     this.input('spell', spell);
     this.emit({ type: 'celebrate', value: 'sparkle' });
+  }
+  private applyScriptGravity(g: Vec2) {
+    this.gravity = { x: g.x, y: this.gravityReversed ? -g.y : g.y };
+  }
+  impulse(target: string, delta: Vec2) {
+    this.alive();
+    if (!Number.isFinite(delta.x) || !Number.isFinite(delta.y)) return;
+    for (const id of this.targets(target)) {
+      const body = this.bodies.get(id);
+      if (!body?.isDynamic()) continue;
+      for (const set of this.landed.values()) set.delete(id);
+      this.supported.delete(id);
+      const v = body.linvel();
+      const next = { x: v.x + delta.x, y: v.y + delta.y },
+        speed = Math.hypot(next.x, next.y),
+        scale = speed > 20 ? 20 / speed : 1;
+      for (const node of this.nodes(id))
+        node.setLinvel({ x: next.x * scale, y: next.y * scale }, true);
+    }
+  }
+  move(target: string, at: Vec2) {
+    this.alive();
+    if (!Number.isFinite(at.x) || !Number.isFinite(at.y)) return;
+    for (const id of this.targets(target)) {
+      const body = this.bodies.get(id);
+      if (!body) continue;
+      const size = this.entities.get(id)!.body.size;
+      const scale = this.scales.get(id) ?? 1;
+      const hx = Math.min(8, (size.width * scale) / 2);
+      const hy = Math.min(4.5, (size.height * scale) / 2);
+      const p = body.translation();
+      const dx = Math.max(hx, Math.min(16 - hx, at.x)) - p.x;
+      const dy = Math.max(hy, Math.min(9 - hy, at.y)) - p.y;
+      for (const node of this.nodes(id)) {
+        const position = node.translation();
+        node.setTranslation({ x: position.x + dx, y: position.y + dy }, true);
+      }
+    }
+  }
+  setGravity(gravity: Vec2) {
+    this.alive();
+    const g = clampForce(gravity);
+    if (!g) return;
+    this.scriptGravity = g;
+    if (this.spellBaseline) this.spellBaseline.gravity = { ...g };
+    this.applyScriptGravity(g);
+    this.world.gravity = { ...this.gravity };
+  }
+  setWind(wind: Vec2) {
+    this.alive();
+    const w = clampForce(wind);
+    if (!w) return;
+    this.scriptWind = w;
+    this.wind = { ...w };
+  }
+  setMaterial(target: string, material: string): boolean {
+    this.alive();
+    if (!Object.hasOwn(this.doc.materials, material) || this.targets(target).length === 0)
+      return false;
+    this.action({ action: 'setMaterial', target, material });
+    return true;
+  }
+  spawn(templateId: string, at: Vec2, tags: string[] = [], options: SpawnOptions = {}) {
+    this.alive();
+    const template =
+      this.doc.entities.find((e) => e.id === templateId) ?? this.entities.get(templateId);
+    if (!template || !Number.isFinite(at.x) || !Number.isFinite(at.y)) return null;
+    let id = options.id;
+    if (id === undefined)
+      do id = `script_${++this.serial}`;
+      while (this.taken(id));
+    else if (this.taken(id)) return null;
+    const e = structuredClone(template);
+    e.id = id;
+    e.body.isStatic = false;
+    if (options.material && Object.hasOwn(this.doc.materials, options.material))
+      e.body.material = options.material;
+    const { width, height } = this.doc.environment.bounds;
+    e.transform = {
+      x: Math.max(0, Math.min(width, at.x)),
+      y: Math.max(0, Math.min(height, at.y)),
+      rotation: template.transform.rotation,
+    };
+    e.tags = [...new Set([...template.tags, ...tags])];
+    this.add(e, true);
+    if (!this.entities.has(id)) return null;
+    this.templates.set(id, this.templates.get(template.id) ?? template.id);
+    return id;
+  }
+  private taken(id: string) {
+    return this.entities.has(id) || this.doc.entities.some((e) => e.id === id);
+  }
+  remove(target: string): number {
+    this.alive();
+    const ids = this.targets(target);
+    for (const id of ids) this.removeBody(id, true);
+    return ids.length;
+  }
+  celebrate(style: string) {
+    this.alive();
+    this.emit({ type: 'celebrate', value: style });
   }
   step(frames = 1) {
     this.alive();
@@ -996,6 +1184,13 @@ class Runtime implements Simulation {
             });
       for (const key of this.collisionRuleContacts.keys())
         if (!active.has(key)) this.collisionRuleContacts.delete(key);
+      for (const key of this.contactEpisodes)
+        if (!active.has(key)) this.contactEpisodes.delete(key);
+      for (const [key, { a, b }] of pairs)
+        if (!this.contactEpisodes.has(key)) {
+          this.contactEpisodes.add(key);
+          this.emit({ type: 'contact', a, b, impulse: forces.get(key) ?? 0 });
+        }
       for (const [key, { a, b, started }] of pairs) {
         const delivered = this.collisionRuleContacts.get(key) ?? new Set<string>();
         this.collisionRuleContacts.set(key, delivered);
@@ -1111,6 +1306,7 @@ class Runtime implements Simulation {
       return {
         id,
         templateId: this.templates.get(id) ?? id,
+        tags: [...e.tags],
         x: p.x,
         y: p.y,
         rotation: b.rotation(),
@@ -1118,6 +1314,7 @@ class Runtime implements Simulation {
         vy: v.y,
         width: e.body.size.width * s,
         height: e.body.size.height * s,
+        grounded: e.body.isStatic || this.supported.has(id),
         ...(this.lattices.has(id)
           ? { nodes: this.lattices.get(id)!.map((n) => ({ ...n.translation() })) }
           : {}),
@@ -1180,5 +1377,7 @@ class Runtime implements Simulation {
     this.previousPoses = [];
     this.pendingTicks = 0;
     this.spellBaseline = undefined;
+    this.scriptSpawns.clear();
+    this.contactEpisodes.clear();
   }
 }

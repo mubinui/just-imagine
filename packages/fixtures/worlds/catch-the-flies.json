@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "worldId": "w_fixture_catch_flies",
+  "tier": "playground",
+  "title": "Catch the Flies",
+  "theme": {
+    "paletteHint": "warm evening meadow with fireflies",
+    "timeOfDay": "sunset",
+    "backdropDescription": "a cosy pond-side meadow at sunset with reeds and a big old tree",
+    "backdrop": {
+      "url": "",
+      "width": 1920,
+      "height": 1080,
+      "status": "placeholder"
+    }
+  },
+  "environment": {
+    "gravity": {
+      "x": 0,
+      "y": 9.81
+    },
+    "wind": {
+      "x": 0,
+      "y": 0
+    },
+    "medium": "air",
+    "bounds": {
+      "width": 16,
+      "height": 9
+    },
+    "seed": 11
+  },
+  "materials": {
+    "grass": {
+      "density": 1,
+      "friction": 0.8,
+      "restitution": 0.1,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "rubber": {
+      "density": 1.1,
+      "friction": 0.8,
+      "restitution": 0.6,
+      "softness": 0.1,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "fluff": {
+      "density": 0.3,
+      "friction": 0.2,
+      "restitution": 0.6,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    },
+    "wood": {
+      "density": 0.6,
+      "friction": 0.5,
+      "restitution": 0.2,
+      "softness": 0,
+      "buoyant": false,
+      "breakable": false,
+      "pretend": false
+    }
+  },
+  "entities": [
+    {
+      "id": "ground",
+      "kind": "ground",
+      "name": "meadow",
+      "description": "soft green meadow edge with little flowers",
+      "body": {
+        "shape": "box",
+        "material": "grass",
+        "isStatic": true,
+        "size": {
+          "width": 16,
+          "height": 1
+        }
+      },
+      "transform": {
+        "x": 8,
+        "y": 8.5,
+        "rotation": 0
+      },
+      "tags": ["ground"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "frog",
+      "kind": "sprite",
+      "name": "frog",
+      "description": "a round green cartoon frog with big happy eyes",
+      "body": {
+        "shape": "circle",
+        "material": "rubber",
+        "isStatic": false,
+        "size": {
+          "width": 1.3,
+          "height": 1.3
+        }
+      },
+      "transform": {
+        "x": 2.6,
+        "y": 7.35,
+        "rotation": 0
+      },
+      "tags": ["frog", "hero"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "fly_1",
+      "kind": "sprite",
+      "name": "fly",
+      "description": "a tiny friendly cartoon fly with shiny round wings",
+      "body": {
+        "shape": "circle",
+        "material": "fluff",
+        "isStatic": false,
+        "size": {
+          "width": 0.7,
+          "height": 0.7
+        }
+      },
+      "transform": {
+        "x": 4.5,
+        "y": 2.6,
+        "rotation": 0
+      },
+      "tags": ["fly"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "fly_2",
+      "kind": "sprite",
+      "name": "fly",
+      "description": "a tiny friendly cartoon fly with shiny round wings",
+      "body": {
+        "shape": "circle",
+        "material": "fluff",
+        "isStatic": false,
+        "size": {
+          "width": 0.7,
+          "height": 0.7
+        }
+      },
+      "transform": {
+        "x": 7.5,
+        "y": 3.6,
+        "rotation": 0
+      },
+      "tags": ["fly"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "fly_3",
+      "kind": "sprite",
+      "name": "fly",
+      "description": "a tiny friendly cartoon fly with shiny round wings",
+      "body": {
+        "shape": "circle",
+        "material": "fluff",
+        "isStatic": false,
+        "size": {
+          "width": 0.7,
+          "height": 0.7
+        }
+      },
+      "transform": {
+        "x": 10.5,
+        "y": 2.4,
+        "rotation": 0
+      },
+      "tags": ["fly"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "fly_4",
+      "kind": "sprite",
+      "name": "fly",
+      "description": "a tiny friendly cartoon fly with shiny round wings",
+      "body": {
+        "shape": "circle",
+        "material": "fluff",
+        "isStatic": false,
+        "size": {
+          "width": 0.7,
+          "height": 0.7
+        }
+      },
+      "transform": {
+        "x": 6,
+        "y": 5.2,
+        "rotation": 0
+      },
+      "tags": ["fly"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "fly_5",
+      "kind": "sprite",
+      "name": "fly",
+      "description": "a tiny friendly cartoon fly with shiny round wings",
+      "body": {
+        "shape": "circle",
+        "material": "fluff",
+        "isStatic": false,
+        "size": {
+          "width": 0.7,
+          "height": 0.7
+        }
+      },
+      "transform": {
+        "x": 9.5,
+        "y": 5.6,
+        "rotation": 0
+      },
+      "tags": ["fly"],
+      "behaviors": [],
+      "pretend": false
+    },
+    {
+      "id": "owl",
+      "kind": "sprite",
+      "name": "sleeping owl",
+      "description": "a fluffy brown owl dozing with closed eyes",
+      "body": {
+        "shape": "box",
+        "material": "wood",
+        "isStatic": true,
+        "size": {
+          "width": 1.4,
+          "height": 1.6
+        }
+      },
+      "transform": {
+        "x": 14.2,
+        "y": 2.2,
+        "rotation": 0
+      },
+      "tags": ["owl"],
+      "behaviors": [],
+      "pretend": false
+    }
+  ],
+  "joints": [],
+  "rules": [
+    {
+      "id": "r_frog_bump",
+      "when": {
+        "event": "collision",
+        "a": "fly",
+        "b": "frog"
+      },
+      "then": [
+        {
+          "action": "say",
+          "text": "Bump! A push changes how things move."
+        }
+      ],
+      "concept": "force",
+      "once": true
+    }
+  ],
+  "learning": {
+    "concepts": ["force"],
+    "prediction": {
+      "question": "If you push a fly, which way will it go?",
+      "options": ["The way I push", "Straight down"],
+      "correctIndex": 0,
+      "concept": "force"
+    },
+    "dials": [],
+    "heroEntityId": "frog"
+  },
+  "narration": {
+    "intro": "Catch the flies before the owl wakes up! Tap a fly to catch it."
+  },
+  "game": {
+    "script": {
+      "apiVersion": 1,
+      "source": "// Catch the flies before the owl wakes up: tap a fly to catch it.\nlet goal = 8;\nlet caught = 0;\nlet over = false;\nlet timeLeft = 45;\nconst homes = {};\n\ngame.setGravity(0);\ngame.hud({ score: 0, timer: timeLeft, label: 'Catch ' + goal + ' flies' });\ngame.say('Shh, the owl is asleep. Tap the flies to catch them!');\n\nfor (const fly of game.find('fly')) homes[fly.id] = { x: fly.x, y: fly.y };\n\ngame.ask('How many flies can you catch?', ['Five', 'Eight']).then((index) => {\n  goal = index === 0 ? 5 : 8;\n  game.hud({ label: 'Catch ' + goal + ' flies' });\n  game.say(goal === 5 ? 'Five flies. Quick fingers!' : 'Eight flies! Brave frog.');\n});\n\n// Each fly hovers around its home spot with a little wobble.\ngame.every(0.25, () => {\n  for (const fly of game.find('fly')) {\n    const home = homes[fly.id] || { x: fly.x, y: fly.y };\n    homes[fly.id] = home;\n    game.impulse(fly.id, {\n      x: (home.x - fly.x) * 0.8 - fly.vx * 0.5 + (game.random() - 0.5) * 0.6,\n      y: (home.y - fly.y) * 0.8 - fly.vy * 0.5 + (game.random() - 0.5) * 0.6,\n    });\n  }\n});\n\ngame.on('tap', (e) => {\n  if (over || !e.target || !e.target.tags.includes('fly')) return;\n  caught += 1;\n  game.remove(e.target.id);\n  game.sound('pop');\n  game.score(1);\n  game.hud({ score: caught });\n  if (caught >= goal) {\n    over = true;\n    game.celebrate('confetti');\n    game.sound('tada');\n    game.say('You caught them all, and the owl is still asleep!');\n    game.win();\n    return;\n  }\n  game.after(1.2, () => {\n    if (over) return;\n    const x = 2 + game.random() * 10;\n    const y = 1.2 + game.random() * 3.5;\n    const id = game.spawn('fly_1', { x: x, y: y, tags: ['fly'] });\n    homes[id] = { x: x, y: y };\n  });\n});\n\ngame.every(1, () => {\n  if (over) return;\n  timeLeft -= 1;\n  game.hud({ timer: timeLeft });\n  if (timeLeft === 10) game.say('The owl is starting to stir...');\n  if (timeLeft <= 0) {\n    over = true;\n    game.sound('buzz');\n    game.say('Hoot! The owl woke up. Shall we try again?');\n    game.lose();\n  }\n});\n",
+      "hash": "7411c439fd669f34ffefbcad45fea5cc24769b8ec361612e96f6adeb6ada2485"
+    }
+  }
+}

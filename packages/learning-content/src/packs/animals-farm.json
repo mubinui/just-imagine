@@ -13,13 +13,27 @@
       "paletteHint": "warm sunny greens with barn red",
       "timeOfDay": "day",
       "backdropDescription": "sunny farmyard with rolling green fields, a wooden fence and soft white clouds in a blue sky",
-      "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
     },
     "environment": {
-      "gravity": { "x": 0, "y": 9.81 },
-      "wind": { "x": 0, "y": 0 },
+      "gravity": {
+        "x": 0,
+        "y": 9.81
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
       "medium": "air",
-      "bounds": { "width": 16, "height": 9 },
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
       "seed": 11
     },
     "materials": {
@@ -84,14 +98,26 @@
         "kind": "ground",
         "name": "farmyard",
         "description": "grassy farmyard ground with a dirt path and tiny daisies",
-        "asset": { "url": "", "width": 1920, "height": 128, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 1920,
+          "height": 128,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "box",
           "material": "grass",
           "isStatic": true,
-          "size": { "width": 16, "height": 1 }
+          "size": {
+            "width": 16,
+            "height": 1
+          }
         },
-        "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+        "transform": {
+          "x": 8,
+          "y": 8.5,
+          "rotation": 0
+        },
         "tags": ["ground"],
         "behaviors": [],
         "pretend": false
@@ -101,14 +127,26 @@
         "kind": "sprite",
         "name": "haystack",
         "description": "small round golden haystack with straw poking out",
-        "asset": { "url": "", "width": 256, "height": 192, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 256,
+          "height": 192,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "box",
           "material": "wood",
           "isStatic": true,
-          "size": { "width": 1.2, "height": 1 }
+          "size": {
+            "width": 1.2,
+            "height": 1
+          }
         },
-        "transform": { "x": 0.9, "y": 7.5, "rotation": 0 },
+        "transform": {
+          "x": 0.9,
+          "y": 7.5,
+          "rotation": 0
+        },
         "tags": ["hay"],
         "behaviors": [],
         "pretend": false
@@ -118,16 +156,33 @@
         "kind": "sprite",
         "name": "Cow",
         "description": "friendly black and white dairy cow with a pink nose and a little brass bell",
-        "asset": { "url": "", "width": 512, "height": 352, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 352,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "fur",
           "isStatic": true,
-          "size": { "width": 2.2, "height": 1.5 }
+          "size": {
+            "width": 2.2,
+            "height": 1.5
+          }
         },
-        "transform": { "x": 3.2, "y": 7.25, "rotation": 0 },
+        "transform": {
+          "x": 3.2,
+          "y": 7.25,
+          "rotation": 0
+        },
         "tags": ["cow", "animal"],
-        "behaviors": [{ "type": "face", "target": "pointer" }],
+        "behaviors": [
+          {
+            "type": "face",
+            "target": "pointer"
+          }
+        ],
         "pretend": false
       },
       {
@@ -135,16 +190,33 @@
         "kind": "sprite",
         "name": "Horse",
         "description": "tall chestnut horse with a flowing cream mane and a white star on its forehead",
-        "asset": { "url": "", "width": 512, "height": 464, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 464,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "fur",
           "isStatic": true,
-          "size": { "width": 2.2, "height": 2 }
+          "size": {
+            "width": 2.2,
+            "height": 2
+          }
         },
-        "transform": { "x": 6.2, "y": 7, "rotation": 0 },
+        "transform": {
+          "x": 6.2,
+          "y": 7,
+          "rotation": 0
+        },
         "tags": ["horse", "animal"],
-        "behaviors": [{ "type": "face", "target": "pointer" }],
+        "behaviors": [
+          {
+            "type": "face",
+            "target": "pointer"
+          }
+        ],
         "pretend": false
       },
       {
@@ -152,16 +224,32 @@
         "kind": "sprite",
         "name": "Sheep",
         "description": "fluffy white sheep like a walking cloud with a black face and legs",
-        "asset": { "url": "", "width": 352, "height": 288, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 352,
+          "height": 288,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "fur",
           "isStatic": true,
-          "size": { "width": 1.4, "height": 1.1 }
+          "size": {
+            "width": 1.4,
+            "height": 1.1
+          }
         },
-        "transform": { "x": 8.7, "y": 7.45, "rotation": 0 },
+        "transform": {
+          "x": 8.7,
+          "y": 7.45,
+          "rotation": 0
+        },
         "tags": ["sheep", "animal"],
-        "behaviors": [{ "type": "bounceIdle" }],
+        "behaviors": [
+          {
+            "type": "bounceIdle"
+          }
+        ],
         "pretend": false
       },
       {
@@ -169,16 +257,32 @@
         "kind": "sprite",
         "name": "Chicken",
         "description": "plump brown hen with a red comb, pecking happily",
-        "asset": { "url": "", "width": 192, "height": 192, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 192,
+          "height": 192,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "feather",
           "isStatic": true,
-          "size": { "width": 0.7, "height": 0.7 }
+          "size": {
+            "width": 0.7,
+            "height": 0.7
+          }
         },
-        "transform": { "x": 10.4, "y": 7.65, "rotation": 0 },
+        "transform": {
+          "x": 10.4,
+          "y": 7.65,
+          "rotation": 0
+        },
         "tags": ["chicken", "animal"],
-        "behaviors": [{ "type": "bounceIdle" }],
+        "behaviors": [
+          {
+            "type": "bounceIdle"
+          }
+        ],
         "pretend": false
       },
       {
@@ -186,14 +290,26 @@
         "kind": "sprite",
         "name": "farm ball",
         "description": "small red rubber ball with a white stripe",
-        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 128,
+          "height": 128,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "rubber",
           "isStatic": false,
-          "size": { "width": 0.6, "height": 0.6 }
+          "size": {
+            "width": 0.6,
+            "height": 0.6
+          }
         },
-        "transform": { "x": 11.6, "y": 7.7, "rotation": 0 },
+        "transform": {
+          "x": 11.6,
+          "y": 7.7,
+          "rotation": 0
+        },
         "tags": ["ball", "hero"],
         "behaviors": [],
         "pretend": false
@@ -203,14 +319,26 @@
         "kind": "sprite",
         "name": "barn",
         "description": "big red wooden barn with white trim and a hayloft door",
-        "asset": { "url": "", "width": 640, "height": 704, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 640,
+          "height": 704,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "box",
           "material": "wood",
           "isStatic": true,
-          "size": { "width": 3, "height": 3.3 }
+          "size": {
+            "width": 3,
+            "height": 3.3
+          }
         },
-        "transform": { "x": 14.2, "y": 6.35, "rotation": 0 },
+        "transform": {
+          "x": 14.2,
+          "y": 6.35,
+          "rotation": 0
+        },
         "tags": ["barn"],
         "behaviors": [],
         "pretend": false
@@ -220,16 +348,34 @@
         "kind": "sprite",
         "name": "fluffy cloud",
         "description": "fluffy white cartoon cloud drifting slowly",
-        "asset": { "url": "", "width": 384, "height": 160, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 384,
+          "height": 160,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "cloud",
           "isStatic": true,
-          "size": { "width": 2.4, "height": 1 }
+          "size": {
+            "width": 2.4,
+            "height": 1
+          }
         },
-        "transform": { "x": 7, "y": 1.4, "rotation": 0 },
+        "transform": {
+          "x": 7,
+          "y": 1.4,
+          "rotation": 0
+        },
         "tags": ["cloud"],
-        "behaviors": [{ "type": "float", "amplitude": 0.1, "period": 6 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.1,
+            "period": 6
+          }
+        ],
         "pretend": true
       }
     ],
@@ -237,16 +383,34 @@
     "rules": [
       {
         "id": "r_tap_ball",
-        "when": { "event": "tap", "target": "ball" },
+        "when": {
+          "event": "tap",
+          "target": "ball"
+        },
         "then": [
-          { "action": "applyImpulse", "target": "ball", "impulse": { "x": 0, "y": -3 } },
-          { "action": "sound", "cue": "boing" }
+          {
+            "action": "applyImpulse",
+            "target": "ball",
+            "impulse": {
+              "x": 0,
+              "y": -3
+            }
+          },
+          {
+            "action": "sound",
+            "cue": "boing"
+          }
         ],
         "once": false
       },
       {
         "id": "r_ball_lands",
-        "when": { "event": "collision", "a": "ball", "b": "ground", "minImpulse": 1 },
+        "when": {
+          "event": "collision",
+          "a": "ball",
+          "b": "ground",
+          "minImpulse": 1
+        },
         "then": [
           {
             "action": "say",
@@ -391,10 +555,26 @@
     }
   ],
   "hotspots": [
-    { "entityId": "cow", "characterId": "cow", "comesCloser": "grow" },
-    { "entityId": "sheep", "characterId": "sheep", "comesCloser": "grow" },
-    { "entityId": "chicken", "characterId": "chicken", "comesCloser": "grow" },
-    { "entityId": "horse", "characterId": "horse", "comesCloser": "grow" }
+    {
+      "entityId": "cow",
+      "characterId": "cow",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "sheep",
+      "characterId": "sheep",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "chicken",
+      "characterId": "chicken",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "horse",
+      "characterId": "horse",
+      "comesCloser": "grow"
+    }
   ],
   "sounds": [
     {
@@ -514,6 +694,40 @@
       "hint": "She says moo and chews her food twice.",
       "hintBn": "সে হাম্বা ডাকে আর খাবার দুবার চিবায়।",
       "points": 3
+    }
+  ],
+  "activities": [
+    {
+      "characterId": "cow",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
+    },
+    {
+      "characterId": "sheep",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
+    },
+    {
+      "characterId": "chicken",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
+    },
+    {
+      "characterId": "horse",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
     }
   ]
 }

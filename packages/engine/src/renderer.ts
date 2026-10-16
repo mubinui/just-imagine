@@ -1,4 +1,5 @@
-import { Application, Container, Sprite, Text, MeshPlane } from 'pixi.js';
+import { Application, Container, Sprite, Text, MeshPlane, Texture, Rectangle } from 'pixi.js';
+import { initialMotion, advanceMotion, motionFrame, wheelAngle, type MotionState } from './motion';
 import { WorldGraphics as Graphics } from './world-graphics';
 import type { SceneDoc } from '@just-imagine/scene-schema';
 import { readBoundedJson } from './bounded-json';
@@ -87,6 +88,16 @@ export async function mountEngine(
   const trailPoints: { x: number; y: number; time: number }[] = [];
   let lastTrailTime = 0;
   const sprites = new Map<string, Container>();
+  const locomotion = new Map<string, MotionState>();
+  const atlases = new Map<string, { sprite: Sprite; frames: Texture[] }>();
+  const wheelRigs = new Map<string, Graphics[]>();
+  const releaseAtlas = (id: string) => {
+    for (const frame of atlases.get(id)?.frames ?? []) frame.destroy(false);
+    atlases.delete(id);
+    wheelRigs.delete(id);
+    locomotion.delete(id);
+  };
+  let motionTime = 0;
   try {
     await app.init({
       preference: 'webgpu',
@@ -172,10 +183,11 @@ export async function mountEngine(
   }
   function drawEntity(e: SceneDoc['entities'][number], id: string) {
     sources.set(id, e);
-    const key = JSON.stringify([e.asset, e.body.size, e.body.shape]);
+    const key = JSON.stringify([e.asset, e.body.size, e.body.shape, e.locomotion]);
     const existing = sprites.get(id);
     if (existing && viewKeys.get(id) === key) return;
     existing?.destroy({ children: true });
+    releaseAtlas(id);
     meshes.delete(id);
     const c = new Container();
     const g = placeholder(e);
@@ -188,7 +200,8 @@ export async function mountEngine(
         .acquire(e.asset.url)
         .then((texture) => {
           if (disposed || sprites.get(id) !== c || c.destroyed) return;
-          const soft = !!sim.frame().entities.find((p) => p.id === id)?.nodes;
+          const soft =
+            !e.asset?.animation && !!sim.frame().entities.find((p) => p.id === id)?.nodes;
           const sprite = soft
             ? new MeshPlane({ texture, verticesX: 3, verticesY: 3 })
             : new Sprite(texture);
@@ -201,6 +214,55 @@ export async function mountEngine(
           c.removeChild(g);
           g.destroy();
           c.addChild(sprite);
+          if (sprite instanceof Sprite && e.asset?.animation) {
+            const a = e.asset.animation,
+              width = texture.width / a.columns,
+              height = texture.height / a.rows;
+            const frames = Array.from(
+              { length: a.frames },
+              (_, index) =>
+                new Texture({
+                  source: texture.source,
+                  frame: new Rectangle(
+                    (index % a.columns) * width,
+                    Math.floor(index / a.columns) * height,
+                    width,
+                    height,
+                  ),
+                }),
+            );
+            sprite.texture = frames[0]!;
+            const scale = Math.min(
+              e.body.size.width / (width * (a.content?.width ?? 1)),
+              e.body.size.height / (height * (a.content?.height ?? 1)),
+            );
+            sprite.width = width * scale;
+            sprite.height = height * scale;
+            sprite.anchor.set(a.anchor?.x ?? 0.5, a.anchor?.y ?? 0.5);
+            if (a.anchor && a.anchor.y > 0.5) sprite.position.set(0, e.body.size.height / 2);
+            atlases.set(id, { sprite, frames });
+          }
+          if (e.locomotion?.kind === 'roll' && e.locomotion.wheels) {
+            const wheels = e.locomotion.wheels.map((w) => {
+              const radius = w.radius * e.body.size.width;
+              const wheel = new Graphics()
+                .circle(0, 0, radius)
+                .fill(0x243e36)
+                .circle(0, 0, radius * 0.67)
+                .fill(0xe9e1ce);
+              for (let i = 0; i < 3; i++) {
+                const angle = (i * Math.PI * 2) / 3;
+                wheel
+                  .moveTo(0, 0)
+                  .lineTo(Math.cos(angle) * radius * 0.6, Math.sin(angle) * radius * 0.6)
+                  .stroke({ width: radius * 0.17, color: 0x687c70 });
+              }
+              wheel.position.set(w.x * e.body.size.width, w.y * e.body.size.height);
+              c.addChild(wheel);
+              return wheel;
+            });
+            wheelRigs.set(id, wheels);
+          }
         })
         .catch(() => {
           if (sprites.get(id) === c) viewKeys.delete(id);
@@ -245,6 +307,7 @@ export async function mountEngine(
       if (!live.has(id)) {
         c.destroy({ children: true });
         sprites.delete(id);
+        releaseAtlas(id);
         meshes.delete(id);
         viewKeys.delete(id);
         colliderApplied.delete(id);
@@ -311,6 +374,8 @@ export async function mountEngine(
     if (disposed) return;
     sim.advance(Math.min(0.1, app.ticker.deltaMS / 1000));
     const state = sim.frame();
+    const motionDt = state.time - motionTime;
+    motionTime = state.time;
     trail.clear();
     if (state.time < lastTrailTime) trailPoints.length = 0;
     const trailHero = state.entities.find((p) => p.id === current.learning.heroEntityId);
@@ -347,6 +412,7 @@ export async function mountEngine(
       if (!state.entities.some((p) => p.id === id)) {
         c.destroy({ children: true });
         sprites.delete(id);
+        releaseAtlas(id);
         meshes.delete(id);
         highlights.delete(id);
         viewKeys.delete(id);
@@ -371,7 +437,7 @@ export async function mountEngine(
         c.rotation = p.rotation;
         c.alpha = (highlights.get(p.id) ?? 0) > state.time ? 0.6 : 1;
         let mesh = meshes.get(p.id);
-        if (p.nodes && !mesh) {
+        if (p.nodes && !mesh && !atlases.has(p.id)) {
           const sprite = c.children.find((child) => child instanceof Sprite) as Sprite | undefined;
           if (sprite) {
             const next = new MeshPlane({ texture: sprite.texture, verticesX: 3, verticesY: 3 });
@@ -406,9 +472,26 @@ export async function mountEngine(
         const original = viewSource(p);
         if (original && !mesh)
           c.scale.set(p.width / original.body.size.width, p.height / original.body.size.height);
+        if (original?.locomotion && !mesh) {
+          const definition = original.locomotion;
+          const prior = locomotion.get(p.id) ?? initialMotion(p);
+          const next = advanceMotion(prior, p, motionDt, definition);
+          if ((definition.kind === 'run' || definition.kind === 'walk') && p.grounded === false)
+            next.moving = false;
+          locomotion.set(p.id, next);
+          if (definition.kind !== 'roll') {
+            c.scale.x *= next.facing * (definition.facing === 'left' ? -1 : 1);
+            c.rotation += next.tilt;
+          }
+          const atlas = atlases.get(p.id);
+          if (atlas) atlas.sprite.texture = atlas.frames[motionFrame(next, atlas.frames.length)]!;
+          for (const [index, wheel] of (wheelRigs.get(p.id) ?? []).entries())
+            wheel.rotation = wheelAngle(next, definition.wheels![index]!.radius * p.width);
+        }
         for (const behavior of original?.behaviors ?? []) {
           if (behavior.type === 'glow') c.tint = Number.parseInt(behavior.color.slice(1), 16);
           if (behavior.type === 'face') {
+            if (original?.locomotion) continue;
             const hero = state.entities.find((e) => e.id === current.learning.heroEntityId);
             const x = behavior.target === 'hero' ? (hero?.x ?? p.x) : last.x;
             c.scale.x = Math.abs(c.scale.x) * (x < p.x ? -1 : 1);
@@ -562,6 +645,8 @@ export async function mountEngine(
   let heldPointer: number | undefined;
   let dragging = false;
   let downAt = { x: 0, y: 0 };
+  // A press on empty stage becomes a target-less tap (games use the coordinates).
+  let stagePress: { pointerId: number; x: number; y: number } | undefined;
   const samples: PointerSample[] = [];
   let last = { x: 0, y: 0, time: 0 };
   const point = (e: PointerEvent) => {
@@ -578,6 +663,7 @@ export async function mountEngine(
         if (
           !source ||
           (source.body.isStatic &&
+            !source.character &&
             !current.rules.some(
               (r) =>
                 r.when.event === 'tap' &&
@@ -606,7 +692,7 @@ export async function mountEngine(
       highlights.set(hit.id, sim.frame().time + 0.3);
       last = { ...p, time: e.timeStamp };
       app.canvas.setPointerCapture(e.pointerId);
-    }
+    } else if (!held) stagePress = { pointerId: e.pointerId, ...p };
   };
   const move = (e: PointerEvent) => {
     const pointer = point(e);
@@ -634,6 +720,15 @@ export async function mountEngine(
     samples.length = 0;
   };
   const up = (e: PointerEvent) => {
+    if (stagePress && e.pointerId === stagePress.pointerId) {
+      const p = point(e);
+      if (
+        (Math.hypot(p.x - stagePress.x, p.y - stagePress.y) * (element.clientWidth || 960)) / 16 <=
+        6
+      )
+        sim.tap('', p);
+      stagePress = undefined;
+    }
     if (held && e.pointerId === heldPointer) {
       recordPointer(samples, { ...point(e), time: e.timeStamp });
       if (dragging) sim.flick(held, pointerVelocity(samples));
@@ -642,6 +737,7 @@ export async function mountEngine(
     }
   };
   const cancel = (e: PointerEvent) => {
+    if (stagePress?.pointerId === e.pointerId) stagePress = undefined;
     if (held && e.pointerId === heldPointer) {
       sim.cancelDrag(held);
       releaseCapture();
@@ -666,16 +762,28 @@ export async function mountEngine(
     },
     drag: sim.drag.bind(sim),
     flick: sim.flick.bind(sim),
+    impulse: sim.impulse.bind(sim),
+    move: sim.move.bind(sim),
+    setGravity: sim.setGravity.bind(sim),
+    setWind: sim.setWind.bind(sim),
+    setMaterial: sim.setMaterial.bind(sim),
+    spawn: sim.spawn.bind(sim),
+    remove: sim.remove.bind(sim),
+    celebrate: sim.celebrate.bind(sim),
     setDial: sim.setDial.bind(sim),
     setVariable: sim.setVariable.bind(sim),
     castSpell: sim.castSpell.bind(sim),
     reset() {
       sim.reset();
+      locomotion.clear();
+      motionTime = 0;
       colliderApplied.clear();
       drawAssets();
     },
     load(next) {
       sim.load(next);
+      locomotion.clear();
+      motionTime = 0;
       colliderApplied.clear();
       current = structuredClone(next);
       surface.destroy();
@@ -707,6 +815,7 @@ export async function mountEngine(
       app.canvas.removeEventListener('pointercancel', cancel);
       sim.dispose();
       app.destroy(true, { children: true });
+      for (const id of atlases.keys()) releaseAtlas(id);
       textures.dispose();
     },
   };

@@ -129,6 +129,29 @@ describe('smokeRun on the red-team scripts', () => {
 describe('smokeRun goal and moderation checks', () => {
   const doc = EXAMPLE_SCENES['catch-the-flies'];
 
+  it('allows scoreless interactive play while retaining sandbox and runtime checks', async () => {
+    const result = await smokeRun(doc, `game.on('tap', () => game.sound('pop'));`, {
+      seconds: 3,
+      language: 'en',
+      requireGoal: false,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.stats.commands.sound).toBeGreaterThan(0);
+    expect(result.stats.commands.score).toBeUndefined();
+    const unsafe = await smokeRun(doc, `fetch('https://outside.test');`, {
+      seconds: 3,
+      language: 'en',
+      requireGoal: false,
+    });
+    expect(unsafe).toMatchObject({ ok: false, reason: 'static' });
+    const broken = await smokeRun(doc, `game.on('tick', () => { const x = null; x.missing(); });`, {
+      seconds: 3,
+      language: 'en',
+      requireGoal: false,
+    });
+    expect(broken).toMatchObject({ ok: false, reason: 'runtime' });
+  });
+
   it('fails with no-goal when the script never calls score or win', async () => {
     const result = await smokeRun(doc, `game.on('tap', () => game.sound('pop'));`, {
       seconds: 10,

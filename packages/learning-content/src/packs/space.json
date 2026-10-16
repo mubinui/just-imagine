@@ -13,15 +13,34 @@
       "paletteHint": "deep navy and violet with warm gold",
       "timeOfDay": "night",
       "backdropDescription": "deep dark space full of tiny twinkling stars with a soft violet nebula glow on the right",
-      "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" },
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      },
       "midLayerDescription": "a faint milky band of distant stars drifting across the middle",
-      "midLayer": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+      "midLayer": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
     },
     "environment": {
-      "gravity": { "x": 0, "y": 0 },
-      "wind": { "x": 0, "y": 0 },
+      "gravity": {
+        "x": 0,
+        "y": 0
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
       "medium": "space",
-      "bounds": { "width": 16, "height": 9 },
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
       "seed": 2026
     },
     "materials": {
@@ -68,18 +87,37 @@
         "kind": "sprite",
         "name": "the Sun",
         "description": "huge warm golden sun with a calm smiling face and soft wavy flame hair, cartoon style",
-        "asset": { "url": "", "width": 1024, "height": 1024, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 1024,
+          "height": 1024,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "sunfire",
           "isStatic": true,
-          "size": { "width": 5, "height": 5 }
+          "size": {
+            "width": 5,
+            "height": 5
+          }
         },
-        "transform": { "x": 2.5, "y": 4.5, "rotation": 0 },
+        "transform": {
+          "x": 2.5,
+          "y": 4.5,
+          "rotation": 0
+        },
         "tags": ["sun", "star"],
         "behaviors": [
-          { "type": "glow", "color": "#ffb347" },
-          { "type": "emit", "particle": "sparkle", "rate": 6 }
+          {
+            "type": "glow",
+            "color": "#ffb347"
+          },
+          {
+            "type": "emit",
+            "particle": "sparkle",
+            "rate": 6
+          }
         ],
         "pretend": true
       },
@@ -88,16 +126,34 @@
         "kind": "sprite",
         "name": "Mercury",
         "description": "small grey cratered planet with sneakers and a racing stripe, leaning forward in a hurry",
-        "asset": { "url": "", "width": 256, "height": 256, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 256,
+          "height": 256,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "rocky",
           "isStatic": false,
-          "size": { "width": 0.5, "height": 0.5 }
+          "size": {
+            "width": 0.5,
+            "height": 0.5
+          }
         },
-        "transform": { "x": 5.9, "y": 4, "rotation": 0 },
+        "transform": {
+          "x": 5.9,
+          "y": 4,
+          "rotation": 0
+        },
         "tags": ["mercury", "planet"],
-        "behaviors": [{ "type": "float", "amplitude": 0.08, "period": 2 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.08,
+            "period": 2
+          }
+        ],
         "pretend": true
       },
       {
@@ -105,16 +161,34 @@
         "kind": "sprite",
         "name": "Venus",
         "description": "creamy golden planet wrapped in swirling pearl clouds with long eyelashes and a tiny mirror",
-        "asset": { "url": "", "width": 384, "height": 384, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 384,
+          "height": 384,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "rocky",
           "isStatic": false,
-          "size": { "width": 0.9, "height": 0.9 }
+          "size": {
+            "width": 0.9,
+            "height": 0.9
+          }
         },
-        "transform": { "x": 7, "y": 5.5, "rotation": 0 },
+        "transform": {
+          "x": 7,
+          "y": 5.5,
+          "rotation": 0
+        },
         "tags": ["venus", "planet"],
-        "behaviors": [{ "type": "float", "amplitude": 0.1, "period": 5 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.1,
+            "period": 5
+          }
+        ],
         "pretend": true
       },
       {
@@ -122,18 +196,37 @@
         "kind": "sprite",
         "name": "Earth",
         "description": "blue and green planet with soft white clouds, rosy cheeks and a kind smile",
-        "asset": { "url": "", "width": 384, "height": 384, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 384,
+          "height": 384,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "rocky",
           "isStatic": false,
-          "size": { "width": 0.95, "height": 0.95 }
+          "size": {
+            "width": 0.95,
+            "height": 0.95
+          }
         },
-        "transform": { "x": 8.2, "y": 3.4, "rotation": 0 },
+        "transform": {
+          "x": 8.2,
+          "y": 3.4,
+          "rotation": 0
+        },
         "tags": ["earth", "planet", "hero"],
         "behaviors": [
-          { "type": "float", "amplitude": 0.1, "period": 4 },
-          { "type": "face", "target": "pointer" }
+          {
+            "type": "float",
+            "amplitude": 0.1,
+            "period": 4
+          },
+          {
+            "type": "face",
+            "target": "pointer"
+          }
         ],
         "pretend": true
       },
@@ -142,16 +235,34 @@
         "kind": "sprite",
         "name": "the Moon",
         "description": "tiny pale grey moon with a sleepy face bobbing beside Earth",
-        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 128,
+          "height": 128,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "rocky",
           "isStatic": false,
-          "size": { "width": 0.3, "height": 0.3 }
+          "size": {
+            "width": 0.3,
+            "height": 0.3
+          }
         },
-        "transform": { "x": 8.95, "y": 2.75, "rotation": 0 },
+        "transform": {
+          "x": 8.95,
+          "y": 2.75,
+          "rotation": 0
+        },
         "tags": ["moon"],
-        "behaviors": [{ "type": "float", "amplitude": 0.12, "period": 3 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.12,
+            "period": 3
+          }
+        ],
         "pretend": true
       },
       {
@@ -159,16 +270,34 @@
         "kind": "sprite",
         "name": "Mars",
         "description": "dusty red-orange planet wearing a tiny explorer hat and goggles, with two pebble moons",
-        "asset": { "url": "", "width": 256, "height": 256, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 256,
+          "height": 256,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "rocky",
           "isStatic": false,
-          "size": { "width": 0.6, "height": 0.6 }
+          "size": {
+            "width": 0.6,
+            "height": 0.6
+          }
         },
-        "transform": { "x": 9.3, "y": 5.9, "rotation": 0 },
+        "transform": {
+          "x": 9.3,
+          "y": 5.9,
+          "rotation": 0
+        },
         "tags": ["mars", "planet"],
-        "behaviors": [{ "type": "float", "amplitude": 0.1, "period": 3.5 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.1,
+            "period": 3.5
+          }
+        ],
         "pretend": true
       },
       {
@@ -176,16 +305,34 @@
         "kind": "sprite",
         "name": "Jupiter",
         "description": "enormous striped orange and cream planet with a swirling red spot, flexing like a bodybuilder",
-        "asset": { "url": "", "width": 768, "height": 768, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 768,
+          "height": 768,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "gassy",
           "isStatic": false,
-          "size": { "width": 2.6, "height": 2.6 }
+          "size": {
+            "width": 2.6,
+            "height": 2.6
+          }
         },
-        "transform": { "x": 10.8, "y": 2.4, "rotation": 0 },
+        "transform": {
+          "x": 10.8,
+          "y": 2.4,
+          "rotation": 0
+        },
         "tags": ["jupiter", "planet"],
-        "behaviors": [{ "type": "float", "amplitude": 0.08, "period": 7 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.08,
+            "period": 7
+          }
+        ],
         "pretend": true
       },
       {
@@ -193,16 +340,34 @@
         "kind": "sprite",
         "name": "Saturn",
         "description": "pale gold planet with wide sparkling ice rings worn like a tutu, striking a ballet pose",
-        "asset": { "url": "", "width": 1024, "height": 512, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 1024,
+          "height": 512,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "gassy",
           "isStatic": false,
-          "size": { "width": 3.2, "height": 1.6 }
+          "size": {
+            "width": 3.2,
+            "height": 1.6
+          }
         },
-        "transform": { "x": 13.1, "y": 5, "rotation": 0 },
+        "transform": {
+          "x": 13.1,
+          "y": 5,
+          "rotation": 0
+        },
         "tags": ["saturn", "planet"],
-        "behaviors": [{ "type": "float", "amplitude": 0.08, "period": 8 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.08,
+            "period": 8
+          }
+        ],
         "pretend": true
       },
       {
@@ -210,16 +375,34 @@
         "kind": "sprite",
         "name": "Uranus",
         "description": "pale blue-green planet tipped over on its side with thin dark rings, giggling behind its hands",
-        "asset": { "url": "", "width": 512, "height": 512, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "gassy",
           "isStatic": false,
-          "size": { "width": 1.4, "height": 1.4 }
+          "size": {
+            "width": 1.4,
+            "height": 1.4
+          }
         },
-        "transform": { "x": 14.9, "y": 1.9, "rotation": 1.5 },
+        "transform": {
+          "x": 14.9,
+          "y": 1.9,
+          "rotation": 1.5
+        },
         "tags": ["uranus", "planet"],
-        "behaviors": [{ "type": "float", "amplitude": 0.1, "period": 6 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.1,
+            "period": 6
+          }
+        ],
         "pretend": true
       },
       {
@@ -227,16 +410,34 @@
         "kind": "sprite",
         "name": "Neptune",
         "description": "deep blue planet with windswept white cloud streaks, a scarf flying sideways and a dreamy faraway look",
-        "asset": { "url": "", "width": 512, "height": 512, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "gassy",
           "isStatic": false,
-          "size": { "width": 1.35, "height": 1.35 }
+          "size": {
+            "width": 1.35,
+            "height": 1.35
+          }
         },
-        "transform": { "x": 15, "y": 7.6, "rotation": 0 },
+        "transform": {
+          "x": 15,
+          "y": 7.6,
+          "rotation": 0
+        },
         "tags": ["neptune", "planet"],
-        "behaviors": [{ "type": "float", "amplitude": 0.12, "period": 6.5 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.12,
+            "period": 6.5
+          }
+        ],
         "pretend": true
       },
       {
@@ -244,18 +445,37 @@
         "kind": "sprite",
         "name": "little comet",
         "description": "small icy comet with a glowing head and a long sparkly tail, zipping across the sky",
-        "asset": { "url": "", "width": 256, "height": 128, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 256,
+          "height": 128,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "stardust",
           "isStatic": false,
-          "size": { "width": 0.8, "height": 0.4 }
+          "size": {
+            "width": 0.8,
+            "height": 0.4
+          }
         },
-        "transform": { "x": 7.5, "y": 0.9, "rotation": 0 },
+        "transform": {
+          "x": 7.5,
+          "y": 0.9,
+          "rotation": 0
+        },
         "tags": ["comet"],
         "behaviors": [
-          { "type": "wander", "speed": 1.2 },
-          { "type": "emit", "particle": "sparkle", "rate": 8 }
+          {
+            "type": "wander",
+            "speed": 1.2
+          },
+          {
+            "type": "emit",
+            "particle": "sparkle",
+            "rate": 8
+          }
         ],
         "pretend": true
       },
@@ -264,16 +484,33 @@
         "kind": "sprite",
         "name": "twinkle star",
         "description": "tiny four-point twinkling star with a happy face",
-        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 128,
+          "height": 128,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "stardust",
           "isStatic": true,
-          "size": { "width": 0.3, "height": 0.3 }
+          "size": {
+            "width": 0.3,
+            "height": 0.3
+          }
         },
-        "transform": { "x": 6.4, "y": 8.3, "rotation": 0 },
+        "transform": {
+          "x": 6.4,
+          "y": 8.3,
+          "rotation": 0
+        },
         "tags": ["twinkle"],
-        "behaviors": [{ "type": "glow", "color": "#fff3b0" }],
+        "behaviors": [
+          {
+            "type": "glow",
+            "color": "#fff3b0"
+          }
+        ],
         "pretend": true
       },
       {
@@ -281,16 +518,33 @@
         "kind": "sprite",
         "name": "twinkle star",
         "description": "tiny four-point twinkling star with a sleepy face",
-        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 128,
+          "height": 128,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "circle",
           "material": "stardust",
           "isStatic": true,
-          "size": { "width": 0.3, "height": 0.3 }
+          "size": {
+            "width": 0.3,
+            "height": 0.3
+          }
         },
-        "transform": { "x": 12, "y": 8.4, "rotation": 0 },
+        "transform": {
+          "x": 12,
+          "y": 8.4,
+          "rotation": 0
+        },
         "tags": ["twinkle"],
-        "behaviors": [{ "type": "glow", "color": "#fff3b0" }],
+        "behaviors": [
+          {
+            "type": "glow",
+            "color": "#fff3b0"
+          }
+        ],
         "pretend": true
       }
     ],
@@ -298,9 +552,15 @@
     "rules": [
       {
         "id": "r_tap_sun",
-        "when": { "event": "tap", "target": "sun" },
+        "when": {
+          "event": "tap",
+          "target": "sun"
+        },
         "then": [
-          { "action": "celebrate", "style": "sparkle" },
+          {
+            "action": "celebrate",
+            "style": "sparkle"
+          },
           {
             "action": "say",
             "text": "I am so big and heavy that my gravity keeps all the planets circling me!"
@@ -311,9 +571,15 @@
       },
       {
         "id": "r_tap_jupiter",
-        "when": { "event": "tap", "target": "jupiter" },
+        "when": {
+          "event": "tap",
+          "target": "jupiter"
+        },
         "then": [
-          { "action": "sound", "cue": "ding" },
+          {
+            "action": "sound",
+            "cue": "ding"
+          },
           {
             "action": "say",
             "text": "There is more stuff in me than in all the other planets put together. That is mass!"
@@ -324,9 +590,15 @@
       },
       {
         "id": "r_tap_mercury",
-        "when": { "event": "tap", "target": "mercury" },
+        "when": {
+          "event": "tap",
+          "target": "mercury"
+        },
         "then": [
-          { "action": "sound", "cue": "whoosh" },
+          {
+            "action": "sound",
+            "cue": "whoosh"
+          },
           {
             "action": "say",
             "text": "Zoom! I go around the Sun faster than anyone. That is speed!"
@@ -337,9 +609,15 @@
       },
       {
         "id": "r_tap_comet",
-        "when": { "event": "tap", "target": "comet" },
+        "when": {
+          "event": "tap",
+          "target": "comet"
+        },
         "then": [
-          { "action": "sound", "cue": "whoosh" },
+          {
+            "action": "sound",
+            "cue": "whoosh"
+          },
           {
             "action": "say",
             "text": "A comet is a dirty snowball. Near the Sun its ice turns to gas and makes a tail."
@@ -548,7 +826,7 @@
       "facts": [
         "My rings are made mostly of chunks of ice, with some rock and dust, from tiny grains to pieces as big as a house.",
         "My rings are about 280,000 kilometres wide but mostly less than 1 kilometre thick, thinner than a sheet of paper at my size.",
-        "I have about 270 known moons, more than any other planet; my moon Titan has lakes of liquid methane.",
+        "I have many moons; discoveries change the counted total.",
         "I am the lightest planet for my size, lighter than water, even though I am about nine Earths wide.",
         "I am a gas giant made mostly of hydrogen and helium, and my day lasts only about 10 and a half hours.",
         "One trip around the Sun takes me about 29 Earth years.",
@@ -557,7 +835,7 @@
       "factsBn": [
         "আমার রিংগুলো বেশিরভাগই বরফের টুকরোয় তৈরি, সঙ্গে কিছু পাথর আর ধুলো, ছোট্ট দানা থেকে বাড়ির মতো বড় টুকরো পর্যন্ত।",
         "আমার রিং প্রায় ২,৮০,০০০ কিলোমিটার চওড়া, কিন্তু বেশিরভাগ জায়গায় ১ কিলোমিটারের কম পুরু, আমার মাপে এক পাতা কাগজের চেয়েও পাতলা।",
-        "আমার প্রায় ২৭০টি চাঁদ জানা আছে, অন্য যেকোনো গ্রহের চেয়ে বেশি; আমার চাঁদ টাইটানে তরল মিথেনের হ্রদ আছে।",
+        "আমার অনেক চাঁদ আছে; নতুন আবিষ্কারে গোনা সংখ্যা বদলায়।",
         "আমি আমার মাপের তুলনায় সবচেয়ে হালকা গ্রহ, পানির চেয়েও হালকা, যদিও আমি প্রায় নয়টা পৃথিবীর সমান চওড়া।",
         "আমি একটি গ্যাসের দৈত্য, বেশিরভাগই হাইড্রোজেন আর হিলিয়াম, আর আমার দিন মাত্র প্রায় সাড়ে ১০ ঘণ্টার।",
         "সূর্যকে একবার ঘুরে আসতে আমার প্রায় ২৯ পৃথিবী-বছর লাগে।",
@@ -627,15 +905,51 @@
     }
   ],
   "hotspots": [
-    { "entityId": "sun", "characterId": "sun", "comesCloser": "grow" },
-    { "entityId": "mercury", "characterId": "mercury", "comesCloser": "swoop" },
-    { "entityId": "venus", "characterId": "venus", "comesCloser": "swoop" },
-    { "entityId": "earth", "characterId": "earth", "comesCloser": "swoop" },
-    { "entityId": "mars", "characterId": "mars", "comesCloser": "swoop" },
-    { "entityId": "jupiter", "characterId": "jupiter", "comesCloser": "swoop" },
-    { "entityId": "saturn", "characterId": "saturn", "comesCloser": "swoop" },
-    { "entityId": "uranus", "characterId": "uranus", "comesCloser": "swoop" },
-    { "entityId": "neptune", "characterId": "neptune", "comesCloser": "swoop" }
+    {
+      "entityId": "sun",
+      "characterId": "sun",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "mercury",
+      "characterId": "mercury",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "venus",
+      "characterId": "venus",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "earth",
+      "characterId": "earth",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "mars",
+      "characterId": "mars",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "jupiter",
+      "characterId": "jupiter",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "saturn",
+      "characterId": "saturn",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "uranus",
+      "characterId": "uranus",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "neptune",
+      "characterId": "neptune",
+      "comesCloser": "swoop"
+    }
   ],
   "sounds": [],
   "challenges": [
@@ -825,8 +1139,8 @@
     {
       "id": "ch_most_moons",
       "characterId": "earth",
-      "question": "Which planet has the most moons of all?",
-      "questionBn": "কোন গ্রহের সবচেয়ে বেশি চাঁদ আছে?",
+      "question": "Which planet is famous for its bright, wide rings?",
+      "questionBn": "কোন গ্রহ উজ্জ্বল, চওড়া বলয়ের জন্য বিখ্যাত?",
       "answerKey": "Saturn",
       "accepted": [
         "saturn",
@@ -838,10 +1152,84 @@
         "শনি গ্রহ",
         "স্যাটার্ন"
       ],
-      "hint": "She has rings and about 270 moons.",
-      "hintBn": "তার রিং আছে আর প্রায় ২৭০টি চাঁদ।",
+      "hint": "She loves showing off her icy rings.",
+      "hintBn": "সে তার বরফের বলয় দেখাতে ভালোবাসে।",
       "points": 4,
       "petReward": "chiku"
+    }
+  ],
+  "activities": [
+    {
+      "characterId": "sun",
+      "kind": "orbit",
+      "title": "Move through an orbit",
+      "titleBn": "কক্ষপথে ঘুরে দেখো",
+      "explanation": "An orbit is a path around another object. Our drawing is not to scale; a planet’s real journey is much slower.",
+      "explanationBn": "কক্ষপথ হলো অন্য বস্তুর চারপাশের পথ। ছবিটি প্রকৃত মাপে নয়; গ্রহের আসল যাত্রা অনেক ধীর।"
+    },
+    {
+      "characterId": "mercury",
+      "kind": "orbit",
+      "title": "Move through an orbit",
+      "titleBn": "কক্ষপথে ঘুরে দেখো",
+      "explanation": "An orbit is a path around another object. Our drawing is not to scale; a planet’s real journey is much slower.",
+      "explanationBn": "কক্ষপথ হলো অন্য বস্তুর চারপাশের পথ। ছবিটি প্রকৃত মাপে নয়; গ্রহের আসল যাত্রা অনেক ধীর।"
+    },
+    {
+      "characterId": "venus",
+      "kind": "orbit",
+      "title": "Move through an orbit",
+      "titleBn": "কক্ষপথে ঘুরে দেখো",
+      "explanation": "An orbit is a path around another object. Our drawing is not to scale; a planet’s real journey is much slower.",
+      "explanationBn": "কক্ষপথ হলো অন্য বস্তুর চারপাশের পথ। ছবিটি প্রকৃত মাপে নয়; গ্রহের আসল যাত্রা অনেক ধীর।"
+    },
+    {
+      "characterId": "earth",
+      "kind": "orbit",
+      "title": "Move through an orbit",
+      "titleBn": "কক্ষপথে ঘুরে দেখো",
+      "explanation": "An orbit is a path around another object. Our drawing is not to scale; a planet’s real journey is much slower.",
+      "explanationBn": "কক্ষপথ হলো অন্য বস্তুর চারপাশের পথ। ছবিটি প্রকৃত মাপে নয়; গ্রহের আসল যাত্রা অনেক ধীর।"
+    },
+    {
+      "characterId": "mars",
+      "kind": "orbit",
+      "title": "Move through an orbit",
+      "titleBn": "কক্ষপথে ঘুরে দেখো",
+      "explanation": "An orbit is a path around another object. Our drawing is not to scale; a planet’s real journey is much slower.",
+      "explanationBn": "কক্ষপথ হলো অন্য বস্তুর চারপাশের পথ। ছবিটি প্রকৃত মাপে নয়; গ্রহের আসল যাত্রা অনেক ধীর।"
+    },
+    {
+      "characterId": "jupiter",
+      "kind": "orbit",
+      "title": "Move through an orbit",
+      "titleBn": "কক্ষপথে ঘুরে দেখো",
+      "explanation": "An orbit is a path around another object. Our drawing is not to scale; a planet’s real journey is much slower.",
+      "explanationBn": "কক্ষপথ হলো অন্য বস্তুর চারপাশের পথ। ছবিটি প্রকৃত মাপে নয়; গ্রহের আসল যাত্রা অনেক ধীর।"
+    },
+    {
+      "characterId": "saturn",
+      "kind": "orbit",
+      "title": "Move through an orbit",
+      "titleBn": "কক্ষপথে ঘুরে দেখো",
+      "explanation": "An orbit is a path around another object. Our drawing is not to scale; a planet’s real journey is much slower.",
+      "explanationBn": "কক্ষপথ হলো অন্য বস্তুর চারপাশের পথ। ছবিটি প্রকৃত মাপে নয়; গ্রহের আসল যাত্রা অনেক ধীর।"
+    },
+    {
+      "characterId": "uranus",
+      "kind": "orbit",
+      "title": "Move through an orbit",
+      "titleBn": "কক্ষপথে ঘুরে দেখো",
+      "explanation": "An orbit is a path around another object. Our drawing is not to scale; a planet’s real journey is much slower.",
+      "explanationBn": "কক্ষপথ হলো অন্য বস্তুর চারপাশের পথ। ছবিটি প্রকৃত মাপে নয়; গ্রহের আসল যাত্রা অনেক ধীর।"
+    },
+    {
+      "characterId": "neptune",
+      "kind": "orbit",
+      "title": "Move through an orbit",
+      "titleBn": "কক্ষপথে ঘুরে দেখো",
+      "explanation": "An orbit is a path around another object. Our drawing is not to scale; a planet’s real journey is much slower.",
+      "explanationBn": "কক্ষপথ হলো অন্য বস্তুর চারপাশের পথ। ছবিটি প্রকৃত মাপে নয়; গ্রহের আসল যাত্রা অনেক ধীর।"
     }
   ]
 }

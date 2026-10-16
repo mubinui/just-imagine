@@ -1,0 +1,366 @@
+[
+  {
+    "file": "animals-farm-acting-v1.png",
+    "width": 1447,
+    "height": 1087,
+    "alpha": true,
+    "pngBytes": 1656865,
+    "webpBytes": 422192
+  },
+  {
+    "file": "animals-jungle-acting-v1.png",
+    "width": 1448,
+    "height": 1086,
+    "alpha": true,
+    "pngBytes": 1982421,
+    "webpBytes": 480360
+  },
+  {
+    "file": "animals-ocean-acting-v1.png",
+    "width": 1448,
+    "height": 1086,
+    "alpha": true,
+    "pngBytes": 1733327,
+    "webpBytes": 404592
+  },
+  {
+    "file": "animals-world-v1.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false,
+    "pngBytes": 2240338,
+    "webpBytes": 313706
+  },
+  {
+    "file": "body-acting-v1.png",
+    "width": 1619,
+    "height": 971,
+    "alpha": true,
+    "pngBytes": 1935380,
+    "webpBytes": 531262
+  },
+  {
+    "file": "body-world-v1.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false,
+    "pngBytes": 2404125,
+    "webpBytes": 318054
+  },
+  {
+    "file": "exercise-acting-v1.png",
+    "width": 1261,
+    "height": 1247,
+    "alpha": true,
+    "pngBytes": 1696207,
+    "webpBytes": 457228
+  },
+  {
+    "file": "exercise-world-v1.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false,
+    "pngBytes": 2831373,
+    "webpBytes": 489848
+  },
+  {
+    "file": "food-acting-v1.png",
+    "width": 1619,
+    "height": 971,
+    "alpha": true,
+    "pngBytes": 1475049,
+    "webpBytes": 391622
+  },
+  {
+    "file": "food-world-v1.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false,
+    "pngBytes": 2629335,
+    "webpBytes": 386246
+  },
+  {
+    "file": "hygiene-friends-acting-v1.png",
+    "width": 1774,
+    "height": 887,
+    "alpha": true,
+    "pngBytes": 1592859,
+    "webpBytes": 339402
+  },
+  {
+    "file": "space-cosmos-acting-v1.png",
+    "width": 1448,
+    "height": 1086,
+    "alpha": true,
+    "pngBytes": 2186063,
+    "webpBytes": 554584
+  },
+  {
+    "file": "space-inner-acting-v1.png",
+    "width": 1448,
+    "height": 1086,
+    "alpha": true,
+    "pngBytes": 2050445,
+    "webpBytes": 534150
+  },
+  {
+    "file": "space-outer-acting-v1.png",
+    "width": 1448,
+    "height": 1086,
+    "alpha": true,
+    "pngBytes": 1917253,
+    "webpBytes": 477584
+  },
+  {
+    "file": "space-world-v1.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false,
+    "pngBytes": 2342720,
+    "webpBytes": 305036
+  },
+  {
+    "file": "tooth-town-v1.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false,
+    "pngBytes": 2688340,
+    "webpBytes": 428468
+  },
+  {
+    "file": "twinkle-acting-v1.png",
+    "width": 1774,
+    "height": 887,
+    "alpha": true,
+    "pngBytes": 1626392,
+    "webpBytes": 378778
+  },
+  {
+    "file": "animals-farm-world-v1.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false,
+    "webpBytes": 589288
+  },
+  {
+    "file": "animals-jungle-world-v1.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false,
+    "webpBytes": 574960
+  },
+  {
+    "file": "animals-ocean-world-v1.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false,
+    "webpBytes": 444754
+  },
+  {
+    "file": "animals-farm-locomotion-v2.png",
+    "width": 1536,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 1664516,
+    "webpBytes": 329224,
+    "columns": 6,
+    "rows": 4,
+    "framesPerCharacter": 6,
+    "characters": 4,
+    "registration": "docs/art/locomotion-registration.json"
+  },
+  {
+    "file": "animals-jungle-locomotion-v2.png",
+    "width": 1536,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 1512099,
+    "webpBytes": 312406,
+    "columns": 6,
+    "rows": 4,
+    "framesPerCharacter": 6,
+    "characters": 4,
+    "registration": "docs/art/locomotion-registration.json"
+  },
+  {
+    "file": "animals-ocean-locomotion-v2.png",
+    "width": 1536,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 1168811,
+    "webpBytes": 236150,
+    "columns": 6,
+    "rows": 4,
+    "framesPerCharacter": 6,
+    "characters": 4,
+    "registration": "docs/art/locomotion-registration.json"
+  },
+  {
+    "file": "characters/acting/space-inner-acting-v2.png",
+    "width": 2048,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 2967018,
+    "webpBytes": 495572,
+    "poses": 32,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/space-outer-acting-v2.png",
+    "width": 2048,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 2618822,
+    "webpBytes": 413140,
+    "poses": 32,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/space-cosmos-acting-v2.png",
+    "width": 2048,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 2738899,
+    "webpBytes": 478266,
+    "poses": 32,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/animals-farm-acting-v2.png",
+    "width": 2048,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 2378267,
+    "webpBytes": 407238,
+    "poses": 32,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/animals-jungle-acting-v2.png",
+    "width": 2048,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 2540571,
+    "webpBytes": 391308,
+    "poses": 32,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/animals-ocean-acting-v2.png",
+    "width": 2048,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 2235006,
+    "webpBytes": 384756,
+    "poses": 32,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/body-acting-v2.png",
+    "width": 2048,
+    "height": 1280,
+    "alpha": true,
+    "pngBytes": 2982848,
+    "webpBytes": 502520,
+    "poses": 40,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/food-acting-v2.png",
+    "width": 2048,
+    "height": 1280,
+    "alpha": true,
+    "pngBytes": 2815382,
+    "webpBytes": 484270,
+    "poses": 40,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/hygiene-friends-acting-v2.png",
+    "width": 2048,
+    "height": 512,
+    "alpha": true,
+    "pngBytes": 1273625,
+    "webpBytes": 215382,
+    "poses": 16,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/exercise-acting-v2.png",
+    "width": 2048,
+    "height": 768,
+    "alpha": true,
+    "pngBytes": 1569401,
+    "webpBytes": 297528,
+    "poses": 24,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/friends-pets-acting-v2.png",
+    "width": 2048,
+    "height": 768,
+    "alpha": true,
+    "pngBytes": 1890581,
+    "webpBytes": 313930,
+    "poses": 24,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/friends-guides-acting-v2.png",
+    "width": 2048,
+    "height": 768,
+    "alpha": true,
+    "pngBytes": 1711361,
+    "webpBytes": 324384,
+    "poses": 24,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/pets-meadow-acting-v2.png",
+    "width": 2048,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 2502262,
+    "webpBytes": 401666,
+    "poses": 32,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  },
+  {
+    "file": "characters/acting/pets-wonder-acting-v2.png",
+    "width": 2048,
+    "height": 1024,
+    "alpha": true,
+    "pngBytes": 2532143,
+    "webpBytes": 406846,
+    "poses": 32,
+    "tool": "built-in image_gen.imagegen",
+    "promptFile": "docs/art/app-acting-prompts.json",
+    "registrationFile": "docs/art/app-acting-registration.json"
+  }
+]

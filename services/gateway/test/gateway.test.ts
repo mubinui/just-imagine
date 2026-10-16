@@ -2,6 +2,10 @@ import { it, expect, vi } from 'vitest';
 import { once } from 'node:events';
 import { WebSocket } from 'ws';
 import { startGateway } from '../src/gateway';
+import { minimalScene } from '../../../packages/scene-schema/test/helpers';
+import { systemInstruction } from '../src/prompts';
+import { toolDeclarationsFor } from '../src/tools';
+import type { WorldDoc } from '@just-imagine/protocol';
 import type { LiveCallbacks, SessionStore, SessionRecord, LiveProvider } from '../src/contracts';
 function harness(meterIntervalMs?: number) {
   const records = new Map<string, SessionRecord>();
@@ -70,6 +74,161 @@ async function connect(gateway: ReturnType<typeof startGateway>) {
   return { socket, messages };
 }
 const hello = { type: 'hello', idToken: 'valid', childId: 'c_one', characterId: 'bhombol' };
+
+it('does not offer or send lesson prediction overlays in incidental creative worlds', async () => {
+  expect(
+    toolDeclarationsFor({ learningMode: 'incidental' }).map((tool) => tool.name),
+  ).not.toContain('ask_prediction');
+  const h = harness();
+  const doc = minimalScene();
+  doc.learning.mode = 'incidental';
+  h.store.world = vi.fn(async () => ({ doc }) as WorldDoc);
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify({ ...hello, worldId: 'w_openplay' }));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    h.callbacks()?.tool('t_unwanted_quiz', 'ask_prediction', {
+      question: 'Which falls faster?',
+      options: ['A', 'B'],
+      correctIndex: 0,
+    });
+    await vi.waitFor(() =>
+      expect(h.live.toolResult).toHaveBeenCalledWith(
+        't_unwanted_quiz',
+        'ask_prediction',
+        expect.objectContaining({ error: expect.any(String) }),
+      ),
+    );
+    expect(messages.some((message) => (message as { type: string }).type === 'prediction')).toBe(
+      false,
+    );
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+
+it('sends invented actions as creative edits and queues a real undo for the owned world', async () => {
+  const h = harness();
+  h.store.world = vi.fn(async () => ({ revisionId: 'j_before', doc: minimalScene() }) as WorldDoc);
+  h.store.enqueue = vi.fn(async () => {});
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify({ ...hello, worldId: 'w_theatre' }));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    const instruction =
+      'Add a cloud who follows me and turns the mailbox into a portal. Remove the score.';
+    h.callbacks()?.tool('t_invent', 'modify_world', { instruction });
+    await vi.waitFor(() =>
+      expect(h.store.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'patch', worldId: 'w_theatre', instruction }),
+      ),
+    );
+    h.callbacks()?.tool('t_undo', 'undo_world', {});
+    await vi.waitFor(() =>
+      expect(h.store.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'undo',
+          worldId: 'w_theatre',
+          uid: 'parent',
+          childId: 'c_one',
+        }),
+      ),
+    );
+    h.store.world = vi.fn(async () => ({ doc: minimalScene() }) as WorldDoc);
+    const count = vi.mocked(h.store.enqueue).mock.calls.length;
+    socket.send(JSON.stringify({ type: 'undoWorld' }));
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual(
+        expect.objectContaining({
+          type: 'error',
+          message: 'There is no completed edit to undo yet.',
+        }),
+      ),
+    );
+    expect(h.store.enqueue).toHaveBeenCalledTimes(count);
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+it('hands a created-world conversation to the selected character and back to the friend', async () => {
+  const h = harness();
+  const scene = minimalScene();
+  scene.worldId = 'w_planets';
+  scene.entities[1]!.id = 'earth';
+  scene.entities[1]!.character = {
+    name: 'Earth',
+    personality: 'Warm and curious',
+    greeting: 'Hello, explorer!',
+    topic: 'Oceans and life',
+  };
+  h.store.world = vi.fn(async () => ({ doc: scene }) as WorldDoc);
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify({ ...hello, worldId: 'w_planets' }));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    socket.send(JSON.stringify({ type: 'talkToCharacter', entityId: 'missing' }));
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual(
+        expect.objectContaining({ type: 'error', code: 'FORBIDDEN' }),
+      ),
+    );
+    expect(h.provider.open).toHaveBeenCalledOnce();
+    socket.send(JSON.stringify({ type: 'talkToCharacter', entityId: 'earth' }));
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual({ type: 'worldCharacter', entityId: 'earth', name: 'Earth' }),
+    );
+    const record = [...h.records.values()][0]!;
+    expect(record.worldCharacter?.entityId).toBe('earth');
+    expect(systemInstruction(record, '')).toContain('Oceans and life');
+    expect(systemInstruction(record, '')).toContain('not a real planet');
+    await vi.waitFor(() => expect(h.provider.open).toHaveBeenCalledTimes(2));
+    socket.send(JSON.stringify({ type: 'hangUp' }));
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual({ type: 'worldCharacter', entityId: null, name: 'Bhombol' }),
+    );
+    expect(record.worldCharacter).toBeUndefined();
+    expect(record.worldId).toBe('w_planets');
+    await vi.waitFor(() => expect(h.provider.open).toHaveBeenCalledTimes(3));
+    socket.send(JSON.stringify({ type: 'talkToCharacter', entityId: 'earth' }));
+    await vi.waitFor(() => expect(h.provider.open).toHaveBeenCalledTimes(4));
+    h.callbacks()?.tool('t_return', 'switch_character', { characterId: 'bhombol' });
+    await vi.waitFor(() => expect(h.provider.open).toHaveBeenCalledTimes(5));
+    expect(record.worldCharacter).toBeUndefined();
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+
+it('keeps creation available to Lab-profile children and sends their language to the builder', async () => {
+  const h = harness();
+  const authorize = h.store.authorize;
+  h.store.authorize = async (token, childId) => {
+    const identity = await authorize(token, childId);
+    return { ...identity, child: { ...identity.child, tier: 'lab', language: 'bn' } };
+  };
+  h.store.enqueue = vi.fn(async () => {});
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    h.callbacks()?.tool('t_build', 'build_world', {
+      description: 'A game meeting talking planets',
+      concepts: ['gravity'],
+      experience: 'game',
+    });
+    await vi.waitFor(() => expect(h.store.enqueue).toHaveBeenCalledOnce());
+    expect(h.store.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ tier: 'playground', language: 'bn', experience: 'game' }),
+    );
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+
 it('keeps fast speech bursts intact and closes explicitly when the audio transport is overloaded', async () => {
   const h = harness();
   const { socket, messages } = await connect(h.gateway);
@@ -261,21 +420,21 @@ it('replays the control manifest after opening Live and announces ready-to-ready
   expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining('safe sample world'));
   jobUpdate('running');
   jobUpdate('failed');
-  expect(h.live.text).toHaveBeenLastCalledWith(expect.stringContaining('World building failed'));
+  expect(h.live.text).toHaveBeenLastCalledWith(expect.stringContaining('Creation did not finish'));
   jobUpdate('running');
   expect(h.live.text).toHaveBeenLastCalledWith(
-    expect.not.stringContaining('World building failed'),
+    expect.not.stringContaining('Creation did not finish'),
   );
   jobUpdate('failed');
   jobUpdate('complete');
   expect(h.live.text).toHaveBeenLastCalledWith(
-    expect.not.stringContaining('World building failed'),
+    expect.not.stringContaining('Creation did not finish'),
   );
   h.live.text.mockClear();
   a.socket.send(JSON.stringify({ type: 'switchCharacter', characterId: 'chandni' }));
   await vi.waitFor(() => expect(h.provider.open).toHaveBeenCalledTimes(2));
   expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining('launchSpeed'));
-  expect(h.live.text).not.toHaveBeenCalledWith(expect.stringContaining('World building failed'));
+  expect(h.live.text).not.toHaveBeenCalledWith(expect.stringContaining('Creation did not finish'));
   h.callbacks()?.tool('patch', 'modify_world', { instruction: 'Rename this lab' });
   await vi.waitFor(() => expect(patchId).not.toBe(''));
   update({ ...world, jobId: patchId, title: 'Renamed lab' });
@@ -368,7 +527,9 @@ it('starts a fresh game without deleting saved work or replacing the Live sessio
   const h = harness(),
     stop = vi.fn();
   h.store.watchWorld = () => stop;
-  h.store.world = vi.fn(async () => ({}) as Awaited<ReturnType<SessionStore['world']>>);
+  h.store.world = vi.fn(
+    async () => ({ doc: minimalScene() }) as Awaited<ReturnType<SessionStore['world']>>,
+  );
   const { socket, messages } = await connect(h.gateway);
   socket.send(JSON.stringify({ ...hello, worldId: 'w_previous' }));
   await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
@@ -379,4 +540,65 @@ it('starts a fresh game without deleting saved work or replacing the Live sessio
   expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining('NEW game'));
   expect(h.provider.open).toHaveBeenCalledOnce();
   await h.gateway.close();
+});
+
+it('narrates only an owned saved passage and emits completion separately from its audio', async () => {
+  const { storyBook, manuscript } = await import('../../../packages/protocol/test/fixtures/story');
+  const h = harness(),
+    book = { ...storyBook(), childId: 'c_one', manuscript: manuscript() };
+  h.store.story = vi.fn(async () => book);
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    socket.send(
+      JSON.stringify({
+        type: 'storyRead',
+        storyId: book.id,
+        scene: 0,
+        beat: 1,
+        readId: 'read_one',
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(h.live.text).toHaveBeenCalledWith(
+        expect.stringContaining(book.manuscript.scenes[0]!.beats[1]!.text),
+      ),
+    );
+    expect(h.store.story).toHaveBeenCalledWith(expect.anything(), book.id);
+    expect(systemInstruction([...h.records.values()][0]!, '')).toContain('Katha');
+    expect(messages).not.toContainEqual(
+      expect.objectContaining({ type: 'storyCue', status: 'finished' }),
+    );
+    h.callbacks()!.turnComplete!();
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual({
+        type: 'storyCue',
+        storyId: book.id,
+        scene: 0,
+        beat: 1,
+        readId: 'read_one',
+        status: 'finished',
+      }),
+    );
+    const old = h.callbacks()!;
+    socket.send(JSON.stringify({ type: 'storyPause' }));
+    await vi.waitFor(() => expect(h.live.close).toHaveBeenCalled());
+    const count = messages.length;
+    old.turnComplete!();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(messages.slice(count)).not.toContainEqual(
+      expect.objectContaining({ type: 'storyCue', status: 'finished' }),
+    );
+    socket.send(JSON.stringify({ type: 'hangUp' }));
+    await vi.waitFor(() => expect([...h.records.values()][0]!.story).toBeUndefined());
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+it('limits the storyteller to story topic, navigation and ending tools', () => {
+  const names = toolDeclarationsFor({ story: {} }).map((t) => t.name);
+  expect(names.sort()).toEqual(['end_session', 'navigate', 'story_topic']);
+  expect(toolDeclarationsFor({}).map((t) => t.name)).not.toContain('story_topic');
 });

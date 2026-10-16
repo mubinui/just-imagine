@@ -1,0 +1,400 @@
+{
+  "id": "hygiene",
+  "section": "hygiene",
+  "title": "Bubble & Brush Bay",
+  "titleBn": "ফেনা আর ব্রাশের ঘর",
+  "notes": "Authored bilingual educational play. Sources: docs/art/learning-content-sources.md. Diagrams and characters are simplified, not to anatomical scale.",
+  "scene": {
+    "schemaVersion": 1,
+    "worldId": "w_pack_hygiene",
+    "tier": "playground",
+    "title": "Bubble & Brush Bay",
+    "theme": {
+      "paletteHint": "warm forest, cream, peach and soft world colours",
+      "timeOfDay": "day",
+      "backdropDescription": "Bubble & Brush Bay with warm layers, a clear central play space and calm forest framing",
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
+    },
+    "environment": {
+      "gravity": {
+        "x": 0,
+        "y": 9.81
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
+      "medium": "air",
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
+      "seed": 11
+    },
+    "materials": {
+      "grass": {
+        "density": 1,
+        "friction": 0.8,
+        "restitution": 0.1,
+        "softness": 0,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "fur": {
+        "density": 0.4,
+        "friction": 0.7,
+        "restitution": 0.2,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "feather": {
+        "density": 0.08,
+        "friction": 0.7,
+        "restitution": 0.1,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "wood": {
+        "density": 0.6,
+        "friction": 0.5,
+        "restitution": 0.3,
+        "softness": 0.05,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "rubber": {
+        "density": 1.1,
+        "friction": 0.8,
+        "restitution": 0.8,
+        "softness": 0.2,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "cloud": {
+        "density": 0.06,
+        "friction": 0.9,
+        "restitution": 0.1,
+        "softness": 0.4,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": true
+      }
+    },
+    "entities": [
+      {
+        "id": "ground",
+        "kind": "ground",
+        "name": "farmyard",
+        "description": "grassy farmyard ground with a dirt path and tiny daisies",
+        "asset": {
+          "url": "",
+          "width": 1920,
+          "height": 128,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "box",
+          "material": "grass",
+          "isStatic": true,
+          "size": {
+            "width": 16,
+            "height": 1
+          }
+        },
+        "transform": {
+          "x": 8,
+          "y": 8.5,
+          "rotation": 0
+        },
+        "tags": ["ground"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "tooth",
+        "kind": "sprite",
+        "name": "Twinkle Tooth",
+        "description": "An ivory tooth with a tiny scarf and clean rounded roots.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 2.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "soap",
+        "kind": "sprite",
+        "name": "Suds the Soap",
+        "description": "A mint soap bar with bubbly hair and small hands.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 8.0,
+          "y": 4.1,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "tissue",
+        "kind": "sprite",
+        "name": "Tilly Tissue",
+        "description": "A soft tissue peeking from a peach box with a kind face.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 1.9,
+            "height": 2.0
+          }
+        },
+        "transform": {
+          "x": 14.0,
+          "y": 5.7,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      }
+    ],
+    "joints": [],
+    "rules": [],
+    "learning": {
+      "concepts": ["gravity"],
+      "prediction": {
+        "question": "If you throw the ball up high, will it come back down?",
+        "options": ["yes, it comes down", "no, it stays up"],
+        "correctIndex": 0,
+        "concept": "gravity"
+      },
+      "dials": [],
+      "heroEntityId": "tooth",
+      "mode": "incidental"
+    },
+    "narration": {
+      "intro": "Tap a friend, try an activity, or call them to ask your own questions."
+    }
+  },
+  "characters": [
+    {
+      "id": "tooth",
+      "name": "Twinkle Tooth",
+      "nameBn": "ঝিলিক দাঁত",
+      "look": "An ivory tooth with a tiny scarf and clean rounded roots.",
+      "voice": "Sulafat",
+      "personality": "A cheerful tooth who treats a toothbrush as a dance partner.",
+      "facts": [
+        "I help you bite and chew food.",
+        "Brush teeth twice a day for about two minutes.",
+        "Use fluoride toothpaste and a suitable toothbrush.",
+        "Brush all tooth surfaces gently.",
+        "Spit out toothpaste after brushing; do not swallow it.",
+        "A grown-up can help you brush and visit a dentist."
+      ],
+      "factsBn": [
+        "আমি খাবার কামড়াতে আর চিবাতে সাহায্য করি।",
+        "দিনে দুবার প্রায় দুই মিনিট দাঁত ব্রাশ করো।",
+        "ফ্লোরাইড টুথপেস্ট ও উপযুক্ত ব্রাশ ব্যবহার করো।",
+        "দাঁতের সব দিক আলতো করে ব্রাশ করো।",
+        "ব্রাশের পর পেস্ট ফেলে দাও, গিলো না।",
+        "বড়রা ব্রাশ ও দাঁতের চিকিৎসকের কাছে যেতে সাহায্য করে।"
+      ],
+      "catchphrase": "Let’s do the toothbrush shuffle!",
+      "catchphraseBn": "চলো ব্রাশের নাচ নাচি!",
+      "funnyAngle": "A cheerful tooth who treats a toothbrush as a dance partner."
+    },
+    {
+      "id": "soap",
+      "name": "Suds the Soap",
+      "nameBn": "সাবু ফেনা",
+      "look": "A mint soap bar with bubbly hair and small hands.",
+      "voice": "Sulafat",
+      "personality": "A bubbly helper who chases pretend specks with soap, never frightens children about germs.",
+      "facts": [
+        "Wash your hands with soap and clean running water.",
+        "Wet your hands before adding soap.",
+        "Lather palms, backs, between fingers and under nails.",
+        "Scrub for at least twenty seconds.",
+        "Rinse and dry your hands afterwards.",
+        "Wash before eating and after using the toilet."
+      ],
+      "factsBn": [
+        "সাবান ও পরিষ্কার চলমান পানিতে হাত ধোও।",
+        "সাবান দেওয়ার আগে হাত ভেজাও।",
+        "তালু, পিঠ, আঙুলের ফাঁক ও নখে ফেনা করো।",
+        "অন্তত বিশ সেকেন্ড ঘষো।",
+        "তারপর ধুয়ে হাত শুকাও।",
+        "খাওয়ার আগে ও টয়লেটের পরে হাত ধোও।"
+      ],
+      "catchphrase": "Bubble trouble? I’m on it!",
+      "catchphraseBn": "ফেনার দল, চলো!",
+      "funnyAngle": "A bubbly helper who chases pretend specks with soap, never frightens children about germs."
+    },
+    {
+      "id": "tissue",
+      "name": "Tilly Tissue",
+      "nameBn": "টিস্যু টিলি",
+      "look": "A soft tissue peeking from a peach box with a kind face.",
+      "voice": "Sulafat",
+      "personality": "A polite sneeze catcher with a comic ah-ah-achoo.",
+      "facts": [
+        "Cover coughs and sneezes with a tissue.",
+        "Your elbow is useful when no tissue is available.",
+        "Put a used tissue in a bin.",
+        "Wash your hands after blowing your nose.",
+        "Try not to cough into your hands.",
+        "Ask a grown-up when you feel unwell."
+      ],
+      "factsBn": [
+        "কাশি ও হাঁচি টিস্যু দিয়ে ঢাকো।",
+        "টিস্যু না থাকলে কনুই ব্যবহার করো।",
+        "ব্যবহৃত টিস্যু ময়লার পাত্রে ফেলো।",
+        "নাক ঝাড়ার পর হাত ধোও।",
+        "হাতে কাশি না দেওয়ার চেষ্টা করো।",
+        "অসুস্থ লাগলে বড়দের বলো।"
+      ],
+      "catchphrase": "Catch it, bin it, wash!",
+      "catchphraseBn": "ঢাকো, ফেলো, ধুয়ে ফেলো!",
+      "funnyAngle": "A polite sneeze catcher with a comic ah-ah-achoo."
+    }
+  ],
+  "hotspots": [
+    {
+      "entityId": "tooth",
+      "characterId": "tooth",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "soap",
+      "characterId": "soap",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "tissue",
+      "characterId": "tissue",
+      "comesCloser": "grow"
+    }
+  ],
+  "sounds": [],
+  "challenges": [
+    {
+      "id": "ch_tooth_01",
+      "characterId": "tooth",
+      "question": "About how many minutes should one brushing session last?",
+      "questionBn": "একবার দাঁত ব্রাশ করতে প্রায় কত মিনিট লাগবে?",
+      "answerKey": "two minutes",
+      "accepted": ["two minutes", "2 minutes", "two", "দুই মিনিট", "২ মিনিট", "dui minute"],
+      "hint": "One minute plus one minute.",
+      "hintBn": "এক মিনিট আর এক মিনিট যোগ করো।",
+      "points": 3
+    },
+    {
+      "id": "ch_soap_01",
+      "characterId": "soap",
+      "question": "For at least how many seconds should you scrub with soap?",
+      "questionBn": "সাবান দিয়ে অন্তত কত সেকেন্ড ঘষবে?",
+      "answerKey": "twenty seconds",
+      "accepted": [
+        "twenty seconds",
+        "20 seconds",
+        "twenty",
+        "বিশ সেকেন্ড",
+        "২০ সেকেন্ড",
+        "bish second"
+      ],
+      "hint": "Count two groups of ten.",
+      "hintBn": "দশ করে দুবার গোনো।",
+      "points": 3
+    },
+    {
+      "id": "ch_tissue_01",
+      "characterId": "tissue",
+      "question": "Where can you cough if you have no tissue?",
+      "questionBn": "টিস্যু না থাকলে কোথায় কাশি ঢাকবে?",
+      "answerKey": "elbow",
+      "accepted": ["elbow", "your elbow", "my elbow", "কনুই", "কনুইয়ে", "konui"],
+      "hint": "It is the bend in your arm.",
+      "hintBn": "এটা হাতের মাঝখানের বাঁক।",
+      "points": 3
+    }
+  ],
+  "activities": [
+    {
+      "characterId": "tooth",
+      "kind": "brush",
+      "title": "Brush every side",
+      "titleBn": "সব দিক ব্রাশ করো",
+      "explanation": "This is a quick practice. Real brushing takes about two minutes, twice a day, with fluoride toothpaste.",
+      "explanationBn": "এটা ছোট অনুশীলন। আসলে ফ্লোরাইড পেস্ট দিয়ে দিনে দুবার প্রায় দুই মিনিট ব্রাশ করতে হয়।"
+    },
+    {
+      "characterId": "soap",
+      "kind": "wash",
+      "title": "Wash with Suds",
+      "titleBn": "সাবুর সঙ্গে হাত ধোও",
+      "explanation": "Soap and rubbing lift dirt and germs so water can wash them away. Scrub all parts for at least twenty seconds.",
+      "explanationBn": "সাবান ও ঘষায় ময়লা ও জীবাণু ওঠে, পানি ধুয়ে নিয়ে যায়। সব অংশ অন্তত বিশ সেকেন্ড ঘষো।"
+    },
+    {
+      "characterId": "tissue",
+      "kind": "signal",
+      "title": "Catch the sneeze",
+      "titleBn": "হাঁচি ঢেকে দাও",
+      "explanation": "Cover with a tissue or elbow, bin used tissues, then wash your hands.",
+      "explanationBn": "টিস্যু বা কনুই দিয়ে ঢাকো, টিস্যু পাত্রে ফেলো, তারপর হাত ধোও।"
+    }
+  ]
+}

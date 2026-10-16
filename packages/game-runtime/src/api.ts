@@ -60,6 +60,7 @@ export const GAME_API_METHODS = [
   'after',
   'cancel',
   'impulse',
+  'move',
   'setGravity',
   'setWind',
   'setMaterial',

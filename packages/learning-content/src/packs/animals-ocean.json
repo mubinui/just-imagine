@@ -13,13 +13,27 @@
       "paletteHint": "turquoise to deep blue with sunlit ripples",
       "timeOfDay": "day",
       "backdropDescription": "sunlit underwater ocean, turquoise near the surface fading to deep blue, with light rays and drifting bubbles",
-      "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
     },
     "environment": {
-      "gravity": { "x": 0, "y": 9.81 },
-      "wind": { "x": 0, "y": 0 },
+      "gravity": {
+        "x": 0,
+        "y": 9.81
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
       "medium": "water",
-      "bounds": { "width": 16, "height": 9 },
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
       "seed": 13
     },
     "materials": {
@@ -75,14 +89,26 @@
         "kind": "ground",
         "name": "sea floor",
         "description": "soft sandy sea floor with tiny shells and starfish",
-        "asset": { "url": "", "width": 1920, "height": 128, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 1920,
+          "height": 128,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "box",
           "material": "sand",
           "isStatic": true,
-          "size": { "width": 16, "height": 1 }
+          "size": {
+            "width": 16,
+            "height": 1
+          }
         },
-        "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+        "transform": {
+          "x": 8,
+          "y": 8.5,
+          "rotation": 0
+        },
         "tags": ["ground"],
         "behaviors": [],
         "pretend": false
@@ -92,14 +118,26 @@
         "kind": "sprite",
         "name": "seaweed",
         "description": "tall wavy green seaweed swaying in the current",
-        "asset": { "url": "", "width": 160, "height": 480, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 160,
+          "height": 480,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "box",
           "material": "kelp",
           "isStatic": true,
-          "size": { "width": 0.6, "height": 2 }
+          "size": {
+            "width": 0.6,
+            "height": 2
+          }
         },
-        "transform": { "x": 0.8, "y": 7, "rotation": 0 },
+        "transform": {
+          "x": 0.8,
+          "y": 7,
+          "rotation": 0
+        },
         "tags": ["seaweed"],
         "behaviors": [],
         "pretend": false
@@ -109,18 +147,38 @@
         "kind": "sprite",
         "name": "Whale",
         "description": "huge friendly humpback whale with long white flippers and a bumpy chin, singing",
-        "asset": { "url": "", "width": 896, "height": 448, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 896,
+          "height": 448,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "blubber",
           "isStatic": true,
-          "size": { "width": 4, "height": 2 }
+          "size": {
+            "width": 4,
+            "height": 2
+          }
         },
-        "transform": { "x": 4, "y": 3, "rotation": 0 },
+        "transform": {
+          "x": 4,
+          "y": 3,
+          "rotation": 0
+        },
         "tags": ["whale", "animal"],
         "behaviors": [
-          { "type": "float", "amplitude": 0.15, "period": 8 },
-          { "type": "emit", "particle": "bubble", "rate": 3 }
+          {
+            "type": "float",
+            "amplitude": 0.15,
+            "period": 8
+          },
+          {
+            "type": "emit",
+            "particle": "bubble",
+            "rate": 3
+          }
         ],
         "pretend": false
       },
@@ -129,16 +187,34 @@
         "kind": "sprite",
         "name": "Dolphin",
         "description": "smiling grey bottlenose dolphin leaping mid-swim",
-        "asset": { "url": "", "width": 448, "height": 224, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 448,
+          "height": 224,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "blubber",
           "isStatic": true,
-          "size": { "width": 1.8, "height": 0.9 }
+          "size": {
+            "width": 1.8,
+            "height": 0.9
+          }
         },
-        "transform": { "x": 9, "y": 2.4, "rotation": 0 },
+        "transform": {
+          "x": 9,
+          "y": 2.4,
+          "rotation": 0
+        },
         "tags": ["dolphin", "animal"],
-        "behaviors": [{ "type": "float", "amplitude": 0.2, "period": 3 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.2,
+            "period": 3
+          }
+        ],
         "pretend": false
       },
       {
@@ -146,16 +222,34 @@
         "kind": "sprite",
         "name": "Seal",
         "description": "plump spotted grey seal with long whiskers and big dark eyes, gliding through the water",
-        "asset": { "url": "", "width": 384, "height": 224, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 384,
+          "height": 224,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "blubber",
           "isStatic": true,
-          "size": { "width": 1.6, "height": 0.9 }
+          "size": {
+            "width": 1.6,
+            "height": 0.9
+          }
         },
-        "transform": { "x": 11.3, "y": 5.4, "rotation": 0 },
+        "transform": {
+          "x": 11.3,
+          "y": 5.4,
+          "rotation": 0
+        },
         "tags": ["seal", "animal"],
-        "behaviors": [{ "type": "float", "amplitude": 0.15, "period": 4 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.15,
+            "period": 4
+          }
+        ],
         "pretend": false
       },
       {
@@ -163,16 +257,34 @@
         "kind": "sprite",
         "name": "Penguin",
         "description": "small black and white penguin with an orange beak, zooming underwater with flippers out",
-        "asset": { "url": "", "width": 192, "height": 256, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 192,
+          "height": 256,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "feather",
           "isStatic": true,
-          "size": { "width": 0.7, "height": 1 }
+          "size": {
+            "width": 0.7,
+            "height": 1
+          }
         },
-        "transform": { "x": 14.2, "y": 3.6, "rotation": 0 },
+        "transform": {
+          "x": 14.2,
+          "y": 3.6,
+          "rotation": 0
+        },
         "tags": ["penguin", "animal"],
-        "behaviors": [{ "type": "float", "amplitude": 0.2, "period": 2.5 }],
+        "behaviors": [
+          {
+            "type": "float",
+            "amplitude": 0.2,
+            "period": 2.5
+          }
+        ],
         "pretend": false
       },
       {
@@ -180,14 +292,26 @@
         "kind": "sprite",
         "name": "coral rock",
         "description": "rounded rock covered in pink and orange coral",
-        "asset": { "url": "", "width": 448, "height": 256, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 448,
+          "height": 256,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "box",
           "material": "stone",
           "isStatic": true,
-          "size": { "width": 2, "height": 1.2 }
+          "size": {
+            "width": 2,
+            "height": 1.2
+          }
         },
-        "transform": { "x": 14.2, "y": 7.4, "rotation": 0 },
+        "transform": {
+          "x": 14.2,
+          "y": 7.4,
+          "rotation": 0
+        },
         "tags": ["rock"],
         "behaviors": [],
         "pretend": false
@@ -197,14 +321,26 @@
         "kind": "sprite",
         "name": "seashell",
         "description": "small pink and white spiral seashell",
-        "asset": { "url": "", "width": 128, "height": 96, "status": "placeholder" },
+        "asset": {
+          "url": "",
+          "width": 128,
+          "height": 96,
+          "status": "placeholder"
+        },
         "body": {
           "shape": "auto",
           "material": "stone",
           "isStatic": false,
-          "size": { "width": 0.5, "height": 0.4 }
+          "size": {
+            "width": 0.5,
+            "height": 0.4
+          }
         },
-        "transform": { "x": 7.5, "y": 5.5, "rotation": 0 },
+        "transform": {
+          "x": 7.5,
+          "y": 5.5,
+          "rotation": 0
+        },
         "tags": ["shell", "hero"],
         "behaviors": [],
         "pretend": false
@@ -214,16 +350,34 @@
     "rules": [
       {
         "id": "r_tap_shell",
-        "when": { "event": "tap", "target": "shell" },
+        "when": {
+          "event": "tap",
+          "target": "shell"
+        },
         "then": [
-          { "action": "applyImpulse", "target": "shell", "impulse": { "x": 0, "y": -1 } },
-          { "action": "sound", "cue": "splash" }
+          {
+            "action": "applyImpulse",
+            "target": "shell",
+            "impulse": {
+              "x": 0,
+              "y": -1
+            }
+          },
+          {
+            "action": "sound",
+            "cue": "splash"
+          }
         ],
         "once": false
       },
       {
         "id": "r_shell_sinks",
-        "when": { "event": "collision", "a": "shell", "b": "ground", "minImpulse": 0.2 },
+        "when": {
+          "event": "collision",
+          "a": "shell",
+          "b": "ground",
+          "minImpulse": 0.2
+        },
         "then": [
           {
             "action": "say",
@@ -372,10 +526,26 @@
     }
   ],
   "hotspots": [
-    { "entityId": "dolphin", "characterId": "dolphin", "comesCloser": "swoop" },
-    { "entityId": "whale", "characterId": "whale", "comesCloser": "grow" },
-    { "entityId": "seal", "characterId": "seal", "comesCloser": "swoop" },
-    { "entityId": "penguin", "characterId": "penguin", "comesCloser": "swoop" }
+    {
+      "entityId": "dolphin",
+      "characterId": "dolphin",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "whale",
+      "characterId": "whale",
+      "comesCloser": "grow"
+    },
+    {
+      "entityId": "seal",
+      "characterId": "seal",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "penguin",
+      "characterId": "penguin",
+      "comesCloser": "swoop"
+    }
   ],
   "sounds": [
     {
@@ -483,6 +653,40 @@
       "hint": "It is a kind of fat, and its name sounds like bubbles and rubber.",
       "hintBn": "এটা এক রকম চর্বি, আর ইংরেজিতে এর নাম শুনতে বাবল আর রাবারের মতো।",
       "points": 5
+    }
+  ],
+  "activities": [
+    {
+      "characterId": "dolphin",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
+    },
+    {
+      "characterId": "whale",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
+    },
+    {
+      "characterId": "seal",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
+    },
+    {
+      "characterId": "penguin",
+      "kind": "listen",
+      "title": "Hear my real call",
+      "titleBn": "আমার আসল ডাক শোনো",
+      "explanation": "That is a recording of an animal, not its speaking voice. Our talking friend is pretend; real animals communicate with sounds and movements.",
+      "explanationBn": "এটা প্রাণীর আসল ডাকের রেকর্ড, কথার কণ্ঠ নয়। আমাদের কথা বলা বন্ধু কল্পনার; আসল প্রাণী ডাক ও নড়াচড়ায় যোগাযোগ করে।"
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-16T00:00:00Z",
+  "generatedAt": "2026-10-16T14:06:45.439244Z",
   "title": "Design System: Just Imagine web",
   "extensions": {
     "colorMeta": {
@@ -228,6 +228,96 @@
           "#eaf4f1",
           "#f6faf8"
         ]
+      },
+      "learn-forest-panel": {
+        "role": "neutral",
+        "displayName": "Learn Forest Panel",
+        "canonical": "#243e36e8",
+        "tonalRamp": [
+          "#243e3612",
+          "#243e3626",
+          "#243e3640",
+          "#243e3666",
+          "#243e3699",
+          "#243e36c9",
+          "#243e36e8",
+          "#243e36"
+        ]
+      },
+      "learn-feedback-cream": {
+        "role": "neutral",
+        "displayName": "Learn Feedback Cream",
+        "canonical": "#fff9eef5",
+        "tonalRamp": [
+          "#fff9ee12",
+          "#fff9ee26",
+          "#fff9ee40",
+          "#fff9ee66",
+          "#fff9ee99",
+          "#fff9eec9",
+          "#fff9eef5",
+          "#fff9ee"
+        ]
+      },
+      "learn-story-leaf": {
+        "role": "neutral",
+        "displayName": "Learn Story Leaf",
+        "canonical": "#e2ead8",
+        "tonalRamp": [
+          "oklch(15.0% 0.0254 126.56)",
+          "oklch(27.0% 0.0254 126.56)",
+          "oklch(38.0% 0.0254 126.56)",
+          "oklch(50.0% 0.0254 126.56)",
+          "oklch(61.0% 0.0254 126.56)",
+          "oklch(73.0% 0.0254 126.56)",
+          "oklch(84.0% 0.0254 126.56)",
+          "oklch(95.0% 0.0254 126.56)"
+        ]
+      },
+      "learn-chapter-selected": {
+        "role": "neutral",
+        "displayName": "Learn Chapter Selected",
+        "canonical": "#e1ebd4",
+        "tonalRamp": [
+          "oklch(15.0% 0.0324 126.27)",
+          "oklch(27.0% 0.0324 126.27)",
+          "oklch(38.0% 0.0324 126.27)",
+          "oklch(50.0% 0.0324 126.27)",
+          "oklch(61.0% 0.0324 126.27)",
+          "oklch(73.0% 0.0324 126.27)",
+          "oklch(84.0% 0.0324 126.27)",
+          "oklch(95.0% 0.0324 126.27)"
+        ]
+      },
+      "learn-story-focus": {
+        "role": "tertiary",
+        "displayName": "Learn Story Focus",
+        "canonical": "#c88643",
+        "tonalRamp": [
+          "oklch(15.0% 0.1159 63.90)",
+          "oklch(27.0% 0.1159 63.90)",
+          "oklch(38.0% 0.1159 63.90)",
+          "oklch(50.0% 0.1159 63.90)",
+          "oklch(61.0% 0.1159 63.90)",
+          "oklch(73.0% 0.1159 63.90)",
+          "oklch(84.0% 0.1159 63.90)",
+          "oklch(95.0% 0.1159 63.90)"
+        ]
+      },
+      "learn-bookmark-forest": {
+        "role": "neutral",
+        "displayName": "Learn Bookmark Forest",
+        "canonical": "#243e36eb",
+        "tonalRamp": [
+          "oklch(15.0% 0.0352 172.63 / 0.922)",
+          "oklch(27.0% 0.0352 172.63 / 0.922)",
+          "oklch(38.0% 0.0352 172.63 / 0.922)",
+          "oklch(50.0% 0.0352 172.63 / 0.922)",
+          "oklch(61.0% 0.0352 172.63 / 0.922)",
+          "oklch(73.0% 0.0352 172.63 / 0.922)",
+          "oklch(84.0% 0.0352 172.63 / 0.922)",
+          "oklch(95.0% 0.0352 172.63 / 0.922)"
+        ]
       }
     },
     "typographyMeta": {
@@ -235,7 +325,10 @@
         "displayName": "Display",
         "purpose": "The landing question only, capped at 8ch."
       },
-      "headline": { "displayName": "Headline", "purpose": "Parent page titles." },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Parent page titles."
+      },
       "stage-headline": {
         "displayName": "Stage Headline",
         "purpose": "Listening prompt and summon name; vmin-sized so it scales with the stage."
@@ -248,8 +341,14 @@
         "displayName": "Title Small",
         "purpose": "Lab drawer and Discovery toast headings; chip and dial values at 17 to 18 px."
       },
-      "lead": { "displayName": "Lead", "purpose": "Landing and picker intros." },
-      "body": { "displayName": "Body", "purpose": "Paragraphs in both rooms, max 70ch." },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Landing and picker intros."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Paragraphs in both rooms, max 70ch."
+      },
       "caption": {
         "displayName": "Caption",
         "purpose": "The friend's spoken line under the world."
@@ -265,6 +364,22 @@
       "small": {
         "displayName": "Small",
         "purpose": "Status detail, parent subtle text, preview banner."
+      },
+      "learn-mission": {
+        "displayName": "Learn Mission",
+        "purpose": "Concise Baloo mission above a painted game; 25px at or below 700px."
+      },
+      "learn-feedback": {
+        "displayName": "Learn Feedback",
+        "purpose": "Bold Nunito causal feedback below play; 15px on phones, max 75ch."
+      },
+      "learn-story-title": {
+        "displayName": "Learn Story Title",
+        "purpose": "Opening and ending chapter names, 27px on phones."
+      },
+      "learn-story-copy": {
+        "displayName": "Learn Story Copy",
+        "purpose": "Bilingual setup, goal and consequence; at most 65ch and 16px on phones."
       }
     },
     "shadows": [
@@ -298,8 +413,16 @@
         "value": "0 16px 40px -20px #000c",
         "purpose": "Lab drawer column."
       },
-      { "name": "stage-toast", "value": "0 24px 50px -22px #000d", "purpose": "Discovery toast." },
-      { "name": "stage-sheet", "value": "0 30px 60px -30px #000d", "purpose": "Prediction card." },
+      {
+        "name": "stage-toast",
+        "value": "0 24px 50px -22px #000d",
+        "purpose": "Discovery toast."
+      },
+      {
+        "name": "stage-sheet",
+        "value": "0 30px 60px -30px #000d",
+        "purpose": "Prediction card."
+      },
       {
         "name": "character-drop",
         "value": "drop-shadow(0 8px 12px #0008)",
@@ -309,6 +432,26 @@
         "name": "answer-tint",
         "value": "0 10px 24px -12px #245e4ecc",
         "purpose": "Prediction answers cast their own fill: forest, #b3744e for peach, #a38a2d for sunshine."
+      },
+      {
+        "name": "learn-toy",
+        "value": "drop-shadow(0 12px 10px #132e3426)",
+        "purpose": "Downward grounding for in-scene draggable toys; cream glow appears only for focus or selection."
+      },
+      {
+        "name": "learn-story-chapters",
+        "value": "0 18px 45px -20px #102b28b3",
+        "purpose": "Chapter chooser overlay above the painted world."
+      },
+      {
+        "name": "learn-story-guide",
+        "value": "drop-shadow(0 18px 12px #1b40353d)",
+        "purpose": "Story opening and ending actor; removed from the compact help portrait."
+      },
+      {
+        "name": "learn-adventure-piece",
+        "value": "drop-shadow(0 8px 8px #14382b40)",
+        "purpose": "Movable subject pieces in adventure boards."
       }
     ],
     "motion": [
@@ -327,16 +470,15 @@
         "value": "420ms",
         "purpose": "Prediction card enters from 24px below at 97% scale."
       },
-      { "name": "toast-in", "value": "520ms", "purpose": "Discovery toast slides up 40px." },
+      {
+        "name": "toast-in",
+        "value": "520ms",
+        "purpose": "Discovery toast slides up 40px."
+      },
       {
         "name": "summon-rise",
         "value": "900ms",
-        "purpose": "The one authored moment: guide rises from 60vh at 60% scale with a 4% overshoot at 60%."
-      },
-      {
-        "name": "sparkle",
-        "value": "1100ms cubic-bezier(0.2, 0.9, 0.3, 1)",
-        "purpose": "Fourteen eight-point sparkles burst outward on --dx/--dy and fade."
+        "purpose": "Authored Studio entrance: guide rises from 60vh at 60% scale with a 4% overshoot at 60%."
       },
       {
         "name": "spell-burst",
@@ -364,26 +506,175 @@
         "purpose": "Three building dots bounce 8px with 150ms stagger."
       },
       {
-        "name": "blink",
-        "value": "4.6s infinite",
-        "purpose": "Character eyes close to 8% at the 96% mark; right eye 50ms late."
-      },
-      {
-        "name": "mouth",
-        "value": "40ms linear",
-        "purpose": "Mouth scaleY follows --mouth-open from the voice level."
-      },
-      {
         "name": "reduced-motion",
         "value": "animation: none; animation-duration: 1ms",
-        "purpose": "Loops are removed and entrances collapse to 1ms under prefers-reduced-motion."
+        "purpose": "CSS decorative loops are removed and entrances collapse; the shared actor model retains semantic action/speech poses while suppressing idle blink and repeated gestures/swimming."
+      },
+      {
+        "name": "learn-tooth-blink",
+        "value": "6.4s step-end infinite",
+        "purpose": "Twinkle blink pose overlay; removed with reduced motion."
+      },
+      {
+        "name": "learn-tooth-brush",
+        "value": "800ms steps(1) infinite",
+        "purpose": "Alternate two authored brushing frames; removed with reduced motion."
+      },
+      {
+        "name": "learn-tooth-arrive",
+        "value": "500ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Celebration pose arrives from 3px below at 98% scale; removed with reduced motion."
+      },
+      {
+        "name": "learn-story-arrive",
+        "value": "450ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Story celebration arrival; removed with reduced motion. The completion-to-ending delay is 850ms, or zero with reduced motion."
+      },
+      {
+        "name": "actor-clock",
+        "value": "100ms",
+        "purpose": "Shared visible-actor sampler; skips offscreen actors and stops when all are offscreen or the document is hidden. No per-actor RAF or React frame rendering."
+      },
+      {
+        "name": "actor-blink",
+        "value": "6200ms period; final 200ms blink",
+        "purpose": "Staggered single blink pose; disabled with reduced motion."
+      },
+      {
+        "name": "actor-speech",
+        "value": "mouth > 0.06: frame 3; mouth > 0.36: frame 4",
+        "purpose": "Real playback amplitude selects one opaque small/open speech pose on the matching voice owner; Studio/companion ownership uses VoiceClient.speakerId. Semantic speech remains under reduced motion; not phoneme lip-sync."
+      },
+      {
+        "name": "actor-action-window",
+        "value": "2400ms",
+        "purpose": "Listen/rest and requested gestures expire; wave uses 220ms pose steps and dance/bounce 280ms steps, settling sooner. Celebration holds its semantic result pose. Reduced motion retains representative poses without repeated gestures."
+      },
+      {
+        "name": "actor-aquatic-request",
+        "value": "140ms per frame; 6 frames; 2400ms window",
+        "purpose": "Dolphin, Whale, Seal and Penguin swim requests use the existing Ocean cycle. Reduced motion selects a semantic pose. Distance-driven route/trail locomotion remains separate."
+      },
+      {
+        "name": "learn-tooth-speaking",
+        "value": "clamp(0, calc(var(--mouth-open, 0) * 4), 1)",
+        "purpose": "Unchanged ToothActor alone retains amplitude-driven speaking-pose opacity."
       }
     ],
     "breakpoints": [
-      { "name": "parent-narrow", "value": "1000px" },
-      { "name": "parent-stack", "value": "700px" },
-      { "name": "stage-compact", "value": "760px wide or 520px tall" }
-    ]
+      {
+        "name": "parent-narrow",
+        "value": "1000px"
+      },
+      {
+        "name": "parent-stack",
+        "value": "700px"
+      },
+      {
+        "name": "stage-compact",
+        "value": "760px wide or 520px tall"
+      },
+      {
+        "name": "learn-game-stack",
+        "value": "700px"
+      }
+    ],
+    "appearance": {
+      "approvedAt": "2026-10-16",
+      "source": "packages/protocol/src/appearance.ts#THEME_PALETTES",
+      "defaultTheme": "forest",
+      "allowedThemes": ["forest", "ocean", "terracotta"],
+      "runtimeColorKeys": [
+        "ground",
+        "surface",
+        "ink",
+        "soft",
+        "accent",
+        "accent-ink",
+        "line",
+        "peach",
+        "yellow",
+        "mint",
+        "focus"
+      ],
+      "defaultTokenMapping": {
+        "--ground": "{colors.ground}",
+        "--surface": "{colors.surface}",
+        "--ink": "{colors.ink}",
+        "--soft": "{colors.soft}",
+        "--accent": "{colors.accent}",
+        "--accent-ink": "{colors.accent-ink}",
+        "--line": "{colors.line}",
+        "--peach": "{colors.peach}",
+        "--yellow": "{colors.yellow}",
+        "--mint": "{colors.mint}",
+        "--focus": "{colors.focus-ochre}"
+      },
+      "variants": {
+        "ocean": {
+          "displayName": "Ocean",
+          "cssVariables": {
+            "--ground": "#f6fbfa",
+            "--surface": "#ffffff",
+            "--ink": "#193c4a",
+            "--soft": "#486671",
+            "--accent": "#1d6276",
+            "--accent-ink": "#ffffff",
+            "--line": "#ccdfdf",
+            "--peach": "#f6d5b4",
+            "--yellow": "#f5d98a",
+            "--mint": "#cce8e3",
+            "--focus": "#9c5524"
+          }
+        },
+        "terracotta": {
+          "displayName": "Terracotta",
+          "cssVariables": {
+            "--ground": "#fff7ed",
+            "--surface": "#fffcf6",
+            "--ink": "#4b322b",
+            "--soft": "#70564d",
+            "--accent": "#8d4639",
+            "--accent-ink": "#fffaf1",
+            "--line": "#e4d3c2",
+            "--peach": "#f6c7a5",
+            "--yellow": "#f8d786",
+            "--mint": "#e2e9cf",
+            "--focus": "#8d4639"
+          }
+        }
+      },
+      "scope": "Published semantic interface/brand palette presets. Preserve default frontmatter tokens, Dream Launch geometry and original character/subject pixels; no arbitrary CSS or custom logo inputs.",
+      "publication": {
+        "publicFields": ["theme", "revision"],
+        "adminOnly": true,
+        "audited": true,
+        "concurrency": "Compare supplied revision in transaction; stale revision returns 409.",
+        "refresh": "Current publisher updates immediately; other visible pages poll every 30000ms and refresh on focus or visibility return.",
+        "fallback": "Last valid cached palette, otherwise Forest.",
+        "brandRoles": {
+          "tile": "accent",
+          "cloud": "ground",
+          "arc": "peach",
+          "star": "yellow"
+        },
+        "browserThemeColor": "accent",
+        "icons": "lib/brand.ts SVG browser icon; theme-manifest and public/icons/themes/<theme>/{icon-192,icon-512,maskable,apple}.png. Installed updates depend on platform caching."
+      }
+    },
+    "utilityIcons": {
+      "source": "components/UiIcon.tsx",
+      "viewBox": "0 0 24 24",
+      "strokeWidth": 1.9,
+      "stroke": "currentColor",
+      "fill": "none",
+      "strokeLinecap": "round",
+      "strokeLinejoin": "round",
+      "semantics": "Decorative SVG inside a labelled button/link; accessible name and target belong to the control.",
+      "removed": "Decorative sparkle badges, summon particles, guide-name sparks and idle Studio particle orb.",
+      "retained": "Semantic reward stars, five-point brand star, celestial subject art and contained live voice feedback.",
+      "liveFeedback": "DotOrb mounts only when live; 100% portrait footprint. Compact <=280px container uses an 84–140px portrait column separate from copy."
+    }
   },
   "components": [
     {
@@ -470,7 +761,7 @@
       "name": "Cast Strip Friend",
       "kind": "nav",
       "refersTo": "stage-pill-quiet",
-      "description": "A friend button in the forest cast strip; the active one grows, lifts and wears a sunshine ring that breathes while speaking.",
+      "description": "Forest cast control with speaking ring; its inline schematic illustrates navigation geometry only. Shipped CharacterArt uses registered raster poses in the same SVG slot; existing control-dimension metadata drift remains deferred.",
       "html": "<nav class=\"ds-strip\" aria-label=\"Guides\"><button class=\"ds-friend\" type=\"button\"><span class=\"art\"><span class=\"ring\"></span><svg viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"58\" r=\"30\" fill=\"#fff9ee\"/><ellipse cx=\"38\" cy=\"55\" rx=\"6.4\" ry=\"7.4\" fill=\"#243e36\"/><ellipse cx=\"62\" cy=\"55\" rx=\"6.4\" ry=\"7.4\" fill=\"#243e36\"/><circle cx=\"30\" cy=\"65\" r=\"4.5\" fill=\"#f9ceb0\" opacity=\".55\"/><circle cx=\"70\" cy=\"65\" r=\"4.5\" fill=\"#f9ceb0\" opacity=\".55\"/><path d=\"M44 71 Q50 80 56 71\" fill=\"none\" stroke=\"#243e36\" stroke-width=\"3.2\" stroke-linecap=\"round\"/></svg></span><span class=\"name\">Mishti</span></button><button class=\"ds-friend is-active is-speaking\" type=\"button\" aria-pressed=\"true\"><span class=\"art\"><span class=\"ring\"></span><svg viewBox=\"0 0 100 100\"><ellipse cx=\"21\" cy=\"54\" rx=\"11\" ry=\"19\" fill=\"#c48a3a\"/><ellipse cx=\"79\" cy=\"54\" rx=\"11\" ry=\"19\" fill=\"#c48a3a\"/><circle cx=\"50\" cy=\"56\" r=\"31\" fill=\"#e9b35a\"/><ellipse cx=\"50\" cy=\"69\" rx=\"17\" ry=\"13\" fill=\"#fff9ee\"/><ellipse cx=\"38\" cy=\"50\" rx=\"6.2\" ry=\"7.1\" fill=\"#243e36\"/><ellipse cx=\"62\" cy=\"50\" rx=\"6.2\" ry=\"7.1\" fill=\"#243e36\"/><ellipse cx=\"50\" cy=\"62\" rx=\"6.5\" ry=\"4.6\" fill=\"#243e36\"/><path d=\"M43 72 Q50 81 57 72\" fill=\"none\" stroke=\"#243e36\" stroke-width=\"3.2\" stroke-linecap=\"round\"/></svg></span><span class=\"name\">Bhombol</span></button></nav>",
       "css": ".ds-strip { display: flex; align-items: flex-end; justify-content: center; gap: 14px; height: 132px; padding: 0 20px 12px; background: #243e36; border-top: 1px solid #fff9ee22; border-radius: 0 0 16px 16px; } .ds-friend { position: relative; display: grid; justify-items: center; gap: 2px; min-width: 84px; padding: 6px 6px 4px; border: 0; border-radius: 22px; background: transparent; color: #fff9eec9; font: 700 14px/1.1 Nunito, sans-serif; cursor: pointer; transition: transform 220ms, color 220ms; } .ds-friend:hover { background: #fff9ee12; } .ds-friend .art { position: relative; width: 68px; height: 68px; transition: transform 220ms; } .ds-friend .art svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 12px #0008); } .ds-friend .ring { position: absolute; inset: -6px; border-radius: 50%; border: 4px solid #f7d76e; opacity: 0; } .ds-friend.is-active { color: #fff9ee; } .ds-friend.is-active .art { width: 96px; height: 96px; transform: translateY(-6px); } .ds-friend.is-active .ring { opacity: 0.55; } .ds-friend.is-active.is-speaking .ring { opacity: 1; animation: ds-mic-pulse 1.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; } .ds-friend:focus-visible { outline: 4px solid #f7d76e; outline-offset: 3px; } @keyframes ds-mic-pulse { 0% { transform: scale(0.94); opacity: 0.9; } 70%, 100% { transform: scale(1.1); opacity: 0; } }"
     },
@@ -481,18 +772,67 @@
       "description": "Cream column beside the world: Baloo variable names, forest values, ranges, outlined number pills and a sunshine challenge card.",
       "html": "<div class=\"ds-stage\"><section class=\"ds-lab\" aria-label=\"Lab tools\"><div class=\"head\"><h2>Lab tools</h2><button type=\"button\" aria-label=\"Close lab\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg></button></div><div class=\"variable\"><label>Launch speed<output>10 m/s</output></label><button class=\"num\" type=\"button\">Enter a number</button><input type=\"range\" min=\"0\" max=\"30\" value=\"10\"></div><p class=\"challenge active\"><strong>Try this: Land the ball in the cup</strong>Try an angle near forty-five degrees, then adjust the speed.</p></section></div>",
       "css": ".ds-stage { display: grid; place-items: start end; padding: 24px; background: #243e36; border-radius: 16px; } .ds-lab { display: grid; gap: 10px; width: 300px; padding: 14px 14px 14px 16px; border-radius: 22px; background: #fff9eef0; color: #243e36; box-shadow: 0 16px 40px -20px #000c; font-family: Nunito, sans-serif; } .ds-lab .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; } .ds-lab h2 { margin: 0; font: 800 22px/1.12 Baloo, sans-serif; } .ds-lab .head button { cursor: pointer; min-height: 44px; min-width: 44px; padding: 0; border: 0; border-radius: 999px; background: #d5e7c9; color: #243e36; display: grid; place-items: center; } .ds-lab .head button svg { width: 20px; height: 20px; } .ds-lab .variable { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; padding: 12px 2px 14px; border-bottom: 1px solid #e3d8c3; } .ds-lab .variable label { display: flex; flex-direction: column; gap: 6px; font: 800 15px/1.2 Baloo, sans-serif; } .ds-lab .variable output { font: 700 15px/1.2 Nunito, sans-serif; color: #245e4e; font-variant-numeric: tabular-nums; } .ds-lab .num { grid-column: 2; grid-row: 1; align-self: center; cursor: pointer; min-height: 44px; padding: 0 12px; border: 2px solid #d6decb; border-radius: 999px; background: transparent; color: #245e4e; font: 800 16px/1 Baloo, sans-serif; } .ds-lab input[type='range'] { grid-column: 1 / -1; min-height: 44px; width: 100%; margin: 0; accent-color: #245e4e; } .ds-lab .challenge { margin: 10px 0 0; padding: 12px 14px; border-radius: 16px; font-size: 15px; line-height: 1.4; color: #51675c; } .ds-lab .challenge.active { background: #f7d76e; color: #243e36; } .ds-lab .challenge strong { display: block; font: 800 17px/1.3 Baloo, sans-serif; } .ds-lab button:focus-visible, .ds-lab input:focus-visible { outline: 4px solid #f7d76e; outline-offset: 3px; }"
+    },
+    {
+      "name": "Learn Subject Control",
+      "kind": "button",
+      "refersTo": "learn-control",
+      "description": "Cream rectangular subject action; the pressed animal sound uses sunshine.",
+      "html": "<button class=\"ds-learn-control\" type=\"button\" aria-pressed=\"false\">Hear cow</button><button class=\"ds-learn-control\" type=\"button\" aria-pressed=\"true\">Hear parrot</button>",
+      "css": ".ds-learn-control { min-height: 44px; padding: 10px 16px; border: 0; border-radius: 12px; color: var(--ink, #243e36); background: var(--ground, #fff9ee); font: 800 15px/1.2 Nunito, sans-serif; cursor: pointer; } .ds-learn-control[aria-pressed=\"true\"] { background: var(--yellow, #f7d76e); } .ds-learn-control:focus-visible { outline: 4px solid var(--yellow, #f7d76e); outline-offset: 3px; } .ds-learn-control:hover { background: var(--ground, #fff9ee); } .ds-learn-control[aria-pressed=\"true\"]:hover { background: var(--yellow, #f7d76e); } .ds-learn-control:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Learn Consequence",
+      "kind": "card",
+      "refersTo": "learn-consequence",
+      "description": "The actual game consequence and tabular progress below play; no simulated reward claim.",
+      "html": "<footer class=\"ds-learn-consequence\"><p>You helped the oxygen reach the heart.</p><div class=\"ds-learn-progress\"><span>1 / 4</span><progress value=\"1\" max=\"4\" aria-label=\"Game progress\"></progress></div></footer>",
+      "css": ".ds-learn-consequence { display: flex; align-items: center; gap: 20px; margin: 10px 18px; padding: 12px 18px; border-radius: 16px; background: #fff9eef5; color: var(--ink, #243e36); min-height: 64px; } .ds-learn-consequence p { margin: 0; flex: 1; max-width: 75ch; font: 800 16px/1.35 Nunito, sans-serif; } .ds-learn-progress { display: grid; justify-items: end; gap: 5px; flex-shrink: 0; min-width: 80px; } .ds-learn-progress span { font: 800 17px/1 Baloo, sans-serif; font-variant-numeric: tabular-nums; } .ds-learn-progress progress { accent-color: var(--accent, #245e4e); width: 90px; height: 9px; } @media (max-width: 700px) { .ds-learn-consequence { flex-wrap: wrap; gap: 8px; margin: 10px 12px; padding: 12px; } .ds-learn-consequence p { flex-basis: 100%; font-size: 15px; } .ds-learn-progress { display: flex; align-items: center; gap: 12px; } }"
+    },
+    {
+      "name": "Learn Story Primary",
+      "kind": "button",
+      "refersTo": "learn-story-primary",
+      "description": "Start or continue an authored chapter.",
+      "html": "<button class=\"ds-story-primary\" type=\"button\">Let’s help</button>",
+      "css": ".ds-story-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 16px; border: 0; border-radius: 12px; background: var(--accent, #245e4e); color: var(--ground, #fff9ee); font: 800 15px/1.2 Nunito, sans-serif; cursor: pointer; } .ds-story-primary:focus-visible { outline: 3px solid #c88643; outline-offset: 4px; } .ds-story-primary:disabled { opacity: 0.6; cursor: default; }"
+    },
+    {
+      "name": "Learn Story Secondary",
+      "kind": "button",
+      "refersTo": "learn-story-secondary",
+      "description": "Optional guide or secondary chapter action.",
+      "html": "<button class=\"ds-story-secondary\" type=\"button\">Call Twinkle</button>",
+      "css": ".ds-story-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 16px; border: 0; border-radius: 12px; background: #e2ead8; color: var(--ink, #243e36); font: 800 15px/1.2 Nunito, sans-serif; cursor: pointer; } .ds-story-secondary:focus-visible { outline: 3px solid #c88643; outline-offset: 4px; } .ds-story-secondary:disabled { opacity: 0.6; cursor: default; }"
+    },
+    {
+      "name": "Learn Story Dialogue",
+      "kind": "card",
+      "refersTo": "learn-story-dialogue",
+      "description": "A readable opening or ending over the painted world, with a named chapter and bilingual story copy.",
+      "html": "<section class=\"ds-story-dialogue\"><h3>Tooth Town’s big picnic</h3><p>Help your friend get ready for the picnic.</p></section>",
+      "css": ".ds-story-dialogue { max-width: 65ch; padding: clamp(20px, 2.5cqw, 36px); border-radius: 16px; background: #fff9eef5; color: var(--ink, #243e36); } .ds-story-dialogue h3 { margin: 0 0 12px; font: 800 clamp(24px, 3cqw, 38px)/1.08 Baloo, sans-serif; text-wrap: balance; } .ds-story-dialogue p { margin: 0 0 10px; font: 700 clamp(15px, 1.45cqw, 18px)/1.45 Nunito, sans-serif; } @media(max-width: 700px) { .ds-story-dialogue { padding: 20px; } .ds-story-dialogue h3 { font-size: 27px; } .ds-story-dialogue p { font-size: 16px; } }"
+    },
+    {
+      "name": "Learn Story Mission",
+      "kind": "custom",
+      "refersTo": "learn-story-mission",
+      "description": "The play heading keeps a separate cream reading surface over dark environments.",
+      "html": "<header class=\"ds-story-mission\"><h3>Help your friend</h3><p>Follow the chapter’s goal and see what changes.</p></header>",
+      "css": ".ds-story-mission { margin: 0 18px 8px; padding: 12px 16px; border-radius: 12px; background: #fff9eef2; color: var(--ink, #243e36); } .ds-story-mission h3 { margin: 0; font: 800 clamp(23px, 2.7cqw, 34px)/1.08 Baloo, sans-serif; } .ds-story-mission p { max-width: 65ch; margin: 4px 0 0; font: 800 15px/1.3 Nunito, sans-serif; } @media(max-width: 700px) { .ds-story-mission { margin: 2px 12px 8px; padding: 10px 12px; } .ds-story-mission h3 { font-size: 25px; } }"
     }
   ],
   "narrative": {
     "northStar": "The Theatre Built From the Mark",
-    "overview": "Just Imagine has one palette and two rooms. The parent room is a calm, paper-coloured page: warm cream ground (#fff9ee), deep green foreground (#243e36), forest actions (#245e4e), muted leaf, ochre and clay accents. Locally hosted Baloo provides soft rounded headings; Nunito provides readable body copy. The landing composition pairs a large question with an abstract geometric play window. It makes no claim that geometric placeholders are final illustration.\n\nThe child room is the same palette turned inside out. The Studio is a stage, not a page: the forest green that is ink on the parent side becomes the wings and floor, and the cream that is ground on the parent side becomes the pills, captions and sheets that float at the stage edges. The Dream Launch mark (forest tile, cream cloud, peach arc, sunshine star) supplies the whole stage vocabulary: forest for the house, cream for anything you can touch, peach for warmth, sunshine for anything live. Six authored SVG characters carry the mark's round geometry (big eyes, a mouth driven by the voice level, a blink every few seconds) and stand in for external Rive assets with identical mounting.\n\nThe child and parent worlds share typography and semantic colors. Motion duration is a token and becomes zero with reduced-motion preferences. Physics remains interactive. Parent forms and all actionable child controls retain visible keyboard focus. Browser selection, progress meters and range inputs use the same palette.",
+    "overview": "Just Imagine has a default Forest palette and two rooms. The parent room is a calm, paper-coloured page: warm cream ground (#fff9ee), deep green foreground (#243e36), forest actions (#245e4e), muted leaf, ochre and clay accents. Locally hosted Baloo provides soft rounded headings; Nunito provides readable body copy. The landing composition pairs a large question with an abstract geometric play window. It makes no claim that geometric placeholders are final illustration.\n\nThe child room is the same palette turned inside out. The Studio is a stage, not a page: the forest green that is ink on the parent side becomes the wings and floor, and the cream that is ground on the parent side becomes the pills, captions and sheets that float at the stage edges. The Dream Launch mark (forest tile, cream cloud, peach arc, sunshine star) supplies the whole stage vocabulary: forest for the house, cream for anything you can touch, peach for warmth, sunshine for anything live. The six preset friends and guides now carry their established identities into tactile registered raster poses inside the same SVG slots; optional external Rive assets retain their existing mounting path.\n\nLearning Worlds adds the user-approved Tooth Town craft to this theatre: tactile sculpted characters, expressive acting poses, soft key and rim lighting, and eight active cinematic environments across nine story adventures. The warm cream-and-forest shell stays familiar. Learn’s rounded rectangular controls, painted scenery and scene gradients remain scoped to Learn. The Tooth Town acting standard now also covers the six preset Studio friends/guides and eight pets through shared registered raster presentation; identities, mounting slots and the optional Rive path remain intact.\n\nThe child and parent worlds share typography and semantic colors. Interface transition duration becomes zero with reduced-motion preferences; shared actor presentation retains semantic poses and audio-driven speech while removing repeated gestures and idle blinks. Physics remains interactive. Parent forms and all actionable child controls retain visible keyboard focus. Browser selection, progress meters and range inputs use the same palette.\n\nThe user authorized the Forest/Ocean/Terracotta preset extension and coordinated recolouring of existing brand/browser/install icons. Semantic interface roles change together; tactile artwork and brand geometry remain. Shared rounded-stroke controls replace decorative sparkle UI. Idle Studio portraits have no particle orb; live feedback stays inside its portrait column. Appearance uses a separate draft preview and explicit audited, revision-checked publication.",
     "keyCharacteristics": [
-      "One palette, inverted between rooms: cream page with forest ink for parents; forest stage with cream pills for children.",
+      "One coordinated palette, inverted between rooms: Forest is the warm cream-and-forest default; authorized Ocean and Terracotta presets preserve the same semantic roles.",
       "Baloo for anything that names (headings, dial values, chip titles, answer buttons); Nunito for anything that explains (body, captions, pill labels).",
       "Sunshine (#f7d76e) means live: mic ring, speaking friend's ring, pressed pill, connected dot, active challenge, spell banner.",
       "Fully rounded pills on the stage; 10 to 16 px corners in the parent room.",
       "Soft offset shadows cast toward the floor; no borders on the stage, quiet 1 px dividers in the parent room.",
-      "One authored motion moment (the summon rise with sparkles); everything else is a short state transition or a breathing pulse."
+      "The Studio summon remains its authored entrance; predefined Learn characters, preset friends/guides and pets share anchored pose changes, while Learn retains distance-driven locomotion and causal game feedback.",
+      "Tooth Town’s tactile character craft extends across predefined actors; cream controls and forest structure keep the shared interface legible through stories, Studio, navigation and pets."
     ],
     "rules": [
       {
@@ -502,7 +842,7 @@
       },
       {
         "name": "The Inverted Rooms Rule",
-        "body": "Forest ink and cream ground are the same two colours in both rooms; the parent room sets ink on cream and the stage sets cream on ink. Never introduce a third page colour to tell the rooms apart.",
+        "body": "The selected preset supplies both rooms: ink on ground for parents, ground on ink for the stage. Forest remains the default; publish Ocean or Terracotta as coordinated presets, not page-specific palettes.",
         "section": "colors"
       },
       {
@@ -539,26 +879,40 @@
         "name": "The Line-Or-Shadow Rule",
         "body": "The parent room separates with lines and never with shadows on content; the stage separates with shadows and never with lines. The single exception is the 1 px cream line at 13% along the top of the cast strip.",
         "section": "elevation"
+      },
+      {
+        "name": "The Acting-Sheet Rule",
+        "body": "Keep each character’s identity, proportions, scale and registration consistent across its states. Shared gesture poses use their registered bottom anchor; dedicated swimming/flying locomotion uses a body center. Select one opaque authored pose and route speech to its playback owner; whole-character bobbing and blended faces do not fulfill the acting direction. Bound requested gestures, pause invisible/hidden actor updates and retain semantic states under reduced motion. Advance travel locomotion by actual distance, stop it at rest and preserve legal route corners. Keep crops within their cells and retain the separate coach matching sheet’s measured row bounds.",
+        "section": "components"
+      },
+      {
+        "name": "The Causal-Play Rule",
+        "body": "A learning scene must expose a direct action and a visible consequence. Artwork supplies atmosphere; native hit targets, paths, phase geometry and progress carry the game’s meaning. A facts panel is an optional conversation, not the primary game.",
+        "section": "components"
       }
     ],
     "dos": [
-      "Do keep the two rooms on the same two colours: ink on cream for parents, cream on ink for the stage.",
+      "Do keep both rooms on the selected semantic palette: ink on ground for parents, ground on ink for the stage; Forest remains the warm default.",
       "Do use sunshine (#f7d76e) only for what is live, pressed or just happened, and peach (#f9ceb0) for warmth and the softer option.",
       "Do use Baloo 800 for anything named or chosen and Nunito for anything explained; keep everything sentence case.",
       "Do make stage controls full pills with floor shadows (negative spread, black at low alpha) and no borders; keep parent controls at 10 to 16 px corners with 1 px lines.",
       "Do keep targets at 44 px in the parent room, 52 px for stage pills and 64 px for the child's answers and keypad keys; every actionable control keeps a visible focus ring (ochre on cream, sunshine on forest).",
       "Do let the world fill the viewport in the Studio with chrome floating at a 16 px edge and the lab beside the world, never over it.",
-      "Do ease every entrance with cubic-bezier(0.22, 1, 0.36, 1), run loops as slow breathing pulses, and zero all of it under prefers-reduced-motion.",
-      "Do mount character art in a fixed square slot so authored SVG and Rive swap without layout change."
+      "Do ease Studio entrances with `cubic-bezier(0.22, 1, 0.36, 1)`; keep acting discrete and requested gestures bounded, with semantic poses and feedback retained under `prefers-reduced-motion`.",
+      "Do mount registered preset actor art in the existing fixed square SVG slot so optional Rive assets swap without layout change.",
+      "Do use shared registered raster poses for predefined actors, preserve Tooth Town and coach matching poses, tie travel locomotion to actual distance, and keep Pip in its reserved dock tile.",
+      "Do retain the cream-and-forest Learn shell while generated art supplies tactile material and light."
     ],
     "donts": [
       "Don't put a heading, a card frame or a scrolling column over or around the world in the Studio.",
-      "Don't use yellow on a resting surface, or any gradient fill on a surface; the only gradients are the listening spotlight and the spell burst.",
+      "Don't use yellow on a resting interface surface. Learn paintings may contain their subjects’ natural colors; its scene washes are the documented readability exception to the Studio’s spotlight-and-spell gradient guidance.",
       "Don't add uppercase labels, letter-spaced eyebrows or kicker lines; small labels get Baloo weight and a darker colour instead.",
       "Don't use hard offset shadows, even glows or coloured halos on resting elements.",
-      "Don't add a third accent or a new page colour to distinguish screens; tonal steps of cream and forest do that.",
-      "Don't present the geometric landing window or the authored SVG cast as finished illustration; the final painted and Rive assets are external.",
-      "Don't replace inline SVG icons with glyph fonts or emoji in chrome."
+      "Don’t add page-specific palettes or freeform CSS themes; the authorized Forest, Ocean and Terracotta presets change existing roles together.",
+      "Don't present the geometric landing window or local registered raster cast as final external Rive assets. Delivered local artwork has its own documented limits.",
+      "Don't describe sprite acting as finished film, a continuous skeletal rig or phoneme lip-sync, or claim pose coverage for single-image photos/outfits or old generated worlds.",
+      "Don't replace inline SVG icons with glyph fonts or emoji in chrome.",
+      "Do not reintroduce decorative sparkle control symbols, summon particles, guide-name sparks or a voice-off particle halo; retain semantic stars and purposeful contained voice feedback."
     ]
   }
 }

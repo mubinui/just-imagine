@@ -1,0 +1,393 @@
+{
+  "id": "space_galaxy",
+  "section": "space",
+  "title": "Our Cosmic Neighbourhood",
+  "titleBn": "আমাদের মহাজাগতিক পাড়া",
+  "notes": "Authored bilingual educational play. Sources: docs/art/learning-content-sources.md. Diagrams and characters are simplified, not to anatomical scale.",
+  "scene": {
+    "schemaVersion": 1,
+    "worldId": "w_pack_space_galaxy",
+    "tier": "playground",
+    "title": "Our Cosmic Neighbourhood",
+    "theme": {
+      "paletteHint": "warm forest, cream, peach and soft world colours",
+      "timeOfDay": "day",
+      "backdropDescription": "Inside the Body with warm layers, a clear central play space and calm forest framing",
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
+    },
+    "environment": {
+      "gravity": {
+        "x": 0,
+        "y": 0
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
+      "medium": "air",
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
+      "seed": 11
+    },
+    "materials": {
+      "grass": {
+        "density": 1,
+        "friction": 0.8,
+        "restitution": 0.1,
+        "softness": 0,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "fur": {
+        "density": 0.4,
+        "friction": 0.7,
+        "restitution": 0.2,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "feather": {
+        "density": 0.08,
+        "friction": 0.7,
+        "restitution": 0.1,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "wood": {
+        "density": 0.6,
+        "friction": 0.5,
+        "restitution": 0.3,
+        "softness": 0.05,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "rubber": {
+        "density": 1.1,
+        "friction": 0.8,
+        "restitution": 0.8,
+        "softness": 0.2,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "cloud": {
+        "density": 0.06,
+        "friction": 0.9,
+        "restitution": 0.1,
+        "softness": 0.4,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": true
+      }
+    },
+    "entities": [
+      {
+        "id": "ground",
+        "kind": "ground",
+        "name": "farmyard",
+        "description": "grassy farmyard ground with a dirt path and tiny daisies",
+        "asset": {
+          "url": "",
+          "width": 1920,
+          "height": 128,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "box",
+          "material": "grass",
+          "isStatic": true,
+          "size": {
+            "width": 16,
+            "height": 1
+          }
+        },
+        "transform": {
+          "x": 8,
+          "y": 8.5,
+          "rotation": 0
+        },
+        "tags": ["ground"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "galaxy",
+        "kind": "sprite",
+        "name": "Milly Way",
+        "description": "A violet spiral galaxy with a warm luminous centre and a little friendly face.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 2.6,
+            "height": 2.6
+          }
+        },
+        "transform": {
+          "x": 3,
+          "y": 4.5,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "moon",
+        "kind": "sprite",
+        "name": "Moonbeam",
+        "description": "A pearl-grey Moon with craters, a sleepy cap and a gentle smile.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 2.6,
+            "height": 2.6
+          }
+        },
+        "transform": {
+          "x": 8,
+          "y": 5.5,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "star",
+        "kind": "sprite",
+        "name": "Stella Star",
+        "description": "A warm gold star character with rounded rays and bright curious eyes.",
+        "asset": {
+          "url": "",
+          "width": 512,
+          "height": 512,
+          "status": "placeholder"
+        },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": {
+            "width": 2.6,
+            "height": 2.6
+          }
+        },
+        "transform": {
+          "x": 13,
+          "y": 4.5,
+          "rotation": 0
+        },
+        "tags": ["learning_friend"],
+        "behaviors": [],
+        "pretend": false
+      }
+    ],
+    "joints": [],
+    "rules": [],
+    "learning": {
+      "concepts": ["gravity"],
+      "prediction": {
+        "question": "If you throw the ball up high, will it come back down?",
+        "options": ["yes, it comes down", "no, it stays up"],
+        "correctIndex": 0,
+        "concept": "gravity"
+      },
+      "dials": [],
+      "heroEntityId": "galaxy",
+      "mode": "incidental"
+    },
+    "narration": {
+      "intro": "Tap a friend, try an activity, or call them to ask your own questions."
+    }
+  },
+  "characters": [
+    {
+      "id": "galaxy",
+      "name": "Milly Way",
+      "nameBn": "আকাশগঙ্গা মিলি",
+      "look": "A violet spiral galaxy with a warm luminous centre and a little friendly face.",
+      "voice": "Sulafat",
+      "personality": "A funny, welcoming cosmic neighbour who distinguishes real science from pretend play and never implies space is safe to visit without protection.",
+      "facts": [
+        "I am the Milky Way, our home galaxy.",
+        "A galaxy contains stars, gas, dust and dark matter.",
+        "Our Sun is one of my many stars.",
+        "The solar system is only a small part of me.",
+        "Gravity helps hold galaxies together.",
+        "There are many other galaxies beyond me."
+      ],
+      "factsBn": [
+        "আমি আকাশগঙ্গা, আমাদের নিজস্ব ছায়াপথ।",
+        "ছায়াপথে তারা, গ্যাস, ধুলো ও ডার্ক ম্যাটার থাকে।",
+        "সূর্য আমার অনেক তারার একটি।",
+        "সৌরজগৎ আমার খুব ছোট একটি অংশ।",
+        "মাধ্যাকর্ষণ ছায়াপথকে একসঙ্গে রাখতে সাহায্য করে।",
+        "আমার বাইরেও অনেক ছায়াপথ আছে।"
+      ],
+      "catchphrase": "My address book is enormous!",
+      "catchphraseBn": "আমার ঠিকানার খাতা বিশাল!",
+      "funnyAngle": "Calls the solar system a very tiny address inside a huge cosmic neighbourhood."
+    },
+    {
+      "id": "moon",
+      "name": "Moonbeam",
+      "nameBn": "চাঁদ মামা",
+      "look": "A pearl-grey Moon with craters, a sleepy cap and a gentle smile.",
+      "voice": "Sulafat",
+      "personality": "A funny, welcoming cosmic neighbour who distinguishes real science from pretend play and never implies space is safe to visit without protection.",
+      "facts": [
+        "I am Earth’s natural satellite.",
+        "I travel around Earth.",
+        "I shine by reflecting sunlight.",
+        "My phases show different amounts of my sunlit half.",
+        "I have much weaker surface gravity than Earth.",
+        "My surface has many impact craters."
+      ],
+      "factsBn": [
+        "আমি পৃথিবীর প্রাকৃতিক উপগ্রহ।",
+        "আমি পৃথিবীকে প্রদক্ষিণ করি।",
+        "সূর্যের আলো প্রতিফলিত করে আমি উজ্জ্বল হই।",
+        "কলায় আমার আলোকিত অর্ধেকের ভিন্ন অংশ দেখা যায়।",
+        "আমার পৃষ্ঠের মাধ্যাকর্ষণ পৃথিবীর চেয়ে কম।",
+        "আমার পৃষ্ঠে অনেক আঘাতের গর্ত আছে।"
+      ],
+      "catchphrase": "I borrow my night-light!",
+      "catchphraseBn": "আমার আলো ধার করা!",
+      "funnyAngle": "Calls the solar system a very tiny address inside a huge cosmic neighbourhood."
+    },
+    {
+      "id": "star",
+      "name": "Stella Star",
+      "nameBn": "তারা স্টেলা",
+      "look": "A warm gold star character with rounded rays and bright curious eyes.",
+      "voice": "Sulafat",
+      "personality": "A funny, welcoming cosmic neighbour who distinguishes real science from pretend play and never implies space is safe to visit without protection.",
+      "facts": [
+        "A star is a huge glowing ball of hot gas and plasma.",
+        "Stars make energy in their cores through nuclear fusion.",
+        "The Sun is the closest star to Earth.",
+        "Other stars look tiny because they are very far away.",
+        "Stars can have different colours and sizes.",
+        "The points on my cartoon are pretend; real stars are roughly round."
+      ],
+      "factsBn": [
+        "তারা গরম গ্যাস ও প্লাজমার বিশাল উজ্জ্বল গোলক।",
+        "কেন্দ্রে নিউক্লীয় সংযোজনে তারায় শক্তি তৈরি হয়।",
+        "সূর্য পৃথিবীর সবচেয়ে কাছের তারা।",
+        "অন্য তারা দূরে বলে ছোট দেখায়।",
+        "তারার রং ও মাপ আলাদা হতে পারে।",
+        "আমার কার্টুনের কোণগুলো কল্পনা; আসল তারা মোটামুটি গোল।"
+      ],
+      "catchphrase": "Big sparkle, very far away!",
+      "catchphraseBn": "অনেক দূরের ঝিলিক!",
+      "funnyAngle": "Calls the solar system a very tiny address inside a huge cosmic neighbourhood."
+    }
+  ],
+  "hotspots": [
+    {
+      "entityId": "galaxy",
+      "characterId": "galaxy",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "moon",
+      "characterId": "moon",
+      "comesCloser": "swoop"
+    },
+    {
+      "entityId": "star",
+      "characterId": "star",
+      "comesCloser": "swoop"
+    }
+  ],
+  "sounds": [],
+  "challenges": [
+    {
+      "id": "ch_galaxy_01",
+      "characterId": "galaxy",
+      "question": "Is our solar system bigger or smaller than its home galaxy?",
+      "questionBn": "আমাদের সৌরজগৎ তার ছায়াপথের চেয়ে বড় না ছোট?",
+      "answerKey": "smaller",
+      "accepted": ["smaller", "much smaller", "small", "ছোট", "অনেক ছোট", "choto"],
+      "hint": "A house fits inside a city.",
+      "hintBn": "একটা বাড়ি একটা শহরের মধ্যে থাকে।",
+      "points": 3
+    },
+    {
+      "id": "ch_moon_01",
+      "characterId": "moon",
+      "question": "Where does the light we see from the Moon originally come from?",
+      "questionBn": "চাঁদের দেখা আলো মূলত কোথা থেকে আসে?",
+      "answerKey": "Sun",
+      "accepted": ["sun", "the sun", "sunlight", "সূর্য", "সূর্যের আলো", "shurjo"],
+      "hint": "Our nearest star lights my surface.",
+      "hintBn": "আমাদের কাছের তারা আমার গায়ে আলো দেয়।",
+      "points": 3
+    },
+    {
+      "id": "ch_cosmic_03",
+      "characterId": "star",
+      "question": "Is the Sun a star or a planet?",
+      "questionBn": "সূর্য তারা নাকি গ্রহ?",
+      "answerKey": "star",
+      "accepted": ["star", "a star", "it is a star", "তারা", "নক্ষত্র", "tara"],
+      "hint": "It makes its own light.",
+      "hintBn": "এটি নিজেই আলো তৈরি করে।",
+      "points": 3
+    }
+  ],
+  "activities": [
+    {
+      "characterId": "galaxy",
+      "kind": "orbit",
+      "title": "Trace our place in space",
+      "titleBn": "মহাকাশে আমাদের পথ দেখো",
+      "explanation": "A moon orbits a planet; planets orbit stars. A solar system is a small part of a galaxy. This diagram is not to scale.",
+      "explanationBn": "চাঁদ গ্রহকে ঘোরে; গ্রহ তারাকে ঘোরে। সৌরজগৎ ছায়াপথের ছোট অংশ। ছবিটি প্রকৃত মাপে নয়।"
+    },
+    {
+      "characterId": "moon",
+      "kind": "orbit",
+      "title": "Trace our place in space",
+      "titleBn": "মহাকাশে আমাদের পথ দেখো",
+      "explanation": "A moon orbits a planet; planets orbit stars. A solar system is a small part of a galaxy. This diagram is not to scale.",
+      "explanationBn": "চাঁদ গ্রহকে ঘোরে; গ্রহ তারাকে ঘোরে। সৌরজগৎ ছায়াপথের ছোট অংশ। ছবিটি প্রকৃত মাপে নয়।"
+    },
+    {
+      "characterId": "star",
+      "kind": "orbit",
+      "title": "Trace our place in space",
+      "titleBn": "মহাকাশে আমাদের পথ দেখো",
+      "explanation": "A moon orbits a planet; planets orbit stars. A solar system is a small part of a galaxy. This diagram is not to scale.",
+      "explanationBn": "চাঁদ গ্রহকে ঘোরে; গ্রহ তারাকে ঘোরে। সৌরজগৎ ছায়াপথের ছোট অংশ। ছবিটি প্রকৃত মাপে নয়।"
+    }
+  ]
+}

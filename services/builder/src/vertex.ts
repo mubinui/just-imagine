@@ -86,7 +86,22 @@ export class VertexModels {
     if (!response.text) throw new Error('Model returned no structured response');
     return JSON.parse(response.text) as unknown;
   }
-  async image(prompt: string, hero: boolean, backdrop = false): Promise<Buffer> {
+  async story(prompt: string): Promise<unknown> {
+    const response = await this.client.models.generateContent({
+      model: this.config.fastModel,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        maxOutputTokens: 16384,
+        safetySettings: SAFETY_SETTINGS,
+        abortSignal: AbortSignal.timeout(65000),
+        httpOptions: { timeout: 60000, retryOptions: { attempts: 1 } },
+      },
+    });
+    if (!response.text) throw new Error('No story returned');
+    return JSON.parse(response.text) as unknown;
+  }
+  async image(prompt: string, hero: boolean, backdrop = false, bounded = false): Promise<Buffer> {
     const response = await this.client.models.generateContent({
       model: hero ? this.config.heroModel : this.config.propModel,
       contents: prompt,
@@ -96,7 +111,8 @@ export class VertexModels {
           ? { aspectRatio: '16:9', imageSize: '2K' }
           : { aspectRatio: '1:1', imageSize: '1K' },
         safetySettings: SAFETY_SETTINGS,
-        httpOptions: { timeout: 60000 },
+        ...(bounded ? { abortSignal: AbortSignal.timeout(65000) } : {}),
+        httpOptions: { timeout: 60000, ...(bounded ? { retryOptions: { attempts: 1 } } : {}) },
       },
     });
     const image = response.candidates

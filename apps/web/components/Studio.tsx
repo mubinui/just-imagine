@@ -1,6 +1,8 @@
 'use client';
 import '../app/studio.css';
 import { PlayActions } from './studio/PlayActions';
+import { WorldCast } from './studio/WorldCast';
+import { CreationActions } from './studio/CreationActions';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -48,7 +50,16 @@ import {
 } from './studio/parts';
 import { LabDrawer } from './studio/LabDrawer';
 import { Dock, StageHeader } from './studio/Dock';
+import { PetFollower } from './pets/PetFollower';
+import { PetSlot } from './pets/PetSlot';
 import { GenerationShow } from './studio/GenerationShow';
+import { GameHud } from './studio/GameHud';
+import {
+  mountGameBridge,
+  type GameAsk,
+  type GameBridge,
+  type GameHud as GameHudState,
+} from '../lib/game-bridge';
 
 type Prediction = Extract<ServerMessage, { type: 'prediction' }>;
 type Discovery = Extract<ServerMessage, { type: 'discovery' }>;
@@ -76,6 +87,11 @@ export function Studio() {
   const discovered = useRef(new Set<string>());
   const hello = useRef<Hello | undefined>(undefined);
   const pendingIntent = useRef<'newGame' | undefined>(undefined);
+  const pendingCharacter = useRef<string | undefined>(undefined);
+  const pendingCreative = useRef<
+    Extract<ClientMessage, { type: 'text' | 'undoWorld' }> | undefined
+  >(undefined);
+  const [worldCharacter, setWorldCharacter] = useState<string>();
   const [child, setChild] = useState<ChildResponse>(),
     [fixture, setFixture] = useState<FixtureWorldKey>('jellyDragon'),
     [worldId, setWorldId] = useState<string>(),
@@ -101,6 +117,18 @@ export function Studio() {
     [dials, setDials] = useState<Record<string, string>>({}),
     [labOpen, setLabOpen] = useState(true),
     [captions, setCaptions] = useState(true);
+  // Generated games: the engine generation the bridge is bound to, and the HUD it reports.
+  const gameBridge = useRef<GameBridge | undefined>(undefined);
+  const liveRef = useRef(false);
+  const [engineEpoch, setEngineEpoch] = useState(0),
+    [gameRun, setGameRun] = useState(0),
+    [gameHud, setGameHud] = useState<GameHudState>(),
+    [gameAsk, setGameAsk] = useState<GameAsk>(),
+    [gameTangled, setGameTangled] = useState(false);
+  const worldRef = useRef(world);
+  useEffect(() => {
+    worldRef.current = world;
+  }, [world]);
   const selectedWorld = useRef<string | undefined>(undefined);
   const clearPending = () => {
     clearTimeout(variableTimer.current);
@@ -112,6 +140,8 @@ export function Studio() {
       selectedWorld.current = id;
       clearPending();
       setWorld(undefined);
+      setWorldCharacter(undefined);
+      pendingCharacter.current = undefined;
       setPrediction(undefined);
       setDiscovery(undefined);
       setChallenge('');
@@ -134,6 +164,7 @@ export function Studio() {
     if (!message) return;
     setError('');
     try {
+      await getVoice().unlockAudio();
       const selected = ChildResponseSchema.parse(
         JSON.parse(localStorage.getItem('ji-child') || 'null'),
       );
@@ -147,7 +178,7 @@ export function Studio() {
     const parsed = ChildResponseSchema.safeParse(
       JSON.parse(localStorage.getItem('ji-child') || 'null'),
     );
-    if (!parsed.success || !getVoice().audio.unlocked) {
+    if (!parsed.success) {
       router.replace('/play');
       return;
     }
@@ -185,10 +216,27 @@ export function Studio() {
     const voice = getVoice();
     setStatus(voice.status);
     const unsubscribeStatus = voice.subscribeStatus(setStatus);
+    const unsubscribeMouth = voice.audio.subscribeMouth((value) => {
+      setSpeaking(value > 0.06 && voice.speakerId === voice.session?.characterId);
+      getMixer().setSpeaking(value > 0.06);
+    });
     const timers: ReturnType<typeof setTimeout>[] = [];
     const unsubscribe = voice.subscribe((message) => {
       switch (message.type) {
+        case 'worldCharacter':
+          setWorldCharacter(message.entityId ?? undefined);
+          setCaption('');
+          break;
         case 'ready':
+          if (pendingCreative.current) {
+            const request = pendingCreative.current;
+            pendingCreative.current = undefined;
+            getVoice().send(request);
+          }
+          if (pendingCharacter.current) {
+            getVoice().send({ type: 'talkToCharacter', entityId: pendingCharacter.current });
+            pendingCharacter.current = undefined;
+          }
           if (message.worldId && !env.fake) selectWorldId(message.worldId);
           setCharacter(message.characterId);
           if (pendingIntent.current === 'newGame' && !env.fake) {
@@ -206,6 +254,15 @@ export function Studio() {
           setCaption('');
           break;
         case 'worldJob': {
+          if (message.status === 'failed') {
+            setError(
+              c.language === 'bn'
+                ? 'তোমার দুনিয়া তৈরি শেষ হয়নি। আবার চেষ্টা করো।'
+                : 'Your world could not finish. Please try making it again.',
+            );
+            if (worldRef.current?.id === message.worldId && worldRef.current.status !== 'ready')
+              selectWorldId(undefined);
+          }
           const heardAt = Date.now();
           setShowStartedAt((t) => (message.status === 'queued' ? heardAt : (t ?? heardAt)));
           setJob(message.status);
@@ -224,7 +281,8 @@ export function Studio() {
           break;
         case 'prediction':
           // Preview predictions belong to the selected fixture, not the socket's canned timeline.
-          if (!env.fake) setPrediction(message);
+          if (!env.fake && worldRef.current?.doc.learning.mode !== 'incidental')
+            setPrediction(message);
           break;
         case 'discovery':
           // Earn preview cards through the real local engine's concept events.
@@ -286,6 +344,7 @@ export function Studio() {
       timers.forEach(clearTimeout);
       unsubscribe();
       unsubscribeStatus();
+      unsubscribeMouth();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
@@ -296,6 +355,7 @@ export function Studio() {
       worldId,
       (doc) => {
         setWorld(doc);
+        if (doc.doc.learning.mode === 'incidental') setPrediction(undefined);
         setShowStartedAt(undefined);
         if (doc.status === 'ready') setJob('ready');
         const old = previousDoc.current;
@@ -317,7 +377,8 @@ export function Studio() {
         if (env.fake && old?.id !== doc.id) {
           setCaption(doc.doc.narration.intro);
           const p = doc.doc.learning.prediction;
-          if (p) setPrediction({ type: 'prediction', question: p.question, options: p.options });
+          if (p && !doc.doc.game)
+            setPrediction({ type: 'prediction', question: p.question, options: p.options });
         }
       },
       (e) => setError(e.message),
@@ -329,10 +390,13 @@ export function Studio() {
     const t = setTimeout(() => setDiscovery(undefined), DISCOVERY_MS);
     return () => clearTimeout(t);
   }, [discovery, child, worldId]);
-  const worldRef = useRef(world);
-  useEffect(() => {
-    worldRef.current = world;
-  }, [world]);
+  function meetCharacter(entityId: string) {
+    if (getVoice().status === 'connected') send({ type: 'talkToCharacter', entityId });
+    else {
+      pendingCharacter.current = entityId;
+      void connectVoice();
+    }
+  }
   const eventRef = useRef<(event: EngineEvent) => void>(() => {});
   useEffect(() => {
     eventRef.current = (event) => {
@@ -343,6 +407,14 @@ export function Studio() {
           ...(event.concept ? { concept: event.concept } : {}),
         });
       if (event.type === 'say' && event.say) setCaption(event.say);
+      if (
+        event.type === 'tap' &&
+        event.target &&
+        worldRef.current?.doc.entities.some((e) => e.id === event.target && e.character)
+      ) {
+        meetCharacter(event.target);
+        return;
+      }
       if (['tap', 'drag', 'flick'].includes(event.type) && event.target)
         send({
           type: 'interaction',
@@ -392,9 +464,6 @@ export function Studio() {
     if (musicTheme) getMixer().playMusic(musicTheme);
   }, [musicTheme]);
   useEffect(() => {
-    getMixer().setSpeaking(speaking);
-  }, [speaking]);
-  useEffect(() => {
     if (!host.current || !hasWorld) return;
     let active = true;
     const target = host.current;
@@ -411,6 +480,7 @@ export function Studio() {
         }
         engine.current = mounted;
         if (worldRef.current) mounted.update(worldRef.current.doc);
+        setEngineEpoch((n) => n + 1);
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -424,6 +494,46 @@ export function Studio() {
   useEffect(() => {
     if (engine.current && world) engine.current.update(world.doc);
   }, [world]);
+  // A world with a generated game script runs it in the sandbox once the engine is mounted.
+  const gameSource = world?.doc.game?.script.source;
+  useEffect(() => {
+    const mounted = engine.current;
+    if (ended || !mounted || !gameSource) return;
+    const bridge = mountGameBridge(
+      mounted,
+      gameSource,
+      {
+        onHud: setGameHud,
+        onSay: (text) => {
+          setCaption(text);
+          if (liveRef.current) send({ type: 'simEvent', ruleId: 'game_say', say: text });
+        },
+        onAsk: setGameAsk,
+        onSound: (cue) => getMixer().playCue(cue),
+        onTangled: () => {
+          setGameAsk(undefined);
+          setGameTangled(true);
+        },
+      },
+      { seed: worldRef.current?.doc.environment.seed ?? 1 },
+    );
+    gameBridge.current = bridge;
+    return () => {
+      bridge.stop();
+      if (gameBridge.current === bridge) gameBridge.current = undefined;
+      setGameHud(undefined);
+      setGameAsk(undefined);
+      setGameTangled(false);
+    };
+  }, [engineEpoch, world?.id, gameSource, gameRun, ended]);
+  function restartGame() {
+    gameBridge.current?.stop();
+    engine.current?.reset();
+    for (const [id, value] of Object.entries(values)) engine.current?.setVariable(id, value);
+    for (const [dial, value] of Object.entries(dials)) engine.current?.setDial(dial as Dial, value);
+    if (world) setCaption(world.doc.narration.intro);
+    setGameRun((n) => n + 1);
+  }
   useEffect(() => {
     const scene = host.current?.closest<HTMLElement>('.stage-scene');
     const canvasFrame = host.current?.parentElement;
@@ -462,6 +572,10 @@ export function Studio() {
       }, 300);
   }
   function resetWorld() {
+    if (world?.doc.game) {
+      restartGame();
+      return;
+    }
     engine.current?.reset();
     setValues(
       Object.fromEntries(
@@ -507,6 +621,9 @@ export function Studio() {
     setEnded(true);
   }
   const live = status === 'connected' || status === 'connecting' || status === 'reconnecting';
+  useEffect(() => {
+    liveRef.current = live;
+  }, [live]);
   function startVoice(id?: CharacterId) {
     if (id) {
       setCharacter(id);
@@ -515,6 +632,7 @@ export function Studio() {
     void connectVoice();
   }
   function stopVoice() {
+    pendingCreative.current = undefined;
     pendingIntent.current = undefined;
     clearPending();
     getVoice().end();
@@ -531,6 +649,13 @@ export function Studio() {
     if (live) send({ type: 'newGame' });
     else {
       pendingIntent.current = 'newGame';
+      startVoice();
+    }
+  }
+  function createOrEdit(message: Extract<ClientMessage, { type: 'text' | 'undoWorld' }>) {
+    if (status === 'connected') send(message);
+    else {
+      pendingCreative.current = message;
       startVoice();
     }
   }
@@ -573,6 +698,13 @@ export function Studio() {
         <div className="world-frame">
           <div className="stage-world">
             <div className="engine-host" ref={host} />
+            {world && (
+              <PetFollower
+                engine={engine}
+                childId={child?.id}
+                heroId={world.doc.learning.heroEntityId}
+              />
+            )}
             {!world && building ? (
               <GenerationShow
                 job={job}
@@ -605,8 +737,18 @@ export function Studio() {
               />
             )}
             {spell && <SpellFlourish spell={spell} />}
+            {world?.doc.game && (
+              <GameHud
+                hud={gameHud}
+                ask={gameAsk}
+                tangled={gameTangled}
+                onAnswer={(index) => gameBridge.current?.answer(index)}
+                onReplay={restartGame}
+                onRetry={restartGame}
+              />
+            )}
           </div>
-          {prediction && world && (
+          {prediction && world && world.doc.learning.mode !== 'incidental' && (
             <PredictionSheet
               prediction={prediction}
               onAnswer={(index) => {
@@ -616,20 +758,39 @@ export function Studio() {
             />
           )}
         </div>
-        {world && (
+        {(world || !env.fake) && (
           <div className="stage-bottom">
-            {env.fake && (
+            {world && env.fake && !world.doc.game && (
               <PlayActions key={world.id} world={fixture} engine={engine} onPlay={playActivity} />
             )}
-            <DialTray
-              doc={world.doc}
-              values={dials}
-              onChange={(dial, value) => {
-                engine.current?.setDial(dial, value);
-                setDials((v) => ({ ...v, [dial]: value }));
-                send({ type: 'interaction', kind: 'dial', dial, value });
-              }}
-            />
+            {world && (
+              <WorldCast
+                doc={world.doc}
+                activeId={worldCharacter}
+                onMeet={meetCharacter}
+                onReturn={() => send({ type: 'hangUp' })}
+              />
+            )}
+            {!env.fake && (
+              <CreationActions
+                hasWorld={Boolean(world)}
+                canUndo={Boolean(world?.revisionId)}
+                busy={building}
+                onSubmit={(text) => createOrEdit({ type: 'text', text })}
+                onUndo={() => createOrEdit({ type: 'undoWorld' })}
+              />
+            )}
+            {world && world.doc.learning.mode !== 'incidental' && (
+              <DialTray
+                doc={world.doc}
+                values={dials}
+                onChange={(dial, value) => {
+                  engine.current?.setDial(dial, value);
+                  setDials((v) => ({ ...v, [dial]: value }));
+                  send({ type: 'interaction', kind: 'dial', dial, value });
+                }}
+              />
+            )}
           </div>
         )}
         {world?.doc.variables && (
@@ -691,6 +852,7 @@ export function Studio() {
         onCaptions={() => setCaptions(!captions)}
         onFinish={finish}
         explore={<CompanionMenu inline />}
+        pet={child && <PetSlot childId={child.id} />}
       />
       {summoning && <SummonOverlay character={summoning} />}
       {keypad && (

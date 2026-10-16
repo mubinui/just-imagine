@@ -12,6 +12,46 @@ export class BrowserAudio {
   private capturePending?: Promise<void>;
   onFrame: (frame: ArrayBuffer) => void = () => {};
   onMouth: (value: number) => void = () => {};
+  private mouthListeners = new Set<(value: number) => void>();
+  private mouthValue = 0;
+  private drainId = 0;
+  private drains = new Map<
+    number,
+    { resolve: (finished: boolean) => void; timer: ReturnType<typeof setTimeout> }
+  >();
+  /** Resolves only after the worklet consumes every queued sample. Flush cancels it. */
+  whenPlaybackIdle(): Promise<boolean> {
+    if (!this.playback || !this.unlocked) return Promise.resolve(false);
+    const id = ++this.drainId;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.drains.delete(id);
+        resolve(false);
+      }, 60000);
+      this.drains.set(id, { resolve, timer });
+      this.playback!.port.postMessage({ barrier: id });
+    });
+  }
+  private finishDrain(id: number, finished: boolean) {
+    const pending = this.drains.get(id);
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    this.drains.delete(id);
+    pending.resolve(finished);
+  }
+  /** Multiple visible portraits can follow playback without replacing each other. */
+  subscribeMouth(listener: (value: number) => void) {
+    this.mouthListeners.add(listener);
+    listener(this.mouthValue);
+    return () => {
+      this.mouthListeners.delete(listener);
+    };
+  }
+  private emitMouth(value: number) {
+    this.mouthValue = value;
+    this.onMouth(value);
+    for (const listener of this.mouthListeners) listener(value);
+  }
   onPlaybackError: () => void = () => {};
   get unlocked() {
     return this.context?.state === 'running';
@@ -32,8 +72,8 @@ export class BrowserAudio {
         process(inputs){const channel=inputs[0]?.[0];if(channel)for(const frame of this.capture.push(channel))this.port.postMessage(frame.buffer,[frame.buffer]);return true;}
       }
       class ImaginePlayback extends AudioWorkletProcessor {
-        constructor(){super();this.buffer=new PcmPlayback(sampleRate);this.elapsed=0;this.port.onmessage=e=>{if(e.data==='clear')this.buffer.clear();else if(!this.buffer.push(new Int16Array(e.data))){this.buffer.clear();this.port.postMessage('overflow');}};}
-        process(_inputs,outputs){const out=outputs[0]?.[0];if(out){this.buffer.readInto(out);this.elapsed+=out.length;if(this.elapsed>=sampleRate/30){this.elapsed=0;let sum=0;for(const x of out)sum+=x*x;this.port.postMessage(Math.sqrt(sum/out.length));}}return true;}
+        constructor(){super();this.buffer=new PcmPlayback(sampleRate);this.elapsed=0;this.barriers=[];this.port.onmessage=e=>{if(e.data==='clear'){this.buffer.clear();this.barriers=[];}else if(e.data?.barrier)this.barriers.push(e.data.barrier);else if(!this.buffer.push(new Int16Array(e.data))){this.buffer.clear();this.port.postMessage('overflow');}};}
+        process(_inputs,outputs){const out=outputs[0]?.[0];if(out){this.buffer.readInto(out);if(this.buffer.queuedSamples===0&&this.barriers.length){for(const id of this.barriers)this.port.postMessage({idle:id});this.barriers=[];}this.elapsed+=out.length;if(this.elapsed>=sampleRate/30){this.elapsed=0;let sum=0;for(const x of out)sum+=x*x;this.port.postMessage(Math.sqrt(sum/out.length));}}return true;}
       }
       registerProcessor('imagine-capture',ImagineCapture);registerProcessor('imagine-playback',ImaginePlayback);`;
     const url = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
@@ -44,9 +84,12 @@ export class BrowserAudio {
     }
     if (this.disposed) return;
     this.playback = new AudioWorkletNode(context, 'imagine-playback', { outputChannelCount: [1] });
-    this.playback.port.onmessage = (event: MessageEvent<number | 'overflow'>) => {
+    this.playback.port.onmessage = (
+      event: MessageEvent<number | 'overflow' | { idle: number }>,
+    ) => {
       if (event.data === 'overflow') this.onPlaybackError();
-      else this.onMouth(mouthOpen(event.data));
+      else if (typeof event.data === 'object') this.finishDrain(event.data.idle, true);
+      else this.emitMouth(mouthOpen(event.data));
     };
     this.playback.connect(context.destination);
   }
@@ -92,8 +135,9 @@ export class BrowserAudio {
     if (frame.byteLength % 2 === 0) this.playback?.port.postMessage(frame, [frame]);
   }
   flush() {
+    for (const id of this.drains.keys()) this.finishDrain(id, false);
     this.playback?.port.postMessage('clear');
-    this.onMouth(0);
+    this.emitMouth(0);
   }
   stopCapture() {
     this.captureGeneration++;
@@ -109,6 +153,7 @@ export class BrowserAudio {
     this.disposed = true;
     this.stopCapture();
     this.flush();
+    this.mouthListeners.clear();
     this.playback?.disconnect();
     await this.context?.close();
   }

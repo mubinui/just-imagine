@@ -1,3 +1,5 @@
+import { StoryWorker } from './story-worker';
+import { StoryBuildJobSchema } from '@just-imagine/protocol';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { startLocalQueue } from './local-queue';
@@ -6,8 +8,12 @@ import Fastify from 'fastify';
 import { genkit, z as flowSchema } from 'genkit';
 import { OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
-import { BuilderWorker } from './worker';
+import { BuilderWorker, EditError } from './worker';
+import { MotionArtworkError } from './motion';
 import { VertexModels } from './vertex';
+import { GameScriptModel } from './game-model';
+import { SceneValidationError } from './pipeline';
+import { GameGenerationError } from './imagine-game';
 const stopTelemetry = startTelemetry('builder');
 const env = z
   .object({
@@ -43,10 +49,36 @@ const worker = new BuilderWorker(
     assetBaseUrl: env.ASSET_BASE_URL,
     assetDirectory: local ? env.ASSET_DIRECTORY : undefined,
   },
+  {
+    generateScript: new GameScriptModel({
+      project: env.GOOGLE_CLOUD_PROJECT,
+      apiKey: env.GEMINI_API_KEY,
+      model: env.SCENE_MODEL,
+    }).generate,
+  },
 );
+const storyWorker = new StoryWorker(
+  new VertexModels({
+    project: env.GOOGLE_CLOUD_PROJECT,
+    apiKey: env.GEMINI_API_KEY,
+    sceneModel: env.SCENE_MODEL,
+    fastModel: env.FAST_MODEL,
+    heroModel: env.HERO_MODEL,
+    propModel: env.PROP_MODEL,
+  }),
+  {
+    bucket: env.ASSET_BUCKET,
+    assetBaseUrl: env.ASSET_BASE_URL,
+    assetDirectory: local ? env.ASSET_DIRECTORY : undefined,
+  },
+);
+const dispatcher = {
+  run: (input: unknown) =>
+    StoryBuildJobSchema.safeParse(input).success ? storyWorker.run(input) : worker.run(input),
+};
 const ai = genkit({});
 const build = ai.defineFlow({ name: 'buildWorld', inputSchema: flowSchema.unknown() }, (input) =>
-  worker.run(input),
+  dispatcher.run(input),
 );
 const auth = new OAuth2Client();
 const app = Fastify({ bodyLimit: 128 * 1024, logger: false });
@@ -89,7 +121,14 @@ app.post('/jobs', async (req, reply) => {
   }
   try {
     return await build(req.body);
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof SceneValidationError ||
+      error instanceof MotionArtworkError ||
+      error instanceof GameGenerationError ||
+      error instanceof EditError
+    )
+      return reply.send({ status: 'failed' });
     return reply.status(503).send({ error: 'Build failed; task may retry' });
   }
 });
@@ -97,7 +136,7 @@ app.addHook('onResponse', async (_req, reply) => {
   logEvent('http_request', { status: reply.statusCode, durationMs: reply.elapsedTime });
 });
 await app.listen({ host: '0.0.0.0', port: env.PORT });
-const stopQueue = local ? startLocalQueue(worker) : async () => {};
+const stopQueue = local ? startLocalQueue(dispatcher) : async () => {};
 for (const signal of ['SIGTERM', 'SIGINT'])
   process.on(signal, () => {
     void app.close().then(async () => {

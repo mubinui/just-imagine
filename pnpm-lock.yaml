@@ -35,6 +35,12 @@ importers:
       '@just-imagine/fixtures':
         specifier: workspace:*
         version: link:../../packages/fixtures
+      '@just-imagine/game-runtime':
+        specifier: workspace:*
+        version: link:../../packages/game-runtime
+      '@just-imagine/learning-content':
+        specifier: workspace:*
+        version: link:../../packages/learning-content
       '@just-imagine/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -161,6 +167,9 @@ importers:
 
   packages/fixtures:
     dependencies:
+      '@just-imagine/learning-content':
+        specifier: workspace:*
+        version: link:../learning-content
       '@just-imagine/protocol':
         specifier: workspace:*
         version: link:../protocol
@@ -362,6 +371,9 @@ importers:
       '@google/genai':
         specifier: ^1.29.0
         version: 1.52.0(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.7))
+      '@just-imagine/learning-content':
+        specifier: workspace:*
+        version: link:../../packages/learning-content
       '@just-imagine/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -432,6 +444,9 @@ importers:
       '@just-imagine/fixtures':
         specifier: workspace:*
         version: link:../../packages/fixtures
+      '@just-imagine/game-runtime':
+        specifier: workspace:*
+        version: link:../../packages/game-runtime
       '@just-imagine/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -502,6 +517,9 @@ importers:
       '@google/genai':
         specifier: ^1.29.0
         version: 1.52.0(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.7))
+      '@just-imagine/learning-content':
+        specifier: workspace:*
+        version: link:../../packages/learning-content
       '@just-imagine/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -523,6 +541,9 @@ importers:
       firebase-admin:
         specifier: ^13.4.0
         version: 13.10.0(@firebase/app-compat@0.5.18)(@firebase/app@0.16.2)
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
       ulid:
         specifier: ^3.0.0
         version: 3.0.2

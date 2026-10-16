@@ -8,6 +8,17 @@ import {
   ChildDestinationSchema,
 } from './characters';
 import { DocumentIdSchema } from './primitives';
+import {
+  HangUpMessageSchema,
+  LearningPlayMessageSchema,
+  LearningActionMessageSchema,
+  LearningLookMessageSchema,
+  PersonaMessageSchema,
+  PetUnlockedMessageSchema,
+  PointsMessageSchema,
+  QuizMessageSchema,
+  SummonPersonaMessageSchema,
+} from './learn';
 
 export const AUDIO_IN = {
   sampleRate: 16000,
@@ -44,6 +55,18 @@ export const ErrorCodeSchema = z.enum([
 export const ByeReasonSchema = z.enum(['ended', 'quota', 'target_reached', 'moderation', 'error']);
 
 export const ClientMessageSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('storySetup'), storyId: DocumentIdSchema.optional() }),
+  z.strictObject({
+    type: z.literal('storyRead'),
+    storyId: DocumentIdSchema,
+    scene: z.number().int().min(0).max(5),
+    beat: z.number().int().min(0).max(3),
+    choiceId: DocumentIdSchema.optional(),
+    readId: DocumentIdSchema,
+  }),
+  z.strictObject({ type: z.literal('storyPause') }),
+  z.strictObject({ type: z.literal('undoWorld') }),
+  z.strictObject({ type: z.literal('talkToCharacter'), entityId: IdSchema }),
   z.strictObject({ type: z.literal('newGame') }),
   z.strictObject({ type: z.literal('screen'), destination: ChildDestinationSchema }),
   z.strictObject({ type: z.literal('openWorld'), worldId: DocumentIdSchema }),
@@ -55,7 +78,7 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
     worldId: DocumentIdSchema.optional(),
     sessionId: DocumentIdSchema.optional(),
   }),
-  z.strictObject({ type: z.literal('text'), text: z.string().min(1).max(500) }),
+  z.strictObject({ type: z.literal('text'), text: z.string().min(1).max(2000) }),
   z
     .strictObject({
       type: z.literal('interaction'),
@@ -90,10 +113,28 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
     completed: z.boolean(),
   }),
   z.strictObject({ type: z.literal('end') }),
+  SummonPersonaMessageSchema,
+  HangUpMessageSchema,
+  LearningPlayMessageSchema,
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 export const ServerMessageSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('storyVoice'), active: z.boolean() }),
+  z.strictObject({ type: z.literal('storyTopic'), topic: z.string().min(3).max(600) }),
+  z.strictObject({
+    type: z.literal('storyCue'),
+    readId: DocumentIdSchema,
+    storyId: DocumentIdSchema,
+    scene: z.number().int().min(0).max(5),
+    beat: z.number().int().min(0).max(3),
+    status: z.enum(['started', 'finished', 'paused']),
+  }),
+  z.strictObject({
+    type: z.literal('worldCharacter'),
+    entityId: IdSchema.nullable(),
+    name: z.string().max(40),
+  }),
   z.strictObject({ type: z.literal('newGame') }),
   z.strictObject({ type: z.literal('navigate'), destination: ChildDestinationSchema }),
   z.strictObject({
@@ -146,6 +187,12 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('quota'), voiceSecondsLeft: z.number().int().nonnegative() }),
   z.strictObject({ type: z.literal('error'), code: ErrorCodeSchema, message: z.string() }),
   z.strictObject({ type: z.literal('bye'), reason: ByeReasonSchema }),
+  PersonaMessageSchema,
+  LearningActionMessageSchema,
+  LearningLookMessageSchema,
+  QuizMessageSchema,
+  PointsMessageSchema,
+  PetUnlockedMessageSchema,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;
 

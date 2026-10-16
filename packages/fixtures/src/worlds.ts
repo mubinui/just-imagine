@@ -6,6 +6,7 @@ import pondFloat from '../worlds/pond-float.json' with { type: 'json' };
 import projectileLab from '../worlds/projectile-lab.json' with { type: 'json' };
 import galtonBoard from '../worlds/galton-board.json' with { type: 'json' };
 import fractionsLab from '../worlds/fractions-lab.json' with { type: 'json' };
+import catchTheFlies from '../worlds/catch-the-flies.json' with { type: 'json' };
 
 export const FIXTURE_WORLDS = {
   jellyDragon: SceneDocSchema.parse(jellyDragon),
@@ -20,6 +21,12 @@ export const LAB_WORLDS = {
   galtonBoard: SceneDocSchema.parse(galtonBoard),
   fractionsLab: SceneDocSchema.parse(fractionsLab),
 } as const;
+
+// Additive catalog: preview worlds that carry a generated game script (Game API v1).
+export const GAME_WORLDS = {
+  catchTheFlies: SceneDocSchema.parse(catchTheFlies),
+} as const;
+export type GameWorldKey = keyof typeof GAME_WORLDS;
 
 export function fixtureWorldDoc(
   key: FixtureWorldKey,

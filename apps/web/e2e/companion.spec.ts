@@ -27,14 +27,14 @@ test('parent chooses a friend and the same voice session follows navigation acro
     .click();
   await page.getByRole('button', { name: 'bounce', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pip', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Explore with Pip' }).click();
+  await page.getByRole('button', { name: 'Chat with Pip' }).click();
   await expect(page.getByRole('button', { name: 'Our adventure', exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('button', { name: 'Explore with Pip' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Chat with Pip' })).toBeFocused();
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Saved worlds', exact: true }).click();
   await expect(page).toHaveURL(/\/gallery$/);
-  await page.getByRole('button', { name: 'Explore with Pip' }).click();
+  await page.getByRole('button', { name: 'Chat with Pip' }).click();
   await page.getByRole('button', { name: 'Our adventure', exact: true }).click();
   await expect(page).toHaveURL(/\/studio$/);
   await expect(page.locator('.engine-host canvas')).toBeVisible();

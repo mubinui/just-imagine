@@ -117,12 +117,14 @@ export function guidesFor(band: AgeBand): CharacterConfig[] {
 }
 
 // Only child destinations are accepted; model output never becomes an arbitrary URL.
-export const ChildDestinationSchema = z.enum(['play', 'studio', 'gallery']);
+export const ChildDestinationSchema = z.enum(['play', 'studio', 'gallery', 'learn', 'stories']);
 export type ChildDestination = z.infer<typeof ChildDestinationSchema>;
 export const CHILD_DESTINATIONS: Record<ChildDestination, string> = {
   play: '/play',
   studio: '/studio',
   gallery: '/gallery',
+  learn: '/learn',
+  stories: '/stories',
 };
 export const PresetCompanionSchema = z.strictObject({
   kind: z.literal('preset'),

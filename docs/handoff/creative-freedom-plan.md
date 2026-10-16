@@ -88,7 +88,7 @@ Acceptance: build → play → three spoken edits → undo → Gallery → reope
 
 Complexity: **high** for creative freedom; audio and discoverability are a smaller first delivery. Ship and verify each milestone before marking it complete. Do not equate working API connections with the desired child experience.
 
-This plan delivers broad composition within a validated2D engine. Arbitrary generated JavaScript, unrestricted websites,3D games, multiplayer, new billing or cloud-account migration are outside this change. More capabilities can be added to the registry later without returning to fixed scenario selection.
+This plan delivers broad composition within a validated2D engine. Unrestricted host JavaScript, external websites,3D games, multiplayer, new billing or cloud-account migration are outside this change. More capabilities can be added to the registry later without returning to fixed scenario selection.
 
 Risks: generated art latency/cost; weak or repeated mechanics despite novel art; stale assets after edits; migration of stored worlds; overloaded devices affecting voice and frame rate. Evidence gates above cover these separately. Real-child enjoyment and actual-device sound still require observation/listening.
 
@@ -107,3 +107,41 @@ Risks: generated art latency/cost; weak or repeated mechanics despite novel art;
 - [ ] Coherent generated artwork and edit regeneration.
 - [ ] Conversational undo and expanded companion actions.
 - [ ] Actual-device listening and child usability acceptance.
+
+## Current implementation pass — authoring instead of parameter selection
+
+User correction: creative control means inventing and changing the world itself. The four-planet example is not the product boundary. Prior authorization to finish development and maintain this checkpoint remains active.
+
+Research: `imagine-game.ts` skips behavior generation for freeplay; `drive.ts` requires a reachable score/win even for a toy; scene and script prompts force controls and heavily anchor full sample worlds. `worker.patch` asks a scene model for code-bearing JSON Patch, never regenerates changed art, and `guardPatchedGame` can silently retain old behavior. Version records only contain the result, so there is no reliable undo.
+
+Implementation order:
+
+1. Runtime/scene contracts: explicit open-play behavior without mandatory scores; keep sandbox and resource budgets.
+2. Protocol/storage: preserve original wish and successive changes, plus pre-edit snapshots for undo. Existing worlds stay readable.
+3. Builder: compile every ordinary creative world, remove compulsory sliders/template anchoring, recompose edits against the actual current world, compile behavior with the dedicated script model, reconcile/rebuild only changed art, atomically publish with a revision. Keep the last valid creation on failure.
+4. Gateway: child directs the idea; use modifications for new actors/actions/rules rather than mapping everything to existing knobs. Add actual undo and pass language/current intent.
+5. Studio: a free-form idea/edit field and undo alongside voice, in the existing warm shell. No scenario menu or parameter questionnaire.
+6. Validate open-play behavior, structural edits and failed edits, art invalidation/reuse, undo and ownership/concurrency; rebuild and test real services. Broader child usability and arbitrary creative requests still require evaluation.
+
+Complexity high. The internal 2D API and device budgets remain engineering constraints; they must be explained honestly when relevant, never presented as the child's menu of creative choices.
+
+## Accepted authoring slice — 2026-10-16
+
+- [x] Compile open-ended creative play with no compulsory score, ending, ground, teaching rule or numeric controls.
+- [x] Replace full-scenario prompt anchoring with API/composition techniques and child-authored requests.
+- [x] Preserve original wish descriptions and successive changes independently of the compiled scene.
+- [x] Recompose a current world for new actors/actions/rules with the dedicated behavior compiler; preserve unrelated choices.
+- [x] Regenerate changed/new artwork; reuse exact unchanged owned art. Reject edits atomically if behavior/art cannot be completed.
+- [x] Save pre-edit snapshots, expose actual undo, and test multiple undo steps, ownership and concurrent-write protection.
+- [x] Expose a free-form authoring field alongside voice; label numeric adjustments Play settings rather than treating them as authorship.
+- [x] Real Live → builder → artwork → canvas → creative edit → exact undo, with no unsolicited lesson overlay.
+- [x] Repair chroma collisions/unremoved image frames with replacement-key retries, border validation and `cutout-v2` cache keys; retain moderation/residual-background limits.
+- [x] Make HUD scores optional; a scoreless program creates no default score badge. Source regressions and final built-browser no-score verification pass.
+
+Acceptance world: `w_01m51vw9yz4065szfjrfqgc0nj`, **Underwater Post Office**, under demo child Ari at http://localhost:3300. Dragging a bubble letter into the mailbox actually spawns a moon. Real edit `j_01m51x1svd2j10qvrpq5czafa6` adds Lumi and a portal toggle; pointer-driven testing proved delivery succeeds in the open phase and stops in the closed phase. Real undo `j_01m51x52c3e1263erh2dsexjyc` restores the exact previous doc/creation. Current saved world is the original after undo; Lumi's successful version remains in history. `/tmp/ji-author-confirm.log` reports1,031 real audio frames and zero page errors through finish.
+
+The original broad milestones above remain open because the twelve-idea evaluation, capability reporting, new mechanics, full art-direction/durable asset system, expanded navigation and child/device usability have not all been completed. Generic creative authoring is implemented within the existing2D sandbox; do not present a parameter menu or these acceptance examples as its creative boundary.
+
+Final shipping confirmation: `/tmp/ji-author-smoke.log` passes saved replay, no default score badge, no forced lesson dialog, no sliders, stable desktop paint before/after editor resize, mobile paint and phone editor reachability, with zero page errors through finish. Final captures: `/tmp/ji-author-shipped-desktop.png`, `/tmp/ji-author-shipped-mobile.png`, `/tmp/ji-author-shipped-mobile-edit.png`. The first black desktop capture during resize and the earlier quiz-obstructed captures are superseded. No further visual polish is pending in this bounded pass. All four app services run the final image on3300/3301/3302/8788; Auth/Firestore data remain in the persistent emulator volume.
+
+Final Auth/Firestore export to `/data/firebase/snapshot` succeeded after session finish (`/tmp/ji-author-data-export.log`). Existing approved artwork is preserved; the saved acceptance world contains some older prop cutout defects (for example the coral mailbox background), while newly generated/repainted assets use the stronger v2 checks. Treat that as a remaining visual limitation rather than claiming every saved-world image was revalidated.

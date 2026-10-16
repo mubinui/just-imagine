@@ -17,6 +17,7 @@ const env = z
       z.string().min(1).optional(),
     ),
     LIVE_MODEL: z.string().default('gemini-3.8-live'),
+    COMPANION_IMAGE_MODEL: z.string().default('gemini-nano-banana-2.1'),
     FAST_MODEL: z.string().default('gemini-3.8-flash'),
   })
   .parse(process.env);
@@ -36,6 +37,7 @@ const gateway = startGateway({
     liveModel: env.LIVE_MODEL,
     apiKey: env.GEMINI_API_KEY,
     fastModel: env.FAST_MODEL,
+    imageModel: env.COMPANION_IMAGE_MODEL,
   }),
 });
 for (const signal of ['SIGTERM', 'SIGINT'])

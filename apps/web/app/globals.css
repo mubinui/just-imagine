@@ -21,6 +21,7 @@
   --peach: #f9ceb0;
   --yellow: #f7d76e;
   --mint: #d5e7c9;
+  --focus: #ad6524;
   --duration: 220ms;
   --radius: 16px;
   --shadow: 0 14px 35px -18px #31544659;
@@ -92,7 +93,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid #ad6524;
+  outline: 3px solid var(--focus);
 }
 button {
   cursor: pointer;
@@ -844,7 +845,7 @@ footer p {
   overflow: hidden;
   text-align: left;
   border: 0;
-  background: #e1ebd4;
+  background: color-mix(in srgb, var(--mint) 78%, var(--ground));
   min-height: 280px;
   position: relative;
 }
@@ -1102,7 +1103,7 @@ progress::-moz-progress-bar {
   min-height: 64px;
 }
 [data-world='parent'] {
-  background: #fcfcf5;
+  background: var(--surface);
   min-height: 100vh;
 }
 @media (max-width: 1000px) {
@@ -1446,4 +1447,20 @@ progress::-moz-progress-bar {
 }
 .character-face[data-emotion='sleepy'] .face i {
   transform: scaleY(0.3);
+}
+
+/* Native browser surfaces share the active interface palette. */
+html {
+  scrollbar-color: var(--soft) var(--ground);
+}
+::selection {
+  background: var(--yellow);
+  color: var(--ink);
+}
+input,
+textarea {
+  caret-color: var(--accent);
+}
+.ui-icon {
+  flex-shrink: 0;
 }

@@ -1,10 +1,17 @@
 import { z } from 'zod';
-import { ConceptSchema, PatchOpSchema, SceneDocSchema } from '@just-imagine/scene-schema';
+import { StoryPreferencesSchema } from './stories';
+import {
+  ConceptSchema,
+  PatchOpSchema,
+  SceneDocSchema,
+  MotionAtlasSchema,
+} from '@just-imagine/scene-schema';
 import { PlanTierSchema } from './plans';
 import { CharacterIdSchema, CompanionSchema } from './characters';
 import { AgeBandSchema, TierSchema } from './bands';
 import { ByeReasonSchema } from './ws';
 import { DateKeySchema, DocumentIdSchema, EpochMsSchema } from './primitives';
+import { PetListSchema, PointsSchema } from './learn';
 
 const epochMs = EpochMsSchema;
 
@@ -39,6 +46,10 @@ export const ChildDocSchema = z.object({
   captions: z.boolean(),
   // Absent on profiles created before the language setting existed; read it through languageOf().
   language: LanguageSchema.optional(),
+  // Learning Worlds: absent on older profiles; read through pointsOf() and petsOf() (0 and []).
+  points: PointsSchema.optional(),
+  storyPreferences: StoryPreferencesSchema.optional(),
+  pets: PetListSchema.optional(),
   sessionTargetMinutes: z.number().int().min(8).max(20),
   loopsCompleted: z.number().int().min(0),
   createdAt: epochMs,
@@ -58,6 +69,14 @@ export type DiscoveryDoc = z.infer<typeof DiscoveryDocSchema>;
 
 export const AssetStatusSchema = z.enum(['placeholder', 'generating', 'ready', 'failed']);
 export const WorldStatusSchema = z.enum(['building', 'ready', 'failed']);
+
+/** The child's idea and successive requests, independent of the compiled scene. */
+export const CreationSchema = z.object({
+  originalWish: z.string().min(1).max(4000),
+  changes: z.array(z.string().min(1).max(2000)).max(100),
+  mode: z.enum(['game', 'freeplay']),
+});
+export type Creation = z.infer<typeof CreationSchema>;
 
 export const WorldDocSchema = z.object({
   ownerUid: z.string(),
@@ -81,6 +100,8 @@ export const WorldDocSchema = z.object({
   jobId: z.string(),
   createdAt: epochMs,
   updatedAt: epochMs,
+  creation: CreationSchema.optional(),
+  revisionId: DocumentIdSchema.optional(),
 });
 export type WorldDoc = z.infer<typeof WorldDocSchema>;
 
@@ -89,6 +110,8 @@ export const WorldVersionDocSchema = z.object({
   patch: z.array(PatchOpSchema).nullable(),
   reason: z.string(),
   createdAt: epochMs,
+  /** Atomic pre-edit snapshot; its revisionId forms the undo chain. */
+  previousWorld: WorldDocSchema.optional(),
 });
 export type WorldVersionDoc = z.infer<typeof WorldVersionDocSchema>;
 
@@ -140,6 +163,7 @@ export const AssetCacheDocSchema = z.object({
   height: z.number().int().positive(),
   safetyChecked: z.boolean(),
   createdAt: epochMs,
+  animation: MotionAtlasSchema.optional(),
 });
 export type AssetCacheDoc = z.infer<typeof AssetCacheDocSchema>;
 

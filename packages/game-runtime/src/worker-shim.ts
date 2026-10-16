@@ -479,6 +479,10 @@ var __userRun = (async function (${params}) {
       var vec = vector(v, 'impulse');
       push({ type: 'impulse', target: target(idOrTag, 'impulse'), x: vec.x, y: vec.y });
     },
+    move: function (idOrTag, position) {
+      var v = vector(position, 'move');
+      push({ type: 'move', target: target(idOrTag, 'move'), x: v.x, y: v.y });
+    },
     setGravity: function (g) { var v = axis(g, 'setGravity', true); push({ type: 'setGravity', x: v.x, y: v.y }); },
     setWind: function (w) { var v = axis(w, 'setWind', false); push({ type: 'setWind', x: v.x, y: v.y }); },
     setMaterial: function (idOrTag, material) {

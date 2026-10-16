@@ -17,6 +17,7 @@
     "dev": "tsx bin/fake-gateway.ts"
   },
   "dependencies": {
+    "@just-imagine/learning-content": "workspace:*",
     "@just-imagine/protocol": "workspace:*",
     "@just-imagine/scene-schema": "workspace:*",
     "ws": "^8.18.0",

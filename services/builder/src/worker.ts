@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import {
   BuilderJobSchema,
   WorldDocSchema,
+  WorldVersionDocSchema,
   UserDocSchema,
   ChildDocSchema,
   AssetCacheDocSchema,
@@ -15,16 +16,21 @@ import {
   type WorldDoc,
 } from '@just-imagine/protocol';
 import { db, isKillSwitchOn, addImages, logEvent, traced } from '@just-imagine/server-core';
-import { buildScene, patchScene, STYLE_BIBLE, SceneValidationError } from './pipeline';
-import { nearestConceptFixture } from './fallback';
-import { assetKey, processSprite } from './assets';
+import { buildScene, patchScene, STYLE_BIBLE } from './pipeline';
+import { assetKey, processSprite, processMotionAtlas } from './assets';
 import type { VertexModels } from './vertex';
+import { guardPatchedGame, imagineGame, type ImagineGameDeps } from './imagine-game';
+import { initialCreation, reviseCreation } from './revisions';
+import { motionArt, sameMotionArt, locomotionImagePrompt, requireMotionArtwork } from './motion';
+import type { PatchOp, AssetRef, Locomotion } from '@just-imagine/scene-schema';
 
 export class BuilderWorker {
   private storage = new Storage();
   constructor(
     private models: VertexModels,
     private config: { bucket: string; assetBaseUrl: string; assetDirectory?: string },
+    /** Generated games: when present, build jobs run the `imagineGame` flow. */
+    private game?: Omit<ImagineGameDeps, 'generateScene'>,
   ) {}
   async run(input: unknown): Promise<{ status: 'complete' | 'already-complete' }> {
     const job = BuilderJobSchema.parse(input);
@@ -126,21 +132,36 @@ export class BuilderWorker {
       return true;
     });
     if (!claim) return { status: 'already-complete' };
-    let usedFallback = false;
     try {
-      if (job.kind === 'patch') {
-        await this.patch(job, lease);
+      if (job.kind === 'patch' || job.kind === 'undo') {
+        if (job.kind === 'undo') await this.undo(job, lease);
+        else await this.patch(job, lease);
         logEvent('builder_result', { jobId: job.jobId, success: true });
         return { status: 'complete' };
       } else {
-        const doc = await traced('scene_build', { worldId: job.worldId, jobId: job.jobId }, () =>
-          buildScene(job, this.models.generate),
-        ).catch((error) => {
-          if (!(error instanceof SceneValidationError)) throw error;
-          usedFallback = true;
-          logEvent('scene_fallback', { jobId: job.jobId, worldId: job.worldId }, 'WARNING');
-          return nearestConceptFixture(job).doc;
-        });
+        const doc = await traced(
+          'scene_build',
+          { worldId: job.worldId, jobId: job.jobId },
+          async () => {
+            if (!this.game) return buildScene(job, this.models.generate);
+            const built = await imagineGame(job, {
+              ...this.game,
+              generateScene: this.models.generate,
+            });
+            logEvent(
+              built.fallback ? 'game_fallback' : 'game_kind',
+              {
+                jobId: job.jobId,
+                worldId: job.worldId,
+                milestone: built.kind,
+                count: built.attempts,
+                success: !built.fallback,
+              },
+              built.fallback ? 'WARNING' : 'INFO',
+            );
+            return built.doc;
+          },
+        );
         let world: WorldDoc = WorldDocSchema.parse({
           ownerUid: job.uid,
           childId: job.childId,
@@ -156,9 +177,10 @@ export class BuilderWorker {
           jobId: job.jobId,
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          creation: initialCreation(job),
         });
         await this.publish(job, lease, world);
-        const deadline = Date.now() + 25000;
+        const deadline = Date.now() + 180000;
         const requests = [
           {
             id: 'backdrop',
@@ -180,22 +202,24 @@ export class BuilderWorker {
             .filter((e) => e.kind === 'sprite')
             .sort(
               (a, b) =>
-                Number(b.id === doc.learning.heroEntityId) -
-                Number(a.id === doc.learning.heroEntityId),
+                Number(b.id === doc.learning.heroEntityId) * 2 +
+                Number(Boolean(b.character)) -
+                (Number(a.id === doc.learning.heroEntityId) * 2 + Number(Boolean(a.character))),
             )
             .slice(0, PLAN_LIMITS[job.plan].imagesPerWorld)
             .map((e) => ({
               id: e.id,
               description: e.description,
               kind: 'sprite',
-              hero: e.id === doc.learning.heroEntityId,
+              hero: e.id === doc.learning.heroEntityId || Boolean(e.character),
+              ...(e.locomotion ? { locomotion: e.locomotion } : {}),
             })),
         ];
         let nextRequest = 0;
         const generateNext = async () => {
           while (nextRequest < requests.length) {
             const request = requests[nextRequest++]!;
-            if (usedFallback || Date.now() > deadline || (await isKillSwitchOn())) return;
+            if (Date.now() > deadline || (await isKillSwitchOn())) return;
             world.assets[request.id] = { status: 'generating' };
             await this.publish(job, lease, world);
             try {
@@ -210,6 +234,7 @@ export class BuilderWorker {
                 url: asset.url,
                 width: asset.width,
                 height: asset.height,
+                ...(asset.animation ? { animation: asset.animation } : {}),
                 ...(asset.colliderUrl ? { colliderUrl: asset.colliderUrl } : {}),
               };
               if (request.id === 'backdrop') {
@@ -234,6 +259,7 @@ export class BuilderWorker {
         await Promise.all(
           Array.from({ length: Math.min(4, requests.length) }, () => generateNext()),
         );
+        requireMotionArtwork(world.doc);
         world = { ...world, status: 'ready' };
         await this.publish(job, lease, world);
       }
@@ -247,15 +273,14 @@ export class BuilderWorker {
         if (fences.some((snapshot) => snapshot.exists)) throw new Error('Deletion requested');
         if (lock.data()?.['lease'] !== lease) throw new Error('Job lease lost');
         tx.update(jobRef, {
-          status: usedFallback ? 'fallback' : 'complete',
+          status: 'complete',
           finishedAt: Date.now(),
         });
         tx.delete(lockRef);
       });
       logEvent('builder_result', {
         jobId: job.jobId,
-        success: !usedFallback,
-        ...(usedFallback ? { milestone: 'fallback' } : {}),
+        success: true,
       });
       return { status: 'complete' };
     } catch (error) {
@@ -321,38 +346,196 @@ export class BuilderWorker {
     const world = WorldDocSchema.parse(snap.data());
     if (world.ownerUid !== job.uid || world.childId !== job.childId)
       throw new Error('World owner mismatch');
-    const patched = await patchScene(world.doc, job.instruction, this.models.generate);
+    const child = ChildDocSchema.parse(
+      (await db().doc(paths.child(job.uid, job.childId)).get()).data(),
+    );
+    let next: WorldDoc;
+    let patch: PatchOp[] | null = null;
+    if (this.game && world.doc.tier !== 'lab') {
+      const revised = await reviseCreation(world, job, child, {
+        ...this.game,
+        generateScene: this.models.generate,
+      });
+      next = { ...world, ...revised };
+      await this.paintEdit(job, next, world);
+    } else {
+      const patched = await patchScene(world.doc, job.instruction, this.models.generate);
+      patched.doc = await guardPatchedGame(world.doc, patched.doc, {
+        language: child.language ?? 'en',
+        ...(this.game?.moderate ? { moderate: this.game.moderate } : {}),
+      });
+      next = { ...world, doc: patched.doc };
+      patch = patched.patch;
+    }
+    await this.commitRevision(job, lease, world, next, job.instruction, patch);
+  }
+  private async undo(job: Extract<BuilderJob, { kind: 'undo' }>, lease: string) {
+    const world = WorldDocSchema.parse((await db().doc(paths.world(job.worldId)).get()).data());
+    if (world.ownerUid !== job.uid || world.childId !== job.childId)
+      throw new Error('World owner mismatch');
+    if (!world.revisionId) throw new EditError('There is no previous edit to undo.');
+    const revision = WorldVersionDocSchema.parse(
+      (
+        await db()
+          .doc(`${paths.worldVersions(job.worldId)}/${world.revisionId}`)
+          .get()
+      ).data(),
+    );
+    const previous = revision.previousWorld;
+    if (
+      !previous ||
+      previous.ownerUid !== job.uid ||
+      previous.childId !== job.childId ||
+      previous.doc.worldId !== job.worldId
+    )
+      throw new EditError('The previous creation is unavailable.');
+    await this.commitRevision(job, lease, world, previous, 'Undo last edit', null);
+  }
+  private async paintEdit(job: BuilderJob, world: WorldDoc, before: WorldDoc) {
+    const doc = world.doc;
+    const requests = [
+      ...(doc.theme.backdropDescription !== before.doc.theme.backdropDescription
+        ? [
+            {
+              id: 'backdrop',
+              description: doc.theme.backdropDescription,
+              kind: 'backdrop',
+              hero: true,
+            },
+          ]
+        : []),
+      ...(doc.theme.midLayerDescription &&
+      doc.theme.midLayerDescription !== before.doc.theme.midLayerDescription
+        ? [
+            {
+              id: 'midLayer',
+              description: doc.theme.midLayerDescription,
+              kind: 'backdrop',
+              hero: true,
+            },
+          ]
+        : []),
+      ...doc.entities
+        .filter(
+          (e) =>
+            e.kind === 'sprite' &&
+            !before.doc.entities.some(
+              (old) =>
+                old.id === e.id &&
+                old.kind === e.kind &&
+                old.description === e.description &&
+                old.asset?.status === 'ready' &&
+                sameMotionArt(old.locomotion, e.locomotion),
+            ),
+        )
+        .sort((a, b) => Number(Boolean(b.character)) - Number(Boolean(a.character)))
+        .slice(0, PLAN_LIMITS[job.plan].imagesPerWorld)
+        .map((e) => ({
+          id: e.id,
+          description: e.description,
+          kind: 'sprite',
+          hero: Boolean(e.character) || e.id === doc.learning.heroEntityId,
+          ...(e.locomotion ? { locomotion: e.locomotion } : {}),
+        })),
+    ];
+    world.assets = {};
+    const existingAssets: [string, AssetRef | undefined][] = [
+      ['backdrop', doc.theme.backdrop],
+      ['midLayer', doc.theme.midLayer],
+      ...doc.entities.map((e) => [e.id, e.asset]),
+    ] as [string, AssetRef | undefined][];
+    for (const [id, asset] of existingAssets) {
+      if (asset)
+        world.assets[id] = {
+          status: asset.status,
+          url: asset.url,
+          ...(asset.colliderUrl ? { colliderUrl: asset.colliderUrl } : {}),
+        };
+    }
+    world.thumbnailUrl = doc.theme.backdrop.status === 'ready' ? doc.theme.backdrop.url : null;
+    let cursor = 0;
+    const deadline = Date.now() + 180000;
+    const work = async () => {
+      while (cursor < requests.length) {
+        const request = requests[cursor++]!;
+        if (Date.now() > deadline || (await isKillSwitchOn()))
+          throw new EditError('Artwork did not finish; the previous creation was kept.');
+        const asset = await this.asset(job, request);
+        const ref = {
+          status: 'ready' as const,
+          url: asset.url,
+          width: asset.width,
+          height: asset.height,
+          ...(asset.animation ? { animation: asset.animation } : {}),
+          ...(asset.colliderUrl ? { colliderUrl: asset.colliderUrl } : {}),
+        };
+        world.assets[request.id] = {
+          status: 'ready',
+          url: asset.url,
+          ...(asset.colliderUrl ? { colliderUrl: asset.colliderUrl } : {}),
+        };
+        if (request.id === 'backdrop') {
+          doc.theme.backdrop = ref;
+          world.thumbnailUrl = ref.url;
+        } else if (request.id === 'midLayer') doc.theme.midLayer = ref;
+        else {
+          const entity = doc.entities.find((e) => e.id === request.id);
+          if (entity) entity.asset = ref;
+        }
+      }
+    };
+    const results = await Promise.allSettled(
+      Array.from({ length: Math.min(4, requests.length) }, work),
+    );
+    if (results.some((result) => result.status === 'rejected'))
+      throw new EditError(
+        'The requested artwork could not be finished; the previous creation was kept.',
+      );
+  }
+  private async commitRevision(
+    job: Extract<BuilderJob, { kind: 'patch' | 'undo' }>,
+    lease: string,
+    world: WorldDoc,
+    next: WorldDoc,
+    reason: string,
+    patch: PatchOp[] | null,
+  ) {
+    const ref = db().doc(paths.world(job.worldId));
     await db().runTransaction(async (tx) => {
       const lockRef = db().doc(`worldLocks/${job.worldId}`);
-      const [lock, parentDelete, childDelete, worldDelete] = await Promise.all([
+      const [lock, parentDelete, childDelete, worldDelete, current] = await Promise.all([
         tx.get(lockRef),
         tx.get(db().doc(`deletionLocks/${job.uid}`)),
         tx.get(db().doc(`users/${job.uid}/deletionLocks/${job.childId}`)),
         tx.get(db().doc(`worldDeletionLocks/${job.worldId}`)),
+        tx.get(ref),
       ]);
       if (
         lock.data()?.['lease'] !== lease ||
         parentDelete.exists ||
         childDelete.exists ||
-        worldDelete.exists
+        worldDelete.exists ||
+        !current.exists ||
+        current.data()?.['updatedAt'] !== world.updatedAt
       )
         throw new Error('World no longer writable');
       tx.set(
         ref,
         WorldDocSchema.parse({
-          ...world,
-          doc: patched.doc,
+          ...next,
           status: 'ready',
-          title: patched.doc.title,
-          concepts: patched.doc.learning.concepts,
+          title: next.doc.title,
+          concepts: next.doc.learning.concepts,
+          ...(job.kind === 'patch' ? { revisionId: job.jobId } : {}),
           jobId: job.jobId,
           updatedAt: Date.now(),
         }),
       );
       tx.set(db().collection(paths.worldVersions(job.worldId)).doc(job.jobId), {
-        doc: patched.doc,
-        patch: patched.patch,
-        reason: job.instruction,
+        doc: next.doc,
+        previousWorld: world,
+        patch,
+        reason,
         createdAt: Date.now(),
       });
       tx.update(db().doc(`builderJobs/${job.jobId}`), {
@@ -364,10 +547,24 @@ export class BuilderWorker {
   }
   private async asset(
     job: BuilderJob,
-    request: { id: string; description: string; kind: string; hero: boolean },
+    request: {
+      id: string;
+      description: string;
+      kind: string;
+      hero: boolean;
+      locomotion?: Locomotion;
+    },
   ) {
     const style = job.kind === 'build' ? job.styleVersion : 'v1';
-    const hash = assetKey(request.description, request.kind, style);
+    const hash = assetKey(
+      request.description,
+      request.kind,
+      request.kind === 'sprite'
+        ? request.locomotion
+          ? `${style}:motion-v2:${JSON.stringify(motionArt(request.locomotion))}`
+          : `${style}:cutout-v2`
+        : style,
+    );
     const cached = AssetCacheDocSchema.safeParse(
       (await db().doc(paths.assetCache(hash)).get()).data(),
     );
@@ -377,53 +574,123 @@ export class BuilderWorker {
     });
     if (cached.success && cached.data.safetyChecked) return cached.data;
     for (let attempt = 0; attempt < 2; attempt++) {
-      const prompt = `${STYLE_BIBLE} ${request.description}. ${request.kind === 'sprite' ? 'Full body, centered, flat pure magenta #FF00FF background, soft rim light, no shadow on background, no text.' : 'Wide 16:9 landscape, no text, no foreground characters.'}${attempt ? ' Strictly follow safety and background requirements.' : ''}`;
-      const raw = await this.models.image(prompt, request.hero, request.kind !== 'sprite');
-      const processed = request.kind === 'sprite' ? await processSprite(raw) : null;
-      if (processed && processed.magentaFraction > 0.02) continue;
-      const image =
-        processed?.webp ??
-        (await sharp(raw, { limitInputPixels: 4096 * 4096 })
-          .resize({ width: 2048, height: 1152, fit: 'cover' })
-          .webp({ quality: 85 })
-          .toBuffer());
-      if (!(await this.models.safeImage(image, request.description))) continue;
-      const prefix = `assets/${hash}`;
-      if (this.config.assetDirectory) {
-        const dir = join(this.config.assetDirectory, prefix);
-        await mkdir(dir, { recursive: true });
-        await writeFile(join(dir, 'sprite.webp'), image);
-        if (processed)
-          await writeFile(join(dir, 'collider.json'), JSON.stringify(processed.collider));
-      } else {
-        await this.storage
-          .bucket(this.config.bucket)
-          .file(`${prefix}/sprite.webp`)
-          .save(image, {
-            contentType: 'image/webp',
-            metadata: { cacheControl: 'public,max-age=31536000,immutable' },
-          });
-        if (processed)
+      try {
+        const styleBible =
+          request.kind === 'sprite'
+            ? STYLE_BIBLE.replace('soft rim light', 'clean edges')
+            : STYLE_BIBLE;
+        const chroma = attempt > 0 ? 'green' : 'magenta';
+        const background = chroma === 'green' ? 'green #00FF00' : 'magenta #FF00FF';
+        const motion = request.kind === 'sprite' ? request.locomotion : undefined;
+        const animated = motion && motion.kind !== 'roll';
+        const motionPrompt = animated
+          ? ` Production nine-frame ${motion.kind} cycle atlas: exactly THREE columns, THREE rows, nine equal cells, chronological left to right then next row. Same full character, same scale, near-side view facing ${motion.facing}, stable body anchor in every cell. Frame1 grounded neutral/recovery, frames2-9 articulate actual legs, wings or flippers through contact, compression, extension and recovery. Runners bend opposite limbs; swimmers flex spine/tail and flippers; birds flap wings. Never nine copies of a standing pose. Ground baseline aligned for runners; body center aligned for swimmers. Generous clear margins around each cell; no grid lines.`
+          : motion?.kind === 'roll' && motion.wheels
+            ? ' Render vehicle chassis WITHOUT wheels; rotating geometric wheels will be mounted by the engine. Leave the specified lower wheel areas clear. Side view.'
+            : '';
+        const prompt = animated
+          ? locomotionImagePrompt(request.description, motion, background)
+          : `${styleBible} ${request.description}.${motionPrompt} ${request.kind === 'sprite' ? `Full body, centered, flat pure ${background} background. Render the character as an opaque painted cartoon: use internal highlights for jelly, glass or light, never let the chroma background show through the body. Crisp clean silhouette, no outer glow, no floating particles, no background shadow, no text. The flat background color is only outside the silhouette.` : 'Wide 16:9 landscape, no text, no foreground characters.'}${attempt ? ' This is a cutout retry: preserve the requested character and its colors, with fully opaque clean edges against the replacement background.' : ''}`;
+        const raw = await this.models.image(
+          prompt,
+          request.hero || attempt > 0,
+          request.kind !== 'sprite',
+        );
+        const processed =
+          request.kind === 'sprite'
+            ? animated
+              ? await processMotionAtlas(raw, motion.kind, chroma)
+              : await processSprite(raw, chroma)
+            : null;
+        if (
+          processed &&
+          (processed.backgroundFraction > 0.02 || processed.borderOpaqueFraction > 0.05)
+        ) {
+          logEvent(
+            'asset_background_failed',
+            { jobId: job.jobId, milestone: request.kind, count: attempt + 1 },
+            'WARNING',
+          );
+          continue;
+        }
+        const image =
+          processed?.webp ??
+          (await sharp(raw, { limitInputPixels: 4096 * 4096 })
+            .resize({ width: 2048, height: 1152, fit: 'cover' })
+            .webp({ quality: 85 })
+            .toBuffer());
+        if (
+          !(await this.models.safeImage(
+            image,
+            request.description +
+              (animated
+                ? ' A production nine-frame animation sheet of the SAME character, nine articulated poses, not nine different characters.'
+                : ''),
+          ))
+        ) {
+          logEvent(
+            'asset_review_failed',
+            { jobId: job.jobId, milestone: request.kind, count: attempt + 1 },
+            'WARNING',
+          );
+          continue;
+        }
+        const prefix = `assets/${hash}`;
+        if (this.config.assetDirectory) {
+          const dir = join(this.config.assetDirectory, prefix);
+          await mkdir(dir, { recursive: true });
+          await writeFile(join(dir, 'sprite.webp'), image);
+          if (processed)
+            await writeFile(join(dir, 'collider.json'), JSON.stringify(processed.collider));
+        } else {
           await this.storage
             .bucket(this.config.bucket)
-            .file(`${prefix}/collider.json`)
-            .save(JSON.stringify(processed.collider), {
-              contentType: 'application/json',
+            .file(`${prefix}/sprite.webp`)
+            .save(image, {
+              contentType: 'image/webp',
               metadata: { cacheControl: 'public,max-age=31536000,immutable' },
             });
+          if (processed)
+            await this.storage
+              .bucket(this.config.bucket)
+              .file(`${prefix}/collider.json`)
+              .save(JSON.stringify(processed.collider), {
+                contentType: 'application/json',
+                metadata: { cacheControl: 'public,max-age=31536000,immutable' },
+              });
+        }
+        const record = AssetCacheDocSchema.parse({
+          url: `${this.config.assetBaseUrl}/${prefix}/sprite.webp`,
+          colliderUrl: processed ? `${this.config.assetBaseUrl}/${prefix}/collider.json` : null,
+          width: processed?.width ?? 2048,
+          height: processed?.height ?? 1152,
+          safetyChecked: true,
+          createdAt: Date.now(),
+          ...(processed && 'animation' in processed ? { animation: processed.animation } : {}),
+        });
+        await db().doc(paths.assetCache(hash)).set(record);
+        await addImages(job.uid, 1);
+        return record;
+      } catch (error) {
+        logEvent(
+          'asset_attempt_failed',
+          {
+            jobId: job.jobId,
+            milestone:
+              error instanceof Error && /Animation|outline|transparent/i.test(error.message)
+                ? 'ART_REGISTRATION'
+                : 'ART_REQUEST',
+            count: attempt + 1,
+          },
+          'WARNING',
+        );
+        if (attempt === 1) throw error;
       }
-      const record = AssetCacheDocSchema.parse({
-        url: `${this.config.assetBaseUrl}/${prefix}/sprite.webp`,
-        colliderUrl: processed ? `${this.config.assetBaseUrl}/${prefix}/collider.json` : null,
-        width: processed?.width ?? 2048,
-        height: processed?.height ?? 1152,
-        safetyChecked: true,
-        createdAt: Date.now(),
-      });
-      await db().doc(paths.assetCache(hash)).set(record);
-      await addImages(job.uid, 1);
-      return record;
     }
     throw new Error('Image did not pass safety or background checks');
   }
+}
+
+export class EditError extends Error {
+  readonly retryable = false;
 }

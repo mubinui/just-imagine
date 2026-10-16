@@ -23,9 +23,14 @@ export class VoiceClient {
   private ended = false;
   private generation = 0;
   private connecting = false;
+  private personaId?: string;
   private listeners = new Set<(message: ServerMessage) => void>();
   private statusListeners = new Set<(status: VoiceStatus) => void>();
   status: VoiceStatus = 'idle';
+  /** Who owns the current playback; a guest persona keeps the companion quiet. */
+  get speakerId() {
+    return this.session ? (this.personaId ?? this.hello?.characterId) : undefined;
+  }
   get session() {
     if (this.ended || !this.hello) return undefined;
     const { childId, characterId, worldId, sessionId } = this.hello;
@@ -67,6 +72,7 @@ export class VoiceClient {
     if (!this.audio.unlocked) throw new Error('Audio must be unlocked by the profile tap');
     if (this.socket || this.connecting) throw new Error('Voice client already connected');
     this.hello = ClientMessageSchema.parse(hello) as Hello;
+    this.personaId = undefined;
     this.ended = false;
     this.retry = 0;
     this.connecting = true;
@@ -109,6 +115,28 @@ export class VoiceClient {
         }
         try {
           const message = parseServerMessage(String(event.data));
+          if (message.type === 'storyVoice') this.personaId = message.active ? 'katha' : undefined;
+          if (message.type === 'storyCue') this.personaId = 'katha';
+          if (message.type === 'persona') this.personaId = message.characterId;
+          if (message.type === 'worldCharacter') this.personaId = message.entityId ?? undefined;
+          if (message.type === 'summon') this.personaId = undefined;
+          if (
+            message.type === 'error' &&
+            [
+              'UNAUTHENTICATED',
+              'FORBIDDEN',
+              'QUOTA_EXHAUSTED',
+              'SESSION_ACTIVE_ELSEWHERE',
+              'KILL_SWITCH',
+            ].includes(message.code)
+          ) {
+            this.ended = true;
+            clearTimeout(this.timer);
+            this.audio.stopCapture();
+            this.audio.flush();
+            socket.close();
+            this.setStatus('error');
+          }
           if (message.type === 'ready') {
             this.retry = 0;
             this.hello!.sessionId = message.sessionId;

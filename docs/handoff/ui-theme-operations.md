@@ -1,0 +1,31 @@
+# Appearance and UI release handoff — 2026-10-16
+
+The real-service app is http://localhost:3300. Operator sign-in is http://localhost:3300/admin/sign-in with the local demo account `admin@justimagine.test` / `OperateJoy!2026`. This account is separate from `parent@justimagine.test` / `ImaginePlay!2026`. Both identities are local emulator demos; real Gemini services still use the private server key in root `.env.local`.
+
+## Publish a theme
+
+Open **Admin → Appearance**. Choose Forest, Ocean or Terracotta, inspect the scoped brand/stage/paper preview, then Apply. Reset preview returns to the published choice. Preview never publishes by itself. The publishing browser updates immediately; other open pages read the change on focus/visibility or within30 seconds. Reload also reads the published value. Forest is restored as the release default.
+
+Themes apply to semantic interface colours and brand/browser/install assets. They preserve character art, scene paintings, scientific subject colours and reward meaning. The app supports three curated presets, rather than arbitrary CSS or custom logo uploads. Existing installed-app icon refresh remains controlled by the browser/OS; acceptance verified the correct manifest/icon responses, not an OS installation refresh.
+
+## Implementation
+
+`packages/protocol/src/appearance.ts` is the palette source:11 keys per preset, `AppearanceSchema`, `SetAppearanceSchema`, `config/appearance`. The public no-store `GET /v1/appearance` returns only `{theme,revision}`. Admin GET/POST `/v1/admin/appearance` uses the existing verified custom-claim guard. A transaction compares revision, writes the next revision and records `appearance.set` in the existing audit collection. Invalid presets return400; stale writes return409 without overwriting; parent tokens return403. Appearance config is distinct from the runtime kill switch.
+
+`AppearanceProvider` reads the public contract, applies only known palette keys and remembers the last valid palette for offline use. It never copies arbitrary CSS or private admin config from a response. The admin preview scopes variables to itself. Public theme failures retain valid/default styling and do not block play.
+
+`UiIcon.tsx` owns rounded24px/1.9px utility paths for microphone, controller, book, captions, paw and navigation. Studio, Learn and preview controls reuse it. Character artwork and semantic five-point reward/celestial stars remain. Decorative guide/create sparkles, summon/pet particle bursts and the small brand sparkle are removed. Studio's DotOrb mounts only during a live interaction, and its100% footprint stays in the portrait column; idle decoration is absent. Actual connected audio behavior was not re-recorded in this UI pass.
+
+`lib/brand.ts` contains controlled Dream Launch geometry. `Mark.tsx` uses semantic theme colours. The provider updates browser favicon/theme colour, Apple icon and `/theme-manifest?theme=...`; invalid manifest theme values fall back to Forest. `scripts/make-icons.cjs` renders the existing SVG geometry through Sharp and derives all preset icon assets from protocol. For Node22.12 use `node --experimental-strip-types scripts/make-icons.cjs`; newer Node with default type stripping can run it directly. The core star/cloud identity stays intact. Static social preview is the default Forest mark.
+
+Learn's row sizing no longer compresses characters into labels. The lower row is aligned; main rows can scroll when content requires it. At1248×643 the compact variant fits all six destinations, story entry and dock. Phones use one dock row with a reserved companion footprint. The old `.stage:has(.companion-dock)` footer reservation was narrowed to `.stage:has(.cast-strip .companion-dock)` so it does not enlarge modern inline docks. Very short landscape windows intentionally scroll the whole stage. The arbitrary previous `--header-h` reference was removed.
+
+## Verification and limits
+
+Real browser report:25 captures across five viewport sizes, preview/reset isolation, real admin save→independent visitor, all three palettes on landing/Learn/parent/story routes, matching manifest/icons, six section routes, zero page errors and unchanged Ari profile. Reviewer initial finding was the idle Studio halo/phone copy collision. The final verdict scores that one correction resolved, disposition ship at correction scope. Full review and verdict: `apps/web/.impeccable/review/ui-theme/`; these local evidence captures are intentionally ignored by Git. Fresh documenter updated DESIGN.md, design sidecar and Appearance/Learn briefs while preserving default frontmatter and unrelated metadata.
+
+Protocol tests enforce safe payloads and readable text/action/focus colour pairs. API integrations exercise public defaults/privacy, all-route authorization, invalid inputs, audit records, stale revisions, concurrent write conflict and kill-switch separation. Full source tasks passed on a serialized rerun; the first concurrent run hit a sandbox timing classification while builds were also active. No sandbox/security assertion was weakened. Isolated emulators with rules passed server-core38/API57/builder85/gateway45. Full typecheck/lint, format check, Docker production and fixture builds passed. Logs `/tmp/ji-theme-*` distinguish initial failures from confirmations.
+
+The browser tests were updated for the current `Chat with Pip` label and story opening/Meet steps. The synthetic fixture gateway keeps one-time rewards in memory across connections: restart it before a whole-suite rerun. Never reset the real local family's state to make fixture assertions pass. A separate real-stack operator suite covers signed-out redirection, parent refusal and every console page including Appearance.
+
+No model/voice quality upgrade or continuous rigging is claimed here. Existing generated-world animation-art reliability and real-child/device acceptance remain separate TODOs. This release pushes the current feature branch and creates a Git tag; it does not merge or provision/deploy cloud services. The temporary theme QA operator was removed; the named demo operator remains for testing. Ari's Bangla profile,3 points, both named saved worlds and six-scene Bangla book were checked intact. Persistent Auth/Firestore export completed to `/data/firebase/snapshot` after cleanup.

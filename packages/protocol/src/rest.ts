@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { STORY_ROUTES } from './stories';
 import { PresetCompanionSchema } from './characters';
 import { ConceptSchema } from '@just-imagine/scene-schema';
 import { PlanLimitsSchema, PlanTierSchema } from './plans';
@@ -58,6 +59,7 @@ export const UpdateChildBodySchema = ChildDocSchema.pick({
   labsUnlocked: true,
   captions: true,
   sessionTargetMinutes: true,
+  storyPreferences: true,
   language: true,
 })
   .extend({ companion: PresetCompanionSchema.nullable().optional() })
@@ -101,6 +103,7 @@ export type PortalResponse = z.infer<typeof PortalResponseSchema>;
 export type WorldSummary = z.infer<typeof WorldSummarySchema>;
 
 export const ROUTES = {
+  ...STORY_ROUTES,
   me: { method: 'GET', path: '/v1/me' },
   deleteAccountData: { method: 'POST', path: '/v1/me/delete' },
   createCompanion: { method: 'POST', path: '/v1/children/:childId/companion' },
