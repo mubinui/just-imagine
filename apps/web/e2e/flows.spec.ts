@@ -9,7 +9,10 @@ test('profile gesture unlocks audio, world renders, prediction and lab controls 
   await expect(page).toHaveURL(/studio/);
   await expect(page.locator('canvas')).toBeVisible();
   await expect(page.getByText('Voice connection: idle')).toBeVisible();
-  await page.getByRole('button', { name: /^Talk to / }).first().click();
+  await page
+    .getByRole('button', { name: /^Talk to / })
+    .first()
+    .click();
   await expect(page.getByText('Voice connection: connected')).toBeVisible();
   await expect(page.getByRole('button', { name: 'bounce', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'bounce', exact: true }).click();
@@ -98,7 +101,10 @@ test('coalesces slider transport, preserves values during asset updates, and res
   await page.goto('/play');
   await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
   await expect(page.locator('canvas')).toBeVisible();
-  await page.getByRole('button', { name: /^Talk to / }).first().click();
+  await page
+    .getByRole('button', { name: /^Talk to / })
+    .first()
+    .click();
   await expect(page.getByText('Voice connection: connected')).toBeVisible();
   await page.getByRole('button', { name: 'Cannon and Cup', exact: true }).click();
   const slider = page.getByRole('slider').first();
