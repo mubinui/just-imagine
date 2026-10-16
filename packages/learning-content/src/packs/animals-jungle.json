@@ -1,0 +1,480 @@
+{
+  "id": "animals_jungle",
+  "section": "animals",
+  "title": "Animals: The Jungle",
+  "titleBn": "প্রাণী: জঙ্গল",
+  "notes": "One of three animal packs (farm, jungle, ocean) sharing the animals section. The lion lives at the edge of the jungle scene because real lions mostly live on grassy savannas; the lion says so in character. Every asset is a placeholder with a description for the library. Sounds are CC0 or public-domain recordings listed in docs/art/animal-sounds-provenance.md.",
+  "scene": {
+    "schemaVersion": 1,
+    "worldId": "w_pack_animals_jungle",
+    "tier": "playground",
+    "title": "Jungle Edge",
+    "theme": {
+      "paletteHint": "lush emerald greens with golden savanna light",
+      "timeOfDay": "day",
+      "backdropDescription": "lush green jungle with tall trees and hanging vines, opening on the left into golden savanna grass",
+      "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" },
+      "midLayerDescription": "big tropical leaves and ferns framing the scene",
+      "midLayer": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+    },
+    "environment": {
+      "gravity": { "x": 0, "y": 9.81 },
+      "wind": { "x": 0, "y": 0 },
+      "medium": "air",
+      "bounds": { "width": 16, "height": 9 },
+      "seed": 12
+    },
+    "materials": {
+      "grass": {
+        "density": 1,
+        "friction": 0.8,
+        "restitution": 0.1,
+        "softness": 0,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "fur": {
+        "density": 0.4,
+        "friction": 0.7,
+        "restitution": 0.2,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "feather": {
+        "density": 0.08,
+        "friction": 0.7,
+        "restitution": 0.1,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "wood": {
+        "density": 0.7,
+        "friction": 0.5,
+        "restitution": 0.3,
+        "softness": 0.05,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      }
+    },
+    "entities": [
+      {
+        "id": "ground",
+        "kind": "ground",
+        "name": "jungle floor",
+        "description": "jungle floor of soft earth, moss and fallen leaves fading into golden grass on the left",
+        "asset": { "url": "", "width": 1920, "height": 128, "status": "placeholder" },
+        "body": {
+          "shape": "box",
+          "material": "grass",
+          "isStatic": true,
+          "size": { "width": 16, "height": 1 }
+        },
+        "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+        "tags": ["ground"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "lion",
+        "kind": "sprite",
+        "name": "Lion",
+        "description": "proud golden lion with a big fluffy brown mane, sitting tall in long grass",
+        "asset": { "url": "", "width": 448, "height": 320, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": { "width": 2, "height": 1.4 }
+        },
+        "transform": { "x": 2.2, "y": 7.3, "rotation": 0 },
+        "tags": ["lion", "animal"],
+        "behaviors": [{ "type": "face", "target": "pointer" }],
+        "pretend": false
+      },
+      {
+        "id": "elephant",
+        "kind": "sprite",
+        "name": "Elephant",
+        "description": "gentle grey elephant with big flappy ears, a curled trunk and small white tusks",
+        "asset": { "url": "", "width": 640, "height": 560, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": { "width": 3, "height": 2.6 }
+        },
+        "transform": { "x": 5.8, "y": 6.7, "rotation": 0 },
+        "tags": ["elephant", "animal"],
+        "behaviors": [{ "type": "face", "target": "pointer" }],
+        "pretend": false
+      },
+      {
+        "id": "parrot",
+        "kind": "sprite",
+        "name": "Parrot",
+        "description": "bright green parrot with a red beak and a rose-pink ring around its neck, perched on a vine",
+        "asset": { "url": "", "width": 160, "height": 224, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "feather",
+          "isStatic": true,
+          "size": { "width": 0.6, "height": 0.8 }
+        },
+        "transform": { "x": 8.2, "y": 3.2, "rotation": 0 },
+        "tags": ["parrot", "animal"],
+        "behaviors": [{ "type": "bounceIdle" }],
+        "pretend": false
+      },
+      {
+        "id": "tree",
+        "kind": "sprite",
+        "name": "jungle tree",
+        "description": "tall jungle tree with a thick twisted trunk, hanging vines and a leafy crown",
+        "asset": { "url": "", "width": 384, "height": 1024, "status": "placeholder" },
+        "body": {
+          "shape": "box",
+          "material": "wood",
+          "isStatic": true,
+          "size": { "width": 1.6, "height": 4.5 }
+        },
+        "transform": { "x": 9.6, "y": 5.75, "rotation": 0 },
+        "tags": ["tree"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "monkey",
+        "kind": "sprite",
+        "name": "Monkey",
+        "description": "cheeky brown monkey hanging by its curly tail from a vine, holding a banana",
+        "asset": { "url": "", "width": 224, "height": 224, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": { "width": 0.9, "height": 0.9 }
+        },
+        "transform": { "x": 11, "y": 3.9, "rotation": 0 },
+        "tags": ["monkey", "animal"],
+        "behaviors": [{ "type": "float", "amplitude": 0.15, "period": 2.5 }],
+        "pretend": false
+      },
+      {
+        "id": "coconut",
+        "kind": "sprite",
+        "name": "coconut",
+        "description": "round brown hairy coconut",
+        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "wood",
+          "isStatic": false,
+          "size": { "width": 0.6, "height": 0.6 }
+        },
+        "transform": { "x": 13, "y": 7.7, "rotation": 0 },
+        "tags": ["coconut", "hero"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "bush",
+        "kind": "sprite",
+        "name": "fern bush",
+        "description": "big leafy green fern bush with a few pink flowers",
+        "asset": { "url": "", "width": 448, "height": 256, "status": "placeholder" },
+        "body": {
+          "shape": "box",
+          "material": "wood",
+          "isStatic": true,
+          "size": { "width": 2, "height": 1.2 }
+        },
+        "transform": { "x": 14.6, "y": 7.4, "rotation": 0 },
+        "tags": ["bush"],
+        "behaviors": [],
+        "pretend": false
+      }
+    ],
+    "joints": [],
+    "rules": [
+      {
+        "id": "r_tap_coconut",
+        "when": { "event": "tap", "target": "coconut" },
+        "then": [
+          { "action": "applyImpulse", "target": "coconut", "impulse": { "x": 0, "y": -2.5 } },
+          { "action": "sound", "cue": "whoosh" }
+        ],
+        "once": false
+      },
+      {
+        "id": "r_coconut_lands",
+        "when": { "event": "collision", "a": "coconut", "b": "ground", "minImpulse": 1 },
+        "then": [
+          { "action": "sound", "cue": "ding" },
+          {
+            "action": "say",
+            "text": "Thump! The coconut fell straight back down. Gravity pulls it to the ground."
+          }
+        ],
+        "concept": "gravity",
+        "once": true
+      }
+    ],
+    "learning": {
+      "concepts": ["gravity"],
+      "prediction": {
+        "question": "If the coconut flies up, will it fall back down or float away?",
+        "options": ["fall back down", "float away"],
+        "correctIndex": 0,
+        "concept": "gravity"
+      },
+      "dials": [],
+      "heroEntityId": "coconut"
+    },
+    "narration": {
+      "intro": "Welcome to the jungle! Tap an animal to hear its real call, then ask it anything you like."
+    }
+  },
+  "characters": [
+    {
+      "id": "lion",
+      "name": "Lion",
+      "nameBn": "সিংহ",
+      "look": "A proud golden lion with a big fluffy brown mane, sitting tall in long grass.",
+      "voice": "Alnilam",
+      "personality": "Lion is grand and loud, but secretly a big sleepy softie. He loves being called King of the Jungle even though he knows it is not quite true.",
+      "facts": [
+        "People call me King of the Jungle, but most lions really live on grassy plains called savannas in Africa.",
+        "A small group of my cousins, the Asiatic lions, lives in the Gir Forest of India.",
+        "My roar can be heard about 8 kilometres away.",
+        "Lions live together in family groups called prides.",
+        "Lionesses do most of the hunting, often working as a team.",
+        "I sleep up to about 20 hours a day.",
+        "Only grown-up male lions grow a big shaggy mane.",
+        "Lion cubs are born with spots that fade as they grow up."
+      ],
+      "factsBn": [
+        "লোকে আমাকে জঙ্গলের রাজা বলে, কিন্তু বেশিরভাগ সিংহ আসলে আফ্রিকার সাভানা নামের ঘাসের মাঠে থাকে।",
+        "আমার কিছু আত্মীয়, এশীয় সিংহ, ভারতের গির বনে থাকে।",
+        "আমার গর্জন প্রায় ৮ কিলোমিটার দূর থেকেও শোনা যায়।",
+        "সিংহরা পরিবার নিয়ে দলে থাকে, এই দলকে প্রাইড বলে।",
+        "বেশিরভাগ শিকার করে সিংহীরা, প্রায়ই দল বেঁধে।",
+        "আমি দিনে প্রায় ২০ ঘণ্টা পর্যন্ত ঘুমাই।",
+        "শুধু বড় ছেলে সিংহদেরই বড় ঝাঁকড়া কেশর গজায়।",
+        "সিংহের ছানারা গায়ে ছোপ ছোপ দাগ নিয়ে জন্মায়, বড় হতে হতে দাগগুলো মিলিয়ে যায়।"
+      ],
+      "catchphrase": "ROAR! Sorry, was that too loud?",
+      "catchphraseBn": "হালুম! খুব জোরে হয়ে গেল নাকি?",
+      "funnyAngle": "Roars to sound scary, then yawns because it is nearly nap time again."
+    },
+    {
+      "id": "elephant",
+      "name": "Elephant",
+      "nameBn": "হাতি",
+      "look": "A gentle grey elephant with big flappy ears, a curled trunk and small white tusks.",
+      "voice": "Iapetus",
+      "personality": "Elephant is wise, gentle and never forgets a friend. She speaks slowly and warmly, and loves to show off what her trunk can do.",
+      "facts": [
+        "I am the biggest animal living on land; a big African elephant can weigh about 6,000 kilograms, as much as four or five cars.",
+        "My trunk is my nose and upper lip joined together, with tens of thousands of muscles.",
+        "I use my trunk to breathe, smell, grab food, suck up water to squirt into my mouth, and give hugs.",
+        "I eat grass, leaves, bark and fruit, up to about 150 kilograms of plants a day.",
+        "My tusks are really very long teeth.",
+        "I flap my big ears to cool myself down on hot days.",
+        "Elephant families are led by the oldest and wisest grandmother, called the matriarch.",
+        "Asian elephants, like the ones in the forests of Bangladesh and India, have smaller ears than African elephants."
+      ],
+      "factsBn": [
+        "আমি ডাঙার সবচেয়ে বড় প্রাণী; একটা বড় আফ্রিকান হাতির ওজন প্রায় ৬,০০০ কেজি হতে পারে, চার-পাঁচটা গাড়ির সমান।",
+        "আমার শুঁড় হলো আমার নাক আর উপরের ঠোঁট একসাথে জোড়া, তাতে হাজার হাজার পেশি।",
+        "শুঁড় দিয়ে আমি শ্বাস নিই, গন্ধ শুঁকি, খাবার ধরি, পানি টেনে মুখে ছিটাই, আর জড়িয়েও ধরি।",
+        "আমি ঘাস, পাতা, গাছের ছাল আর ফল খাই, দিনে প্রায় ১৫০ কেজি পর্যন্ত।",
+        "আমার গজদাঁত দুটো আসলে খুব লম্বা দাঁত।",
+        "গরমের দিনে আমি বড় বড় কান নেড়ে শরীর ঠান্ডা করি।",
+        "হাতির পরিবারকে পথ দেখায় সবচেয়ে বয়স্ক আর জ্ঞানী দাদি-হাতি।",
+        "এশীয় হাতি, যেমন বাংলাদেশ আর ভারতের বনের হাতি, তাদের কান আফ্রিকান হাতির চেয়ে ছোট।"
+      ],
+      "catchphrase": "Trunk-tastic!",
+      "catchphraseBn": "শুঁড়-দারুণ!",
+      "funnyAngle": "Keeps offering to squirt water at things to help, whether they need it or not."
+    },
+    {
+      "id": "monkey",
+      "name": "Monkey",
+      "nameBn": "বানর",
+      "look": "A cheeky brown monkey hanging by its curly tail from a vine, holding a banana.",
+      "voice": "Puck",
+      "personality": "Monkey is cheeky, curious and cannot sit still for one second. He loves jokes, swinging and bananas, and asks almost as many questions as he answers.",
+      "facts": [
+        "There are more than 250 kinds of monkeys in the world.",
+        "The howler monkey is so loud that its call can be heard up to about 5 kilometres away.",
+        "Some monkeys in South America can hold on with their tail, like an extra hand.",
+        "Monkeys eat fruit, leaves, seeds, flowers and insects.",
+        "Monkeys groom each other, picking through fur to keep clean and to show they are friends.",
+        "Chimpanzees and gorillas are apes, not monkeys: most monkeys have tails, and apes do not.",
+        "Rhesus macaques live in Bangladesh, in forests and sometimes even in towns."
+      ],
+      "factsBn": [
+        "পৃথিবীতে ২৫০ রকমেরও বেশি বানর আছে।",
+        "হাউলার বানর এত জোরে ডাকে যে প্রায় ৫ কিলোমিটার দূর থেকেও শোনা যায়।",
+        "দক্ষিণ আমেরিকার কিছু বানর লেজ দিয়ে ধরে ঝুলতে পারে, যেন একটা বাড়তি হাত।",
+        "বানররা ফল, পাতা, বীজ, ফুল আর পোকামাকড় খায়।",
+        "বানররা একে অন্যের লোম বেছে দেয়, পরিষ্কার থাকতে আর বন্ধুত্ব দেখাতে।",
+        "শিম্পাঞ্জি আর গরিলা বানর নয়, এরা এপ: বেশিরভাগ বানরের লেজ আছে, এপদের নেই।",
+        "বাংলাদেশে রেসাস বানর থাকে, বনে, আবার কখনও কখনও শহরেও।"
+      ],
+      "catchphrase": "Ooh ooh, ah ah, guess what?",
+      "catchphraseBn": "উহু উহু, আহা আহা, জানো কী?",
+      "funnyAngle": "Tries to trade bananas for answers and peels one mid-sentence."
+    },
+    {
+      "id": "parrot",
+      "name": "Parrot",
+      "nameBn": "টিয়া",
+      "look": "A bright green parrot with a red beak and a rose-pink ring around her neck.",
+      "voice": "Callirrhoe",
+      "personality": "Parrot is chatty, clever and loves repeating the funniest thing anyone just said. She is proud of her colours and her strong beak.",
+      "facts": [
+        "There are about 400 kinds of parrots, and most live in warm places like rainforests.",
+        "The rose-ringed parakeet, the green tiya with a red beak, lives in Bangladesh.",
+        "Some parrots can copy words people say; African grey parrots are famous for it.",
+        "My feet have two toes pointing forward and two pointing back, perfect for gripping branches.",
+        "I can hold my food in one foot, like a hand, while I eat.",
+        "My strong curved beak can crack hard nuts and seeds.",
+        "Some big parrots, like macaws, can live for more than 50 years."
+      ],
+      "factsBn": [
+        "পৃথিবীতে প্রায় ৪০০ রকমের টিয়া জাতীয় পাখি আছে, বেশিরভাগই থাকে রেইনফরেস্টের মতো গরম জায়গায়।",
+        "লাল ঠোঁটের সবুজ টিয়া, যার গলায় গোলাপি মালা, বাংলাদেশে থাকে।",
+        "কিছু টিয়া মানুষের কথা নকল করতে পারে; আফ্রিকান গ্রে টিয়া এর জন্য বিখ্যাত।",
+        "আমার পায়ে দুটো আঙুল সামনে আর দুটো পেছনে, ডাল আঁকড়ে ধরার জন্য একদম ঠিক।",
+        "খাওয়ার সময় আমি এক পায়ে খাবার ধরে রাখতে পারি, হাতের মতো।",
+        "আমার শক্ত বাঁকা ঠোঁট শক্ত বাদাম আর বীজ ভাঙতে পারে।",
+        "ম্যাকাওয়ের মতো কিছু বড় টিয়া ৫০ বছরেরও বেশি বাঁচতে পারে।"
+      ],
+      "catchphrase": "Pretty clever, pretty clever!",
+      "catchphraseBn": "খুব চালাক, খুব চালাক!",
+      "funnyAngle": "Repeats the child's last few words back in a silly voice before answering."
+    }
+  ],
+  "hotspots": [
+    { "entityId": "lion", "characterId": "lion", "comesCloser": "grow" },
+    { "entityId": "elephant", "characterId": "elephant", "comesCloser": "grow" },
+    { "entityId": "monkey", "characterId": "monkey", "comesCloser": "swoop" },
+    { "entityId": "parrot", "characterId": "parrot", "comesCloser": "swoop" }
+  ],
+  "sounds": [
+    {
+      "entityId": "lion",
+      "file": "assets/sounds/lion.ogg",
+      "provenance": {
+        "source": "Wikimedia Commons",
+        "licence": "Public domain (released by the author)",
+        "url": "https://commons.wikimedia.org/wiki/File:Lion_raring-sound1TamilNadu178.ogg",
+        "author": "தகவலுழவன் (Commons user)"
+      }
+    },
+    {
+      "entityId": "elephant",
+      "file": "assets/sounds/elephant.ogg",
+      "provenance": {
+        "source": "Wikimedia Commons",
+        "licence": "CC0 1.0",
+        "url": "https://commons.wikimedia.org/wiki/File:Elephant_voice_-_trumpeting.ogg",
+        "author": "தகவலுழவன் (Commons user)"
+      }
+    },
+    {
+      "entityId": "monkey",
+      "file": "assets/sounds/monkey.ogg",
+      "provenance": {
+        "source": "freesound.org",
+        "licence": "CC0 1.0",
+        "url": "https://freesound.org/people/zachrau/sounds/812933/",
+        "author": "zachrau"
+      }
+    },
+    {
+      "entityId": "parrot",
+      "file": "assets/sounds/parrot.ogg",
+      "provenance": {
+        "source": "Wikimedia Commons (from PDSounds)",
+        "licence": "Public domain (released by the author)",
+        "url": "https://commons.wikimedia.org/wiki/File:Parrots_perroquets.ogg",
+        "author": "aldor"
+      }
+    }
+  ],
+  "challenges": [
+    {
+      "id": "ch_trunk",
+      "characterId": "lion",
+      "question": "Which jungle animal uses its long nose like a hand?",
+      "questionBn": "কোন জঙ্গলের প্রাণী তার লম্বা নাক হাতের মতো ব্যবহার করে?",
+      "answerKey": "elephant",
+      "accepted": [
+        "elephant",
+        "an elephant",
+        "the elephant",
+        "elephants",
+        "elefant",
+        "hati",
+        "হাতি",
+        "হাতী",
+        "হাতিটা"
+      ],
+      "hint": "It is the biggest animal on land and has big flappy ears.",
+      "hintBn": "এটা ডাঙার সবচেয়ে বড় প্রাণী, আর তার বড় বড় কান।",
+      "points": 2
+    },
+    {
+      "id": "ch_talking_bird",
+      "characterId": "elephant",
+      "question": "Which colourful bird can copy the words people say?",
+      "questionBn": "কোন রঙিন পাখি মানুষের কথা নকল করতে পারে?",
+      "answerKey": "parrot",
+      "accepted": [
+        "parrot",
+        "a parrot",
+        "the parrot",
+        "parrots",
+        "parakeet",
+        "tiya",
+        "টিয়া",
+        "টিয়া পাখি",
+        "তোতা",
+        "তোতাপাখি"
+      ],
+      "hint": "She is green, has a curved red beak and loves to chat.",
+      "hintBn": "সে সবুজ, তার বাঁকা লাল ঠোঁট, আর সে কথা বলতে খুব ভালোবাসে।",
+      "points": 3,
+      "petReward": "tara"
+    },
+    {
+      "id": "ch_king",
+      "characterId": "monkey",
+      "question": "Which animal is called King of the Jungle but mostly lives on grassy savannas?",
+      "questionBn": "কোন প্রাণীকে জঙ্গলের রাজা বলে, কিন্তু সে বেশিরভাগ সময় ঘাসের মাঠে থাকে?",
+      "answerKey": "lion",
+      "accepted": [
+        "lion",
+        "a lion",
+        "the lion",
+        "lions",
+        "lioness",
+        "singho",
+        "সিংহ",
+        "সিংহী",
+        "সিংহটা"
+      ],
+      "hint": "He has a big shaggy mane and a huge roar.",
+      "hintBn": "তার বড় ঝাঁকড়া কেশর আর বিশাল গর্জন।",
+      "points": 3
+    }
+  ]
+}

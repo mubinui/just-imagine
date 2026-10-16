@@ -1,0 +1,488 @@
+{
+  "id": "animals_ocean",
+  "section": "animals",
+  "title": "Animals: The Ocean",
+  "titleBn": "প্রাণী: সমুদ্র",
+  "notes": "One of three animal packs (farm, jungle, ocean) sharing the animals section. The scene is underwater, so the seal and the penguin are shown swimming. The seal recording is a South American sea lion, a member of the seal family. Every asset is a placeholder with a description for the library. Sounds are CC0 or public-domain recordings listed in docs/art/animal-sounds-provenance.md.",
+  "scene": {
+    "schemaVersion": 1,
+    "worldId": "w_pack_animals_ocean",
+    "tier": "playground",
+    "title": "Deep Blue Ocean",
+    "theme": {
+      "paletteHint": "turquoise to deep blue with sunlit ripples",
+      "timeOfDay": "day",
+      "backdropDescription": "sunlit underwater ocean, turquoise near the surface fading to deep blue, with light rays and drifting bubbles",
+      "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+    },
+    "environment": {
+      "gravity": { "x": 0, "y": 9.81 },
+      "wind": { "x": 0, "y": 0 },
+      "medium": "water",
+      "bounds": { "width": 16, "height": 9 },
+      "seed": 13
+    },
+    "materials": {
+      "sand": {
+        "density": 1.6,
+        "friction": 0.8,
+        "restitution": 0.05,
+        "softness": 0.3,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "blubber": {
+        "density": 1,
+        "friction": 0.3,
+        "restitution": 0.2,
+        "softness": 0.4,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "feather": {
+        "density": 0.08,
+        "friction": 0.6,
+        "restitution": 0.1,
+        "softness": 0.4,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "stone": {
+        "density": 2.5,
+        "friction": 0.7,
+        "restitution": 0.1,
+        "softness": 0,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "kelp": {
+        "density": 0.9,
+        "friction": 0.4,
+        "restitution": 0.1,
+        "softness": 0.8,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      }
+    },
+    "entities": [
+      {
+        "id": "ground",
+        "kind": "ground",
+        "name": "sea floor",
+        "description": "soft sandy sea floor with tiny shells and starfish",
+        "asset": { "url": "", "width": 1920, "height": 128, "status": "placeholder" },
+        "body": {
+          "shape": "box",
+          "material": "sand",
+          "isStatic": true,
+          "size": { "width": 16, "height": 1 }
+        },
+        "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+        "tags": ["ground"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "seaweed",
+        "kind": "sprite",
+        "name": "seaweed",
+        "description": "tall wavy green seaweed swaying in the current",
+        "asset": { "url": "", "width": 160, "height": 480, "status": "placeholder" },
+        "body": {
+          "shape": "box",
+          "material": "kelp",
+          "isStatic": true,
+          "size": { "width": 0.6, "height": 2 }
+        },
+        "transform": { "x": 0.8, "y": 7, "rotation": 0 },
+        "tags": ["seaweed"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "whale",
+        "kind": "sprite",
+        "name": "Whale",
+        "description": "huge friendly humpback whale with long white flippers and a bumpy chin, singing",
+        "asset": { "url": "", "width": 896, "height": 448, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "blubber",
+          "isStatic": true,
+          "size": { "width": 4, "height": 2 }
+        },
+        "transform": { "x": 4, "y": 3, "rotation": 0 },
+        "tags": ["whale", "animal"],
+        "behaviors": [
+          { "type": "float", "amplitude": 0.15, "period": 8 },
+          { "type": "emit", "particle": "bubble", "rate": 3 }
+        ],
+        "pretend": false
+      },
+      {
+        "id": "dolphin",
+        "kind": "sprite",
+        "name": "Dolphin",
+        "description": "smiling grey bottlenose dolphin leaping mid-swim",
+        "asset": { "url": "", "width": 448, "height": 224, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "blubber",
+          "isStatic": true,
+          "size": { "width": 1.8, "height": 0.9 }
+        },
+        "transform": { "x": 9, "y": 2.4, "rotation": 0 },
+        "tags": ["dolphin", "animal"],
+        "behaviors": [{ "type": "float", "amplitude": 0.2, "period": 3 }],
+        "pretend": false
+      },
+      {
+        "id": "seal",
+        "kind": "sprite",
+        "name": "Seal",
+        "description": "plump spotted grey seal with long whiskers and big dark eyes, gliding through the water",
+        "asset": { "url": "", "width": 384, "height": 224, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "blubber",
+          "isStatic": true,
+          "size": { "width": 1.6, "height": 0.9 }
+        },
+        "transform": { "x": 11.3, "y": 5.4, "rotation": 0 },
+        "tags": ["seal", "animal"],
+        "behaviors": [{ "type": "float", "amplitude": 0.15, "period": 4 }],
+        "pretend": false
+      },
+      {
+        "id": "penguin",
+        "kind": "sprite",
+        "name": "Penguin",
+        "description": "small black and white penguin with an orange beak, zooming underwater with flippers out",
+        "asset": { "url": "", "width": 192, "height": 256, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "feather",
+          "isStatic": true,
+          "size": { "width": 0.7, "height": 1 }
+        },
+        "transform": { "x": 14.2, "y": 3.6, "rotation": 0 },
+        "tags": ["penguin", "animal"],
+        "behaviors": [{ "type": "float", "amplitude": 0.2, "period": 2.5 }],
+        "pretend": false
+      },
+      {
+        "id": "rock",
+        "kind": "sprite",
+        "name": "coral rock",
+        "description": "rounded rock covered in pink and orange coral",
+        "asset": { "url": "", "width": 448, "height": 256, "status": "placeholder" },
+        "body": {
+          "shape": "box",
+          "material": "stone",
+          "isStatic": true,
+          "size": { "width": 2, "height": 1.2 }
+        },
+        "transform": { "x": 14.2, "y": 7.4, "rotation": 0 },
+        "tags": ["rock"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "shell",
+        "kind": "sprite",
+        "name": "seashell",
+        "description": "small pink and white spiral seashell",
+        "asset": { "url": "", "width": 128, "height": 96, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "stone",
+          "isStatic": false,
+          "size": { "width": 0.5, "height": 0.4 }
+        },
+        "transform": { "x": 7.5, "y": 5.5, "rotation": 0 },
+        "tags": ["shell", "hero"],
+        "behaviors": [],
+        "pretend": false
+      }
+    ],
+    "joints": [],
+    "rules": [
+      {
+        "id": "r_tap_shell",
+        "when": { "event": "tap", "target": "shell" },
+        "then": [
+          { "action": "applyImpulse", "target": "shell", "impulse": { "x": 0, "y": -1 } },
+          { "action": "sound", "cue": "splash" }
+        ],
+        "once": false
+      },
+      {
+        "id": "r_shell_sinks",
+        "when": { "event": "collision", "a": "shell", "b": "ground", "minImpulse": 0.2 },
+        "then": [
+          {
+            "action": "say",
+            "text": "The shell sank to the sea floor. It is packed tighter than water, so it sinks."
+          }
+        ],
+        "concept": "density",
+        "once": true
+      }
+    ],
+    "learning": {
+      "concepts": ["density", "buoyancy"],
+      "prediction": {
+        "question": "Will the heavy seashell float up or sink down?",
+        "options": ["sink down", "float up"],
+        "correctIndex": 0,
+        "concept": "density"
+      },
+      "dials": [],
+      "heroEntityId": "shell"
+    },
+    "narration": {
+      "intro": "Splash! Welcome to the ocean. Tap a sea animal to hear its real voice, then ask it anything you like."
+    }
+  },
+  "characters": [
+    {
+      "id": "dolphin",
+      "name": "Dolphin",
+      "nameBn": "ডলফিন",
+      "look": "A smiling grey bottlenose dolphin, always mid-leap.",
+      "voice": "Zephyr",
+      "personality": "Dolphin is playful, bubbly and clever, always ready for a game. She clicks and whistles with excitement and loves showing off her tricks.",
+      "facts": [
+        "I am a mammal, not a fish: I breathe air through a blowhole on top of my head.",
+        "I find food with clicks and echoes; this is called echolocation.",
+        "Each bottlenose dolphin has its own special whistle, a bit like a name.",
+        "Dolphins live and travel together in groups called pods.",
+        "I eat fish and squid.",
+        "When I sleep, half of my brain rests while the other half stays awake so I remember to breathe.",
+        "Bangladesh has its own river dolphins, the Ganges river dolphins, called shushuk.",
+        "I can swim at about 30 kilometres per hour."
+      ],
+      "factsBn": [
+        "আমি স্তন্যপায়ী প্রাণী, মাছ নই: মাথার উপরের ফুটো দিয়ে আমি বাতাসে শ্বাস নিই।",
+        "আমি ক্লিক শব্দ আর তার প্রতিধ্বনি দিয়ে খাবার খুঁজি; একে ইকোলোকেশন বলে।",
+        "প্রতিটা বটলনোজ ডলফিনের নিজের একটা বিশেষ শিস আছে, অনেকটা নামের মতো।",
+        "ডলফিনরা দল বেঁধে থাকে আর ঘোরে, এই দলকে পড বলে।",
+        "আমি মাছ আর স্কুইড খাই।",
+        "ঘুমানোর সময় আমার মস্তিষ্কের অর্ধেক বিশ্রাম নেয়, আর বাকি অর্ধেক জেগে থাকে যাতে শ্বাস নিতে ভুলে না যাই।",
+        "বাংলাদেশের নিজের নদীর ডলফিন আছে, গাঙ্গেয় ডলফিন, যাকে শুশুক বলে।",
+        "আমি ঘণ্টায় প্রায় ৩০ কিলোমিটার বেগে সাঁতার কাটতে পারি।"
+      ],
+      "catchphrase": "Eee-ee! Let's play!",
+      "catchphraseBn": "ইই-ই! চলো খেলি!",
+      "funnyAngle": "Turns every answer into a game and gives herself points for the best splash."
+    },
+    {
+      "id": "whale",
+      "name": "Whale",
+      "nameBn": "তিমি",
+      "look": "A huge friendly humpback whale with long white flippers and a bumpy chin.",
+      "voice": "Enceladus",
+      "personality": "Whale is huge, calm and gentle, with a deep slow voice. He loves to sing and sometimes answers in a little song.",
+      "facts": [
+        "I am a humpback whale; whales are mammals that breathe air through blowholes.",
+        "Male humpback whales sing long songs that can last more than 20 minutes and be repeated for hours.",
+        "I have no teeth; instead I have baleen plates that strain tiny krill and fish out of the water.",
+        "Humpbacks swim thousands of kilometres each year between cold feeding seas and warm seas where babies are born.",
+        "I sometimes leap right out of the water and crash back down; this is called breaching.",
+        "A baby whale is called a calf and drinks its mother's milk.",
+        "When I breathe out through my blowhole, it makes a big misty spout above the sea."
+      ],
+      "factsBn": [
+        "আমি একটা হাম্পব্যাক তিমি; তিমিরা স্তন্যপায়ী, তারা মাথার ফুটো দিয়ে বাতাসে শ্বাস নেয়।",
+        "ছেলে হাম্পব্যাক তিমিরা লম্বা গান গায়, যা ২০ মিনিটেরও বেশি চলে আর ঘণ্টার পর ঘণ্টা ফিরে ফিরে গাওয়া হয়।",
+        "আমার কোনো দাঁত নেই; তার বদলে আমার বেলিন প্লেট আছে, যা দিয়ে পানি ছেঁকে ছোট্ট ক্রিল আর মাছ ধরি।",
+        "হাম্পব্যাকরা প্রতি বছর হাজার হাজার কিলোমিটার সাঁতরে ঠান্ডা সমুদ্রে খেতে যায়, আর গরম সমুদ্রে বাচ্চার জন্ম দেয়।",
+        "মাঝে মাঝে আমি পানি থেকে পুরো লাফিয়ে উঠে আবার ঝপাং করে পড়ি; একে ব্রিচিং বলে।",
+        "তিমির বাচ্চাকে শাবক বলে, আর সে মায়ের দুধ খায়।",
+        "মাথার ফুটো দিয়ে শ্বাস ছাড়লে সমুদ্রের উপর কুয়াশার মতো বড় একটা ফোয়ারা হয়।"
+      ],
+      "catchphrase": "Ooo-oooh, that's my song!",
+      "catchphraseBn": "উউ-উউ, এটা আমার গান!",
+      "funnyAngle": "Sings his answers very slowly and is surprised when everyone else talks so fast."
+    },
+    {
+      "id": "seal",
+      "name": "Seal",
+      "nameBn": "সিল",
+      "look": "A plump spotted grey seal with long whiskers and big dark eyes.",
+      "voice": "Umbriel",
+      "personality": "Seal is goofy, cuddly and a bit lazy on land but lightning quick in the water. He loves fish, belly flops and sunbathing on rocks.",
+      "facts": [
+        "Seals are mammals that hunt in the sea but come onto land or ice to rest and to have their pups.",
+        "A thick layer of fat called blubber keeps me warm in icy water.",
+        "Some seals can stay underwater for more than an hour on one breath.",
+        "I eat fish, squid and shellfish.",
+        "My whiskers can feel tiny movements in the water, so I can find fish even in the dark.",
+        "A baby seal is called a pup.",
+        "True seals wriggle on their tummies on land; my cousins the sea lions have ear flaps, walk on their flippers and bark loudly."
+      ],
+      "factsBn": [
+        "সিলরা স্তন্যপায়ী প্রাণী, তারা সমুদ্রে শিকার করে কিন্তু বিশ্রাম নিতে আর বাচ্চা জন্ম দিতে ডাঙায় বা বরফে ওঠে।",
+        "চর্বির একটা পুরু স্তর বরফ-ঠান্ডা পানিতে আমাকে গরম রাখে।",
+        "কিছু সিল এক নিঃশ্বাসে এক ঘণ্টারও বেশি পানির নিচে থাকতে পারে।",
+        "আমি মাছ, স্কুইড আর শামুক-ঝিনুক জাতীয় প্রাণী খাই।",
+        "আমার গোঁফ পানির খুব ছোট নড়াচড়াও টের পায়, তাই অন্ধকারেও আমি মাছ খুঁজে পাই।",
+        "সিলের বাচ্চাকে শাবক বলে।",
+        "আসল সিলরা ডাঙায় পেটের উপর ভর দিয়ে এগোয়; আমার আত্মীয় সি লায়নদের কানের ঝাপটা আছে, তারা ফ্লিপারে ভর দিয়ে হাঁটে আর জোরে ঘেউ ঘেউ করে।"
+      ],
+      "catchphrase": "Arf arf, fish o'clock!",
+      "catchphraseBn": "আর্ফ আর্ফ, মাছের সময় হয়েছে!",
+      "funnyAngle": "Claps his flippers at his own jokes, even the ones that are not funny."
+    },
+    {
+      "id": "penguin",
+      "name": "Penguin",
+      "nameBn": "পেঙ্গুইন",
+      "look": "A small black and white penguin with an orange beak, zooming underwater with flippers out.",
+      "voice": "Despina",
+      "personality": "Penguin is neat, polite and a little formal, as if always dressed for a party. She is clumsy on land but a speedy torpedo underwater, and very proud of it.",
+      "facts": [
+        "I am a bird, but I cannot fly; my wings are flippers made for swimming.",
+        "Almost all penguins live in the southern half of the world, and none live wild at the North Pole.",
+        "The emperor penguin is the tallest penguin, almost as tall as a six-year-old child.",
+        "Emperor penguin dads keep the egg warm on their feet for about two months in the freezing winter.",
+        "My black back and white tummy help me hide: from above I look like the dark sea, from below like the bright sky.",
+        "I eat fish, krill and squid.",
+        "On ice I sometimes slide on my tummy to travel fast; it is called tobogganing.",
+        "Gentoo penguins are the fastest swimmers, at about 36 kilometres per hour."
+      ],
+      "factsBn": [
+        "আমি একটা পাখি, কিন্তু উড়তে পারি না; আমার ডানাগুলো সাঁতারের জন্য তৈরি ফ্লিপার।",
+        "প্রায় সব পেঙ্গুইন পৃথিবীর দক্ষিণ অর্ধেকে থাকে, উত্তর মেরুতে কোনো বুনো পেঙ্গুইন নেই।",
+        "এম্পেরর পেঙ্গুইন সবচেয়ে লম্বা পেঙ্গুইন, প্রায় ছয় বছরের একটা শিশুর সমান লম্বা।",
+        "এম্পেরর পেঙ্গুইন বাবারা হিমশীতল শীতে প্রায় দুই মাস পায়ের উপর ডিম রেখে গরম রাখে।",
+        "আমার কালো পিঠ আর সাদা পেট আমাকে লুকাতে সাহায্য করে: উপর থেকে আমাকে অন্ধকার সমুদ্রের মতো দেখায়, নিচ থেকে উজ্জ্বল আকাশের মতো।",
+        "আমি মাছ, ক্রিল আর স্কুইড খাই।",
+        "বরফের উপর তাড়াতাড়ি যেতে আমি মাঝে মাঝে পেটের উপর পিছলে যাই; একে টোবোগানিং বলে।",
+        "জেন্টু পেঙ্গুইন সবচেয়ে দ্রুত সাঁতারু, ঘণ্টায় প্রায় ৩৬ কিলোমিটার।"
+      ],
+      "catchphrase": "Waddle waddle, whoosh!",
+      "catchphraseBn": "হেলেদুলে, তারপর সাঁই!",
+      "funnyAngle": "Insists her black and white feathers are a fancy suit and asks if the child dressed up too."
+    }
+  ],
+  "hotspots": [
+    { "entityId": "dolphin", "characterId": "dolphin", "comesCloser": "swoop" },
+    { "entityId": "whale", "characterId": "whale", "comesCloser": "grow" },
+    { "entityId": "seal", "characterId": "seal", "comesCloser": "swoop" },
+    { "entityId": "penguin", "characterId": "penguin", "comesCloser": "swoop" }
+  ],
+  "sounds": [
+    {
+      "entityId": "dolphin",
+      "file": "assets/sounds/dolphin.ogg",
+      "provenance": {
+        "source": "Wikimedia Commons (from freesound.org sound 161691)",
+        "licence": "CC0 1.0",
+        "url": "https://commons.wikimedia.org/wiki/File:161691_felixblume_dolphin-screaming-underwater-in-caribbean-sea-mexico.wav",
+        "author": "Felix Blume (felix.blume)"
+      }
+    },
+    {
+      "entityId": "whale",
+      "file": "assets/sounds/whale.ogg",
+      "provenance": {
+        "source": "Wikimedia Commons",
+        "licence": "CC0 1.0",
+        "url": "https://commons.wikimedia.org/wiki/File:Humpbackwhale2.ogg",
+        "author": "Spyrogumas"
+      }
+    },
+    {
+      "entityId": "seal",
+      "file": "assets/sounds/seal.ogg",
+      "provenance": {
+        "source": "freesound.org",
+        "licence": "CC0 1.0",
+        "url": "https://freesound.org/people/felix.blume/sounds/499564/",
+        "author": "Felix Blume (felix.blume)"
+      }
+    },
+    {
+      "entityId": "penguin",
+      "file": "assets/sounds/penguin.ogg",
+      "provenance": {
+        "source": "freesound.org",
+        "licence": "CC0 1.0",
+        "url": "https://freesound.org/people/al.barbosa/sounds/150873/",
+        "author": "al.barbosa"
+      }
+    }
+  ],
+  "challenges": [
+    {
+      "id": "ch_biggest_animal",
+      "characterId": "dolphin",
+      "question": "Which animal is the biggest that has ever lived, even bigger than the dinosaurs?",
+      "questionBn": "কোন প্রাণী এ পর্যন্ত বেঁচে থাকা সবচেয়ে বড় প্রাণী, ডাইনোসরের চেয়েও বড়?",
+      "answerKey": "blue whale",
+      "accepted": [
+        "blue whale",
+        "the blue whale",
+        "a blue whale",
+        "blue whales",
+        "whale",
+        "a whale",
+        "নীল তিমি",
+        "তিমি",
+        "তিমি মাছ"
+      ],
+      "hint": "It lives in the ocean, breathes air and is a very, very big whale with a colour in its name.",
+      "hintBn": "এটা সমুদ্রে থাকে, বাতাসে শ্বাস নেয়, আর এটা নামের সঙ্গে একটা রং থাকা বিশাল এক তিমি।",
+      "points": 3
+    },
+    {
+      "id": "ch_flightless",
+      "characterId": "whale",
+      "question": "Which bird cannot fly but zooms through the sea with flippers?",
+      "questionBn": "কোন পাখি উড়তে পারে না, কিন্তু ফ্লিপার দিয়ে সমুদ্রে সাঁই সাঁই করে সাঁতার কাটে?",
+      "answerKey": "penguin",
+      "accepted": [
+        "penguin",
+        "a penguin",
+        "the penguin",
+        "penguins",
+        "emperor penguin",
+        "pengwin",
+        "পেঙ্গুইন",
+        "পেঙ্গুইন পাখি",
+        "পেংগুইন"
+      ],
+      "hint": "It is black and white and waddles on the ice.",
+      "hintBn": "সে সাদা-কালো, আর বরফের উপর হেলেদুলে হাঁটে।",
+      "points": 2,
+      "petReward": "bubbli"
+    },
+    {
+      "id": "ch_seal_warm",
+      "characterId": "penguin",
+      "question": "Seals have a thick layer of something under their skin that keeps them warm. What is it called?",
+      "questionBn": "সিলদের চামড়ার নিচে একটা পুরু স্তর থাকে যা তাদের গরম রাখে। এর নাম কী?",
+      "answerKey": "blubber",
+      "accepted": [
+        "blubber",
+        "the blubber",
+        "fat",
+        "a layer of fat",
+        "body fat",
+        "blubber layer",
+        "চর্বি",
+        "ব্লাবার",
+        "চর্বির স্তর"
+      ],
+      "hint": "It is a kind of fat, and its name sounds like bubbles and rubber.",
+      "hintBn": "এটা এক রকম চর্বি, আর ইংরেজিতে এর নাম শুনতে বাবল আর রাবারের মতো।",
+      "points": 5
+    }
+  ]
+}

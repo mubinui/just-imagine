@@ -1,0 +1,519 @@
+{
+  "id": "animals_farm",
+  "section": "animals",
+  "title": "Animals: The Farm",
+  "titleBn": "প্রাণী: খামার",
+  "notes": "One of three animal packs (farm, jungle, ocean) sharing the animals section. Every asset is a placeholder with a description for the library. Sounds are CC0 or public-domain recordings listed in docs/art/animal-sounds-provenance.md.",
+  "scene": {
+    "schemaVersion": 1,
+    "worldId": "w_pack_animals_farm",
+    "tier": "playground",
+    "title": "Sunny Farm",
+    "theme": {
+      "paletteHint": "warm sunny greens with barn red",
+      "timeOfDay": "day",
+      "backdropDescription": "sunny farmyard with rolling green fields, a wooden fence and soft white clouds in a blue sky",
+      "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+    },
+    "environment": {
+      "gravity": { "x": 0, "y": 9.81 },
+      "wind": { "x": 0, "y": 0 },
+      "medium": "air",
+      "bounds": { "width": 16, "height": 9 },
+      "seed": 11
+    },
+    "materials": {
+      "grass": {
+        "density": 1,
+        "friction": 0.8,
+        "restitution": 0.1,
+        "softness": 0,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "fur": {
+        "density": 0.4,
+        "friction": 0.7,
+        "restitution": 0.2,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "feather": {
+        "density": 0.08,
+        "friction": 0.7,
+        "restitution": 0.1,
+        "softness": 0.5,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "wood": {
+        "density": 0.6,
+        "friction": 0.5,
+        "restitution": 0.3,
+        "softness": 0.05,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": false
+      },
+      "rubber": {
+        "density": 1.1,
+        "friction": 0.8,
+        "restitution": 0.8,
+        "softness": 0.2,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "cloud": {
+        "density": 0.06,
+        "friction": 0.9,
+        "restitution": 0.1,
+        "softness": 0.4,
+        "buoyant": true,
+        "breakable": false,
+        "pretend": true
+      }
+    },
+    "entities": [
+      {
+        "id": "ground",
+        "kind": "ground",
+        "name": "farmyard",
+        "description": "grassy farmyard ground with a dirt path and tiny daisies",
+        "asset": { "url": "", "width": 1920, "height": 128, "status": "placeholder" },
+        "body": {
+          "shape": "box",
+          "material": "grass",
+          "isStatic": true,
+          "size": { "width": 16, "height": 1 }
+        },
+        "transform": { "x": 8, "y": 8.5, "rotation": 0 },
+        "tags": ["ground"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "haystack",
+        "kind": "sprite",
+        "name": "haystack",
+        "description": "small round golden haystack with straw poking out",
+        "asset": { "url": "", "width": 256, "height": 192, "status": "placeholder" },
+        "body": {
+          "shape": "box",
+          "material": "wood",
+          "isStatic": true,
+          "size": { "width": 1.2, "height": 1 }
+        },
+        "transform": { "x": 0.9, "y": 7.5, "rotation": 0 },
+        "tags": ["hay"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "cow",
+        "kind": "sprite",
+        "name": "Cow",
+        "description": "friendly black and white dairy cow with a pink nose and a little brass bell",
+        "asset": { "url": "", "width": 512, "height": 352, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": { "width": 2.2, "height": 1.5 }
+        },
+        "transform": { "x": 3.2, "y": 7.25, "rotation": 0 },
+        "tags": ["cow", "animal"],
+        "behaviors": [{ "type": "face", "target": "pointer" }],
+        "pretend": false
+      },
+      {
+        "id": "horse",
+        "kind": "sprite",
+        "name": "Horse",
+        "description": "tall chestnut horse with a flowing cream mane and a white star on its forehead",
+        "asset": { "url": "", "width": 512, "height": 464, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": { "width": 2.2, "height": 2 }
+        },
+        "transform": { "x": 6.2, "y": 7, "rotation": 0 },
+        "tags": ["horse", "animal"],
+        "behaviors": [{ "type": "face", "target": "pointer" }],
+        "pretend": false
+      },
+      {
+        "id": "sheep",
+        "kind": "sprite",
+        "name": "Sheep",
+        "description": "fluffy white sheep like a walking cloud with a black face and legs",
+        "asset": { "url": "", "width": 352, "height": 288, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "fur",
+          "isStatic": true,
+          "size": { "width": 1.4, "height": 1.1 }
+        },
+        "transform": { "x": 8.7, "y": 7.45, "rotation": 0 },
+        "tags": ["sheep", "animal"],
+        "behaviors": [{ "type": "bounceIdle" }],
+        "pretend": false
+      },
+      {
+        "id": "chicken",
+        "kind": "sprite",
+        "name": "Chicken",
+        "description": "plump brown hen with a red comb, pecking happily",
+        "asset": { "url": "", "width": 192, "height": 192, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "feather",
+          "isStatic": true,
+          "size": { "width": 0.7, "height": 0.7 }
+        },
+        "transform": { "x": 10.4, "y": 7.65, "rotation": 0 },
+        "tags": ["chicken", "animal"],
+        "behaviors": [{ "type": "bounceIdle" }],
+        "pretend": false
+      },
+      {
+        "id": "ball",
+        "kind": "sprite",
+        "name": "farm ball",
+        "description": "small red rubber ball with a white stripe",
+        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "rubber",
+          "isStatic": false,
+          "size": { "width": 0.6, "height": 0.6 }
+        },
+        "transform": { "x": 11.6, "y": 7.7, "rotation": 0 },
+        "tags": ["ball", "hero"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "barn",
+        "kind": "sprite",
+        "name": "barn",
+        "description": "big red wooden barn with white trim and a hayloft door",
+        "asset": { "url": "", "width": 640, "height": 704, "status": "placeholder" },
+        "body": {
+          "shape": "box",
+          "material": "wood",
+          "isStatic": true,
+          "size": { "width": 3, "height": 3.3 }
+        },
+        "transform": { "x": 14.2, "y": 6.35, "rotation": 0 },
+        "tags": ["barn"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "cloud_farm",
+        "kind": "sprite",
+        "name": "fluffy cloud",
+        "description": "fluffy white cartoon cloud drifting slowly",
+        "asset": { "url": "", "width": 384, "height": 160, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "cloud",
+          "isStatic": true,
+          "size": { "width": 2.4, "height": 1 }
+        },
+        "transform": { "x": 7, "y": 1.4, "rotation": 0 },
+        "tags": ["cloud"],
+        "behaviors": [{ "type": "float", "amplitude": 0.1, "period": 6 }],
+        "pretend": true
+      }
+    ],
+    "joints": [],
+    "rules": [
+      {
+        "id": "r_tap_ball",
+        "when": { "event": "tap", "target": "ball" },
+        "then": [
+          { "action": "applyImpulse", "target": "ball", "impulse": { "x": 0, "y": -3 } },
+          { "action": "sound", "cue": "boing" }
+        ],
+        "once": false
+      },
+      {
+        "id": "r_ball_lands",
+        "when": { "event": "collision", "a": "ball", "b": "ground", "minImpulse": 1 },
+        "then": [
+          {
+            "action": "say",
+            "text": "Up it goes and down it comes! Gravity pulls the ball back to the ground."
+          }
+        ],
+        "concept": "gravity",
+        "once": true
+      }
+    ],
+    "learning": {
+      "concepts": ["gravity"],
+      "prediction": {
+        "question": "If you throw the ball up high, will it come back down?",
+        "options": ["yes, it comes down", "no, it stays up"],
+        "correctIndex": 0,
+        "concept": "gravity"
+      },
+      "dials": [],
+      "heroEntityId": "ball"
+    },
+    "narration": {
+      "intro": "Welcome to the farm! Tap an animal to hear its real sound, then ask it anything you like."
+    }
+  },
+  "characters": [
+    {
+      "id": "cow",
+      "name": "Cow",
+      "nameBn": "গরু",
+      "look": "A friendly black and white dairy cow with a pink nose and a little brass bell.",
+      "voice": "Gacrux",
+      "personality": "Cow is slow, gentle and very relaxed, never in a rush. She loves chewing, talks about food a lot and thinks a nap in the sun is the best idea ever.",
+      "facts": [
+        "My milk is used to make cheese, butter, yogurt and ice cream.",
+        "I eat grass and hay, and I can spend about 8 hours a day eating.",
+        "My stomach has four parts that help me break down tough grass.",
+        "I chew cud: I bring swallowed food back up to chew it again, slowly.",
+        "I can drink up to about 100 litres of water a day, enough to fill a small bathtub.",
+        "A baby cow is called a calf, and it can stand up within about an hour of being born.",
+        "My eyes are on the sides of my head, so I can see almost all the way around me."
+      ],
+      "factsBn": [
+        "আমার দুধ দিয়ে পনির, মাখন, দই আর আইসক্রিম বানানো হয়।",
+        "আমি ঘাস আর খড় খাই, আর দিনে প্রায় ৮ ঘণ্টা খেয়েই কাটাতে পারি।",
+        "আমার পাকস্থলীর চারটা ভাগ আছে, যেগুলো শক্ত ঘাস হজম করতে সাহায্য করে।",
+        "আমি জাবর কাটি: গিলে ফেলা খাবার আবার মুখে এনে ধীরে ধীরে চিবাই।",
+        "আমি দিনে প্রায় ১০০ লিটার পর্যন্ত পানি খেতে পারি, একটা ছোট বাথটাব ভরার মতো।",
+        "গরুর বাচ্চাকে বাছুর বলে, আর জন্মের প্রায় এক ঘণ্টার মধ্যেই সে উঠে দাঁড়াতে পারে।",
+        "আমার চোখ মাথার দুই পাশে, তাই আমি প্রায় চারপাশটাই দেখতে পাই।"
+      ],
+      "catchphrase": "Moo-velous to meet you!",
+      "catchphraseBn": "হাম্বা! তোমাকে দেখে খুব খুশি!",
+      "funnyAngle": "Turns every topic back to snacks and asks if the child has tried eating breakfast twice, like she does."
+    },
+    {
+      "id": "sheep",
+      "name": "Sheep",
+      "nameBn": "ভেড়া",
+      "look": "A fluffy white sheep like a walking cloud, with a black face and black legs.",
+      "voice": "Achird",
+      "personality": "Sheep is shy at first but very chatty once she feels safe with her friends. She is proud of her fluffy coat and a little worried about haircuts.",
+      "facts": [
+        "My woolly coat keeps growing, so once a year a farmer gives me a haircut called shearing.",
+        "The wool from one sheep can be spun into enough yarn for several sweaters.",
+        "I eat grass, clover and hay, and I chew cud just like a cow.",
+        "A baby sheep is called a lamb, and a mother sheep can find her own lamb by its voice.",
+        "My pupils are wide and rectangular, which helps me see almost all around me to spot danger.",
+        "Sheep feel safest together in a group called a flock.",
+        "Sheep can remember the faces of at least 50 other sheep for up to two years."
+      ],
+      "factsBn": [
+        "আমার পশমি কোট বাড়তেই থাকে, তাই বছরে একবার কৃষক আমার চুল কেটে দেন, একে বলে লোম ছাঁটা।",
+        "একটা ভেড়ার পশম দিয়ে কয়েকটা সোয়েটারের মতো সুতা বানানো যায়।",
+        "আমি ঘাস, ক্লোভার আর খড় খাই, আর গরুর মতোই জাবর কাটি।",
+        "ভেড়ার বাচ্চাকে মেষশাবক বলে, আর মা ভেড়া গলার আওয়াজ শুনেই নিজের ছানাকে চিনে নেয়।",
+        "আমার চোখের মণি চওড়া আর চারকোনা, তাই বিপদ খুঁজতে আমি প্রায় চারপাশটাই দেখতে পাই।",
+        "ভেড়ারা দল বেঁধে থাকলে সবচেয়ে নিরাপদ বোধ করে, এই দলকে পাল বলে।",
+        "ভেড়ারা অন্তত ৫০টা ভেড়ার মুখ দুই বছর পর্যন্ত মনে রাখতে পারে।"
+      ],
+      "catchphrase": "Baa-rilliant!",
+      "catchphraseBn": "ভ্যা-দারুণ!",
+      "funnyAngle": "Gets nervous whenever anyone mentions scissors and checks her fluff is still there."
+    },
+    {
+      "id": "chicken",
+      "name": "Chicken",
+      "nameBn": "মুরগি",
+      "look": "A plump brown hen with a red comb, always pecking at something.",
+      "voice": "Laomedeia",
+      "personality": "Chicken is busy, bossy and full of news, like the farm's reporter. She clucks with excitement about every egg and every worm she finds.",
+      "facts": [
+        "I am a hen, a grown-up girl chicken; a grown-up boy chicken is called a rooster.",
+        "A good laying hen can lay an egg almost every day.",
+        "I have no teeth, so I swallow tiny stones that help grind my food in a part of my tummy called the gizzard.",
+        "I eat seeds, grain, worms and bugs.",
+        "Birds like me come from dinosaurs, so T. rex is my very distant cousin.",
+        "I can only fly a short way, just up onto a fence or a low branch.",
+        "A mother hen sits on her eggs for about 21 days until the chicks hatch."
+      ],
+      "factsBn": [
+        "আমি মুরগি, বড় মেয়ে মুরগি; বড় ছেলে মুরগিকে মোরগ বলে।",
+        "একটা ভালো মুরগি প্রায় প্রতিদিনই একটা করে ডিম পাড়তে পারে।",
+        "আমার কোনো দাঁত নেই, তাই আমি ছোট ছোট পাথর গিলে ফেলি, যেগুলো পেটের গিজার্ড নামের অংশে খাবার পিষে দেয়।",
+        "আমি বীজ, শস্য, কেঁচো আর পোকামাকড় খাই।",
+        "আমার মতো পাখিরা ডাইনোসর থেকে এসেছে, তাই টি-রেক্স আমার অনেক দূরের আত্মীয়।",
+        "আমি অল্প একটু উড়তে পারি, শুধু বেড়ার উপর বা নিচু ডালে ওঠার মতো।",
+        "মা মুরগি প্রায় ২১ দিন ডিমে তা দেয়, তারপর ছানারা ডিম ফুটে বের হয়।"
+      ],
+      "catchphrase": "Cluck cluck, big news!",
+      "catchphraseBn": "কক কক, বড় খবর!",
+      "funnyAngle": "Announces every tiny thing like breaking news, including finding a single worm."
+    },
+    {
+      "id": "horse",
+      "name": "Horse",
+      "nameBn": "ঘোড়া",
+      "look": "A tall chestnut horse with a flowing cream mane and a white star on his forehead.",
+      "voice": "Algieba",
+      "personality": "Horse is noble, sporty and a bit of a show-off about his speed. He is kind to small animals and loves a good gallop.",
+      "facts": [
+        "I can doze standing up, because my legs can lock so I do not fall over.",
+        "I eat grass and hay, and apples and carrots are my favourite treats.",
+        "A baby horse is called a foal, and it can stand and walk within a couple of hours of being born.",
+        "My eyes are among the biggest of any animal that lives on land.",
+        "My height is measured in hands; one hand is about 10 centimetres.",
+        "A racehorse can gallop at about 65 kilometres per hour.",
+        "My hooves are made of keratin, the same stuff as your fingernails."
+      ],
+      "factsBn": [
+        "আমি দাঁড়িয়ে দাঁড়িয়ে ঝিমাতে পারি, কারণ আমার পা লক হয়ে যায়, তাই আমি পড়ে যাই না।",
+        "আমি ঘাস আর খড় খাই, আর আপেল আর গাজর আমার সবচেয়ে প্রিয় মজার খাবার।",
+        "ঘোড়ার বাচ্চাকে শাবক বলে, আর জন্মের দুই এক ঘণ্টার মধ্যেই সে দাঁড়িয়ে হাঁটতে পারে।",
+        "ডাঙার প্রাণীদের মধ্যে আমার চোখ সবচেয়ে বড়গুলোর একটি।",
+        "আমার উচ্চতা মাপা হয় হাত দিয়ে; এক হাত মানে প্রায় ১০ সেন্টিমিটার।",
+        "একটা রেসের ঘোড়া ঘণ্টায় প্রায় ৬৫ কিলোমিটার বেগে ছুটতে পারে।",
+        "আমার খুর কেরাটিন দিয়ে তৈরি, তোমার নখ যা দিয়ে তৈরি ঠিক তাই।"
+      ],
+      "catchphrase": "Hold your horses, that's me!",
+      "catchphraseBn": "থামো থামো, এই তো আমি!",
+      "funnyAngle": "Times everything, even how fast the child answers, and offers a race."
+    }
+  ],
+  "hotspots": [
+    { "entityId": "cow", "characterId": "cow", "comesCloser": "grow" },
+    { "entityId": "sheep", "characterId": "sheep", "comesCloser": "grow" },
+    { "entityId": "chicken", "characterId": "chicken", "comesCloser": "grow" },
+    { "entityId": "horse", "characterId": "horse", "comesCloser": "grow" }
+  ],
+  "sounds": [
+    {
+      "entityId": "cow",
+      "file": "assets/sounds/cow.ogg",
+      "provenance": {
+        "source": "Wikimedia Commons (from freesound.org sound 457569)",
+        "licence": "CC0 1.0",
+        "url": "https://commons.wikimedia.org/wiki/File:457569_florianreichelt_peaceful-sound-of-a-herd-of-cows-in-the-swiss-alps.wav",
+        "author": "florianreichelt"
+      }
+    },
+    {
+      "entityId": "sheep",
+      "file": "assets/sounds/sheep.ogg",
+      "provenance": {
+        "source": "Wikimedia Commons",
+        "licence": "CC0 1.0",
+        "url": "https://commons.wikimedia.org/wiki/File:Sheep_bleat.ogg",
+        "author": "Eviatar Bach"
+      }
+    },
+    {
+      "entityId": "chicken",
+      "file": "assets/sounds/chicken.ogg",
+      "provenance": {
+        "source": "Wikimedia Commons",
+        "licence": "Public domain (released by the author)",
+        "url": "https://commons.wikimedia.org/wiki/File:Hen_announcing_shes_lain_an_egg.ogg",
+        "author": "alys"
+      }
+    },
+    {
+      "entityId": "horse",
+      "file": "assets/sounds/horse.ogg",
+      "provenance": {
+        "source": "Wikimedia Commons",
+        "licence": "Public domain (PD-self)",
+        "url": "https://commons.wikimedia.org/wiki/File:Wiehern.ogg",
+        "author": "Hü."
+      }
+    }
+  ],
+  "challenges": [
+    {
+      "id": "ch_wool",
+      "characterId": "cow",
+      "question": "Which farm animal gives us wool for warm sweaters?",
+      "questionBn": "কোন খামারের প্রাণী আমাদের গরম সোয়েটারের জন্য পশম দেয়?",
+      "answerKey": "sheep",
+      "accepted": [
+        "sheep",
+        "a sheep",
+        "the sheep",
+        "lamb",
+        "sheeps",
+        "bhera",
+        "ভেড়া",
+        "ভেড়াটা",
+        "মেষ"
+      ],
+      "hint": "It looks like a fluffy cloud that says baa.",
+      "hintBn": "দেখতে একটা তুলতুলে মেঘের মতো, আর ভ্যা ভ্যা করে।",
+      "points": 2
+    },
+    {
+      "id": "ch_eggs",
+      "characterId": "sheep",
+      "question": "Which farm animal lays eggs for your breakfast?",
+      "questionBn": "কোন খামারের প্রাণী তোমার নাস্তার জন্য ডিম পাড়ে?",
+      "answerKey": "chicken",
+      "accepted": [
+        "chicken",
+        "a chicken",
+        "the chicken",
+        "hen",
+        "a hen",
+        "chickens",
+        "murgi",
+        "মুরগি",
+        "মুরগী",
+        "মুরগিটা"
+      ],
+      "hint": "She says cluck cluck and has a red comb on her head.",
+      "hintBn": "সে কক কক করে আর তার মাথায় লাল ঝুঁটি আছে।",
+      "points": 2
+    },
+    {
+      "id": "ch_sleep_standing",
+      "characterId": "chicken",
+      "question": "Which farm animal can doze while standing up?",
+      "questionBn": "কোন খামারের প্রাণী দাঁড়িয়ে দাঁড়িয়ে ঝিমাতে পারে?",
+      "answerKey": "horse",
+      "accepted": [
+        "horse",
+        "a horse",
+        "the horse",
+        "horses",
+        "pony",
+        "ghora",
+        "ঘোড়া",
+        "ঘোড়াটা",
+        "ঘোড়ায়"
+      ],
+      "hint": "It gallops fast and loves apples and carrots.",
+      "hintBn": "সে জোরে ছোটে আর আপেল আর গাজর খুব ভালোবাসে।",
+      "points": 3,
+      "petReward": "meghla"
+    },
+    {
+      "id": "ch_four_stomach",
+      "characterId": "horse",
+      "question": "Which farm animal has a stomach with four parts and gives us milk?",
+      "questionBn": "কোন খামারের প্রাণীর পাকস্থলীর চারটা ভাগ আছে আর আমাদের দুধ দেয়?",
+      "answerKey": "cow",
+      "accepted": ["cow", "a cow", "the cow", "cows", "dairy cow", "goru", "গরু", "গাভী", "গাই"],
+      "hint": "She says moo and chews her food twice.",
+      "hintBn": "সে হাম্বা ডাকে আর খাবার দুবার চিবায়।",
+      "points": 3
+    }
+  ]
+}

@@ -209,11 +209,12 @@ P1 for you (your layout, not touched): at 1280x800 and at the spec's 1180x820 ta
 ## Parallel session notes (Claude Code, 2026-10-16 10:50) — quality programme started, files claimed
 
 User approved docs/superpowers/plans/2026-10-16-quality-program-master.md. Claude Code has started these streams with background implementers; files claimed until the next note:
+
 - E1/E2 game runtime: NEW package `packages/game-runtime` (whole directory) plus registering it in pnpm-workspace/turbo if needed. No engine edits yet; the engine bridge (E3) will be coordinated with you before it touches packages/engine.
 - C sound: NEW `apps/web/lib/sound/*`, `apps/web/lib/haptics.ts`, `apps/web/public/sound/*`, `docs/art/sound-provenance.md`, tests under `apps/web/test/sound*.test.ts`. Studio wiring comes later from Claude Code.
 - F5 i18n: NEW `apps/web/lib/i18n/*`, `apps/web/public/fonts/` (Bengali subsets), `packages/protocol/src/firestore.ts` (additive optional `language` on ChildDoc with default 'en'), `apps/web/test/i18n*.test.ts`. No component rewiring yet.
 - D1 generation show: NEW `apps/web/components/studio/GenerationShow.tsx`, additions to `app/studio.css` (new rules only, appended), `lib/strings/en.ts` (new keys appended), wiring in `components/Studio.tsx` (the Listening block only).
-Codex: please keep to packages/engine, services/*, parent-area components and your layout fix (P1 above). If you need one of the claimed files, append a note here first.
+  Codex: please keep to packages/engine, services/*, parent-area components and your layout fix (P1 above). If you need one of the claimed files, append a note here first.
 
 ## Parallel session notes (Claude Code, 2026-10-16 10:58) — Learning Worlds (spec 6b, plan I)
 
@@ -230,6 +231,7 @@ The Studio now plays sounds for engine events through `lib/sound` (mountEngine's
 ## Parallel session notes (Claude Code, 2026-10-16 11:29) — game runtime ready; engine API request for the E3 bridge
 
 `packages/game-runtime` (Game API v1, acorn static check, sandboxed worker, host with Zod-validated messages and a hang watchdog, Node smoke runner on the real engine) is built and passes 205 tests incl. 40 red-team escapes; it will be committed together with `packages/learning-content`. To wire generated games into the Studio (E3) the bridge needs these PUBLIC engine APIs; please claim and add them (additive, with tests):
+
 1. a contact event via `subscribe` ({ a, b, impulse }, once per contact episode); `advance()` already computes pairs but only feeds rules;
 2. `impulse(target, { x, y })` that does not overwrite velocity, cancel drags, or emit a `flick` input event;
 3. `setGravity(vec)` and `setWind(vec)` that do not reset via `update(doc)` (and compose with dial/spell overrides);
@@ -238,4 +240,8 @@ The Studio now plays sounds for engine events through `lib/sound` (mountEngine's
 6. `tags` on `Pose`;
 7. world coordinates on `tap` events;
 8. (later, with the library) `lib/<theme>/<name>` ids as spawn templates.
-Dependency direction: game-runtime depends on engine (smoke runner), so the engine must NOT import game-runtime. The bridge will live in apps/web and drive the engine through these APIs.
+   Dependency direction: game-runtime depends on engine (smoke runner), so the engine must NOT import game-runtime. The bridge will live in apps/web and drive the engine through these APIs.
+
+## Parallel session notes (Claude Code, 2026-10-16 11:36) — game-runtime and learning-content committed
+
+Committed `packages/game-runtime` (Game API v1, sandbox, host, smoke runner; 205 tests) and `packages/learning-content` (World Pack schema, Space pack with the Sun and eight planets, three Animals packs with twelve CC0/PD recordings, eight pets, `personaInstruction`; 69 tests) with the lockfile. For your I4 gateway work, import from `@just-imagine/learning-content`: `loadPack(id)`, `PACKS`, `PACK_IDS`, `personaInstruction(pack, characterId, 'en'|'bn')` (never contains answer keys), `PETS`, `petById`, `normaliseAnswer`; cap `award_points` at `loadPack(packId).challenges.find(c => c.id === id).points`. Claude Code's claims on these two packages are released; Claude next takes `apps/web/app/(child)/learn/*`, `components/learn/*`, `components/pets/*` (I5) and an apps/web game bridge + HUD (E3) once your engine APIs land.

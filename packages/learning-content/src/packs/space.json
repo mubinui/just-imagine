@@ -1,0 +1,847 @@
+{
+  "id": "space",
+  "section": "space",
+  "title": "Space: The Sun and the Planets",
+  "titleBn": "মহাকাশ: সূর্য আর গ্রহেরা",
+  "notes": "Sizes are scaled for the 16 by 9 stage and are not to true scale: the real Sun is more than 100 Earths wide and the planets are millions of kilometres apart. Every asset is a placeholder with a description for the library.",
+  "scene": {
+    "schemaVersion": 1,
+    "worldId": "w_pack_space",
+    "tier": "playground",
+    "title": "The Sun and the Planets",
+    "theme": {
+      "paletteHint": "deep navy and violet with warm gold",
+      "timeOfDay": "night",
+      "backdropDescription": "deep dark space full of tiny twinkling stars with a soft violet nebula glow on the right",
+      "backdrop": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" },
+      "midLayerDescription": "a faint milky band of distant stars drifting across the middle",
+      "midLayer": { "url": "", "width": 1920, "height": 1080, "status": "placeholder" }
+    },
+    "environment": {
+      "gravity": { "x": 0, "y": 0 },
+      "wind": { "x": 0, "y": 0 },
+      "medium": "space",
+      "bounds": { "width": 16, "height": 9 },
+      "seed": 2026
+    },
+    "materials": {
+      "sunfire": {
+        "density": 0.5,
+        "friction": 0.5,
+        "restitution": 0.1,
+        "softness": 0.3,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": true
+      },
+      "rocky": {
+        "density": 1,
+        "friction": 0.6,
+        "restitution": 0.3,
+        "softness": 0.05,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": true
+      },
+      "gassy": {
+        "density": 0.3,
+        "friction": 0.4,
+        "restitution": 0.4,
+        "softness": 0.3,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": true
+      },
+      "stardust": {
+        "density": 0.1,
+        "friction": 0.3,
+        "restitution": 0.2,
+        "softness": 0.5,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": true
+      }
+    },
+    "entities": [
+      {
+        "id": "sun",
+        "kind": "sprite",
+        "name": "the Sun",
+        "description": "huge warm golden sun with a calm smiling face and soft wavy flame hair, cartoon style",
+        "asset": { "url": "", "width": 1024, "height": 1024, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "sunfire",
+          "isStatic": true,
+          "size": { "width": 5, "height": 5 }
+        },
+        "transform": { "x": 2.5, "y": 4.5, "rotation": 0 },
+        "tags": ["sun", "star"],
+        "behaviors": [
+          { "type": "glow", "color": "#ffb347" },
+          { "type": "emit", "particle": "sparkle", "rate": 6 }
+        ],
+        "pretend": true
+      },
+      {
+        "id": "mercury",
+        "kind": "sprite",
+        "name": "Mercury",
+        "description": "small grey cratered planet with sneakers and a racing stripe, leaning forward in a hurry",
+        "asset": { "url": "", "width": 256, "height": 256, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "rocky",
+          "isStatic": false,
+          "size": { "width": 0.5, "height": 0.5 }
+        },
+        "transform": { "x": 5.9, "y": 4, "rotation": 0 },
+        "tags": ["mercury", "planet"],
+        "behaviors": [{ "type": "float", "amplitude": 0.08, "period": 2 }],
+        "pretend": true
+      },
+      {
+        "id": "venus",
+        "kind": "sprite",
+        "name": "Venus",
+        "description": "creamy golden planet wrapped in swirling pearl clouds with long eyelashes and a tiny mirror",
+        "asset": { "url": "", "width": 384, "height": 384, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "rocky",
+          "isStatic": false,
+          "size": { "width": 0.9, "height": 0.9 }
+        },
+        "transform": { "x": 7, "y": 5.5, "rotation": 0 },
+        "tags": ["venus", "planet"],
+        "behaviors": [{ "type": "float", "amplitude": 0.1, "period": 5 }],
+        "pretend": true
+      },
+      {
+        "id": "earth",
+        "kind": "sprite",
+        "name": "Earth",
+        "description": "blue and green planet with soft white clouds, rosy cheeks and a kind smile",
+        "asset": { "url": "", "width": 384, "height": 384, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "rocky",
+          "isStatic": false,
+          "size": { "width": 0.95, "height": 0.95 }
+        },
+        "transform": { "x": 8.2, "y": 3.4, "rotation": 0 },
+        "tags": ["earth", "planet", "hero"],
+        "behaviors": [
+          { "type": "float", "amplitude": 0.1, "period": 4 },
+          { "type": "face", "target": "pointer" }
+        ],
+        "pretend": true
+      },
+      {
+        "id": "moon",
+        "kind": "sprite",
+        "name": "the Moon",
+        "description": "tiny pale grey moon with a sleepy face bobbing beside Earth",
+        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "rocky",
+          "isStatic": false,
+          "size": { "width": 0.3, "height": 0.3 }
+        },
+        "transform": { "x": 8.95, "y": 2.75, "rotation": 0 },
+        "tags": ["moon"],
+        "behaviors": [{ "type": "float", "amplitude": 0.12, "period": 3 }],
+        "pretend": true
+      },
+      {
+        "id": "mars",
+        "kind": "sprite",
+        "name": "Mars",
+        "description": "dusty red-orange planet wearing a tiny explorer hat and goggles, with two pebble moons",
+        "asset": { "url": "", "width": 256, "height": 256, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "rocky",
+          "isStatic": false,
+          "size": { "width": 0.6, "height": 0.6 }
+        },
+        "transform": { "x": 9.3, "y": 5.9, "rotation": 0 },
+        "tags": ["mars", "planet"],
+        "behaviors": [{ "type": "float", "amplitude": 0.1, "period": 3.5 }],
+        "pretend": true
+      },
+      {
+        "id": "jupiter",
+        "kind": "sprite",
+        "name": "Jupiter",
+        "description": "enormous striped orange and cream planet with a swirling red spot, flexing like a bodybuilder",
+        "asset": { "url": "", "width": 768, "height": 768, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "gassy",
+          "isStatic": false,
+          "size": { "width": 2.6, "height": 2.6 }
+        },
+        "transform": { "x": 10.8, "y": 2.4, "rotation": 0 },
+        "tags": ["jupiter", "planet"],
+        "behaviors": [{ "type": "float", "amplitude": 0.08, "period": 7 }],
+        "pretend": true
+      },
+      {
+        "id": "saturn",
+        "kind": "sprite",
+        "name": "Saturn",
+        "description": "pale gold planet with wide sparkling ice rings worn like a tutu, striking a ballet pose",
+        "asset": { "url": "", "width": 1024, "height": 512, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "gassy",
+          "isStatic": false,
+          "size": { "width": 3.2, "height": 1.6 }
+        },
+        "transform": { "x": 13.1, "y": 5, "rotation": 0 },
+        "tags": ["saturn", "planet"],
+        "behaviors": [{ "type": "float", "amplitude": 0.08, "period": 8 }],
+        "pretend": true
+      },
+      {
+        "id": "uranus",
+        "kind": "sprite",
+        "name": "Uranus",
+        "description": "pale blue-green planet tipped over on its side with thin dark rings, giggling behind its hands",
+        "asset": { "url": "", "width": 512, "height": 512, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "gassy",
+          "isStatic": false,
+          "size": { "width": 1.4, "height": 1.4 }
+        },
+        "transform": { "x": 14.9, "y": 1.9, "rotation": 1.5 },
+        "tags": ["uranus", "planet"],
+        "behaviors": [{ "type": "float", "amplitude": 0.1, "period": 6 }],
+        "pretend": true
+      },
+      {
+        "id": "neptune",
+        "kind": "sprite",
+        "name": "Neptune",
+        "description": "deep blue planet with windswept white cloud streaks, a scarf flying sideways and a dreamy faraway look",
+        "asset": { "url": "", "width": 512, "height": 512, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "gassy",
+          "isStatic": false,
+          "size": { "width": 1.35, "height": 1.35 }
+        },
+        "transform": { "x": 15, "y": 7.6, "rotation": 0 },
+        "tags": ["neptune", "planet"],
+        "behaviors": [{ "type": "float", "amplitude": 0.12, "period": 6.5 }],
+        "pretend": true
+      },
+      {
+        "id": "comet",
+        "kind": "sprite",
+        "name": "little comet",
+        "description": "small icy comet with a glowing head and a long sparkly tail, zipping across the sky",
+        "asset": { "url": "", "width": 256, "height": 128, "status": "placeholder" },
+        "body": {
+          "shape": "auto",
+          "material": "stardust",
+          "isStatic": false,
+          "size": { "width": 0.8, "height": 0.4 }
+        },
+        "transform": { "x": 7.5, "y": 0.9, "rotation": 0 },
+        "tags": ["comet"],
+        "behaviors": [
+          { "type": "wander", "speed": 1.2 },
+          { "type": "emit", "particle": "sparkle", "rate": 8 }
+        ],
+        "pretend": true
+      },
+      {
+        "id": "star_left",
+        "kind": "sprite",
+        "name": "twinkle star",
+        "description": "tiny four-point twinkling star with a happy face",
+        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "stardust",
+          "isStatic": true,
+          "size": { "width": 0.3, "height": 0.3 }
+        },
+        "transform": { "x": 6.4, "y": 8.3, "rotation": 0 },
+        "tags": ["twinkle"],
+        "behaviors": [{ "type": "glow", "color": "#fff3b0" }],
+        "pretend": true
+      },
+      {
+        "id": "star_right",
+        "kind": "sprite",
+        "name": "twinkle star",
+        "description": "tiny four-point twinkling star with a sleepy face",
+        "asset": { "url": "", "width": 128, "height": 128, "status": "placeholder" },
+        "body": {
+          "shape": "circle",
+          "material": "stardust",
+          "isStatic": true,
+          "size": { "width": 0.3, "height": 0.3 }
+        },
+        "transform": { "x": 12, "y": 8.4, "rotation": 0 },
+        "tags": ["twinkle"],
+        "behaviors": [{ "type": "glow", "color": "#fff3b0" }],
+        "pretend": true
+      }
+    ],
+    "joints": [],
+    "rules": [
+      {
+        "id": "r_tap_sun",
+        "when": { "event": "tap", "target": "sun" },
+        "then": [
+          { "action": "celebrate", "style": "sparkle" },
+          {
+            "action": "say",
+            "text": "I am so big and heavy that my gravity keeps all the planets circling me!"
+          }
+        ],
+        "concept": "gravity",
+        "once": false
+      },
+      {
+        "id": "r_tap_jupiter",
+        "when": { "event": "tap", "target": "jupiter" },
+        "then": [
+          { "action": "sound", "cue": "ding" },
+          {
+            "action": "say",
+            "text": "There is more stuff in me than in all the other planets put together. That is mass!"
+          }
+        ],
+        "concept": "mass",
+        "once": false
+      },
+      {
+        "id": "r_tap_mercury",
+        "when": { "event": "tap", "target": "mercury" },
+        "then": [
+          { "action": "sound", "cue": "whoosh" },
+          {
+            "action": "say",
+            "text": "Zoom! I go around the Sun faster than anyone. That is speed!"
+          }
+        ],
+        "concept": "speed",
+        "once": false
+      },
+      {
+        "id": "r_tap_comet",
+        "when": { "event": "tap", "target": "comet" },
+        "then": [
+          { "action": "sound", "cue": "whoosh" },
+          {
+            "action": "say",
+            "text": "A comet is a dirty snowball. Near the Sun its ice turns to gas and makes a tail."
+          }
+        ],
+        "once": false
+      }
+    ],
+    "learning": {
+      "concepts": ["gravity", "mass", "speed"],
+      "prediction": {
+        "question": "Which is bigger, Jupiter or Earth?",
+        "options": ["Jupiter", "Earth"],
+        "correctIndex": 0,
+        "concept": "mass"
+      },
+      "dials": [],
+      "heroEntityId": "earth"
+    },
+    "narration": {
+      "intro": "Welcome to space! Tap the Sun or any planet and it will swoop close to say hello. Each one has a story and a question for you."
+    }
+  },
+  "characters": [
+    {
+      "id": "sun",
+      "name": "Sun",
+      "nameBn": "সূর্য",
+      "look": "A huge warm golden sun with a calm smiling face and soft wavy flame hair.",
+      "voice": "Charon",
+      "personality": "The Sun is warm, calm and a little grand, like a kind grandparent who runs the whole house. It likes to remind everyone who keeps them warm.",
+      "facts": [
+        "I am a star, not a planet: a giant ball of glowing hydrogen and helium.",
+        "About 1.3 million Earths could fit inside me.",
+        "My light takes about 8 minutes to reach Earth.",
+        "My surface is about 5,500 degrees Celsius, and my centre is about 15 million degrees.",
+        "I hold about 99.8 percent of all the stuff in the solar system.",
+        "I am about 4.6 billion years old and will shine for about 5 billion more.",
+        "Never look straight at me, even with sunglasses; my light can hurt your eyes."
+      ],
+      "factsBn": [
+        "আমি একটি তারা, গ্রহ নই: জ্বলন্ত হাইড্রোজেন আর হিলিয়ামের বিশাল এক গোলা।",
+        "আমার ভেতরে প্রায় ১৩ লক্ষ পৃথিবী ঢুকে যেতে পারে।",
+        "আমার আলো পৃথিবীতে পৌঁছাতে প্রায় ৮ মিনিট লাগে।",
+        "আমার উপরিভাগ প্রায় ৫,৫০০ ডিগ্রি সেলসিয়াস, আর কেন্দ্র প্রায় দেড় কোটি ডিগ্রি।",
+        "সৌরজগতের সব কিছুর প্রায় ৯৯.৮ শতাংশই আমি।",
+        "আমার বয়স প্রায় ৪৬০ কোটি বছর, আর আমি আরও প্রায় ৫০০ কোটি বছর জ্বলব।",
+        "কখনও সরাসরি আমার দিকে তাকিও না, সানগ্লাস পরেও না; আমার আলো চোখের ক্ষতি করতে পারে।"
+      ],
+      "catchphrase": "Everything spins around me, literally!",
+      "catchphraseBn": "সবাই আমাকে ঘিরেই ঘোরে, সত্যি!",
+      "funnyAngle": "Keeps counting the planets like a teacher counting children on a school trip."
+    },
+    {
+      "id": "mercury",
+      "name": "Mercury",
+      "nameBn": "বুধ",
+      "look": "A small grey cratered planet with sneakers and a racing stripe, always leaning forward.",
+      "voice": "Puck",
+      "personality": "Mercury is always in a hurry and talks fast, as if late for something. He is proud of being the quickest planet around the Sun.",
+      "facts": [
+        "I am the closest planet to the Sun and the smallest of all, only a bit bigger than Earth's Moon.",
+        "I zoom around the Sun in just 88 days, the fastest of any planet.",
+        "I have no moons at all.",
+        "My days are very long: from one sunrise to the next takes about 176 Earth days.",
+        "I am made of rock with a huge iron centre, like a cannonball with a thin shell.",
+        "By day I reach about 430 degrees Celsius, and by night I drop to about minus 180.",
+        "I have almost no air, so my sky is black even in the daytime, and I am covered in craters."
+      ],
+      "factsBn": [
+        "আমি সূর্যের সবচেয়ে কাছের গ্রহ আর সবার মধ্যে সবচেয়ে ছোট, পৃথিবীর চাঁদের চেয়ে একটু বড়।",
+        "আমি মাত্র ৮৮ দিনে সূর্যকে একবার ঘুরে আসি, সব গ্রহের মধ্যে সবচেয়ে দ্রুত।",
+        "আমার কোনো চাঁদ নেই।",
+        "আমার দিন খুব লম্বা: এক সূর্যোদয় থেকে পরের সূর্যোদয় পর্যন্ত প্রায় ১৭৬ পৃথিবী-দিন লাগে।",
+        "আমি পাথরে তৈরি, আর আমার ভেতরে লোহার বিশাল কেন্দ্র, যেন পাতলা খোসার একটা লোহার গোলা।",
+        "দিনে আমার তাপমাত্রা প্রায় ৪৩০ ডিগ্রি সেলসিয়াস, আর রাতে নেমে যায় প্রায় মাইনাস ১৮০-তে।",
+        "আমার প্রায় কোনো বাতাস নেই, তাই দিনের বেলাতেও আমার আকাশ কালো, আর আমি গর্তে গর্তে ভরা।"
+      ],
+      "catchphrase": "No time, gotta orbit!",
+      "catchphraseBn": "সময় নেই, ঘুরতে হবে!",
+      "funnyAngle": "Finishes other characters' sentences because waiting is too slow."
+    },
+    {
+      "id": "venus",
+      "name": "Venus",
+      "nameBn": "শুক্র",
+      "look": "A creamy golden planet wrapped in swirling pearl clouds, with long eyelashes and a tiny mirror.",
+      "voice": "Leda",
+      "personality": "Venus is vain and dramatic, forever admiring her thick golden clouds. She is sure she is the prettiest and brightest thing in the night sky.",
+      "facts": [
+        "I am the hottest planet, about 465 degrees Celsius, even hotter than Mercury, because my thick clouds trap the heat.",
+        "My clouds are made of sulfuric acid, so they are pretty but very unfriendly.",
+        "I spin backwards compared with most planets, so on me the Sun rises in the west.",
+        "I spin so slowly that my day is longer than my year: 243 Earth days to spin once, 225 to go around the Sun.",
+        "I am almost the same size as Earth, so people call us twins, but I have no moons.",
+        "I am the brightest planet in Earth's sky; people call me the morning star or the evening star.",
+        "My air presses down 90 times harder than Earth's, like being deep under the sea."
+      ],
+      "factsBn": [
+        "আমি সবচেয়ে গরম গ্রহ, প্রায় ৪৬৫ ডিগ্রি সেলসিয়াস, বুধের চেয়েও গরম, কারণ আমার ঘন মেঘ তাপ আটকে রাখে।",
+        "আমার মেঘ সালফিউরিক অ্যাসিডে তৈরি, দেখতে সুন্দর কিন্তু মোটেও বন্ধুসুলভ নয়।",
+        "বেশিরভাগ গ্রহের উল্টো দিকে আমি ঘুরি, তাই আমার এখানে সূর্য পশ্চিমে ওঠে।",
+        "আমি এত ধীরে ঘুরি যে আমার দিন আমার বছরের চেয়েও লম্বা: একবার ঘুরতে ২৪৩ পৃথিবী-দিন, সূর্যকে ঘুরে আসতে ২২৫।",
+        "আমি প্রায় পৃথিবীর সমান বড়, তাই লোকে আমাদের যমজ বলে, কিন্তু আমার কোনো চাঁদ নেই।",
+        "পৃথিবীর আকাশে আমি সবচেয়ে উজ্জ্বল গ্রহ; লোকে আমাকে শুকতারা বা সন্ধ্যাতারা বলে।",
+        "আমার বাতাস পৃথিবীর চেয়ে ৯০ গুণ জোরে চাপ দেয়, যেন সমুদ্রের অনেক গভীরে আছ।"
+      ],
+      "catchphrase": "Have you seen my clouds? Gorgeous.",
+      "catchphraseBn": "আমার মেঘগুলো দেখেছ? অপূর্ব!",
+      "funnyAngle": "Treats every fact about her heat as a compliment about how hot she looks."
+    },
+    {
+      "id": "earth",
+      "name": "Earth",
+      "nameBn": "পৃথিবী",
+      "look": "A blue and green planet with soft white clouds, rosy cheeks and a tiny moon bobbing beside her.",
+      "voice": "Aoede",
+      "personality": "Earth is kind, warm and a little proud of being the only home for life. She loves everyone who lives on her and worries about them like a mum.",
+      "facts": [
+        "I am the third planet from the Sun and the only place we know of with life.",
+        "About 71 percent of my surface is covered in water, which is why I look blue from space.",
+        "I spin once every 24 hours, which makes a day, and go around the Sun in about 365 days, which makes a year.",
+        "I am tilted by about 23 degrees, and that tilt is what gives you summer and winter.",
+        "My air is mostly nitrogen and oxygen, the oxygen you breathe every second.",
+        "My Moon is about a quarter of my width and pulls on my oceans to make the tides.",
+        "I am about 12,700 kilometres wide; a plane flying nonstop would need more than half a day to cross me."
+      ],
+      "factsBn": [
+        "আমি সূর্য থেকে তৃতীয় গ্রহ, আর আমাদের জানা একমাত্র জায়গা যেখানে প্রাণ আছে।",
+        "আমার উপরিভাগের প্রায় ৭১ শতাংশ পানিতে ঢাকা, তাই মহাকাশ থেকে আমাকে নীল দেখায়।",
+        "আমি ২৪ ঘণ্টায় একবার ঘুরি, সেটাই একদিন, আর প্রায় ৩৬৫ দিনে সূর্যকে ঘুরে আসি, সেটাই এক বছর।",
+        "আমি প্রায় ২৩ ডিগ্রি কাত হয়ে আছি, আর সেই কাতের জন্যই তোমরা গরমকাল আর শীতকাল পাও।",
+        "আমার বাতাসে বেশিরভাগই নাইট্রোজেন আর অক্সিজেন, যে অক্সিজেন তুমি প্রতি মুহূর্তে নিঃশ্বাসে নাও।",
+        "আমার চাঁদ আমার চওড়ার প্রায় এক-চতুর্থাংশ, আর সে আমার সমুদ্রকে টেনে জোয়ার-ভাটা বানায়।",
+        "আমি প্রায় ১২,৭০০ কিলোমিটার চওড়া; একটা বিমান না থেমে উড়লেও আমাকে পার হতে আধা দিনের বেশি লাগবে।"
+      ],
+      "catchphrase": "Home sweet home!",
+      "catchphraseBn": "আমার মতো বাড়ি আর নেই!",
+      "funnyAngle": "Keeps asking the other planets if they have remembered to drink water, since she has so much of it."
+    },
+    {
+      "id": "mars",
+      "name": "Mars",
+      "nameBn": "মঙ্গল",
+      "look": "A dusty red-orange planet with a tiny explorer hat, goggles and two pebble moons circling it.",
+      "voice": "Fenrir",
+      "personality": "Mars is a bold red-dust adventurer who loves rovers, volcanoes and dust storms. He treats every question like a mission briefing.",
+      "facts": [
+        "I look red because my dusty ground is full of rusty iron, like an old bicycle left out in the rain.",
+        "I have two tiny moons called Phobos and Deimos, each shaped a bit like a potato.",
+        "My volcano Olympus Mons is the tallest in the solar system, nearly three times higher than Mount Everest.",
+        "My day is almost like yours, about 24 hours and 37 minutes, but my year is 687 Earth days.",
+        "I am about half as wide as Earth, and my air is very thin and mostly carbon dioxide.",
+        "Robot rovers like Curiosity and Perseverance drive around on me, looking for signs of old water.",
+        "I have ice caps at my north and south poles, and sometimes dust storms cover my whole face."
+      ],
+      "factsBn": [
+        "আমাকে লাল দেখায় কারণ আমার ধুলোময় মাটিতে মরচে-ধরা লোহা ভরা, যেন বৃষ্টিতে ফেলে রাখা পুরোনো সাইকেল।",
+        "আমার দুটো ছোট্ট চাঁদ আছে, ফোবোস আর ডেইমোস, দুটোই দেখতে একটু আলুর মতো।",
+        "আমার আগ্নেয়গিরি অলিম্পাস মনস সৌরজগতের সবচেয়ে উঁচু, মাউন্ট এভারেস্টের প্রায় তিন গুণ উঁচু।",
+        "আমার দিন তোমাদের মতোই, প্রায় ২৪ ঘণ্টা ৩৭ মিনিট, কিন্তু আমার বছর ৬৮৭ পৃথিবী-দিন।",
+        "আমি পৃথিবীর প্রায় অর্ধেক চওড়া, আর আমার বাতাস খুব পাতলা, বেশিরভাগই কার্বন ডাই-অক্সাইড।",
+        "কিউরিওসিটি আর পারসিভিয়ারেন্সের মতো রোবট রোভার আমার উপর ঘুরে বেড়ায়, পুরোনো পানির চিহ্ন খোঁজে।",
+        "আমার উত্তর আর দক্ষিণ মেরুতে বরফের টুপি আছে, আর মাঝে মাঝে ধুলোঝড় আমার পুরো মুখ ঢেকে দেয়।"
+      ],
+      "catchphrase": "Adventure awaits on the red planet!",
+      "catchphraseBn": "লাল গ্রহে অ্যাডভেঞ্চার অপেক্ষা করছে!",
+      "funnyAngle": "Narrates everything like a nature documentary, even brushing dust off himself."
+    },
+    {
+      "id": "jupiter",
+      "name": "Jupiter",
+      "nameBn": "বৃহস্পতি",
+      "look": "An enormous striped orange and cream planet with a swirling red spot, flexing like a bodybuilder.",
+      "voice": "Orus",
+      "personality": "Jupiter is the big show-off, loud and proud of being the biggest. He flexes his storms and brags about his many moons.",
+      "facts": [
+        "I am the biggest planet: about 1,300 Earths could fit inside me.",
+        "I am a gas giant made mostly of hydrogen and helium, with no solid ground to stand on.",
+        "My Great Red Spot is a giant storm wider than Earth that has been swirling for more than 300 years.",
+        "I spin faster than any other planet: my day is only about 10 hours long.",
+        "I have about 95 known moons; my moon Ganymede is the biggest moon in the solar system, bigger than Mercury.",
+        "One trip around the Sun takes me about 12 Earth years.",
+        "My pull is so strong that I catch many comets and asteroids before they get anywhere near Earth."
+      ],
+      "factsBn": [
+        "আমি সবচেয়ে বড় গ্রহ: আমার ভেতরে প্রায় ১,৩০০টি পৃথিবী ঢুকে যেতে পারে।",
+        "আমি একটি গ্যাসের দৈত্য, বেশিরভাগই হাইড্রোজেন আর হিলিয়াম, দাঁড়ানোর মতো শক্ত মাটি আমার নেই।",
+        "আমার গ্রেট রেড স্পট পৃথিবীর চেয়েও চওড়া এক বিশাল ঝড়, যা ৩০০ বছরের বেশি ধরে ঘুরছে।",
+        "আমি অন্য সব গ্রহের চেয়ে দ্রুত ঘুরি: আমার দিন মাত্র প্রায় ১০ ঘণ্টার।",
+        "আমার প্রায় ৯৫টি চাঁদ জানা আছে; আমার চাঁদ গ্যানিমিড সৌরজগতের সবচেয়ে বড় চাঁদ, বুধের চেয়েও বড়।",
+        "সূর্যকে একবার ঘুরে আসতে আমার প্রায় ১২ পৃথিবী-বছর লাগে।",
+        "আমার টান এত জোরালো যে অনেক ধূমকেতু আর গ্রহাণু পৃথিবীর কাছে পৌঁছানোর আগেই আমি ধরে ফেলি।"
+      ],
+      "catchphrase": "Big, bigger, Jupiter!",
+      "catchphraseBn": "বড়, আরও বড়, বৃহস্পতি!",
+      "funnyAngle": "Measures everything in Jupiters and is offended when anything else is called large."
+    },
+    {
+      "id": "saturn",
+      "name": "Saturn",
+      "nameBn": "শনি",
+      "look": "A pale gold planet with wide sparkling ice rings worn like a tutu, striking a ballet pose.",
+      "voice": "Kore",
+      "personality": "Saturn is graceful and very proud of her rings, which she thinks are the finest jewellery in space. She speaks like a ballerina introducing her show.",
+      "facts": [
+        "My rings are made mostly of chunks of ice, with some rock and dust, from tiny grains to pieces as big as a house.",
+        "My rings are about 280,000 kilometres wide but mostly less than 1 kilometre thick, thinner than a sheet of paper at my size.",
+        "I have about 270 known moons, more than any other planet; my moon Titan has lakes of liquid methane.",
+        "I am the lightest planet for my size, lighter than water, even though I am about nine Earths wide.",
+        "I am a gas giant made mostly of hydrogen and helium, and my day lasts only about 10 and a half hours.",
+        "One trip around the Sun takes me about 29 Earth years.",
+        "There is a six-sided storm at my north pole, a hexagon wider than two Earths."
+      ],
+      "factsBn": [
+        "আমার রিংগুলো বেশিরভাগই বরফের টুকরোয় তৈরি, সঙ্গে কিছু পাথর আর ধুলো, ছোট্ট দানা থেকে বাড়ির মতো বড় টুকরো পর্যন্ত।",
+        "আমার রিং প্রায় ২,৮০,০০০ কিলোমিটার চওড়া, কিন্তু বেশিরভাগ জায়গায় ১ কিলোমিটারের কম পুরু, আমার মাপে এক পাতা কাগজের চেয়েও পাতলা।",
+        "আমার প্রায় ২৭০টি চাঁদ জানা আছে, অন্য যেকোনো গ্রহের চেয়ে বেশি; আমার চাঁদ টাইটানে তরল মিথেনের হ্রদ আছে।",
+        "আমি আমার মাপের তুলনায় সবচেয়ে হালকা গ্রহ, পানির চেয়েও হালকা, যদিও আমি প্রায় নয়টা পৃথিবীর সমান চওড়া।",
+        "আমি একটি গ্যাসের দৈত্য, বেশিরভাগই হাইড্রোজেন আর হিলিয়াম, আর আমার দিন মাত্র প্রায় সাড়ে ১০ ঘণ্টার।",
+        "সূর্যকে একবার ঘুরে আসতে আমার প্রায় ২৯ পৃথিবী-বছর লাগে।",
+        "আমার উত্তর মেরুতে একটা ছয় কোণা ঝড় আছে, দুটো পৃথিবীর চেয়েও চওড়া একটা ষড়ভুজ।"
+      ],
+      "catchphrase": "Rings are everything, darling.",
+      "catchphraseBn": "রিং ছাড়া কি চলে, সোনা?",
+      "funnyAngle": "Pretends the other planets' faint rings are just copying her look."
+    },
+    {
+      "id": "uranus",
+      "name": "Uranus",
+      "nameBn": "ইউরেনাস",
+      "look": "A pale blue-green planet tipped over with thin dark rings, giggling with its hands over its mouth.",
+      "voice": "Zephyr",
+      "personality": "Uranus is tilted and giggly, finding everything funny, especially being tipped over. She is shy about her name but loves her blue-green colour.",
+      "facts": [
+        "I am tipped over by about 98 degrees, so I roll around the Sun like a ball instead of spinning like a top.",
+        "I am an ice giant, made of water, ammonia and methane ices around a small rocky centre.",
+        "Methane gas in my air soaks up red light, which is why I look blue-green.",
+        "I have about 28 known moons, named after characters from Shakespeare's plays.",
+        "My year is 84 Earth years long, and because of my tilt each season lasts about 21 years.",
+        "I have the coldest air of any planet, down to about minus 224 degrees Celsius.",
+        "I have 13 thin dark rings, and I was the first planet found with a telescope, by William Herschel in 1781."
+      ],
+      "factsBn": [
+        "আমি প্রায় ৯৮ ডিগ্রি কাত হয়ে আছি, তাই লাটিমের মতো না ঘুরে বলের মতো গড়িয়ে সূর্যকে ঘুরি।",
+        "আমি একটি বরফের দৈত্য, ছোট পাথুরে কেন্দ্রের চারপাশে পানি, অ্যামোনিয়া আর মিথেনের বরফে তৈরি।",
+        "আমার বাতাসের মিথেন গ্যাস লাল আলো শুষে নেয়, তাই আমাকে নীলচে-সবুজ দেখায়।",
+        "আমার প্রায় ২৮টি চাঁদ জানা আছে, সবগুলোর নাম শেক্সপিয়ারের নাটকের চরিত্রদের নামে।",
+        "আমার বছর ৮৪ পৃথিবী-বছর লম্বা, আর কাত হয়ে থাকার জন্য আমার প্রতিটি ঋতু প্রায় ২১ বছর চলে।",
+        "সব গ্রহের মধ্যে আমার বাতাস সবচেয়ে ঠান্ডা, প্রায় মাইনাস ২২৪ ডিগ্রি সেলসিয়াস পর্যন্ত নামে।",
+        "আমার ১৩টি পাতলা কালো রিং আছে, আর আমিই প্রথম গ্রহ যাকে দূরবীন দিয়ে খুঁজে পাওয়া হয়, ১৭৮১ সালে উইলিয়াম হার্শেল।"
+      ],
+      "catchphrase": "Whoops, I'm sideways again!",
+      "catchphraseBn": "উফ, আমি আবার কাত হয়ে গেছি!",
+      "funnyAngle": "Insists that everyone else in the solar system is the tilted one."
+    },
+    {
+      "id": "neptune",
+      "name": "Neptune",
+      "nameBn": "নেপচুন",
+      "look": "A deep blue planet with windswept white cloud streaks, a scarf flying sideways and a faraway dreamy look.",
+      "voice": "Sulafat",
+      "personality": "Neptune is windy, dreamy and far away, speaking slowly as if her words travel a long distance. She is proud of her wild winds and her deep blue colour.",
+      "facts": [
+        "I am the farthest planet from the Sun, about 4.5 billion kilometres away, 30 times farther than Earth.",
+        "I have the fastest winds in the solar system, racing at more than 2,000 kilometres per hour.",
+        "I am an ice giant like Uranus, and methane in my air makes me deep blue.",
+        "One trip around the Sun takes me about 165 Earth years, but my day is only about 16 hours.",
+        "I have about 16 known moons; the biggest, Triton, orbits backwards and is among the coldest places known.",
+        "I was found in 1846 by maths before anyone saw me: astronomers worked out where I must be from Uranus's wobble.",
+        "Sunlight takes about 4 hours to reach me, and from here the Sun looks like a very bright star."
+      ],
+      "factsBn": [
+        "আমি সূর্য থেকে সবচেয়ে দূরের গ্রহ, প্রায় ৪৫০ কোটি কিলোমিটার দূরে, পৃথিবীর চেয়ে ৩০ গুণ দূরে।",
+        "সৌরজগতের সবচেয়ে দ্রুত বাতাস আমার, ঘণ্টায় ২,০০০ কিলোমিটারের বেশি বেগে ছোটে।",
+        "আমি ইউরেনাসের মতো একটি বরফের দৈত্য, আর আমার বাতাসের মিথেন আমাকে গাঢ় নীল করে।",
+        "সূর্যকে একবার ঘুরে আসতে আমার প্রায় ১৬৫ পৃথিবী-বছর লাগে, কিন্তু আমার দিন মাত্র প্রায় ১৬ ঘণ্টার।",
+        "আমার প্রায় ১৬টি চাঁদ জানা আছে; সবচেয়ে বড় ট্রাইটন উল্টো দিকে ঘোরে, আর সেটি জানা জায়গাগুলোর মধ্যে সবচেয়ে ঠান্ডাগুলোর একটি।",
+        "১৮৪৬ সালে কেউ আমাকে দেখার আগেই অঙ্ক কষে আমাকে খুঁজে পাওয়া হয়: ইউরেনাসের দুলুনি দেখে জ্যোতির্বিদরা হিসাব করেন আমি কোথায় থাকব।",
+        "সূর্যের আলো আমার কাছে পৌঁছাতে প্রায় ৪ ঘণ্টা লাগে, আর এখান থেকে সূর্যকে খুব উজ্জ্বল একটা তারার মতো দেখায়।"
+      ],
+      "catchphrase": "Hold on to your hat, here comes the wind!",
+      "catchphraseBn": "টুপি ধরে রাখো, ঝড় আসছে!",
+      "funnyAngle": "Always asks people to speak up because she is so far from everything."
+    }
+  ],
+  "hotspots": [
+    { "entityId": "sun", "characterId": "sun", "comesCloser": "grow" },
+    { "entityId": "mercury", "characterId": "mercury", "comesCloser": "swoop" },
+    { "entityId": "venus", "characterId": "venus", "comesCloser": "swoop" },
+    { "entityId": "earth", "characterId": "earth", "comesCloser": "swoop" },
+    { "entityId": "mars", "characterId": "mars", "comesCloser": "swoop" },
+    { "entityId": "jupiter", "characterId": "jupiter", "comesCloser": "swoop" },
+    { "entityId": "saturn", "characterId": "saturn", "comesCloser": "swoop" },
+    { "entityId": "uranus", "characterId": "uranus", "comesCloser": "swoop" },
+    { "entityId": "neptune", "characterId": "neptune", "comesCloser": "swoop" }
+  ],
+  "sounds": [],
+  "challenges": [
+    {
+      "id": "ch_planet_count",
+      "characterId": "sun",
+      "question": "How many planets go around me?",
+      "questionBn": "আমাকে ঘিরে কয়টি গ্রহ ঘোরে?",
+      "answerKey": "eight",
+      "accepted": [
+        "8",
+        "eight",
+        "eight planets",
+        "8 planets",
+        "at",
+        "aat",
+        "আট",
+        "আটটি",
+        "৮",
+        "৮টি"
+      ],
+      "hint": "Count them on your fingers: it is less than ten.",
+      "hintBn": "আঙুলে গুনে দেখো: দশের চেয়ে কম।",
+      "points": 2
+    },
+    {
+      "id": "ch_hottest",
+      "characterId": "mercury",
+      "question": "I am closest to the Sun, but which planet is the hottest?",
+      "questionBn": "আমি সূর্যের সবচেয়ে কাছে, কিন্তু সবচেয়ে গরম গ্রহ কোনটি?",
+      "answerKey": "Venus",
+      "accepted": [
+        "venus",
+        "planet venus",
+        "the planet venus",
+        "venas",
+        "shukro",
+        "শুক্র",
+        "শুক্র গ্রহ",
+        "ভেনাস"
+      ],
+      "hint": "Her thick clouds trap the heat like a blanket.",
+      "hintBn": "তার ঘন মেঘ কম্বলের মতো তাপ আটকে রাখে।",
+      "points": 3
+    },
+    {
+      "id": "ch_red_planet",
+      "characterId": "venus",
+      "question": "Which planet is called the Red Planet?",
+      "questionBn": "কোন গ্রহকে লাল গ্রহ বলা হয়?",
+      "answerKey": "Mars",
+      "accepted": [
+        "mars",
+        "planet mars",
+        "the planet mars",
+        "mongol",
+        "mangal",
+        "মঙ্গল",
+        "মঙ্গল গ্রহ",
+        "মার্স"
+      ],
+      "hint": "Rusty dust and robot rovers live there.",
+      "hintBn": "সেখানে মরচে-ধরা ধুলো আর রোবট রোভার থাকে।",
+      "points": 2
+    },
+    {
+      "id": "ch_earth_moons",
+      "characterId": "earth",
+      "question": "How many moons do I have?",
+      "questionBn": "আমার কয়টি চাঁদ আছে?",
+      "answerKey": "one",
+      "accepted": ["1", "one", "one moon", "1 moon", "just one", "ek", "এক", "একটি", "১", "১টি"],
+      "hint": "You can see it at night, and there is no second.",
+      "hintBn": "রাতে তুমি ওটা দেখতে পাও, আর দ্বিতীয়টি নেই।",
+      "points": 1
+    },
+    {
+      "id": "ch_biggest",
+      "characterId": "mars",
+      "question": "Which planet is the biggest of all?",
+      "questionBn": "সবচেয়ে বড় গ্রহ কোনটি?",
+      "answerKey": "Jupiter",
+      "accepted": [
+        "jupiter",
+        "planet jupiter",
+        "the planet jupiter",
+        "jupitar",
+        "brihospoti",
+        "বৃহস্পতি",
+        "বৃহস্পতি গ্রহ",
+        "জুপিটার"
+      ],
+      "hint": "It has a giant red spot and loves to show off.",
+      "hintBn": "তার একটা বিশাল লাল দাগ আছে আর সে খুব বড়াই করে।",
+      "points": 2,
+      "petReward": "tuktuk"
+    },
+    {
+      "id": "ch_rings",
+      "characterId": "jupiter",
+      "question": "Which planet is famous for her big bright rings?",
+      "questionBn": "কোন গ্রহ তার বড় উজ্জ্বল রিংয়ের জন্য বিখ্যাত?",
+      "answerKey": "Saturn",
+      "accepted": [
+        "saturn",
+        "planet saturn",
+        "the planet saturn",
+        "satarn",
+        "shoni",
+        "শনি",
+        "শনি গ্রহ",
+        "স্যাটার্ন"
+      ],
+      "hint": "She wears them like a tutu and calls everyone darling.",
+      "hintBn": "সে ওগুলো টুটুর মতো পরে আর সবাইকে 'সোনা' বলে ডাকে।",
+      "points": 2
+    },
+    {
+      "id": "ch_saturn_bath",
+      "characterId": "saturn",
+      "question": "If you had a bathtub big enough for me, would I sink or stay on top of the water?",
+      "questionBn": "আমার মাপের একটা বাথটাব থাকলে আমি ডুবে যাব, নাকি পানির উপরে থাকব?",
+      "answerKey": "float",
+      "accepted": [
+        "float",
+        "it would float",
+        "you would float",
+        "floats",
+        "stay on top",
+        "stay on top of the water",
+        "not sink",
+        "bhashbe",
+        "ভাসবে",
+        "ভেসে থাকবে",
+        "ভাসা",
+        "ডুববে না",
+        "উপরে থাকবে"
+      ],
+      "hint": "I am lighter than water for my size. What do light things do in water?",
+      "hintBn": "আমার মাপের তুলনায় আমি পানির চেয়ে হালকা। হালকা জিনিস পানিতে কী করে?",
+      "points": 4
+    },
+    {
+      "id": "ch_tilt",
+      "characterId": "uranus",
+      "question": "Which way do I spin: upright like a top, or tipped over?",
+      "questionBn": "আমি কীভাবে ঘুরি: লাটিমের মতো সোজা, নাকি কাত হয়ে?",
+      "answerKey": "on its side",
+      "accepted": [
+        "on its side",
+        "on your side",
+        "on the side",
+        "sideways",
+        "tipped over",
+        "tilted",
+        "lying down",
+        "কাত হয়ে",
+        "পাশ ফিরে",
+        "কাত",
+        "একপাশে",
+        "শুয়ে"
+      ],
+      "hint": "I roll around the Sun like a ball.",
+      "hintBn": "আমি বলের মতো গড়িয়ে সূর্যকে ঘুরি।",
+      "points": 3
+    },
+    {
+      "id": "ch_closest",
+      "characterId": "neptune",
+      "question": "I am the farthest planet from the Sun. Which planet is the closest?",
+      "questionBn": "আমি সূর্য থেকে সবচেয়ে দূরের গ্রহ। সবচেয়ে কাছের গ্রহ কোনটি?",
+      "answerKey": "Mercury",
+      "accepted": [
+        "mercury",
+        "planet mercury",
+        "the planet mercury",
+        "markari",
+        "budh",
+        "বুধ",
+        "বুধ গ্রহ",
+        "মার্কারি"
+      ],
+      "hint": "He is tiny and always in a hurry.",
+      "hintBn": "সে ছোট্ট আর সবসময় তাড়াহুড়োয় থাকে।",
+      "points": 2
+    },
+    {
+      "id": "ch_most_moons",
+      "characterId": "earth",
+      "question": "Which planet has the most moons of all?",
+      "questionBn": "কোন গ্রহের সবচেয়ে বেশি চাঁদ আছে?",
+      "answerKey": "Saturn",
+      "accepted": [
+        "saturn",
+        "planet saturn",
+        "the planet saturn",
+        "satarn",
+        "shoni",
+        "শনি",
+        "শনি গ্রহ",
+        "স্যাটার্ন"
+      ],
+      "hint": "She has rings and about 270 moons.",
+      "hintBn": "তার রিং আছে আর প্রায় ২৭০টি চাঁদ।",
+      "points": 4,
+      "petReward": "chiku"
+    }
+  ]
+}

@@ -196,6 +196,65 @@ importers:
         specifier: ^3.2.0
         version: 3.2.7(@types/node@22.20.5)(tsx@4.23.15)(yaml@2.9.1)
 
+  packages/game-runtime:
+    dependencies:
+      '@just-imagine/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@just-imagine/scene-schema':
+        specifier: workspace:*
+        version: link:../scene-schema
+      acorn:
+        specifier: ^8.19.0
+        version: 8.19.0
+      zod:
+        specifier: ^4.1.0
+        version: 4.6.7
+    devDependencies:
+      '@just-imagine/config':
+        specifier: workspace:*
+        version: link:../config
+      '@just-imagine/fixtures':
+        specifier: workspace:*
+        version: link:../fixtures
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.5
+      eslint:
+        specifier: ^9.30.0
+        version: 9.39.5
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.7(@types/node@22.20.5)(tsx@4.23.15)(yaml@2.9.1)
+
+  packages/learning-content:
+    dependencies:
+      '@just-imagine/scene-schema':
+        specifier: workspace:*
+        version: link:../scene-schema
+      zod:
+        specifier: ^4.1.0
+        version: 4.6.7
+    devDependencies:
+      '@just-imagine/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.5
+      eslint:
+        specifier: ^9.30.0
+        version: 9.39.5
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.7(@types/node@22.20.5)(tsx@4.23.15)(yaml@2.9.1)
+
   packages/protocol:
     dependencies:
       '@just-imagine/scene-schema':
