@@ -12,6 +12,7 @@ import {
 } from '@just-imagine/scene-schema';
 import { s } from '../../lib/strings/en';
 import { CharacterArt } from './CharacterArt';
+import { DotOrb } from './DotOrb';
 
 export type VoiceStatus = 'connecting' | 'connected' | 'reconnecting' | 'error' | 'closed' | string;
 export type JobStatus = Extract<ServerMessage, { type: 'worldJob' }>['status'];
@@ -285,7 +286,7 @@ export function Listening({
   building,
   status,
   live,
-  onAsk,
+  speaking = false,
 }: {
   name?: string;
   character: CharacterId;
@@ -293,7 +294,7 @@ export function Listening({
   building: boolean;
   status: VoiceStatus;
   live: boolean;
-  onAsk: () => void;
+  speaking?: boolean;
 }) {
   const name = personalName ?? CHARACTERS[character].displayName;
   return (
@@ -304,16 +305,13 @@ export function Listening({
     >
       <div className="listening-inner">
         <div className="listening-friend">
-          <span className="spotlight" aria-hidden="true" />
-          <span className="mic-ring mic-ring-rest" aria-hidden="true" />
-          <span
-            className={status === 'connected' ? 'mic-ring' : 'mic-ring is-still'}
-            aria-hidden="true"
-          />
-          {face}
-          <span className="mic-badge" aria-hidden="true">
-            <MicIcon />
-          </span>
+          <DotOrb mode={speaking ? 'speaking' : status === 'connected' ? 'listening' : 'idle'} />
+          <span className="listening-portrait">{face}</span>
+          {live && (
+            <span className="mic-badge" aria-hidden="true">
+              <MicIcon />
+            </span>
+          )}
         </div>
         <h1>{building ? s.building : live ? s.listening.replace('{name}', name) : s.tapFriend}</h1>
         {building ? (
@@ -325,13 +323,7 @@ export function Listening({
         ) : live ? (
           <p>{s.listeningHint}</p>
         ) : (
-          <>
-            <p>{s.tapFriendHint}</p>
-            <button type="button" className="pill primary listening-ask" onClick={onAsk}>
-              <MicIcon />
-              <span>{s.ask.replace('{name}', name)}</span>
-            </button>
-          </>
+          <p>{s.tapFriendHint}</p>
         )}
       </div>
     </div>

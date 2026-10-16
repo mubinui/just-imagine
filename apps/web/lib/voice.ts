@@ -1,5 +1,5 @@
 'use client';
-import type { ChildResponse } from '@just-imagine/protocol';
+import type { CharacterId, ChildResponse } from '@just-imagine/protocol';
 import { VoiceClient } from '@just-imagine/characters';
 import { env } from './env';
 import { currentIdToken } from './firebase';
@@ -17,7 +17,11 @@ export function releaseVoice() {
 }
 
 let opening: { client: VoiceClient; childId: string; promise: Promise<void> } | undefined;
-export async function ensureChildVoice(child: ChildResponse, worldId?: string) {
+export async function ensureChildVoice(
+  child: ChildResponse,
+  worldId?: string,
+  characterId?: CharacterId,
+) {
   const client = getVoice();
   if (opening?.client === client && opening.childId === child.id) return opening.promise;
   if (client.session?.childId === child.id) return;
@@ -29,7 +33,10 @@ export async function ensureChildVoice(child: ChildResponse, worldId?: string) {
       type: 'hello',
       idToken,
       childId: child.id,
-      characterId: child.companion?.characterId ?? (child.ageBand === '11-13' ? 'pori' : 'bhombol'),
+      characterId:
+        characterId ??
+        child.companion?.characterId ??
+        (child.ageBand === '11-13' ? 'pori' : 'bhombol'),
       ...(worldId ? { worldId } : {}),
     });
   })();

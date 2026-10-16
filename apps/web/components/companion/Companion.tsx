@@ -214,14 +214,14 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
       <button
         type="button"
         ref={trigger}
-        className={inline ? 'pill companion-toggle' : 'companion-toggle'}
+        className={inline ? 'dock-tile companion-toggle' : 'companion-toggle'}
         aria-expanded={open}
         aria-label={`Explore with ${companion.name}`}
         onClick={() => setOpen(!open)}
       >
         <CompanionArt companion={companion} speaking={speaking} />
-        <span className="companion-toggle-label" title={`Ask ${companion.name}`}>
-          Ask {companion.name}
+        <span className="companion-toggle-label">
+          {inline ? 'Explore' : `Ask ${companion.name}`}
         </span>
       </button>
     </div>

@@ -2171,3 +2171,402 @@
     display: none;
   }
 }
+
+/* stage header and dock: every control lives in one bottom dock; the header only names the world */
+.stage-header {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  padding: 10px 24px;
+}
+.stage-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--ground);
+  font:
+    800 clamp(20px, 2.4vmin, 26px) / 1.1 Baloo,
+    sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stage-header .storybook {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-radius: 14px;
+}
+.stage-header .storybook button {
+  border-radius: 10px;
+}
+.stage-status {
+  flex: none;
+  margin: 0 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ground);
+  font:
+    700 15px/1.2 Nunito,
+    sans-serif;
+}
+.stage-status .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff9ee66;
+}
+.stage-status[data-state='connected'] .dot {
+  background: var(--stage-live);
+  animation: chip-pulse 1.6s ease-out infinite;
+}
+.stage-status[data-state='building'] .dot {
+  background: var(--stage-warm);
+}
+.stage-status[data-state='reconnecting'] .dot,
+.stage-status[data-state='error'] .dot {
+  background: #ad6524;
+}
+.stage-status .note {
+  color: var(--stage-warm);
+  font-weight: 600;
+}
+
+.dock {
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  min-height: var(--strip-h);
+  padding: 12px 24px 14px;
+  background: #1f362f;
+  border-top: 1px solid #fff9ee1a;
+  z-index: 5;
+}
+.dock-friends {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dock-friends::-webkit-scrollbar {
+  display: none;
+}
+.dock-talk {
+  display: grid;
+  place-items: center;
+}
+.talk {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  width: 112px;
+  height: 112px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--stage-live);
+  color: var(--ink);
+  font:
+    800 15px/1.1 Baloo,
+    sans-serif;
+  text-align: center;
+  box-shadow: 0 14px 30px -14px #000d;
+  cursor: pointer;
+  transition: transform var(--duration);
+}
+.talk svg {
+  width: 34px;
+  height: 34px;
+}
+.talk:hover {
+  transform: translateY(-2px);
+}
+.talk:active {
+  transform: translateY(1px);
+}
+.talk.is-live {
+  background: #ad6524;
+  color: var(--ground);
+}
+.talk.is-retry {
+  background: var(--ground);
+}
+.talk-pulse {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 4px solid var(--stage-live);
+  animation: mic-pulse 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+.dock-tiles {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+.dock-tile {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 6px;
+  width: 84px;
+  min-height: 84px;
+  padding: 10px 6px;
+  border: 0;
+  border-radius: 18px;
+  background: #fff9ee14;
+  color: var(--ground);
+  font:
+    700 13px/1.15 Nunito,
+    sans-serif;
+  text-align: center;
+  cursor: pointer;
+  transition: background var(--duration);
+}
+.dock-tile svg {
+  width: 26px;
+  height: 26px;
+}
+.dock-tile:hover {
+  background: #fff9ee26;
+}
+.dock-tile[aria-pressed='true'] {
+  background: var(--ground);
+  color: var(--ink);
+}
+.dock-tile.is-quiet {
+  background: transparent;
+  outline: 1px solid #fff9ee33;
+  outline-offset: -1px;
+}
+.dock-tile .companion-art,
+.dock-tile > img,
+.dock-tile > span:first-child:not(.companion-toggle-label) {
+  width: 30px;
+  height: 30px;
+}
+[data-world='child'] .dock .dock-tile,
+[data-world='child'] .dock .talk {
+  min-width: 64px;
+}
+@media (max-width: 1100px) {
+  .dock {
+    gap: 12px;
+    padding: 10px 16px 12px;
+  }
+  .dock-tile {
+    width: 72px;
+    min-height: 76px;
+    font-size: 13px;
+  }
+  .talk {
+    width: 96px;
+    height: 96px;
+  }
+}
+@media (max-width: 760px), (max-height: 520px) {
+  .stage-header {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    min-height: 0;
+    row-gap: 6px;
+  }
+  .stage-header .storybook {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .dock {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 8px 10px;
+    padding: 8px 12px 10px;
+  }
+  .dock-friends {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .dock-talk {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .dock-tiles {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .dock-tile {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    min-height: 64px;
+    padding: 8px 4px;
+    font-size: 13px;
+  }
+  .talk {
+    width: 84px;
+    height: 84px;
+    font-size: 13px;
+  }
+  .talk svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .talk-pulse,
+  .stage-status .dot {
+    animation: none !important;
+  }
+}
+
+/* listening: a dotted 3D orb with the friend's portrait in a clean circle */
+.listening-friend {
+  width: clamp(200px, 40cqh, 340px);
+  aspect-ratio: 1;
+}
+.listening-friend .dot-orb {
+  position: absolute;
+  inset: -18%;
+  width: 136%;
+  height: 136%;
+  pointer-events: none;
+}
+.listening-portrait {
+  position: absolute;
+  inset: 22%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--ground);
+  box-shadow:
+    0 0 0 4px #fff9ee33,
+    0 18px 40px -16px #000c;
+  z-index: 1;
+}
+.listening-portrait .character-face,
+.listening-portrait .character-face svg,
+.listening-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.listening-friend .mic-badge {
+  right: 18%;
+  bottom: 18%;
+  width: 18%;
+}
+
+/* Play row: one short horizontal band under the world, spanning the scene, so the world keeps
+   its height. Invitation text, its buttons, then the dials. */
+.stage-scene > .stage-bottom {
+  justify-self: stretch;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.stage-bottom > .play-actions {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.play-actions .play-invitation {
+  flex: 0 1 300px;
+  min-width: 0;
+}
+.play-actions .play-invitation h2 {
+  font-size: 20px;
+}
+.play-actions .play-invitation p {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.play-actions .play-buttons {
+  flex: none;
+  flex-wrap: nowrap;
+}
+.play-actions .play-buttons button {
+  border-radius: 16px;
+  min-height: 56px;
+}
+.stage-bottom > .dial-tray {
+  flex: none;
+}
+@media (max-width: 760px), (max-height: 520px) {
+  .stage-scene > .stage-bottom {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .stage-bottom > .play-actions {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 760px), (max-height: 520px) {
+  .stage-scene > .stage-bottom > .dial-tray {
+    display: flex;
+    flex: 1 1 100%;
+  }
+  .stage-scene > .stage-bottom > .dial-tray .dial {
+    flex: 1 1 0;
+  }
+  .stage-bottom > .play-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .play-actions .play-invitation {
+    flex: none;
+  }
+}
+@media (max-width: 1400px) {
+  .dock-friends {
+    gap: 4px;
+  }
+  .dock-friends .friend {
+    min-width: 64px;
+  }
+  .dock-friends .friend .art {
+    width: 56px;
+    height: 56px;
+  }
+  .dock-friends .friend.is-active .art {
+    width: 76px;
+    height: 76px;
+  }
+}
+@media (max-width: 760px), (max-height: 520px) {
+  .stage-scene > .stage-bottom {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+}
+.listening-friend {
+  margin-bottom: 9%;
+}
+.listening-portrait {
+  inset: 20%;
+}
+.stage-header .stage-title {
+  flex: none;
+  max-width: 34%;
+}

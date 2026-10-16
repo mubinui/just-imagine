@@ -34,7 +34,6 @@ import { CompanionArt, CompanionMenu } from './companion/Companion';
 import { CharacterFace } from './CharacterFace';
 import { Modal } from './Modal';
 import {
-  CastStrip,
   DialTray,
   DiscoveryToast,
   EntityActions,
@@ -43,13 +42,12 @@ import {
   SpellFlourish,
   Storybook,
   SummonOverlay,
-  TopBar,
-  StudioControls,
   CloseIcon,
   quotaCopy,
   type JobStatus,
 } from './studio/parts';
 import { LabDrawer } from './studio/LabDrawer';
+import { Dock, StageHeader } from './studio/Dock';
 import { GenerationShow } from './studio/GenerationShow';
 
 type Prediction = Extract<ServerMessage, { type: 'prediction' }>;
@@ -139,7 +137,7 @@ export function Studio() {
       const selected = ChildResponseSchema.parse(
         JSON.parse(localStorage.getItem('ji-child') || 'null'),
       );
-      await ensureChildVoice(selected, message.worldId);
+      await ensureChildVoice(selected, message.worldId, message.characterId);
       setStatus(getVoice().status);
     } catch (e) {
       setError(e instanceof Error ? e.message : s.unavailable);
@@ -560,15 +558,12 @@ export function Studio() {
   const building = Boolean(job && job !== 'ready' && job !== 'failed');
   return (
     <main className={discovery ? 'stage has-toast' : 'stage'}>
-      <TopBar
+      <StageHeader
+        title={world?.title ?? s.studioTitle}
         status={status}
         job={job}
-        captions={captions}
-        onCaptions={() => setCaptions(!captions)}
-        onReset={resetWorld}
-        onRetry={() => void connectVoice()}
         note={quota !== undefined ? quotaCopy(quota) : undefined}
-        storybook={
+        center={
           env.fake ? (
             <Storybook worlds={FIXTURE_WORLDS} selected={fixture} onSelect={switchWorld} />
           ) : undefined
@@ -598,7 +593,7 @@ export function Studio() {
                   building={building}
                   status={status}
                   live={live}
-                  onAsk={() => startVoice()}
+                  speaking={speaking}
                 />
               )
             )}
@@ -671,12 +666,15 @@ export function Studio() {
       {discovery && (
         <DiscoveryToast discovery={discovery} onClose={() => setDiscovery(undefined)} />
       )}
-      <CastStrip
-        companion={child?.companion ?? undefined}
+      <Dock
         cast={cast}
         active={character}
         speaking={speaking}
         activeFace={world ? face : undefined}
+        companion={child?.companion ?? undefined}
+        status={status}
+        captions={captions}
+        talkName={personal?.name ?? CHARACTERS[character].displayName}
         onPick={(id) => {
           if (!live) {
             startVoice(id);
@@ -685,17 +683,14 @@ export function Studio() {
           setCharacter(id);
           send({ type: 'switchCharacter', characterId: id });
         }}
-        right={
-          <StudioControls
-            live={live}
-            name={personal?.name ?? CHARACTERS[character].displayName}
-            onAsk={() => startVoice()}
-            onStop={stopVoice}
-            onBuild={buildGame}
-            onFinish={finish}
-          />
-        }
-        left={<CompanionMenu inline />}
+        onTalk={() => startVoice()}
+        onStop={stopVoice}
+        onRetry={() => void connectVoice()}
+        onNewGame={buildGame}
+        onRestart={resetWorld}
+        onCaptions={() => setCaptions(!captions)}
+        onFinish={finish}
+        explore={<CompanionMenu inline />}
       />
       {summoning && <SummonOverlay character={summoning} />}
       {keypad && (

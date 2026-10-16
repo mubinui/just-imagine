@@ -131,10 +131,12 @@ export const s = {
     idle: 'Voice off',
   },
   ask: 'Ask {name}',
+  talkTo: 'Talk to {name}',
+  studioTitle: 'Your studio',
   stop: 'Stop',
   buildGame: 'Build a game',
   tapFriend: 'Tap a friend to start',
-  tapFriendHint: 'Your friends are ready whenever you are. Tap one, then say what you imagine.',
+  tapFriendHint: 'Press Talk below, or tap a friend, then say what you imagine.',
   jobLabels: {
     queued: 'Getting ready',
     building: 'Painting',
