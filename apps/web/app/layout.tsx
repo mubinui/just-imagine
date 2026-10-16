@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import '../lib/i18n/fonts.css';
 export const metadata: Metadata = {
   title: 'Just Imagine — little wonders, big discoveries',
   description: 'A playful family space for imagination and discovery.',

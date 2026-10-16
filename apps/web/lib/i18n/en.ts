@@ -1,7 +1,7 @@
-import { s } from '../strings/en';
+import { english } from '../strings/en';
 
 /** English is authored once, in lib/strings/en.ts. This module only gives it its i18n name and types. */
-export const en = s;
+export const en = english;
 
 /** The shape every language table must fill: the same keys as English, each leaf a string. */
 type Shape<T> = { readonly [K in keyof T]: T[K] extends string ? string : Shape<T[K]> };

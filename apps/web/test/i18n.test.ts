@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
-import { s } from '../lib/strings/en';
+import { english } from '../lib/strings/en';
 import { en } from '../lib/i18n/en';
 import { bn } from '../lib/i18n/bn';
 import {
@@ -37,7 +37,7 @@ const bnLeaves = leaves(bn as unknown as Table);
 
 describe('string tables', () => {
   it('keeps lib/strings/en.ts as the single source of English', () => {
-    expect(en).toBe(s);
+    expect(en).toBe(english);
   });
   it('has the same deep key set in en and bn', () => {
     expect([...bnLeaves.keys()].sort()).toEqual([...enLeaves.keys()].sort());

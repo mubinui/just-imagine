@@ -2570,3 +2570,215 @@
   flex: none;
   max-width: 34%;
 }
+
+/* ---------- generated game HUD: drawn inside the 16:9 world ---------- */
+/* Score top-left, lives and timer top-right; chips never take taps from the world. */
+.game-hud {
+  position: absolute;
+  inset: clamp(8px, 1.4cqw, 16px) clamp(8px, 1.4cqw, 16px) auto;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none;
+}
+.game-hud-right {
+  display: flex;
+  gap: 10px;
+}
+.game-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 16px 8px 8px;
+  border-radius: 16px;
+  background: var(--stage-pill);
+  color: var(--ink);
+  box-shadow: 0 8px 20px -12px #000b;
+  font:
+    800 26px/1 Baloo,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.game-chip svg {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+.game-chip-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--peach);
+}
+.game-chip-body {
+  display: grid;
+  gap: 3px;
+}
+.game-score-value {
+  font:
+    800 30px/1 Baloo,
+    sans-serif;
+  animation: game-score-pop 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.game-chip-label {
+  max-width: 20ch;
+  color: var(--soft);
+  font:
+    700 13px/1.15 Nunito,
+    sans-serif;
+}
+.game-lives {
+  gap: 4px;
+  padding: 8px 14px;
+  color: #c7572b;
+}
+.game-lives strong {
+  margin-left: 4px;
+  color: var(--ink);
+}
+.game-timer {
+  gap: 8px;
+  padding: 8px 16px 8px 12px;
+}
+.game-timer svg {
+  color: var(--accent);
+}
+.game-timer.is-urgent {
+  background: var(--stage-live);
+  animation: game-timer-nudge 1s ease-in-out infinite;
+}
+.game-timer.is-urgent svg {
+  color: var(--ink);
+}
+.game-level-banner {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  padding: 12px 28px;
+  border-radius: 18px;
+  background: var(--ink);
+  color: var(--stage-live);
+  font:
+    800 clamp(24px, 4cqw, 40px) / 1.1 Baloo,
+    sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 16px 40px -20px #000c;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: game-banner 2.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Questions, win, lose and tangled reuse the prediction sheet; answers are rounded rectangles. */
+.game-sheet {
+  z-index: 5;
+}
+.game-sheet .prediction-card {
+  justify-items: center;
+}
+.game-sheet .actions button {
+  min-width: 168px;
+  border-radius: 16px;
+}
+.game-sheet-icon {
+  display: grid;
+  place-items: center;
+  margin-top: -6px;
+}
+.game-sheet-icon svg {
+  width: 76px;
+  height: 76px;
+}
+.game-sheet[data-tone='won'] .game-sheet-icon svg {
+  animation: game-trophy 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.game-sheet-text {
+  max-width: 36ch;
+  margin: -6px auto 0;
+  color: var(--soft);
+  font:
+    600 17px/1.5 Nunito,
+    sans-serif;
+}
+.game-sheet[data-tone='tangled'] .actions button {
+  background: var(--ink);
+  box-shadow: 0 10px 24px -12px #000c;
+}
+@keyframes game-score-pop {
+  from {
+    transform: scale(1.45);
+    color: var(--accent);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes game-timer-nudge {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes game-banner {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(0.9);
+  }
+  14%,
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+}
+@keyframes game-trophy {
+  from {
+    transform: scale(0.4) rotate(-18deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@media (max-width: 760px), (max-height: 520px) {
+  .game-chip {
+    min-height: 40px;
+    gap: 6px;
+    padding: 4px 10px 4px 5px;
+    border-radius: 12px;
+    font-size: 22px;
+  }
+  .game-chip svg {
+    width: 18px;
+    height: 18px;
+  }
+  .game-chip-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+  .game-score-value {
+    font-size: 22px;
+  }
+  .game-chip-label {
+    display: none;
+  }
+  .game-sheet-icon svg {
+    width: 52px;
+    height: 52px;
+  }
+}
+/* The world never exceeds its column, whichever sizing rule resolves first while the layout settles. */
+.world-frame > .stage-world {
+  max-width: 100%;
+  max-height: 100%;
+}

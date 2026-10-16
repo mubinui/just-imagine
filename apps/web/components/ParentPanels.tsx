@@ -17,6 +17,7 @@ import {
 import { api } from '../lib/api';
 import { env } from '../lib/env';
 import { s } from '../lib/strings/en';
+import { setLanguage, type Language } from '../lib/i18n';
 import { CompanionSetup } from './companion/CompanionSetup';
 import { Avatar } from './ProfilePicker';
 import { Modal } from './Modal';
@@ -397,7 +398,8 @@ function ChildForm({
     [avatar, setAvatar] = useState(child?.avatar || 'fox'),
     [target, setTarget] = useState(child?.sessionTargetMinutes || 8),
     [labsUnlocked, setLabsUnlocked] = useState(child?.labsUnlocked || false),
-    [tier, setTier] = useState(child?.tier || 'playground');
+    [tier, setTier] = useState(child?.tier || 'playground'),
+    [language, setChildLanguage] = useState<Language>(child?.language ?? 'en');
   return (
     <form
       className="child-form"
@@ -406,8 +408,10 @@ function ChildForm({
           firstName: name,
           ageBand: age,
           avatar,
+          language,
           ...(child ? { sessionTargetMinutes: target, labsUnlocked, tier } : {}),
         });
+        if (child && readActiveChildId() === child.id) setLanguage(language);
         if (!child) setName('');
       }}
     >
@@ -437,6 +441,18 @@ function ChildForm({
             {AvatarSchema.options.map((a) => (
               <option key={a}>{a}</option>
             ))}
+          </select>
+        </label>
+        <label>
+          {s.languageLabel}
+          <select
+            value={language}
+            onChange={(e) => setChildLanguage(e.target.value === 'bn' ? 'bn' : 'en')}
+          >
+            <option value="en">English</option>
+            <option value="bn" lang="bn">
+              বাংলা
+            </option>
           </select>
         </label>
         {child && (
@@ -496,4 +512,13 @@ function ChildForm({
       </div>
     </form>
   );
+}
+
+function readActiveChildId(): string | undefined {
+  try {
+    const raw = JSON.parse(localStorage.getItem('ji-child') || 'null') as { id?: unknown } | null;
+    return typeof raw?.id === 'string' ? raw.id : undefined;
+  } catch {
+    return undefined;
+  }
 }

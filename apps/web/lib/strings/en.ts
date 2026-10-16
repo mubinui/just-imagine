@@ -1,4 +1,4 @@
-export const s = {
+export const english = {
   dialLabels: { gravity: 'Gravity', wind: 'Wind', heroMaterial: 'Material' },
   sessions: 'Recent sessions',
   brand: 'just imagine',
@@ -133,6 +133,7 @@ export const s = {
   ask: 'Ask {name}',
   talkTo: 'Talk to {name}',
   studioTitle: 'Your studio',
+  languageLabel: 'Language',
   stop: 'Stop',
   buildGame: 'Build a game',
   tapFriend: 'Tap a friend to start',
@@ -177,4 +178,91 @@ export const s = {
     late: 'My paint spilled! Want to pick a world instead?',
     pickWorld: 'Pick a world instead',
   },
+  learnWorlds: {
+    tile: 'Learn',
+    mapTitle: 'Where shall we learn today?',
+    mapHint: 'Tap an island to visit it.',
+    sections: {
+      space: 'Space',
+      animals: 'Animals',
+      body: 'Human Body',
+      food: 'Food and Nutrition',
+      hygiene: 'Hygiene',
+      exercise: 'Exercise',
+    },
+    scenes: {
+      space: 'Space',
+      animals_farm: 'Farm',
+      animals_jungle: 'Jungle',
+      animals_ocean: 'Ocean',
+    },
+    scenesLabel: 'Choose a place',
+    progress: '{done} of {total} challenges',
+    comingSoon: 'Coming soon',
+    pointsLabel: 'My points',
+    points: '{points} points',
+    map: 'Map',
+    studio: 'Studio',
+    myPets: 'My pets',
+    tapHint: 'Tap a friend in this world',
+    tapHintBusy: 'Ask, call, or tap another friend',
+    ask: 'Ask {name}',
+    call: 'Call {name}',
+    hangUp: 'Hang up',
+    back: 'Back to the world',
+    nextFact: 'Another fact',
+    ringing: 'Calling {name}…',
+    onCall: 'On the phone with {name}',
+    talkingWith: 'Talking with {name}',
+    challengeFrom: '{name} asks',
+    sayAnswer: 'Say your answer out loud',
+    pointsEarned: '+{points} points',
+    petFound: 'You found {name}!',
+    petBuddy: 'Make {name} my buddy',
+    petIsBuddy: '{name} is your buddy',
+    keepPlaying: 'Keep playing',
+    petLocked: 'At {points} points',
+    shelfHint: 'Answer challenges to earn points and find more pets.',
+    buddy: 'Buddy',
+    close: 'Close',
+    notFound: 'This world is coming soon.',
+    unavailable: 'Your points could not load. You can still explore.',
+  },
+  game: {
+    hud: 'Game',
+    score: 'Score',
+    scoreValue: '{score} points',
+    lives: '{lives} lives left',
+    timer: 'Time left',
+    level: 'Level {n}',
+    won: 'You did it!',
+    wonText: 'You scored {score}. Want to play again?',
+    lost: 'So close!',
+    lostText: 'You scored {score}. Every try makes you better.',
+    playAgain: 'Play again',
+    tryAgain: 'Try again',
+    tangled: 'The game got tangled',
+    tangledText: 'Its rules got in a knot. Let’s untangle them and start again.',
+    untangle: 'Untangle and play',
+  },
 } as const;
+
+type Shape<T> = { readonly [K in keyof T]: T[K] extends string ? string : Shape<T[K]> };
+type Table = Shape<typeof english>;
+// The active table lives on globalThis, not in a module variable: the bundler may place this
+// module in several chunks, and every copy must read the same choice.
+const ACTIVE_KEY = '__justImagineActiveStrings';
+const holder = globalThis as unknown as Record<string, Table | undefined>;
+
+/** Swaps the table that `s` reads from. LanguageRoot sets it for the child screens. */
+export function setActiveStrings(table: Table): void {
+  holder[ACTIVE_KEY] = table;
+}
+
+/**
+ * The strings every component imports. It reads the active language's table, so screens switch
+ * to Bangla without each component changing; English is the default and the server's choice.
+ */
+export const s = new Proxy(english, {
+  get: (_target, key) => (holder[ACTIVE_KEY] ?? english)[key as keyof Table],
+}) as typeof english;
