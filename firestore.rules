@@ -23,6 +23,63 @@ service cloud.firestore {
     // Super admin data is server-only: the api reads and writes it with the Admin SDK.
     match /adminAudit/{auditId} { allow read, write: if false; }
     match /adminFlags/{uid} { allow read, write: if false; }
+    // Schools (docs/superpowers/specs/2026-10-17-schools-stem-design.md §5). The api sets
+    // claims: teachers role + schoolId; students role + schoolId + studentId + classId.
+    // Invites, studentSecrets, lessonKeys, schoolCodes, usage and catalog have no allow rule,
+    // so every client read is denied; all writes stay server-only.
+    function claim(key) { return request.auth.token.get(key, ''); }
+    function teacherOf(schoolId) {
+      return request.auth != null && claim('role') == 'schoolAdmin' && claim('schoolId') == schoolId;
+    }
+    function studentOf(schoolId) {
+      return request.auth != null && claim('role') == 'student' && claim('schoolId') == schoolId;
+    }
+    match /schools/{schoolId} {
+      allow read: if teacherOf(schoolId) || studentOf(schoolId);
+      match /members/{uid} { allow read: if teacherOf(schoolId); }
+      match /classes/{classId} {
+        allow read: if teacherOf(schoolId) || (studentOf(schoolId) && claim('classId') == classId);
+      }
+      match /students/{studentId} {
+        allow read: if teacherOf(schoolId) || (studentOf(schoolId) && claim('studentId') == studentId);
+      }
+      // get and list are split: a missing doc (resource == null) must read as not found, so a
+      // live listener on an attempt or next week's board survives until the doc is written.
+      // list keeps the strict condition because rules are not filters.
+      function ownAttempt() { return resource.data.studentId == claim('studentId'); }
+      match /attempts/{attemptId} {
+        allow get: if teacherOf(schoolId)
+          || (studentOf(schoolId) && (resource == null || ownAttempt()));
+        allow list: if teacherOf(schoolId) || (studentOf(schoolId) && ownAttempt());
+      }
+      // A class board is visible to its own students unless the teacher turned boardsVisible
+      // off on the class (spec §13); school boards are always visible. Same get/list split.
+      function boardsShownTo(classId) {
+        return get(/databases/$(database)/documents/schools/$(schoolId)/classes/$(classId))
+          .data.get('boardsVisible', true) == true;
+      }
+      function boardVisible() {
+        return resource.data.scope == 'school'
+          || (resource.data.classId == claim('classId') && boardsShownTo(claim('classId')));
+      }
+      match /boards/{boardId} {
+        allow get: if teacherOf(schoolId)
+          || (studentOf(schoolId) && (resource == null || boardVisible()));
+        allow list: if teacherOf(schoolId) || (studentOf(schoolId) && boardVisible());
+      }
+    }
+    function lessonReadable(lesson) {
+      return request.auth != null && (
+        (claim('role') == 'schoolAdmin'
+          && ((lesson.scope == 'global' && lesson.status == 'published')
+              || lesson.schoolId == claim('schoolId')))
+        || (claim('role') == 'student' && lesson.status == 'published'
+          && (lesson.scope == 'global'
+              || (lesson.scope == 'school' && lesson.schoolId == claim('schoolId'))
+              || (lesson.scope == 'class' && lesson.schoolId == claim('schoolId')
+                  && claim('classId') in lesson.classIds))));
+    }
+    match /lessons/{lessonId} { allow read: if lessonReadable(resource.data); }
     match /{document=**} { allow write: if false; }
   }
 }

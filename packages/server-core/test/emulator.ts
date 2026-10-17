@@ -13,9 +13,12 @@ export async function clearFirestore(): Promise<void> {
 }
 
 // Exchanges an Admin custom token for a real ID token through the Auth emulator.
-export async function idTokenFor(uid: string): Promise<string> {
+export async function idTokenFor(
+  uid: string,
+  claims: Record<string, unknown> = {},
+): Promise<string> {
   const { adminAuth } = await import('../src/firebase');
-  const custom = await adminAuth().createCustomToken(uid);
+  const custom = await adminAuth().createCustomToken(uid, claims);
   const res = await fetch(
     `http://${process.env['FIREBASE_AUTH_EMULATOR_HOST']}/identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=fake-api-key`,
     {
