@@ -7,6 +7,9 @@ export const SolutionAmountSchema = z.strictObject({
 export const SolutionAmountsSchema = z.record(z.string(), SolutionAmountSchema);
 export type SolutionAmounts = z.infer<typeof SolutionAmountsSchema>;
 export const DEFAULT_SOLUTION_AMOUNT = { volumeMl: 50, concentrationM: 0.1 } as const;
+/** Ideal concentration-based pH at 25°C, limited to dilute monoprotic HCl/NaOH/KOH.
+ * Higher input concentrations remain usable for stoichiometry, without claiming a pH. */
+export const MAX_IDEAL_PH_CONCENTRATION_M = 0.1;
 
 export const BilingualSchema = z.strictObject({
   en: z.string().trim().min(1).max(400),
@@ -195,10 +198,20 @@ export function mix(
           productsMoles[product.formula] = extent * product.coefficient;
       }
     }
-    // Ideal dilute strong-acid/base solutions at 25°C. Other mixtures keep curated pH or unknown.
-    const acidEq: Record<string, number> = { hcl: 1, h2so4: 2 };
-    const baseEq: Record<string, number> = { naoh: 1, koh: 1, limewater: 2 };
-    if (solutions.length && solutions.every((r) => acidEq[r.id] || baseEq[r.id]) && volumeMl > 0) {
+    // A supplied amount changes the reference bench conditions: unsupported quantitative
+    // mixtures must never reuse a curated reference pH (or assume full sulfate dissociation).
+    ph = null;
+    const acidEq: Record<string, number> = { hcl: 1 };
+    const baseEq: Record<string, number> = { naoh: 1, koh: 1 };
+    const supported = chosen.every(
+      (r) =>
+        r.kind === 'indicator' ||
+        (r.state === 'aq' &&
+          (acidEq[r.id] || baseEq[r.id]) &&
+          (amounts[r.id] ?? DEFAULT_SOLUTION_AMOUNT).concentrationM <=
+            MAX_IDEAL_PH_CONCENTRATION_M),
+    );
+    if (solutions.length && supported && volumeMl > 0) {
       const excess =
         solutions.reduce(
           (sum, r) => sum + moles[r.id]! * ((acidEq[r.id] ?? 0) - (baseEq[r.id] ?? 0)),
@@ -223,7 +236,7 @@ export function mix(
     indicator: indicatorReagent
       ? {
           id: indicatorReagent.id,
-          colour: ph === null ? indicatorReagent.colour : indicatorColour(indicatorReagent.id, ph),
+          colour: ph === null ? null : indicatorColour(indicatorReagent.id, ph),
         }
       : null,
   };

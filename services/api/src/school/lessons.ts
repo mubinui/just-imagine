@@ -6,14 +6,23 @@ import {
   LessonFieldsSchema,
   LessonKeysDocSchema,
   missingLanguages,
+  lessonPublicationChecks,
+  currentAttempt,
   schoolPaths,
   SchoolClassDocSchema,
   type LessonDoc,
   type QuizItem,
   type QuizKey,
 } from '@just-imagine/protocol';
-import { SIMS, SimIdSchema, LabTaskSchema, type SimModel } from '@just-imagine/stem-sims';
-import { CHAPTERS, REAGENTS } from '@just-imagine/stem-content';
+import {
+  SIMS,
+  SimIdSchema,
+  LabTaskSchema,
+  checkLockedSimTask,
+  gradeLabSubmission,
+  type SimModel,
+} from '@just-imagine/stem-sims';
+import { CHAPTERS, REAGENTS, REACTIONS } from '@just-imagine/stem-content';
 import type { SchoolAdminActor, StudentActor } from '@just-imagine/server-core';
 import { db, newId, read, schoolId, visible, fail } from './common';
 export type LessonWithId = LessonDoc & { id: string };
@@ -88,12 +97,25 @@ export function validateLesson(
       const predicate = model.predicates[key.predicate];
       if (!predicate) return fail(400, 'Choose a registered simulation task.');
       const args = predicate.args.parse(key.args) as Record<string, unknown>;
+      if (publish) {
+        const initial = checkLockedSimTask(item, {}, { predicate: key.predicate, args: key.args });
+        if (initial.ok && initial.met)
+          return fail(400, 'The simulation task is already solved at its starting settings.');
+      }
       if (
         typeof args['min'] === 'number' &&
         typeof args['max'] === 'number' &&
         args['min'] > args['max']
       )
         return fail(400, 'Task minimum cannot exceed maximum.');
+      if (key.exampleAnswer !== undefined) {
+        const example = checkLockedSimTask(item, key.exampleAnswer, {
+          predicate: key.predicate,
+          args: key.args,
+        });
+        if (!example.ok || !example.met)
+          return fail(400, 'The example solution does not meet this simulation task.');
+      }
     }
     if (item.kind === 'labTask' && key.kind === 'labTask') {
       if (!chapter.lab) return fail(400, 'Lab tasks require a chemistry chapter.');
@@ -102,11 +124,34 @@ export function validateLesson(
         return fail(400, 'pH minimum cannot exceed maximum.');
       if (item.reagentIds.some((id) => !REAGENTS.some((r) => r.id === id)))
         return fail(400, 'Unknown lab reagent.');
+      if (key.exampleAnswer !== undefined) {
+        const answer = z
+          .strictObject({
+            reagentIds: z.array(z.string()).min(1).max(12),
+            heat: z.boolean(),
+            amounts: z
+              .record(
+                z.string(),
+                z.strictObject({
+                  volumeMl: z.number().min(1).max(1000),
+                  concentrationM: z.number().min(0.001).max(5),
+                }),
+              )
+              .optional(),
+          })
+          .safeParse(key.exampleAnswer);
+        if (!answer.success) return fail(400, 'The example lab solution needs a valid mixture.');
+        const example = gradeLabSubmission(item, answer.data, task, REAGENTS, REACTIONS);
+        if (!example.ok || !example.met)
+          return fail(400, 'The example solution does not meet this lab task.');
+      }
     }
   }
   const ids = new Set(itemsOf(lesson).map((i) => i.id));
   if (Object.keys(keys.items).some((id) => !ids.has(id)))
     return fail(400, 'Remove answer keys without a question.');
+  if (publish && !lessonPublicationChecks(lesson, keys).ready)
+    return fail(400, 'Resolve the lesson publication checks before publishing.');
   if (publish && (missingLanguages(lesson).length || !lesson.approved.en || !lesson.approved.bn))
     return fail(400, 'Complete and approve both English and Bangla before publishing.');
 }
@@ -142,6 +187,8 @@ export async function saveLesson(
   const body = LessonWriteSchema.parse(input),
     existing = id ? await authorLesson(actor, id) : undefined,
     sid = global ? null : await schoolId(actor);
+  if (existing && existing.lesson.revision !== body.expectedRevision)
+    return fail(409, 'This lesson changed. Reload it before saving.');
   if (body.lesson.scope === 'global' && !global)
     return fail(403, 'Only the operator publishes global lessons.');
   const nextId = id ?? newId('w');
@@ -189,8 +236,16 @@ export async function approveLesson(
   auditReason?: string,
 ) {
   const { lesson, keys } = await authorLesson(actor, id);
+  if (lesson.revision !== expected)
+    return fail(409, 'This lesson changed. Reload it before continuing.');
   if (missingLanguages(lesson).includes(language))
     return fail(400, 'Complete every field in this language first.');
+  if (
+    lessonPublicationChecks(lesson, keys).issues.some(
+      (issue) => issue.severity === 'error' && (!issue.language || issue.language === language),
+    )
+  )
+    return fail(400, 'Resolve the lesson publication checks before approving.');
   return mutateLesson(
     actor,
     id,
@@ -209,7 +264,9 @@ async function mutateLesson(
   auditReason?: string,
   action = 'lesson.approve',
 ) {
-  await authorLesson(actor, id);
+  const { lesson } = await authorLesson(actor, id);
+  if (lesson.revision !== expected)
+    return fail(409, 'This lesson changed. Reload it before continuing.');
   return db().runTransaction(async (tx) => {
     const ref = db().doc(schoolPaths.lesson(id)),
       snap = await tx.get(ref);
@@ -242,6 +299,8 @@ export async function publishLesson(
   auditReason?: string,
 ) {
   const { lesson, keys } = await authorLesson(actor, id);
+  if (lesson.revision !== expected)
+    return fail(409, 'This lesson changed. Reload it before continuing.');
   validateLesson(lesson, keys, true);
   return mutateLesson(
     actor,
@@ -297,7 +356,10 @@ export async function studentLessons(actor: StudentActor) {
       attempts.docs
         .map((d) => AttemptDocSchema.parse(d.data()))
         .filter((a) => ids.has(a.lessonId))
-        .map((a) => [a.lessonId, a]),
+        .map((a) => [
+          a.lessonId,
+          currentAttempt(a, lessons.find((lesson) => lesson.id === a.lessonId)!.revision),
+        ]),
     ),
   };
 }

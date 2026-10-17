@@ -25,6 +25,8 @@ export function validatePredictedReaction(
   heat: boolean,
 ) {
   if (
+    // The model cannot establish a concentration-dependent pH. Only mix() may supply it.
+    reaction.phAfter !== undefined ||
     !isBalanced(reaction.equation) ||
     reaction.reagents.some((id) => !chosen.includes(id)) ||
     (reaction.requires.heat !== heat && reaction.requires.heat)
@@ -82,6 +84,10 @@ export async function react(
     return fail(400, 'Choose only known virtual bench reagents.');
   const result = mix(body, REAGENTS, REACTIONS);
   if (result.reaction) return { status: 'reaction' as const, source: 'table' as const, result };
+  // Single substances/indicators and known solution readings already have deterministic results.
+  // They do not require a new reaction, an AI reservation or even a cache read.
+  if (result.contents.length <= 1 || result.ph !== null)
+    return { status: 'observation' as const, source: 'table' as const, result };
   const cacheRef = db().doc('aiReactions/' + hash(result.key)),
     cached = await cacheRef.get();
   if (cached.exists) {
@@ -100,7 +106,7 @@ export async function react(
   ]);
   const predicted = await modelResult(
     model,
-    'Predict only the qualitative result of a closed virtual school chemistry bench. Do not provide quantities, instructions, temperatures, hazardous procedures or real experimental guidance. Respond unsupported if there is no observable reaction, an unsafe result or uncertainty. Otherwise return a balanced equation with coefficients at most20, exactly the chosen non-indicator/non-catalyst reactants, accurate products, gas/precipitate flags and bilingual explanation. This is an idealized simulation; quantities are computed by deterministic code. Chosen data: ' +
+    'Predict only the qualitative result of a closed virtual school chemistry bench. Do not provide quantities, instructions, temperatures, hazardous procedures or real experimental guidance. Omit phAfter: pH is computed exclusively by deterministic code, and must remain unknown when that code cannot establish it. Respond unsupported if there is no observable reaction, an unsafe result or uncertainty. Otherwise return a balanced equation with coefficients at most20, exactly the chosen non-indicator/non-catalyst reactants, accurate products, gas/precipitate flags and bilingual explanation. This is an idealized simulation; quantities are computed by deterministic code. Chosen data: ' +
       JSON.stringify({
         reagents: REAGENTS.filter((r) => body.reagentIds.includes(r.id)),
         heat: body.heat,

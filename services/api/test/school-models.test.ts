@@ -272,8 +272,9 @@ describe('school learning boundaries', () => {
     expect(result).toEqual({ ok: false, reason: 'reagent-not-offered' });
   });
   it('checks predicted equations against the exact offered reactants and products', () => {
-    const reaction = REACTIONS[0]!;
+    const { phAfter, ...reaction } = REACTIONS[0]!;
     expect(validatePredictedReaction(reaction, ['hcl', 'naoh'], false)).toBe(true);
+    expect(validatePredictedReaction({ ...reaction, phAfter }, ['hcl', 'naoh'], false)).toBe(false);
     expect(
       validatePredictedReaction(
         { ...reaction, equation: 'HCl + NaOH -> NaCl' },

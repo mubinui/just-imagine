@@ -1,5 +1,7 @@
 # Family, schools and motion integration
 
+Subsequent lesson, simulation, worksheet and assessment corrections are documented in [School learning quality assurance](school-quality-assurance.md). This page retains the earlier acceptance record.
+
 Date: 2026-10-17. Branch: `feat/family-schools-integration`. Worktree: `../just-imagine-integrated`. Local app: <http://localhost:3300>.
 
 The upgraded family work was preserved in snapshot commit `0cc083e`, then the user-confirmed `feat/schools-stem` commit `55dd48f` was merged at `8408275`. The user approved parallel implementation of the combined system. That approval supersedes the earlier Claude-only implementation assignment recorded in historical handoff notes. The original `feat/creative-experience-upgrades` worktree is unchanged. Nothing has been pushed or deployed to the cloud.

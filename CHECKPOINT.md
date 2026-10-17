@@ -1,3 +1,11 @@
+# School quality checkpoint — 2026-10-17
+
+On **`feat/family-schools-integration`**, `../just-imagine-integrated`, running at **http://localhost:3300**. [Quality assurance evidence, scope and limits](docs/handoff/school-quality-assurance.md).
+
+Publication now has shared bilingual content checks and server-verified private task solutions. Seven demo lessons gained original worked examples, specific hints, varied assessments and saved notes/worksheets. Exact-match global seeds were backed up and versioned to2; the teacher-authored class lesson, roster, credentials and points were preserved. Simulations now have correct parallel wiring, fixed physical cart scale, labeled graph axes, honest invalid states, corrected phone transforms and bounded quantitative chemistry. Grading handles exact decimal tolerance, per-section quizzes, revision archives/lifetime credit and independent progressive hints. AI text/translation rejects changed numbers/common SI quantities or clearly wrong language; teacher review remains required. Save/approve/publish bind validated content to the expected revision, with three isolated concurrent-edit regressions.
+
+Checks: web344, APIunit47, protocol114, sims55, content86, isolated school workflows18; all30 type/lint tasks, the full dependency-image build and final incremental production builds pass. Both HTTP services return200 and all28 changed runtime source files match the running image. Native teacher checks, Bangla circuit/invalid-input/hints,390×844 trigonometry controls and all three A4 worksheet preview pages pass after one correction batch. Native direct pointer dragging remains blocked by the tool; geometry regressions cover it. No microphone/Live/provider/quiz submissions in native QA. Existing new-world generation timeout remains open. Studio, stories and original character assets are unchanged. Nothing pushed/cloud deployed.
+
 # Frontend follow-up — learning, themes and teacher AI (2026-10-17)
 
 Current implementation is on **`feat/family-schools-integration`**, in `../just-imagine-integrated`, running at **http://localhost:3300**. The original creative worktree and character artwork are preserved. [Current evidence and limits](docs/handoff/frontend-learning-themes-voice.md).

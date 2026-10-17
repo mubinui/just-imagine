@@ -12,12 +12,16 @@ import {
   boardId,
   weekKeyDhaka,
   schoolPaths,
+  parseSchoolNumber,
+  withinNumericTolerance,
+  currentAttempt,
   type QuizItem,
   type QuizKey,
   type BoardDoc,
+  type LessonDoc,
 } from '@just-imagine/protocol';
 import type { StudentActor, SchoolAdminActor } from '@just-imagine/server-core';
-import { db, read, fail, digits, schoolId, visible } from './common';
+import { db, read, fail, schoolId, visible } from './common';
 import { studentLesson, itemsOf } from './lessons';
 export function correct(item: QuizItem, key: QuizKey, answer: unknown): boolean {
   if (item.kind !== key.kind) return false;
@@ -31,16 +35,8 @@ export function correct(item: QuizItem, key: QuizKey, answer: unknown): boolean 
       );
     case 'numeric': {
       if (key.kind !== 'numeric') return false;
-      const text = typeof answer === 'string' ? digits(answer).trim() : answer;
-      if ((typeof text !== 'number' && typeof text !== 'string') || text === '') return false;
-      const n = Number(text);
-      return (
-        Number.isFinite(n) &&
-        Math.abs(n - key.value) <=
-          (key.tolerance.mode === 'abs'
-            ? key.tolerance.amount
-            : Math.abs(key.value) * key.tolerance.amount)
-      );
+      const n = parseSchoolNumber(answer);
+      return n !== null && withinNumericTolerance(n, key.value, key.tolerance);
     }
     case 'simTask': {
       if (key.kind !== 'simTask') return false;
@@ -79,6 +75,7 @@ export function correct(item: QuizItem, key: QuizKey, answer: unknown): boolean 
 const AnswerSchema = z.strictObject({ itemId: z.string().min(1).max(32), answer: z.unknown() });
 export const QuizSubmissionSchema = z.strictObject({
   revision: z.number().int().nonnegative(),
+  stepIndex: z.number().int().nonnegative().optional(),
   answers: z.array(AnswerSchema).min(1).max(100),
 });
 export const CheckSubmissionSchema = AnswerSchema.extend({
@@ -89,7 +86,11 @@ export async function grade(actor: StudentActor, id: string, input: unknown, qui
     ? QuizSubmissionSchema.parse(input)
     : (() => {
         const b = CheckSubmissionSchema.parse(input);
-        return { revision: b.revision, answers: [{ itemId: b.itemId, answer: b.answer }] };
+        return {
+          revision: b.revision,
+          stepIndex: undefined,
+          answers: [{ itemId: b.itemId, answer: b.answer }],
+        };
       })();
   if (new Set(body.answers.map((a) => a.itemId)).size !== body.answers.length)
     return fail(400, 'Each question may be submitted once.');
@@ -97,9 +98,7 @@ export async function grade(actor: StudentActor, id: string, input: unknown, qui
     keys = await read(schoolPaths.lessonKeys(id), LessonKeysDocSchema);
   if (lesson.revision !== body.revision || keys.revision !== body.revision)
     return fail(409, 'Your teacher updated this lesson. Open it again.');
-  const allowed = lesson.steps.flatMap((s) =>
-    quiz ? (s.kind === 'quiz' ? s.items : []) : s.kind === 'check' ? [s.item] : [],
-  );
+  const allowed = assessmentItems(lesson, quiz, body.stepIndex);
   if (
     quiz &&
     (body.answers.length !== allowed.length ||
@@ -138,7 +137,7 @@ export async function grade(actor: StudentActor, id: string, input: unknown, qui
       return fail(403, 'This school is paused.');
     const profile = StudentDocSchema.parse(profileSnap.data());
     if (profile.classId !== actor.classId) return fail(403, 'Your class changed. Sign in again.');
-    const attempt = AttemptDocSchema.parse(
+    const previousAttempt = AttemptDocSchema.parse(
       attemptSnap.exists
         ? attemptSnap.data()
         : {
@@ -151,10 +150,15 @@ export async function grade(actor: StudentActor, id: string, input: unknown, qui
             updatedAt: now,
           },
     );
+    const attempt = currentAttempt(previousAttempt, body.revision);
+    const credited = new Set(attempt.creditedItemIds);
     let pointsAwarded = 0;
     for (const result of results) {
       const prior = attempt.items[result.itemId];
-      if (result.correct && !prior?.firstCorrectAt) pointsAwarded += result.points;
+      if (quiz && result.correct && !credited.has(result.itemId)) {
+        pointsAwarded += result.points;
+        credited.add(result.itemId);
+      }
       attempt.items[result.itemId] = {
         correct: result.correct,
         answer: result.answer,
@@ -197,10 +201,17 @@ export async function grade(actor: StudentActor, id: string, input: unknown, qui
     attempt.revision = body.revision;
     attempt.updatedAt = now;
     attempt.pointsAwarded += pointsAwarded;
+    attempt.creditedItemIds = [...credited];
     const quizIds = lesson.steps.flatMap((s) =>
       s.kind === 'quiz' ? s.items.map((i) => i.id) : [],
     );
-    if (quizIds.every((q) => attempt.items[q]?.correct)) attempt.completedAt ??= now;
+    if (quizIds.length && quizIds.every((q) => attempt.items[q]?.correct))
+      attempt.completedAt ??= now;
+    if (attemptSnap.exists && previousAttempt.revision !== body.revision)
+      tx.set(
+        attemptRef.collection('revisions').doc(String(previousAttempt.revision)),
+        previousAttempt,
+      );
     tx.set(attemptRef, attempt);
     if (pointsAwarded) {
       tx.set(profileRef, next);
@@ -335,7 +346,9 @@ export async function results(actor: SchoolAdminActor, classId: string, lessonId
           .get();
         return {
           student: { id: d.id, ...StudentDocSchema.parse(d.data()) },
-          attempt: attempt.exists ? AttemptDocSchema.parse(attempt.data()) : null,
+          attempt: attempt.exists
+            ? currentAttempt(AttemptDocSchema.parse(attempt.data()), lesson.revision)
+            : null,
         };
       }),
     ),
@@ -353,8 +366,25 @@ export async function hint(
     return fail(409, 'Open the current lesson first.');
   const keys = await read(schoolPaths.lessonKeys(id), LessonKeysDocSchema),
     hint = keys.items[itemId]?.hints[hintIndex];
+  if (keys.revision !== revision) return fail(409, 'Open the current lesson first.');
   if (!hint) return fail(404, 'No more hints for this question.');
-  return { hint };
+  const remaining = keys.items[itemId]!.hints.length - hintIndex - 1;
+  return { hint, hintIndex, remaining, nextHintIndex: remaining ? hintIndex + 1 : null };
+}
+
+export function assessmentItems(
+  lesson: { steps: LessonDoc['steps'] },
+  quiz: boolean,
+  stepIndex?: number,
+): QuizItem[] {
+  if (quiz && stepIndex !== undefined) {
+    const step = lesson.steps[stepIndex];
+    if (step?.kind !== 'quiz') return fail(400, 'Choose a quiz section.');
+    return step.items;
+  }
+  return lesson.steps.flatMap((step) =>
+    quiz ? (step.kind === 'quiz' ? step.items : []) : step.kind === 'check' ? [step.item] : [],
+  );
 }
 
 export async function teacherBoards(

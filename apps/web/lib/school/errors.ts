@@ -23,6 +23,14 @@ export function schoolError(error: unknown, language: SchoolLanguage): string {
       ? error.code
       : '';
   const signal = `${code} ${message}`;
+  if (/publication checks/i.test(signal))
+    return 'পাঠের প্রকাশ-পূর্ব যাচাই খুলে দেখুন। নির্দেশিত অংশ সংশোধন ও সংরক্ষণ করে আবার অনুমোদন দিন।';
+  if (/example (?:solution|lab solution)/i.test(signal))
+    return 'সমাধানের নমুনাটি মডেলের লক্ষ্য পূরণ করছে কি না যাচাই করুন। শুধু অনুমোদিত প্যারামিটার বা উপকরণ ব্যবহার করুন।';
+  if (/already solved at its starting settings/i.test(signal))
+    return 'সিমুলেশনের প্রারম্ভিক মানেই লক্ষ্য পূরণ হচ্ছে। প্রারম্ভিক মান বা লক্ষ্য বদলে শিক্ষার্থীকে সমাধানের সুযোগ দিন।';
+  if (/AI (?:translation changed|changed the scientific|returned the wrong language)/i.test(signal))
+    return 'AI উত্তরে ভাষা বা বৈজ্ঞানিক সংখ্যার পরিবর্তন ধরা পড়েছে। আপনার লেখা অপরিবর্তিত আছে। আবার চেষ্টা করুন বা নিজে সম্পাদনা করুন।';
   if (/too many PIN attempts|PIN.{0,30}(?:locked|lockout)/i.test(signal))
     return 'অনেকবার পিন দিয়ে চেষ্টা করা হয়েছে। ১৫ মিনিট অপেক্ষা করো, অথবা তোমার শিক্ষককে জানাও।';
   if (

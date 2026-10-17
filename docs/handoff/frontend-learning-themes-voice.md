@@ -1,5 +1,7 @@
 # Learning, themes, voice switching and teacher writing
 
+Subsequent lesson, simulation, worksheet and assessment corrections are documented in [School learning quality assurance](school-quality-assurance.md). This page retains the earlier acceptance record.
+
 Date: 2026-10-17. Branch: `feat/family-schools-integration`. Worktree: `../just-imagine-integrated`. Local app: <http://localhost:3300>.
 
 The user requested a better Sikhi arrangement, accessible application themes, reliable voice/character switching between games, the teacher leaderboard spacing shown in their screenshot, and AI generation/refinement for teacher-authored text. The original Studio, story mode and raster character identities remain the baseline. The original creative worktree is untouched.

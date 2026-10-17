@@ -1,0 +1,23 @@
+.panel > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-block: 10px;
+  font-size: 19px;
+  font-weight: 800;
+}
+.panel > summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
+.panel p {
+  margin-block: 12px;
+  max-width: 75ch;
+}
+.panel ul {
+  padding-inline-start: 24px;
+  max-width: 80ch;
+}
+.panel li {
+  margin-block: 10px;
+  line-height: 1.6;
+}

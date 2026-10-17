@@ -7,6 +7,7 @@ import {
   SchoolClassDocSchema,
   StudentDocSchema,
   AttemptDocSchema,
+  currentAttempt,
   schoolPaths,
 } from '@just-imagine/protocol';
 import {
@@ -317,7 +318,12 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
         snap = await db()
           .doc(schoolPaths.attempt(actor.schoolId, actor.studentId, lessonId))
           .get();
-      return { lesson, attempt: snap.exists ? AttemptDocSchema.parse(snap.data()) : null };
+      return {
+        lesson,
+        attempt: snap.exists
+          ? currentAttempt(AttemptDocSchema.parse(snap.data()), lesson.revision)
+          : null,
+      };
     });
     routes.post('/v1/study/lessons/:id/check', (req) =>
       grade(studentActor(req), id(req.params), req.body, false),

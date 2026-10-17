@@ -282,9 +282,15 @@ export const QuizKeySchema = z.discriminatedUnion('kind', [
     kind: z.literal('simTask'),
     predicate: z.string().min(1).max(64),
     args: z.unknown(),
+    /** Private teacher witness; verified with the same locked model as student answers. */
+    exampleAnswer: z.record(z.string(), z.unknown()).optional(),
   }),
   /** `task` is a stem-sims LabTask; the api validates it with LabTaskSchema. */
-  z.strictObject({ kind: z.literal('labTask'), task: z.unknown() }),
+  z.strictObject({
+    kind: z.literal('labTask'),
+    task: z.unknown(),
+    exampleAnswer: z.unknown().optional(),
+  }),
 ]);
 export type QuizKey = z.infer<typeof QuizKeySchema>;
 /** Server-only (rules deny all client access). */
@@ -314,6 +320,8 @@ export const AttemptDocSchema = z.object({
     }),
   ),
   pointsAwarded: z.number().int().nonnegative(),
+  /** Lifetime credit survives a content revision without reusing old correctness. */
+  creditedItemIds: z.array(ItemIdSchema).optional(),
   completedAt: EpochMsSchema.nullable(),
   updatedAt: EpochMsSchema,
 });

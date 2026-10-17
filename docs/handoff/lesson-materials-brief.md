@@ -1,0 +1,9 @@
+# Lesson notes and worksheets
+
+Audience: school learners and the teachers/operators preparing their saved lessons. A quiet cream paper surface uses the existing forest text, bilingual typography, generous writing space and familiar controls. The useful distinction is between explanatory notes and an unanswered worksheet, rather than a second lesson editor.
+
+The three materials routes load the same canonical lesson as the authorized editor/player. Drafts and archived versions visibly require review. Student requests use only the public study endpoint. The document renderer accepts lesson content, never answer keys, hints or attempts. Notes retain authored explanations and model assumptions; worksheets retain givens, investigation prompts and questions, with space to reason and answer. No new scientific claims or generated solutions are added.
+
+Controls: back to lesson, document type, document language and print/save as PDF through the native print dialog. Both document types retain title, chapter, saved revision and review status. Print removes navigation/controls, uses A4 margins, avoids splitting individual questions and provides ordinary paragraph flow for long notes. Narrow screens stack controls and let long formulas wrap without horizontal overflow. No artwork changes.
+
+Verification: render real typed lesson fixtures in both languages, check draft/archived labels, scientific units, separate notes/worksheet content and deliberate private-key/hint omission. Native Safari confirmed readable selected tabs on desktop and at 390×844 after a correction batch. All three A4 preview pages of the revision-2 Bangla unit-circle worksheet were inspected: complete questions, writing space and headings kept with their first question. Printing was cancelled, with no PDF export or printer job. The unified production build passed.

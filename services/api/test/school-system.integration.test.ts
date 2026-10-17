@@ -386,9 +386,15 @@ describe('school role-to-role backend', () => {
       .get();
     const translated = await translateLesson(actor, lessonId, 'bn', async (prompt) => {
       const inputs = JSON.parse(prompt.slice(prompt.lastIndexOf('order: ') + 7)) as string[];
-      return { texts: inputs.map(() => 'অনুবাদিত পাঠ') };
+      return { texts: inputs.map((text) => 'অনুবাদিত পাঠ ' + text) };
     });
     expect(translated.draft.lesson.approved.bn).toBe(false);
+    await expect(
+      translateLesson(actor, lessonId, 'bn', async (prompt) => {
+        const inputs = JSON.parse(prompt.slice(prompt.lastIndexOf('order: ') + 7)) as string[];
+        return { texts: inputs.map((text) => 'অনুবাদিত পাঠ ' + text.replace(/[0-9]/, '9')) };
+      }),
+    ).rejects.toMatchObject({ status: 503 });
     expect(
       (
         await db()

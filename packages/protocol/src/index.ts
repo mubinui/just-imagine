@@ -11,6 +11,7 @@ export * from './primitives';
 export * from './learn';
 export * from './admin';
 export * from './school';
+export * from './lesson-quality';
 export * from './tutor';
 
 export * from './stories';
@@ -20,3 +21,4 @@ export * from './appearance';
 
 export * from './language-policy';
 export * from './content-language';
+export * from './assessment';

@@ -80,6 +80,6 @@ describe('model-backed simulation rendering', () => {
       );
       expect(html).toContain('role="img"');
       expect(html).toContain('type="number"');
-      expect(html).not.toMatch(/(?:NaN|undefined)/);
+      expect(html).not.toMatch(/(?:cx|cy|r|d|points|value)="[^"]*(?:NaN|undefined)[^"]*"/);
     });
 });

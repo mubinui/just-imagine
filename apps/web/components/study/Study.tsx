@@ -2,8 +2,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { CHAPTERS } from '@just-imagine/stem-content';
-import type { QuizItem, AttemptDoc } from '@just-imagine/protocol';
-import { assessmentAnswer, applyTutorSuggestion } from '../../lib/school/answers';
+import { currentAttempt, type QuizItem, type AttemptDoc } from '@just-imagine/protocol';
+import {
+  assessmentAnswer,
+  applyTutorSuggestion,
+  assessmentRequests,
+} from '../../lib/school/answers';
 import type { SimId, Observable } from '@just-imagine/stem-sims';
 import { schoolRequest, useSchoolResource } from '../../lib/school/api';
 import type { Lesson, StudyMe, GradeResponse, BoardResponse } from '../../lib/school/types';
@@ -90,27 +94,30 @@ export function StudyHome() {
                 (!grade || String(l.grade) === grade) &&
                 (!chapter || l.chapterId === chapter),
             )
-            .map((l) => (
-              <Link className="sch-subject" key={l.id} href={'/study/lessons/' + l.id}>
-                <h2>{text(l.title)}</h2>
-                <p>
-                  {s(l.subject)} · {s('grade')} {l.grade} ·{' '}
-                  {text(CHAPTERS.find((c) => c.id === l.chapterId)?.title)}
-                </p>
-                <p>
-                  {s('steps')}: {l.steps.length} ·{' '}
-                  {r.data?.attemptsByLesson?.[l.id]?.completedAt
-                    ? s('completed')
-                    : r.data?.attemptsByLesson?.[l.id]
-                      ? s('completion') +
-                        ': ' +
-                        Object.values(r.data.attemptsByLesson[l.id]!.items).filter((v) => v.correct)
-                          .length
-                      : s('notStarted')}{' '}
-                  · {s('points')}: {r.data?.attemptsByLesson?.[l.id]?.pointsAwarded ?? 0}
-                </p>
-              </Link>
-            ))}
+            .map((l) => {
+              const attempt = r.data?.attemptsByLesson?.[l.id];
+              const current = attempt ? currentAttempt(attempt, l.revision) : undefined;
+              return (
+                <Link className="sch-subject" key={l.id} href={'/study/lessons/' + l.id}>
+                  <h2>{text(l.title)}</h2>
+                  <p>
+                    {s(l.subject)} · {s('grade')} {l.grade} ·{' '}
+                    {text(CHAPTERS.find((c) => c.id === l.chapterId)?.title)}
+                  </p>
+                  <p>
+                    {s('steps')}: {l.steps.length} ·{' '}
+                    {current?.completedAt
+                      ? s('completed')
+                      : current
+                        ? s('completion') +
+                          ': ' +
+                          Object.values(current.items).filter((v) => v.correct).length
+                        : s('notStarted')}{' '}
+                    · {s('points')}: {r.data?.attemptsByLesson?.[l.id]?.pointsAwarded ?? 0}
+                  </p>
+                </Link>
+              );
+            })}
           {!r.data?.lessons.length && <p className="sch-empty">{s('noLessons')}</p>}
         </div>
       )}
@@ -194,19 +201,29 @@ export function QuestionInput({
 }
 
 export function LessonPlayer({ id }: { id: string }) {
+  return <LessonPlayerContent key={id} id={id} />;
+}
+function LessonPlayerContent({ id }: { id: string }) {
   const { s, text, language } = useSchoolLanguage(),
     r = useSchoolResource<{ lesson: Lesson; attempt?: unknown }>('study/lessons/' + id),
     action = useSchoolAction();
   const [index, setIndex] = useState(0),
     [params, setParams] = useState<Record<string, unknown>>({}),
     [answers, setAnswers] = useState<Record<string, unknown>>({}),
-    [grades, setGrades] = useState<GradeResponse>(),
-    [hint, setHint] = useState(''),
+    [grades, setGrades] = useState<{
+      context: string;
+      answers: Record<string, unknown>;
+      result: GradeResponse;
+    }>(),
+    [hints, setHints] = useState<
+      Record<string, { hints: { en: string; bn: string }[]; nextHintIndex: number | null }>
+    >({}),
     [observation, setObservation] = useState<{
       simId: string;
       observable: Record<string, unknown>;
     }>(),
     [highlight, setHighlight] = useState('');
+  const [requests] = useState(assessmentRequests);
   const observeTime = useRef(0);
   const onObserve = useCallback((simId: string, o: Observable) => {
     if (Date.now() - observeTime.current < 1000) return;
@@ -215,13 +232,21 @@ export function LessonPlayer({ id }: { id: string }) {
   }, []);
   const lesson = r.data?.lesson,
     step = lesson?.steps[index];
+  const context = `${id}:${lesson?.revision}:${index}`;
+  const feedback =
+    grades?.context === context && grades.answers === answers ? grades.result : undefined;
+  useEffect(() => {
+    requests.invalidate();
+    return () => requests.invalidate();
+  }, [context, requests]);
   useEffect(() => {
     let active = true;
     queueMicrotask(() => {
       if (!active) return;
       if (step?.kind === 'explore') setParams(step.params);
       setGrades(undefined);
-      setHint('');
+      setObservation(undefined);
+      observeTime.current = 0;
       setHighlight('');
     });
     return () => {
@@ -230,23 +255,59 @@ export function LessonPlayer({ id }: { id: string }) {
   }, [index, step]);
   async function grade(items: QuizItem[], quiz: boolean) {
     if (!lesson) return;
-    const result = await schoolRequest<GradeResponse>(
-      `study/lessons/${id}/${quiz ? 'quiz' : 'check'}`,
-      quiz
-        ? {
-            revision: lesson.revision,
-            answers: items.map((item) => ({
-              itemId: item.id,
-              answer: assessmentAnswer(item, answers[item.id]),
-            })),
-          }
-        : {
-            revision: lesson.revision,
-            itemId: items[0]!.id,
-            answer: assessmentAnswer(items[0]!, answers[items[0]!.id]),
+    const isCurrent = requests.capture();
+    try {
+      const result = await schoolRequest<GradeResponse>(
+        `study/lessons/${id}/${quiz ? 'quiz' : 'check'}`,
+        quiz
+          ? {
+              revision: lesson.revision,
+              stepIndex: index,
+              answers: items.map((item) => ({
+                itemId: item.id,
+                answer: assessmentAnswer(item, answers[item.id]),
+              })),
+            }
+          : {
+              revision: lesson.revision,
+              itemId: items[0]!.id,
+              answer: assessmentAnswer(items[0]!, answers[items[0]!.id]),
+            },
+      );
+      if (isCurrent()) setGrades({ context, answers, result });
+    } catch (error) {
+      if (isCurrent()) throw error;
+    }
+  }
+  function moveTo(next: number) {
+    requests.invalidate();
+    setGrades(undefined);
+    setIndex(next);
+  }
+  async function showHint(item: QuizItem) {
+    if (!lesson) return;
+    const key = context + ':' + item.id;
+    const hintIndex = hints[key]?.nextHintIndex ?? 0;
+    if (hints[key]?.nextHintIndex === null) return;
+    const isCurrent = requests.capture();
+    try {
+      const result = await schoolRequest<{
+        hint: { en: string; bn: string };
+        hintIndex: number;
+        remaining: number;
+        nextHintIndex: number | null;
+      }>(`study/lessons/${id}/hint`, { itemId: item.id, hintIndex, revision: lesson.revision });
+      if (isCurrent())
+        setHints((previous) => ({
+          ...previous,
+          [key]: {
+            hints: [...(previous[key]?.hints.slice(0, result.hintIndex) ?? []), result.hint],
+            nextHintIndex: result.nextHintIndex,
           },
-    );
-    setGrades(result);
+        }));
+    } catch (error) {
+      if (isCurrent()) throw error;
+    }
   }
   if (r.loading) return <Loading />;
   if (!lesson || !step) return <ErrorNotice error={r.error || s('noLessons')} retry={r.reload} />;
@@ -254,6 +315,9 @@ export function LessonPlayer({ id }: { id: string }) {
     <>
       <div className="sch-toolbar">
         <Link href="/study">← {s('lessons')}</Link>
+        <Link className="sch-action-link" href={`/study/lessons/${id}/materials`}>
+          {language === 'bn' ? 'নোট ও অনুশীলনপত্র' : 'Notes & worksheet'}
+        </Link>
         <span className="study-step-progress">
           {index + 1} / {lesson.steps.length}
         </span>
@@ -266,7 +330,7 @@ export function LessonPlayer({ id }: { id: string }) {
               key={i}
               type="button"
               aria-current={index === i ? 'step' : undefined}
-              onClick={() => setIndex(i)}
+              onClick={() => moveTo(i)}
             >
               <span className="study-step-label">
                 {i + 1}. {s(st.kind)}
@@ -285,6 +349,7 @@ export function LessonPlayer({ id }: { id: string }) {
               ))}
             </div>
             <SimView
+              key={context}
               id={step.simId as SimId}
               value={Object.keys(params).length ? params : step.params}
               onChange={setParams}
@@ -296,7 +361,7 @@ export function LessonPlayer({ id }: { id: string }) {
         ) : step.kind === 'lab' ? (
           <>
             <p className="study-step-copy">{text(step.goal ?? undefined)}</p>
-            <ChemLab offered={step.reagentIds} lessonId={id} stepIndex={index} />
+            <ChemLab key={context} offered={step.reagentIds} lessonId={id} stepIndex={index} />
           </>
         ) : (
           <>
@@ -304,30 +369,34 @@ export function LessonPlayer({ id }: { id: string }) {
             {(step.kind === 'check' ? [step.item] : step.items).map((item) => (
               <section className="study-question" key={item.id}>
                 <QuestionInput
+                  key={context + item.id}
                   item={item}
                   value={answers[item.id]}
-                  onChange={(value) => setAnswers((a) => ({ ...a, [item.id]: value }))}
+                  onChange={(value) => {
+                    requests.invalidate();
+                    setGrades(undefined);
+                    setAnswers((a) => ({ ...a, [item.id]: value }));
+                  }}
                 />
                 {step.kind === 'quiz' && (
                   <p>
                     {item.points} {s('points')}
                   </p>
                 )}
-                <button
-                  disabled={action.busy}
-                  onClick={() =>
-                    void action.run(async () => {
-                      const x = await schoolRequest<{ hint: { en: string; bn: string } }>(
-                        `study/lessons/${id}/hint`,
-                        { itemId: item.id, hintIndex: 0, revision: lesson.revision },
-                      );
-                      setHint(text(x.hint));
-                    })
-                  }
-                >
-                  {s('hint')}
-                </button>
-                {grades?.results
+                {hints[context + ':' + item.id]?.nextHintIndex !== null && (
+                  <button
+                    disabled={action.busy}
+                    onClick={() => void action.run(() => showHint(item))}
+                  >
+                    {s('hint')} {(hints[context + ':' + item.id]?.hints.length ?? 0) + 1}/2
+                  </button>
+                )}
+                {hints[context + ':' + item.id]?.hints.map((hint, hintIndex) => (
+                  <p key={hintIndex} role="status">
+                    {text(hint)}
+                  </p>
+                ))}
+                {feedback?.results
                   .filter((g) => g.itemId === item.id)
                   .map((g) => (
                     <p key={g.itemId} className={g.correct ? 'sch-result-good' : ''}>
@@ -336,7 +405,6 @@ export function LessonPlayer({ id }: { id: string }) {
                   ))}
               </section>
             ))}
-            {hint && <p role="status">{hint}</p>}
             <button
               className="sch-primary"
               disabled={action.busy}
@@ -348,19 +416,19 @@ export function LessonPlayer({ id }: { id: string }) {
             >
               {s(step.kind === 'quiz' ? 'submitQuiz' : 'submit')}
             </button>
-            {grades && (
+            {feedback && (
               <p role="status">
-                {s('earned')}: {grades.pointsAwarded ?? 0}
+                {s('earned')}: {feedback.pointsAwarded ?? 0}
               </p>
             )}
           </>
         )}
         <div className="study-step-nav">
-          <button disabled={index === 0} onClick={() => setIndex((i) => i - 1)}>
+          <button disabled={index === 0} onClick={() => moveTo(index - 1)}>
             {s('previous')}
           </button>
           {index < lesson.steps.length - 1 ? (
-            <button onClick={() => setIndex((i) => i + 1)}>{s('next')}</button>
+            <button onClick={() => moveTo(index + 1)}>{s('next')}</button>
           ) : (
             <Link className="sch-action-link" href="/study">
               {s('finish')}

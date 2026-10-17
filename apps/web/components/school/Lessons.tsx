@@ -4,7 +4,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CHAPTERS } from '@just-imagine/stem-content';
 import { SIMS, SIM_IDS, type SimId } from '@just-imagine/stem-sims';
-import { type LessonStep, type QuizItem, type QuizKey } from '@just-imagine/protocol';
+import {
+  lessonPublicationChecks,
+  type LessonStep,
+  type QuizItem,
+  type QuizKey,
+} from '@just-imagine/protocol';
 import { schoolRequest, useSchoolResource, schoolHref } from '../../lib/school/api';
 import type { Lesson, LessonKeys, SchoolMe, SchoolClass } from '../../lib/school/types';
 import { useSchoolLanguage } from '../../lib/i18n/study';
@@ -25,6 +30,7 @@ import {
 } from './LessonTextAssist';
 import { invalidateTextApprovals, type LessonTextField } from '../../lib/school/text-assist';
 import assistStyles from './LessonTextAssist.module.css';
+import { LessonQuality } from './LessonQuality';
 import '../../app/school.css';
 type Text = { en: string; bn: string };
 const empty = (): Text => ({ en: '', bn: '' });
@@ -351,6 +357,15 @@ export function LessonEditor({ id, admin = false }: { id: string; admin?: boolea
         </div>
         <ErrorNotice error={r.error} retry={r.reload} />
         <ActionNotice action={action} />
+        <LessonQuality lesson={lesson} keys={keys} />
+        {id !== 'new' && !dirty && (
+          <Link
+            className="sch-action-link"
+            href={schoolHref(`${admin ? '/admin' : '/school'}/lessons/${id}/materials`)}
+          >
+            {language === 'bn' ? 'পাঠের নোট ও অনুশীলনপত্র' : 'Lesson notes and worksheet'}
+          </Link>
+        )}
         {admin && (
           <Field label={s('reason')}>
             <input
@@ -739,7 +754,13 @@ export function LessonEditor({ id, admin = false }: { id: string; admin?: boolea
               </span>
               <button
                 className="sch-primary"
-                disabled={dirty || action.busy || !lesson.approved.en || !lesson.approved.bn}
+                disabled={
+                  dirty ||
+                  action.busy ||
+                  !lesson.approved.en ||
+                  !lesson.approved.bn ||
+                  !lessonPublicationChecks(lesson, keys).ready
+                }
                 onClick={() =>
                   void action.run(
                     () => remote('publish', { expectedRevision: lesson.revision }),
@@ -894,11 +915,19 @@ function QuestionEditor({
               type="number"
               min="0"
               step="any"
-              value={itemKey.tolerance.amount}
+              max={itemKey.tolerance.mode === 'rel' ? 100 : undefined}
+              value={
+                itemKey.tolerance.mode === 'rel'
+                  ? itemKey.tolerance.amount * 100
+                  : itemKey.tolerance.amount
+              }
               onChange={(e) =>
                 onKey({
                   ...itemKey,
-                  tolerance: { ...itemKey.tolerance, amount: Number(e.target.value) },
+                  tolerance: {
+                    ...itemKey.tolerance,
+                    amount: Number(e.target.value) / (itemKey.tolerance.mode === 'rel' ? 100 : 1),
+                  },
                 })
               }
             />
@@ -907,7 +936,12 @@ function QuestionEditor({
               onChange={(e) =>
                 onKey({
                   ...itemKey,
-                  tolerance: { ...itemKey.tolerance, mode: e.target.value as 'abs' | 'rel' },
+                  tolerance: {
+                    mode: e.target.value as 'abs' | 'rel',
+                    amount:
+                      (itemKey.tolerance.amount * (itemKey.tolerance.mode === 'rel' ? 100 : 1)) /
+                      (e.target.value === 'rel' ? 100 : 1),
+                  },
                 })
               }
             >
@@ -977,6 +1011,22 @@ function QuestionEditor({
             </select>
           </Field>
           <JsonTarget value={itemKey.args} onChange={(args) => onKey({ ...itemKey, args })} />
+          <fieldset>
+            <legend>
+              {language === 'bn'
+                ? 'নমুনা সমাধান (শুধু পরিবর্তনযোগ্য প্যারামিটার)'
+                : 'Example solution (editable parameters only)'}
+            </legend>
+            <JsonTarget
+              value={
+                itemKey.exampleAnswer ??
+                Object.fromEntries(item.editableParams.map((key) => [key, item.startParams[key]]))
+              }
+              onChange={(exampleAnswer) =>
+                onKey({ ...itemKey, exampleAnswer: exampleAnswer as Record<string, unknown> })
+              }
+            />
+          </fieldset>
         </>
       )}
       {item.kind === 'labTask' && itemKey.kind === 'labTask' && (
@@ -1016,6 +1066,15 @@ function QuestionEditor({
             </select>
           </Field>
           <JsonTarget value={itemKey.task} onChange={(task) => onKey({ ...itemKey, task })} />
+          <fieldset>
+            <legend>
+              {language === 'bn' ? 'সমাধানের নমুনা মিশ্রণ' : 'Example solution mixture'}
+            </legend>
+            <JsonTarget
+              value={itemKey.exampleAnswer ?? { reagentIds: [], heat: false, amounts: {} }}
+              onChange={(exampleAnswer) => onKey({ ...itemKey, exampleAnswer })}
+            />
+          </fieldset>
         </>
       )}
       {hints.map((h, i) => (
@@ -1070,12 +1129,20 @@ function JsonTarget({ value, onChange }: { value: unknown; onChange: (v: unknown
         .map(([key, v]) => (
           <Field key={key} label={key === 'predicate' ? s('predicate') : key}>
             <input
-              type={typeof v === 'number' ? 'number' : 'text'}
+              type={typeof v === 'boolean' ? 'checkbox' : typeof v === 'number' ? 'number' : 'text'}
+              checked={typeof v === 'boolean' ? v : undefined}
               step="any"
-              value={typeof v === 'object' ? JSON.stringify(v) : String(v)}
+              value={
+                typeof v === 'boolean'
+                  ? undefined
+                  : typeof v === 'object'
+                    ? JSON.stringify(v)
+                    : String(v)
+              }
               onChange={(e) => {
                 let next: unknown = e.target.value;
-                if (typeof v === 'number') next = Number(next);
+                if (typeof v === 'boolean') next = e.target.checked;
+                else if (typeof v === 'number') next = Number(next);
                 else if (typeof v === 'object') {
                   try {
                     next = JSON.parse(String(next));

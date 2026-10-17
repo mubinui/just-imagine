@@ -208,3 +208,124 @@ describe('gradeLabSubmission', () => {
     ).toEqual({ ok: false, reason: 'unknown-reagent' });
   });
 });
+
+describe('supported quantitative pH', () => {
+  const amount = (concentrationM: number, volumeMl = 50) => ({ concentrationM, volumeMl });
+  const more: Reagent[] = [
+    ...reagents,
+    {
+      id: 'h2so4',
+      formula: 'H2SO4',
+      name: name('Sulfuric acid', 'সালফিউরিক এসিড'),
+      kind: 'acid',
+      state: 'aq',
+      ph: 1,
+      colour: '#eaf3f5',
+    },
+    {
+      id: 'koh',
+      formula: 'KOH',
+      name: name('Potassium hydroxide', 'পটাশিয়াম হাইড্রক্সাইড'),
+      kind: 'base',
+      state: 'aq',
+      ph: 13,
+      colour: '#eaf3f5',
+    },
+    {
+      id: 'limewater',
+      formula: 'Ca(OH)2',
+      name: name('Limewater', 'চুনের পানি'),
+      kind: 'base',
+      state: 'aq',
+      ph: 12.4,
+      colour: '#eaf3f5',
+    },
+    {
+      id: 'fe',
+      formula: 'Fe',
+      name: name('Iron', 'লোহা'),
+      kind: 'metal',
+      state: 's',
+      colour: '#eaf3f5',
+    },
+  ];
+  it('computes neutral, excess-acid and excess-base pH from monoprotic equivalents', () => {
+    const run = (acidMl: number, baseMl: number) =>
+      mix(
+        {
+          reagentIds: ['hcl', 'naoh'],
+          heat: false,
+          amounts: { hcl: amount(0.1, acidMl), naoh: amount(0.1, baseMl) },
+        },
+        more,
+        reactions,
+      );
+    expect(run(50, 50).ph).toBeCloseTo(7, 10);
+    expect(run(100, 50).ph).toBeCloseTo(-Math.log10(0.005 / 0.15), 10);
+    expect(run(50, 100).ph).toBeCloseTo(14 + Math.log10(0.005 / 0.15), 10);
+    expect(run(50, 100).quantities?.productsMoles.NaCl).toBeCloseTo(0.005, 10);
+  });
+  it('supports both concentration bounds and potassium hydroxide without a reaction table entry', () => {
+    expect(
+      mix({ reagentIds: ['hcl'], heat: false, amounts: { hcl: amount(0.001) } }, more, reactions)
+        .ph,
+    ).toBeCloseTo(3, 6);
+    const result = mix(
+      { reagentIds: ['koh', 'phenolphthalein'], heat: false, amounts: { koh: amount(0.1) } },
+      more,
+      reactions,
+    );
+    expect(result.ph).toBeCloseTo(13, 6);
+    expect(result.indicator?.colour).toBe('#e85d9b');
+  });
+  it('does not invent pH or indicator colour for sulfuric acid, limewater or reacting solids', () => {
+    for (const ids of [['h2so4'], ['limewater'], ['hcl', 'fe']]) {
+      const amounts = Object.fromEntries(
+        ids.filter((id) => id !== 'fe').map((id) => [id, amount(0.1)]),
+      );
+      const result = mix({ reagentIds: [...ids, 'litmus'], heat: false, amounts }, more, reactions);
+      expect(result.ph).toBeNull();
+      expect(result.indicator?.colour).toBeNull();
+      expect(checkLabTask(result, { predicate: 'pHBetween', min: 0, max: 14 })).toBe(false);
+    }
+  });
+  it('keeps stoichiometry but does not reuse reference pH outside the dilute domain', () => {
+    const result = mix(
+      { reagentIds: ['hcl', 'naoh'], heat: false, amounts: { hcl: amount(1), naoh: amount(1) } },
+      more,
+      reactions,
+    );
+    expect(result.reaction?.id).toBe('neutral-hcl-naoh');
+    expect(result.ph).toBeNull();
+    expect(result.quantities?.productsMoles.NaCl).toBeCloseTo(0.05, 10);
+    expect(mix({ reagentIds: ['hcl', 'naoh'], heat: false }, more, reactions).ph).toBe(7);
+  });
+  it('retains sulfuric-acid stoichiometry without claiming its reference pH for supplied amounts', () => {
+    const sulfate = ReactionSchema.parse({
+      ...reactions[0]!,
+      id: 'neutral-h2so4-naoh',
+      reagents: ['h2so4', 'naoh'],
+      equation: 'H2SO4 + 2NaOH -> Na2SO4 + 2H2O',
+      products: [
+        { formula: 'Na2SO4', state: 'aq', name: name('Sodium sulfate', 'সোডিয়াম সালফেট') },
+        { formula: 'H2O', state: 'l', name: name('Water', 'পানি') },
+      ],
+    });
+    const result = mix(
+      {
+        reagentIds: ['h2so4', 'naoh', 'litmus'],
+        heat: false,
+        amounts: {
+          h2so4: amount(0.1),
+          naoh: amount(0.1, 100),
+        },
+      },
+      more,
+      [sulfate],
+    );
+    expect(result.reaction?.id).toBe(sulfate.id);
+    expect(result.quantities?.productsMoles.Na2SO4).toBeCloseTo(0.005, 10);
+    expect(result.ph).toBeNull();
+    expect(result.indicator?.colour).toBeNull();
+  });
+});

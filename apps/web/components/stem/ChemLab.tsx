@@ -1,10 +1,15 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { REAGENTS } from '@just-imagine/stem-content';
 import { useSchoolLanguage } from '../../lib/i18n/study';
 import { schoolRequest } from '../../lib/school/api';
 import { Field, ErrorNotice, useSchoolAction } from '../school/shared';
-import type { Reaction, MixResult } from '@just-imagine/stem-sims';
+import {
+  MAX_IDEAL_PH_CONCENTRATION_M,
+  type Reaction,
+  type MixResult,
+} from '@just-imagine/stem-sims';
+import { requestSnapshot, runCurrentRequest } from '../../lib/school/request-snapshot';
 import '../../app/stem.css';
 export type LabAnswer = {
   reagentIds: string[];
@@ -13,7 +18,7 @@ export type LabAnswer = {
 };
 type ReactResponse =
   | {
-      status: 'reaction';
+      status: 'reaction' | 'observation';
       source: 'table' | 'ai';
       result: MixResult & { reaction: Reaction | null };
     }
@@ -48,9 +53,14 @@ export function ChemLab({
     action = useSchoolAction();
   const [answer, setAnswer] = useState<LabAnswer>({ reagentIds: [], heat: false, amounts: {} }),
     [result, setResult] = useState<ReactResponse>();
+  const [snapshots] = useState(requestSnapshot);
+  const scope = JSON.stringify([lessonId, stepIndex, offered]);
+  useEffect(() => () => snapshots.invalidate(), [snapshots, scope]);
   function update(next: LabAnswer) {
+    snapshots.invalidate();
     setAnswer(next);
     setResult(undefined);
+    action.setError('');
     onAnswer?.(next);
   }
   function toggle(id: string) {
@@ -76,11 +86,16 @@ export function ChemLab({
     update({ ...answer, reagentIds: ids, amounts });
   }
 
-  const reaction = result?.status === 'reaction' ? result.result.reaction : null;
-  const rawResult = result?.status === 'reaction' ? result.result : null;
+  const rawResult = result && 'result' in result ? result.result : null;
+  const reaction = rawResult?.reaction ?? null;
   const colour = rawResult?.indicator?.colour ?? reaction?.observations.colourTo ?? 'transparent';
   return (
     <div className="stem-lab">
+      <p>
+        {language === 'bn'
+          ? `এটি আদর্শ ভার্চুয়াল মডেল। ২৫°C তাপমাত্রায় শুধু HCl, NaOH ও KOH-এর ০.০০১–${MAX_IDEAL_PH_CONCENTRATION_M.toLocaleString('bn-BD')} M দ্রবণের পরিমাণ থেকে pH গণনা করা হয়। অন্য মিশ্রণের pH অজানা; বিক্রিয়ার পর্যবেক্ষণ গুণগত।`
+          : `Ideal virtual model. Quantitative pH uses only HCl, NaOH and KOH at 25°C, 0.001–${MAX_IDEAL_PH_CONCENTRATION_M} M. Other mixtures have unknown pH; reaction observations are qualitative.`}
+      </p>
       <div className="stem-bench">
         <section>
           <h2>{s('chooseReagents')}</h2>
@@ -172,11 +187,13 @@ export function ChemLab({
                 disabled={action.busy || !answer.reagentIds.length}
                 onClick={() =>
                   void action.run(async () => {
-                    setResult(
-                      await schoolRequest<ReactResponse>('study/react', {
+                    await runCurrentRequest(
+                      snapshots.begin(),
+                      schoolRequest<ReactResponse>('study/react', {
                         ...answer,
                         ...(lessonId ? { lessonId, stepIndex } : {}),
                       }),
+                      setResult,
                     );
                   })
                 }
@@ -244,6 +261,37 @@ export function ChemLab({
         </section>
       </div>
       <ErrorNotice error={action.error} />
+      {rawResult && !reaction && (
+        <section className="stem-lab-result">
+          <h2>{s('observations')}</h2>
+          <span className="sch-status">
+            {language === 'bn' ? 'গণনাভিত্তিক মডেল' : 'Deterministic model'}
+          </span>
+          {rawResult.ph !== null && <p>pH {rawResult.ph.toFixed(2)}</p>}
+          {rawResult.indicator && rawResult.ph !== null && (
+            <p>
+              {rawResult.indicator.colour === null
+                ? language === 'bn'
+                  ? 'নির্দেশকটি বর্ণহীন।'
+                  : 'The indicator is colourless.'
+                : language === 'bn'
+                  ? 'নির্দেশকের রং বিকারে দেখানো আছে।'
+                  : 'The indicator colour is shown in the beaker.'}
+            </p>
+          )}
+        </section>
+      )}
+      {rawResult && rawResult.ph === null && (
+        <p role="status">
+          {language === 'bn'
+            ? 'এই মিশ্রণের pH গণনা করা হয়নি।'
+            : 'pH is not calculated for this mixture.'}
+          {rawResult.indicator &&
+            (language === 'bn'
+              ? ' নির্দেশকের রংও অনুমান করা হয়নি।'
+              : ' Indicator colour is not predicted.')}
+        </p>
+      )}
       {result?.status === 'unsupported' && (
         <p role="status">{language === 'bn' ? s('unknownReaction') : result.message}</p>
       )}
