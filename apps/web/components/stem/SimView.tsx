@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { SIMS, type SimId, type SimModel, type Observable } from '@just-imagine/stem-sims';
 import { useSchoolLanguage } from '../../lib/i18n/study';
 import { Field } from '../school/shared';
+import { UiIcon } from '../UiIcon';
 import { readingLabel, readingState, forceVectorLengths } from '../../lib/school/readings';
 import {
   cartCamera,
@@ -10,6 +11,7 @@ import {
   draggedParameter,
   simulationPoint,
 } from '../../lib/school/simulation-geometry';
+import { formatNumber, linearEquation, snapToStep, simName, isTimedSim } from './sim-format';
 import '../../app/stem.css';
 export const SIM_DEFAULTS: Record<SimId, Record<string, unknown>> = {
   'motion-graphs': { u: 5, a: 1, duration: 10 },
@@ -58,13 +60,26 @@ export const PARAMS: Record<
     { id: 'angleDeg', label: ['Angle', 'কোণ'], min: 0, max: 360, step: 1, unit: '°' },
   ],
 };
-export function scientificNumber(value: unknown): string {
-  if (value === null) return '—';
-  if (typeof value === 'boolean') return value ? '✓' : '—';
-  if (typeof value !== 'number') return String(value ?? '');
-  return (Math.abs(value) < 1e-9 ? 0 : value).toLocaleString('en-US', { maximumFractionDigits: 3 });
+export function scientificNumber(value: unknown, language: 'en' | 'bn' = 'en'): string {
+  return formatNumber(value, language);
 }
 const plot = (x: number, y: number) => `${320 + x * 20},${200 - y * 14}`;
+/** Put the equation chip in the first corner the plotted line does not cross. */
+function labelCorner(m: number, c: number, width: number, height: number) {
+  const lineY = (px: number) => 200 - (m * ((px - 320) / 20) + c) * 14;
+  const corners = [
+    { x: 24, y: 16 },
+    { x: 616 - width, y: 16 },
+    { x: 24, y: 384 - height },
+    { x: 616 - width, y: 384 - height },
+  ];
+  const clear = corners.find(({ x, y }) => {
+    const a = lineY(x - 8),
+      b = lineY(x + width + 8);
+    return Math.max(a, b) < y - 8 || Math.min(a, b) > y + height + 8;
+  });
+  return { ...(clear ?? corners[0]!), width, height };
+}
 const LIMITS: Record<SimId, [string, string]> = {
   'motion-graphs': [
     'Forward motion with constant acceleration while moving. Braking stops at rest, without reversing. Each graph has its own labeled scale.',
@@ -106,6 +121,20 @@ export function SimView({
     [running, setRunning] = useState(false),
     [time, setTime] = useState(0);
   const vectorId = useId().replaceAll(':', '');
+  const num = (v: unknown) => formatNumber(v, language);
+  const workspace = useRef<HTMLDivElement>(null);
+  const [textScale, setTextScale] = useState(1);
+  useEffect(() => {
+    const node = workspace.current?.querySelector('.stem-visual');
+    if (!node || typeof ResizeObserver === 'undefined') return;
+    // SVG text is drawn in a 640-unit world; keep it at a readable size on narrow canvases.
+    const observer = new ResizeObserver(([entry]) => {
+      const width = entry?.contentRect.width ?? 640;
+      if (width > 0) setTextScale(Math.round((640 / width) * 100) / 100);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   const model = SIMS[id] as SimModel<unknown>;
   const parsed = model.params.safeParse(value);
   const valid = parsed.success;
@@ -169,13 +198,29 @@ export function SimView({
       event.currentTarget.getScreenCTM(),
     );
     const change = draggedParameter(id, value, point, locked);
-    if (change) set(change.key, change.value);
+    const range = PARAMS[id].find((p) => p.id === change?.key);
+    if (change) set(change.key, range ? snapToStep(change.value, range) : change.value);
   }
+  const svgFont = Math.min(24, Math.max(16, 11.5 * textScale));
+  const timed = isTimedSim(id);
+  const equation = graph ? linearEquation(Number(value.m), Number(value.c), language) : '';
+  const equationBox = graph
+    ? labelCorner(
+        Number(value.m),
+        Number(value.c),
+        equation.length * svgFont * 0.56 + 28,
+        svgFont + 18,
+      )
+    : null;
   return (
-    <div className="stem-workspace">
+    <div
+      className="stem-workspace"
+      ref={workspace}
+      style={{ '--stem-font': `${svgFont}px` } as CSSProperties}
+    >
       <section className="stem-visual">
         {!valid && (
-          <p role="status">
+          <p role="status" className="stem-paused">
             {language === 'bn'
               ? 'মানগুলো ঠিক না হওয়া পর্যন্ত চিত্র ও ফল দেখানো বন্ধ আছে।'
               : 'The diagram and readings are paused until the values are valid.'}
@@ -186,7 +231,7 @@ export function SimView({
             className="stem-canvas"
             viewBox="0 0 640 400"
             role="img"
-            aria-label={id}
+            aria-label={simName(id, language)}
             onPointerDown={(e) => {
               if (graph || circle) {
                 e.currentTarget.setPointerCapture(e.pointerId);
@@ -200,14 +245,39 @@ export function SimView({
                 <path d="M30 200H610M320 25V375" className="stem-axis" />
                 {(circle ? [-1, -0.5, 0.5, 1] : [-10, -5, 5, 10]).map((n) => (
                   <g key={n}>
-                    <text x={320 + n * (circle ? 140 : 20)} y="220" textAnchor="middle">
-                      {n}
+                    <path
+                      d={`M${320 + n * (circle ? 140 : 20)} 195v10M315 ${200 - n * (circle ? 140 : 14)}h10`}
+                      className="stem-axis"
+                    />
+                    <text
+                      x={320 + n * (circle ? 140 : 20)}
+                      y="212"
+                      textAnchor="middle"
+                      dominantBaseline="hanging"
+                      className="stem-tick"
+                    >
+                      {num(n)}
                     </text>
-                    <text x="305" y={200 - n * (circle ? 140 : 14)}>
-                      {n}
+                    <text
+                      x="310"
+                      y={200 - n * (circle ? 140 : 14)}
+                      textAnchor="end"
+                      dominantBaseline="middle"
+                      className="stem-tick"
+                    >
+                      {num(n)}
                     </text>
                   </g>
                 ))}
+                <text
+                  x="310"
+                  y="212"
+                  textAnchor="end"
+                  dominantBaseline="hanging"
+                  className="stem-tick"
+                >
+                  {num(0)}
+                </text>
               </>
             )}
             {graph && (
@@ -217,9 +287,24 @@ export function SimView({
                   className="stem-line"
                 />
                 <circle cx="320" cy={200 - Number(value.c) * 14} r="9" className="stem-handle" />
-                <text x="32" y="35">
-                  y = {scientificNumber(value.m)}x + {scientificNumber(value.c)}
-                </text>
+                {equationBox && (
+                  <g className="stem-chip">
+                    <rect
+                      x={equationBox.x}
+                      y={equationBox.y}
+                      width={equationBox.width}
+                      height={equationBox.height}
+                      rx="10"
+                    />
+                    <text
+                      x={equationBox.x + 14}
+                      y={equationBox.y + equationBox.height / 2}
+                      dominantBaseline="central"
+                    >
+                      {equation}
+                    </text>
+                  </g>
+                )}
               </>
             )}
             {circle && (
@@ -240,7 +325,7 @@ export function SimView({
                   className="stem-handle"
                 />
                 <text x="30" y="35">
-                  sin θ = {scientificNumber(o.sin)} · cos θ = {scientificNumber(o.cos)}
+                  sin θ = {num(o.sin)} · cos θ = {num(o.cos)}
                 </text>
               </>
             )}
@@ -251,7 +336,7 @@ export function SimView({
                   <g key={tick.metres}>
                     <path d={`M${tick.x} 290v7`} className="stem-axis" />
                     <text x={tick.x} y="319" textAnchor="middle">
-                      {scientificNumber(tick.metres)} m
+                      {num(tick.metres)} m
                     </text>
                   </g>
                 ))}
@@ -260,7 +345,7 @@ export function SimView({
                   <circle cx="18" cy="62" r="13" className="stem-wheel" />
                   <circle cx="68" cy="62" r="13" className="stem-wheel" />
                   <text x="42" y="29" textAnchor="middle">
-                    {value.mass as number} kg
+                    {num(value.mass)} kg
                   </text>
                 </g>
                 <defs>
@@ -307,15 +392,13 @@ export function SimView({
                   {language === 'bn' ? 'বলচিত্র' : 'Force diagram'} (N)
                 </text>
                 <text x="330" y="92">
-                  {language === 'bn' ? 'প্রযুক্ত বল' : 'Applied force'}:{' '}
-                  {scientificNumber(value.force)} N
+                  {language === 'bn' ? 'প্রযুক্ত বল' : 'Applied force'}: {num(value.force)} N
                 </text>
                 <text x="310" y="195" textAnchor="end">
-                  {language === 'bn' ? 'ঘর্ষণ বল' : 'Friction force'}:{' '}
-                  {scientificNumber(o.friction)} N
+                  {language === 'bn' ? 'ঘর্ষণ বল' : 'Friction force'}: {num(o.friction)} N
                 </text>
                 <text x="40" y="345">
-                  a = {scientificNumber(o.a)} m/s² · v = {scientificNumber(o.v)} m/s
+                  a = {num(o.a)} m/s² · v = {num(o.v)} m/s
                 </text>
               </>
             )}
@@ -333,11 +416,23 @@ export function SimView({
                       <path d="M45 320V70M45 320H295" className="stem-axis" />
                       {[0, 0.5, 1].map((fraction) => (
                         <g key={fraction}>
-                          <text x="40" y={325 - fraction * 230} textAnchor="end">
-                            {scientificNumber(max * fraction)}
+                          <text
+                            x="34"
+                            y={320 - fraction * 230}
+                            textAnchor="end"
+                            dominantBaseline="middle"
+                            className="stem-tick"
+                          >
+                            {num(max * fraction)}
                           </text>
-                          <text x={45 + fraction * 240} y="345" textAnchor="middle">
-                            {scientificNumber(horizon * fraction)}
+                          <text
+                            x={45 + fraction * 240}
+                            y="332"
+                            textAnchor="middle"
+                            dominantBaseline="hanging"
+                            className="stem-tick"
+                          >
+                            {num(horizon * fraction)}
                           </text>
                         </g>
                       ))}
@@ -390,25 +485,25 @@ export function SimView({
                       y={value.topology === 'parallel' ? 25 : 65}
                       textAnchor="middle"
                     >
-                      {scientificNumber(o['v' + i])} V
+                      {num(o['v' + i])} V
                     </text>
                     <text
                       x={value.topology === 'parallel' ? 180 : 15}
                       y={value.topology === 'parallel' ? 25 : 95}
                       textAnchor="middle"
                     >
-                      {scientificNumber(o['p' + i])} W
+                      {num(o['p' + i])} W
                     </text>
                   </g>
                 ))}
                 <text x="65" y="255">
-                  {scientificNumber(value.emf)} V
+                  {num(value.emf)} V
                 </text>
                 <text x="180" y={value.topology === 'parallel' ? 365 : 270}>
-                  I = {scientificNumber(o.current)} A
+                  I = {num(o.current)} A
                 </text>
-                <text x="380" y="365">
-                  {value.topology === 'parallel' ? '∥' : '—'} R = {scientificNumber(o.req)} Ω
+                <text x="610" y="365" textAnchor="end">
+                  {language === 'bn' ? 'মোট রোধ' : 'Total resistance'} = {num(o.req)} Ω
                 </text>
               </>
             )}
@@ -448,55 +543,35 @@ export function SimView({
             ))}
           </svg>
         )}
-        <div className="stem-run">
-          {(id === 'motion-graphs' || id === 'newton-cart') && (
+        {timed && (
+          <div className="stem-run">
             <button
               disabled={!valid}
+              className="stem-run-primary"
               onClick={() => {
                 if (time >= horizon) setTime(0);
                 setRunning(!running);
               }}
               aria-pressed={running}
             >
+              <UiIcon name={running ? 'stop' : 'play'} width={20} height={20} />
               {s(running ? 'pause' : 'play')}
             </button>
-          )}
-          <button
-            onClick={() => {
-              setRunning(false);
-              setTime(0);
-            }}
-          >
-            {s('reset')}
-          </button>
-          <output>
-            {s('time')}: {valid ? scientificNumber(time) : '—'} s
-          </output>
-        </div>
-        {valid && (
-          <dl className="stem-readings">
-            {Object.entries(o)
-              .filter(
-                ([key, v]) =>
-                  readingLabel(id, key, language) && !(id === 'ohms-circuit' && v === null),
-              )
-              .map(([key, v]) => (
-                <div key={key}>
-                  <dt>{readingLabel(id, key, language)!.label}</dt>
-                  <dd>
-                    {readingState(id, key, v, language) ?? scientificNumber(v)}
-                    {v !== null && readingLabel(id, key, language)!.unit && (
-                      <>
-                        {' '}
-                        <span>{readingLabel(id, key, language)!.unit}</span>
-                      </>
-                    )}
-                  </dd>
-                </div>
-              ))}
-          </dl>
+            <button
+              disabled={!valid || (time === 0 && !running)}
+              onClick={() => {
+                setRunning(false);
+                setTime(0);
+              }}
+            >
+              <UiIcon name="restart" width={20} height={20} />
+              {s('reset')}
+            </button>
+            <output>
+              {s('time')}: {valid ? num(time) : '—'} s
+            </output>
+          </div>
         )}
-        <p>{LIMITS[id][language === 'bn' ? 1 : 0]}</p>
       </section>
       <aside className="stem-params">
         <h2>{s('parameters')}</h2>
@@ -512,7 +587,10 @@ export function SimView({
           </p>
         )}
         {PARAMS[id].map((p) => (
-          <Field key={p.id} label={`${p.label[language === 'bn' ? 1 : 0]} ${p.unit}`}>
+          <Field
+            key={p.id}
+            label={`${p.label[language === 'bn' ? 1 : 0]}${p.unit ? ` (${p.unit})` : ''}`}
+          >
             <div className={'stem-param ' + (highlight === p.id ? 'is-highlighted' : '')}>
               <input
                 aria-label={p.label[language === 'bn' ? 1 : 0]}
@@ -582,17 +660,43 @@ export function SimView({
               disabled={locked.includes('resistors') || resistors.length >= 3}
               onClick={() => set('resistors', [...resistors, 10])}
             >
-              + R
+              {language === 'bn' ? 'রোধ যোগ করো' : 'Add resistor'}
             </button>
             <button
               disabled={locked.includes('resistors') || resistors.length <= 1}
               onClick={() => set('resistors', resistors.slice(0, -1))}
             >
-              − R
+              {language === 'bn' ? 'শেষ রোধ সরাও' : 'Remove last resistor'}
             </button>
           </>
         )}
       </aside>
+      <section className="stem-details">
+        {valid && (
+          <dl className="stem-readings">
+            {Object.entries(o)
+              .filter(
+                ([key, v]) =>
+                  readingLabel(id, key, language) && !(id === 'ohms-circuit' && v === null),
+              )
+              .map(([key, v]) => (
+                <div key={key}>
+                  <dt>{readingLabel(id, key, language)!.label}</dt>
+                  <dd>
+                    {readingState(id, key, v, language) ?? num(v)}
+                    {v !== null && readingLabel(id, key, language)!.unit && (
+                      <>
+                        {' '}
+                        <span>{readingLabel(id, key, language)!.unit}</span>
+                      </>
+                    )}
+                  </dd>
+                </div>
+              ))}
+          </dl>
+        )}
+        <p className="stem-limits">{LIMITS[id][language === 'bn' ? 1 : 0]}</p>
+      </section>
     </div>
   );
 }

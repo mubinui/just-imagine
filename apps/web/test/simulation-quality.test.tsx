@@ -168,7 +168,9 @@ describe('honest simulation state', () => {
         onChange={() => {}}
       />,
     );
-    expect(html).toMatch(/<button disabled="" aria-pressed="false">Run<\/button>/);
+    expect(html).toMatch(
+      /<button disabled=""[^>]*aria-pressed="false"[^>]*>(?:(?!<\/button>).)*Run<\/button>/,
+    );
     expect(html).not.toContain('NaN');
     expect(html).not.toContain('Displacement');
   });

@@ -1,13 +1,26 @@
+/* ---------- Simulation workspace ---------- */
 .stem-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 245px;
-  gap: 24px;
+  grid-template-areas:
+    'visual params'
+    'details params';
+  gap: 0 24px;
   align-items: start;
 }
 .stem-visual {
+  grid-area: visual;
   min-width: 0;
 }
+.stem-details {
+  grid-area: details;
+  min-width: 0;
+}
+.stem-params {
+  grid-area: params;
+}
 .stem-canvas {
+  display: block;
   width: 100%;
   aspect-ratio: 1.6;
   background: var(--surface);
@@ -16,10 +29,27 @@
   color: var(--ink);
   touch-action: none;
 }
-.stem-canvas text {
-  font:
-    16px Nunito,
-    sans-serif;
+.stem-canvas text,
+.stem-traces text {
+  font-family: Nunito, sans-serif;
+  font-size: var(--stem-font, 16px);
+  font-weight: 600;
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.stem-canvas text.stem-tick,
+.stem-traces text {
+  fill: var(--soft);
+  font-weight: 700;
+}
+.stem-chip rect {
+  fill: var(--surface);
+  fill-opacity: 0.94;
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+.stem-chip text {
+  font-weight: 800;
   fill: var(--ink);
 }
 .stem-axis {
@@ -31,6 +61,7 @@
   stroke: var(--accent);
   stroke-width: 4;
   fill: none;
+  stroke-linecap: round;
 }
 .stem-projection {
   stroke: var(--focus, #ad6524);
@@ -61,16 +92,27 @@
   stroke: var(--ink);
   stroke-width: 3;
 }
+.stem-force-friction {
+  fill: none;
+  stroke: var(--focus);
+  stroke-width: 3;
+}
 .stem-run {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 14px 0;
+  gap: 10px;
+  padding: 12px 0 0;
+}
+.stem-run button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .stem-run output {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 .stem-params {
   background: var(--surface);
@@ -81,8 +123,19 @@
   gap: 18px;
 }
 .stem-params h2 {
-  font-size: 23px;
+  font-size: 22px;
   margin: 0;
+}
+.stem-params > [role='alert'] {
+  margin: 0;
+  color: var(--danger, #8f3e2c);
+  font-weight: 700;
+}
+.stem-paused {
+  margin: 0;
+  padding: 24px;
+  border: 1px dashed color-mix(in srgb, currentColor 40%, transparent);
+  border-radius: var(--radius);
 }
 .stem-param {
   display: grid;
@@ -100,24 +153,6 @@
 }
 .stem-param input[type='number'] {
   padding: 8px;
-}
-.stem-readings {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  margin: 8px 0;
-}
-.stem-readings div {
-  min-width: 55px;
-}
-.stem-readings dt {
-  font-size: 13px;
-  opacity: 0.8;
-}
-.stem-readings dd {
-  font-size: 18px;
-  font-weight: 800;
-  margin: 3px 0;
   font-variant-numeric: tabular-nums;
 }
 .stem-param.is-highlighted {
@@ -125,6 +160,55 @@
   outline-offset: 5px;
   border-radius: 10px;
 }
+.sch .stem-params label {
+  font-size: 14px;
+}
+.stem-readings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px 20px;
+  margin: 12px 0 0;
+  padding: 16px 20px;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius);
+}
+.stem-readings > div {
+  min-width: 0;
+}
+.stem-readings dt {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--soft);
+}
+.stem-readings dd {
+  font-size: 19px;
+  font-weight: 800;
+  margin: 3px 0;
+  font-variant-numeric: tabular-nums;
+}
+.stem-readings dd span {
+  white-space: nowrap;
+  font-size: 0.8em;
+  font-weight: 700;
+}
+.stem-limits {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  max-width: 70ch;
+  opacity: 0.88;
+}
+.stem-traces {
+  display: block;
+  width: 100%;
+  background: var(--surface);
+  border-radius: 12px;
+  margin-top: 12px;
+}
+
+/* ---------- Lesson stage (shared with the open lab) ---------- */
 .study-stage {
   background: var(--ink);
   color: var(--ground);
@@ -151,10 +235,10 @@
   color: var(--ink);
 }
 .study-step-copy {
-  font-size: 21px;
+  font-size: 20px;
   white-space: pre-wrap;
   max-width: 65ch;
-  line-height: 1.7;
+  line-height: 1.65;
 }
 .study-question {
   background: var(--ground);
@@ -165,7 +249,7 @@
 }
 .study-question h2 {
   color: var(--ink);
-  font-size: 24px;
+  font-size: 22px;
 }
 .study-question .stem-workspace {
   margin-top: 20px;
@@ -174,227 +258,12 @@
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin: 24px 0;
+  margin: 24px 0 0;
 }
 .study-step-nav button {
   background: var(--ground);
   color: var(--ink);
 }
-.study-step-progress {
-  font-variant-numeric: tabular-nums;
-}
-.stem-bench {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.7fr);
-  gap: 24px;
-}
-.stem-reagents {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-.stem-reagent {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  padding: 12px;
-  min-height: 125px;
-  border-radius: 12px;
-  cursor: grab;
-  text-align: left;
-}
-.stem-reagent[aria-pressed='true'] {
-  background: var(--mint);
-  outline: 2px solid var(--accent);
-}
-.stem-reagent strong {
-  display: block;
-  font-family: Baloo, sans-serif;
-  font-size: 20px;
-}
-.stem-reagent > span {
-  display: block;
-  font-size: 13px;
-  line-height: 1.4;
-  margin-top: 8px;
-}
-.stem-beaker {
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: 16px;
-  padding: 20px;
-}
-.stem-beaker svg {
-  width: 100%;
-  max-height: 250px;
-}
-.stem-lab-result {
-  padding: 20px;
-  background: var(--ground);
-  color: var(--ink);
-  border-radius: 16px;
-  margin-top: 24px;
-}
-.stem-equation {
-  font-size: 23px;
-  line-height: 1.8;
-  font-variant-numeric: tabular-nums;
-}
-.stem-quantity {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  border-bottom: 1px solid var(--line);
-  padding: 12px 0;
-}
-.stem-quantity strong {
-  grid-column: 1/-1;
-}
-.tutor-dock {
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  gap: 20px;
-  padding: 22px 0;
-  border-top: 1px solid var(--line);
-  margin-top: 26px;
-}
-.tutor-dock .char-art {
-  width: 110px;
-  height: 110px;
-}
-.tutor-dock form {
-  display: flex;
-  gap: 10px;
-  margin: 12px 0;
-}
-.tutor-dock input {
-  min-width: 0;
-  flex: 1;
-}
-.tutor-caption {
-  max-height: 180px;
-  overflow: auto;
-  font-size: 16px;
-  line-height: 1.5;
-}
-.tutor-caption p {
-  padding: 10px 14px;
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: 12px;
-  margin: 8px 0;
-}
-.tutor-caption p[data-role='child'] {
-  background: var(--mint);
-}
-.tutor-dock button,
-.tutor-dock input {
-  background: var(--ground);
-  color: var(--ink);
-}
-.tutor-note {
-  font-size: 14px;
-  opacity: 0.85;
-}
-.tutor-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.sch .stem-params label {
-  font-size: 14px;
-}
-@media (max-width: 1000px) {
-  .stem-workspace {
-    grid-template-columns: minmax(0, 1fr) 210px;
-    gap: 16px;
-  }
-  .stem-bench {
-    grid-template-columns: 1fr;
-  }
-  .stem-beaker {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  .stem-reagents {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-@media (max-width: 700px) {
-  .study-stage {
-    padding: 16px;
-    margin-inline: -4px;
-  }
-  .stem-workspace {
-    grid-template-columns: 1fr;
-  }
-  .stem-params {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 16px;
-    gap: 16px;
-  }
-  .stem-params h2,
-  .stem-params > p {
-    grid-column: 1/-1;
-  }
-  .stem-param {
-    grid-template-columns: 1fr;
-  }
-  .stem-param input[type='number'] {
-    width: 100%;
-  }
-  .stem-canvas {
-    min-height: 230px;
-  }
-  .stem-readings {
-    gap: 12px;
-  }
-  .stem-reagents {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .stem-beaker {
-    display: block;
-  }
-  .tutor-dock {
-    grid-template-columns: 70px minmax(0, 1fr);
-    gap: 12px;
-  }
-  .tutor-dock .char-art {
-    width: 70px;
-    height: 85px;
-  }
-  .tutor-dock form {
-    flex-wrap: wrap;
-  }
-  .tutor-dock form input {
-    width: 100%;
-    flex-basis: 100%;
-  }
-  .study-step-copy {
-    font-size: 18px;
-  }
-  .study-question {
-    padding: 16px;
-  }
-  .stem-equation {
-    font-size: 19px;
-  }
-}
-.stem-traces {
-  width: 100%;
-  background: var(--surface);
-  border-radius: 12px;
-  margin-top: 12px;
-}
-.stem-traces text {
-  fill: var(--ink);
-  font:
-    14px Nunito,
-    sans-serif;
-}
-
-/* Stage copy inherits the inverted room; light cards retain their own ink. */
 .sch .study-stage p {
   color: inherit;
 }
@@ -402,8 +271,7 @@
   color: var(--ink);
 }
 .sch .study-stage .study-step-copy,
-.sch .study-stage .study-step-copy p,
-.sch .study-stage .tutor-note {
+.sch .study-stage .study-step-copy p {
   color: var(--ground);
 }
 .study-step-tabs {
@@ -417,7 +285,7 @@
   -webkit-appearance: none;
   background-color: var(--ink);
   color: var(--ground);
-  border-color: color-mix(in srgb, var(--ground) 70%, transparent);
+  border-color: color-mix(in srgb, var(--ground) 45%, transparent);
   opacity: 1;
   transition: none;
 }
@@ -425,6 +293,7 @@
   background-color: var(--ground);
   color: var(--ink);
   border-color: var(--ground);
+  font-weight: 800;
 }
 .sch .study-stage .study-step-tabs > button:not([aria-current='step']):hover {
   background-color: var(--mint);
@@ -438,20 +307,12 @@
   outline: 3px solid var(--yellow);
   outline-offset: 4px;
 }
-.sch .study-stage .study-step-tabs > button:disabled {
-  background-color: var(--ink);
-  color: var(--ground);
-  border-color: var(--line);
-  opacity: 0.75;
-}
 .sch .study-stage .stem-params,
 .sch .study-stage .study-question,
 .sch .study-stage .stem-beaker,
+.sch .study-stage .stem-shelf,
 .sch .study-stage .stem-lab-result,
 .sch .study-stage .sch-error {
-  color: var(--ink);
-}
-.sch .study-stage .tutor-caption p {
   color: var(--ink);
 }
 .sch .study-player .sch-option,
@@ -476,60 +337,507 @@
   margin: 0;
   accent-color: var(--accent);
 }
-.stem-reagent strong span,
-.stem-reagent strong sub {
-  display: inline;
+
+/* ---------- Chemistry bench ---------- */
+.stem-lab {
+  --stem-liquid: color-mix(in srgb, var(--mint) 75%, var(--surface));
+  display: grid;
+  gap: 20px;
+}
+.stem-bench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.stem-shelf,
+.stem-beaker {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.stem-panel-head h2 {
   margin: 0;
-  font-size: inherit;
-  line-height: inherit;
+  font-size: 22px;
+  color: var(--ink);
 }
-.stem-reagent strong sub {
-  font-size: 0.7em;
-  vertical-align: sub;
+.sch .study-stage .stem-panel-head p,
+.stem-panel-head p {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--soft);
 }
-.stem-reagent .stem-reagent-state {
-  margin-top: 10px;
-  font-size: 12px;
+.stem-reagent-group {
+  margin-top: 18px;
+}
+.stem-reagent-group h3,
+.stem-lab-result h3 {
+  margin: 0 0 8px;
+  font-family: Nunito, sans-serif;
+  font-size: 14px;
   font-weight: 800;
+  color: var(--soft);
 }
-.stem-reagent[aria-pressed='true'] {
-  outline: 3px solid var(--ground);
-  outline-offset: 2px;
-  box-shadow: inset 0 0 0 2px var(--accent);
-}
-.stem-reagent[aria-pressed='true'] .stem-reagent-state {
-  color: var(--accent-ink);
-  background: var(--accent);
-  padding: 4px 6px;
-  border-radius: 6px;
+.stem-lab-result h3 {
+  margin-top: 20px;
 }
 .stem-reagents {
-  max-height: 22rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 6px;
-  scrollbar-color: var(--soft) var(--surface);
-  scrollbar-gutter: stable;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  gap: 8px;
 }
-.stem-reagents:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
+.stem-reagent {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: var(--ground);
+  color: var(--ink);
   border-radius: 12px;
+  cursor: grab;
+  text-align: start;
+  transition:
+    background-color 160ms,
+    border-color 160ms;
 }
-.stem-force-friction {
+.stem-reagent:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.stem-reagent[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--mint) 80%, var(--ground));
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.stem-reagent-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.stem-reagent-text strong {
+  font-family: Baloo, sans-serif;
+  font-size: 18px;
+  line-height: 1.15;
+}
+.stem-reagent-text strong.stem-reagent-name {
+  font-family: Nunito, sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.stem-reagent-text > span {
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--soft);
+}
+.stem-reagent sub,
+.stem-quantity sub,
+.stem-lab-result sub {
+  font-size: 0.7em;
+  vertical-align: sub;
+  line-height: 0;
+}
+.stem-reagent-state {
+  display: grid;
+  place-items: center;
+  color: var(--soft);
+}
+.stem-reagent[aria-pressed='true'] .stem-reagent-state {
+  color: var(--accent);
+}
+.stem-swatch {
+  display: block;
+  justify-self: center;
+  width: 12px;
+  height: 22px;
+  border-radius: 3px 3px 7px 7px;
+  background: var(--swatch, var(--surface));
+  border: 1.5px solid color-mix(in srgb, var(--ink) 28%, transparent);
+}
+.stem-swatch[data-state='s'] {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+}
+.stem-swatch[data-state='g'] {
+  border-style: dashed;
+}
+.stem-beaker {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.stem-beaker-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+.stem-beaker svg {
+  width: 100%;
+  max-height: 210px;
+}
+.stem-liquid {
+  transition: fill 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.stem-heat {
   fill: none;
   stroke: var(--focus);
   stroke-width: 3;
+  stroke-linecap: round;
 }
-.stem-readings > div {
-  flex: 1 1 130px;
-  max-width: 200px;
+.stem-ph-readout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin: 0 0 14px;
+  min-width: 72px;
 }
-.stem-readings dt {
-  opacity: 1;
-  line-height: 1.45;
+.sch .study-stage .stem-ph-readout,
+.stem-ph-readout span {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--soft);
 }
-.stem-readings dd span {
-  white-space: nowrap;
-  font-size: 0.85em;
+.stem-ph-readout strong {
+  font-family: Baloo, sans-serif;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.stem-contents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.stem-quantity {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--ground);
+}
+.stem-quantity-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stem-quantity-head strong {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: Baloo, sans-serif;
+  font-size: 18px;
+  line-height: 1.2;
+}
+.stem-quantity-name {
+  font-family: Nunito, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--soft);
+}
+
+.stem-remove {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: var(--soft);
+}
+.stem-remove:hover {
+  background: color-mix(in srgb, var(--peach) 40%, transparent);
+  color: var(--ink);
+}
+.stem-quantity-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+.stem-quantity-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--soft);
+}
+.stem-unit-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  padding-inline-end: 10px;
+  color: var(--ink);
+}
+.stem-unit-input:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.sch .stem-unit-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}
+.stem-beaker-empty {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  font-size: 15px;
+  color: var(--soft);
+}
+.sch .study-stage .stem-beaker-empty {
+  color: var(--soft);
+}
+.stem-beaker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.stem-beaker-actions > button:not(.sch-primary) {
+  flex: 0 0 auto;
+}
+.stem-beaker-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.stem-beaker-actions .sch-primary {
+  flex: 1 1 160px;
+}
+.sch .study-stage .stem-run button:disabled {
+  background: transparent;
+  color: var(--ground);
+  border-color: color-mix(in srgb, var(--ground) 35%, transparent);
+}
+.sch .study-stage .stem-beaker .sch-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.stem-beaker .sch-error {
+  margin: 0;
+}
+.stem-lab-result {
+  padding: 20px;
+  background: var(--ground);
+  color: var(--ink);
+  border-radius: var(--radius);
+}
+.stem-result-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.stem-result-head h2 {
+  margin: 0;
+  font-size: 22px;
+  color: var(--ink);
+}
+.stem-equation {
+  font-size: 23px;
+  line-height: 1.6;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 14px 0 6px;
+}
+.stem-result-copy {
+  max-width: 70ch;
+}
+.stem-result-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.stem-result-facts > div {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.stem-result-facts dt {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--soft);
+}
+.stem-result-facts dd {
+  margin: 4px 0 0;
+  font-family: Baloo, sans-serif;
+  font-size: 21px;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.stem-result-facts dd > span {
+  font-family: Nunito, sans-serif;
+  font-size: 15px;
+  color: var(--soft);
+}
+.stem-result-facts small {
+  display: block;
+  margin-top: 4px;
+  font-family: Nunito, sans-serif;
+  font-size: 14px;
+  color: var(--soft);
+}
+.stem-products {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stem-products li {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.stem-moles {
+  margin-inline-start: 8px;
+  color: var(--soft);
+  font-variant-numeric: tabular-nums;
+}
+.stem-result-note {
+  font-size: 16px;
+  margin: 8px 0 0;
+}
+.stem-unsupported {
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--peach) 50%, var(--ground));
+}
+.sch .study-stage .stem-unsupported {
+  color: var(--ink);
+}
+.stem-model-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 80ch;
+  opacity: 0.85;
+}
+
+/* ---------- Breakpoints ---------- */
+@media (max-width: 1000px) {
+  .stem-workspace {
+    grid-template-columns: minmax(0, 1fr) 210px;
+    gap: 0 16px;
+  }
+}
+@media (max-width: 760px) {
+  .stem-bench {
+    grid-template-columns: 1fr;
+  }
+  .stem-beaker {
+    position: static;
+    order: -1;
+  }
+  .stem-beaker svg {
+    max-height: 150px;
+  }
+}
+@media (max-width: 700px) {
+  .study-stage {
+    padding: 16px;
+    margin-inline: -4px;
+  }
+  .stem-workspace {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'visual'
+      'params'
+      'details';
+    gap: 12px;
+  }
+  .stem-params {
+    padding: 16px;
+    gap: 12px;
+  }
+  .stem-param {
+    grid-template-columns: minmax(0, 1fr) 84px;
+  }
+  .stem-readings {
+    padding: 14px 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stem-readings {
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .stem-shelf,
+  .stem-beaker {
+    padding: 16px;
+  }
+  .stem-reagents {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .study-step-copy {
+    font-size: 18px;
+  }
+  .study-question {
+    padding: 16px;
+  }
+  .stem-equation {
+    font-size: 19px;
+  }
+  .stem-lab-result,
+  .stem-paused {
+    padding: 16px;
+  }
+}
+@media (max-width: 480px) {
+  .stem-reagents {
+    grid-template-columns: 1fr;
+  }
+  .stem-reagent {
+    min-height: 52px;
+  }
+  .stem-reagent-text {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stem-liquid,
+  .stem-reagent {
+    transition: none;
+  }
+}
+
+/* Icon + label pairs in simulation and lab controls. */
+.stem-run button,
+.stem-beaker-actions button,
+.stem-reagent-state {
+  line-height: 1.35;
+}
+.stem-run button,
+.stem-beaker-actions button {
+  gap: 10px;
+}
+:is(.stem-run button, .stem-beaker-actions button) > .ui-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }

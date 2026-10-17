@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { CHAPTERS } from '@just-imagine/stem-content';
 import { currentAttempt, type QuizItem, type AttemptDoc } from '@just-imagine/protocol';
@@ -14,12 +14,32 @@ import type { Lesson, StudyMe, GradeResponse, BoardResponse } from '../../lib/sc
 import { useSchoolLanguage } from '../../lib/i18n/study';
 import { useSchoolSession } from '../school/SchoolShell';
 import { Field, ErrorNotice, Loading, ActionNotice, useSchoolAction } from '../school/shared';
+import { UiIcon, type UiIconName } from '../UiIcon';
 import { SimView } from '../stem/SimView';
-import { ChemLab } from '../stem/ChemLab';
+import { ChemLab, type LabAnswer } from '../stem/ChemLab';
 import { TutorDock } from './TutorDock';
 import { Leaderboard } from './Leaderboard';
+import { useStudyCopy } from './copy';
+import {
+  assessmentItems,
+  displayRank,
+  lessonProgress,
+  quizPoints,
+  restoredAnswers,
+  storedVerdict,
+  unansweredItems,
+} from './study-logic';
+
+const SUBJECT_ICON: Record<string, UiIconName> = {
+  physics: 'space',
+  chemistry: 'flask',
+  math: 'write',
+};
+type GradeResult = GradeResponse & { attempt?: AttemptDoc };
+
 export function StudyHome() {
   const { s, text } = useSchoolLanguage(),
+    { t, n } = useStudyCopy(),
     session = useSchoolSession() as StudyMe | null,
     profile = useSchoolResource<StudyMe>('study/me'),
     board = useSchoolResource<BoardResponse>('study/boards?scope=class&period=week'),
@@ -28,100 +48,196 @@ export function StudyHome() {
     );
   const me = profile.data ?? session;
   const weekPoints = board.data?.own?.points;
+  const rank = displayRank(weekPoints, board.data?.own?.rank);
   const [subject, setSubject] = useState(''),
     [grade, setGrade] = useState(''),
     [chapter, setChapter] = useState('');
+  const lessons = (r.data?.lessons ?? []).map((lesson) => {
+    const stored = r.data?.attemptsByLesson?.[lesson.id];
+    const attempt = stored ? currentAttempt(stored, lesson.revision) : undefined;
+    return {
+      lesson,
+      attempt,
+      progress: lessonProgress(lesson, attempt),
+      points: quizPoints(lesson, stored),
+    };
+  });
+  const visible = lessons.filter(
+    ({ lesson: l }) =>
+      (!subject || l.subject === subject) &&
+      (!grade || String(l.grade) === grade) &&
+      (!chapter || l.chapterId === chapter),
+  );
+  const next =
+    visible.find((v) => v.progress.state === 'progress') ??
+    visible.find((v) => v.progress.state === 'new');
+  const firstName = me?.student?.firstName;
   return (
-    <>
-      <h1>
-        {me?.student?.firstName ? me.student.firstName + ', ' : ''}
-        {s('study')}
-      </h1>
-      <p className="sch-summary">{s('studentAccess')}</p>
-      <p>
-        {s('week')}: {weekPoints ?? '—'} · {s('rank')}: {board.data?.own?.rank ?? '—'} ·{' '}
-        {s('allTime')}: {me?.student?.pointsAll ?? 0} {s('points')}
-      </p>
-      <div className="sch-tabs">
-        {['physics', 'chemistry', 'math'].map((v) => (
-          <button
-            key={v}
-            aria-pressed={subject === v}
-            onClick={() => {
-              setSubject(v);
-              setChapter('');
-            }}
-          >
-            {s(v as 'physics')}
-          </button>
-        ))}
-      </div>
-      {subject && (
-        <div className="sch-toolbar">
+    <div className="study-home">
+      <header className="study-home-head">
+        <div>
+          <h1>{firstName ? t('welcome', { name: firstName }) : t('welcomeAnon')}</h1>
+          <p className="study-home-lead">{s('studentAccess')}</p>
+        </div>
+        <dl className="study-stats">
+          <div>
+            <dt>
+              <UiIcon name="star" width={22} height={22} />
+              {t('weekPoints')}
+            </dt>
+            <dd>
+              {weekPoints === undefined ? '—' : n(weekPoints)} <span>{t('pointsUnit')}</span>
+            </dd>
+          </div>
+          {!board.error && (
+            <div>
+              <dt>
+                <UiIcon name="trophy" width={22} height={22} />
+                {t('classRank')}
+              </dt>
+              <dd>
+                {rank ? (
+                  n(rank)
+                ) : (
+                  <span className="study-stat-note" title={t('notRankedHint')}>
+                    {t('notRanked')}
+                  </span>
+                )}
+              </dd>
+            </div>
+          )}
+          <div>
+            <dt>
+              <UiIcon name="timer" width={22} height={22} />
+              {t('allTimePoints')}
+            </dt>
+            <dd>
+              {n(me?.student?.pointsAll ?? 0)} <span>{t('pointsUnit')}</span>
+            </dd>
+          </div>
+        </dl>
+      </header>
+      <div className="study-filters">
+        <div className="sch-segments study-subjects" role="group" aria-label={s('subject')}>
+          {['', 'physics', 'chemistry', 'math'].map((v) => (
+            <button
+              key={v || 'all'}
+              type="button"
+              aria-pressed={subject === v}
+              data-subject={v || undefined}
+              onClick={() => {
+                setSubject(v);
+                setChapter('');
+              }}
+            >
+              {v && <UiIcon name={SUBJECT_ICON[v]!} width={20} height={20} />}
+              {v ? s(v as 'physics') : t('allSubjects')}
+            </button>
+          ))}
+        </div>
+        <div className="study-filter-fields">
           <Field label={s('grade')}>
             <select value={grade} onChange={(e) => setGrade(e.target.value)}>
               <option value="">{s('all')}</option>
-              <option>9</option>
-              <option>10</option>
+              <option value="9">{n(9)}</option>
+              <option value="10">{n(10)}</option>
             </select>
           </Field>
-          <Field label={s('chapter')}>
-            <select value={chapter} onChange={(e) => setChapter(e.target.value)}>
-              <option value="">{s('all')}</option>
-              {CHAPTERS.filter((c) => c.subject === subject).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {text(c.title)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          {subject === 'chemistry' && (
-            <Link className="sch-action-link" href="/study/lab">
-              {s('lab')}
-            </Link>
+          {subject && (
+            <Field label={s('chapter')}>
+              <select value={chapter} onChange={(e) => setChapter(e.target.value)}>
+                <option value="">{s('all')}</option>
+                {CHAPTERS.filter((c) => c.subject === subject).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {text(c.title)}
+                  </option>
+                ))}
+              </select>
+            </Field>
           )}
         </div>
-      )}
+      </div>
       <ErrorNotice error={r.error} retry={r.reload} />
       {r.loading ? (
         <Loading />
       ) : (
-        <div className="sch-list">
-          {r.data?.lessons
-            .filter(
-              (l) =>
-                (!subject || l.subject === subject) &&
-                (!grade || String(l.grade) === grade) &&
-                (!chapter || l.chapterId === chapter),
-            )
-            .map((l) => {
-              const attempt = r.data?.attemptsByLesson?.[l.id];
-              const current = attempt ? currentAttempt(attempt, l.revision) : undefined;
+        <>
+          {visible.length > 0 && (
+            <p className="study-count">{t('lessonCount', { n: visible.length })}</p>
+          )}
+          <ul className="study-lessons">
+            {visible.map(({ lesson: l, progress, points }) => {
+              const ratio = progress.total ? progress.correct / progress.total : 0;
+              const isNext = next?.lesson.id === l.id;
               return (
-                <Link className="sch-subject" key={l.id} href={'/study/lessons/' + l.id}>
-                  <h2>{text(l.title)}</h2>
-                  <p>
-                    {s(l.subject)} · {s('grade')} {l.grade} ·{' '}
-                    {text(CHAPTERS.find((c) => c.id === l.chapterId)?.title)}
-                  </p>
-                  <p>
-                    {s('steps')}: {l.steps.length} ·{' '}
-                    {current?.completedAt
-                      ? s('completed')
-                      : current
-                        ? s('completion') +
-                          ': ' +
-                          Object.values(current.items).filter((v) => v.correct).length
-                        : s('notStarted')}{' '}
-                    · {s('points')}: {r.data?.attemptsByLesson?.[l.id]?.pointsAwarded ?? 0}
-                  </p>
-                </Link>
+                <li key={l.id}>
+                  <Link
+                    className="study-lesson"
+                    data-subject={l.subject}
+                    data-state={progress.state}
+                    data-next={isNext || undefined}
+                    href={'/study/lessons/' + l.id}
+                  >
+                    <span className="study-lesson-icon" aria-hidden="true">
+                      <UiIcon name={SUBJECT_ICON[l.subject] ?? 'book'} width={30} height={30} />
+                    </span>
+                    <span className="study-lesson-body">
+                      <span className="study-lesson-meta">
+                        {s(l.subject)} · {s('grade')} {n(l.grade)}
+                        {CHAPTERS.find((c) => c.id === l.chapterId) &&
+                          ' · ' + text(CHAPTERS.find((c) => c.id === l.chapterId)?.title)}
+                      </span>
+                      <h2>{text(l.title)}</h2>
+                      <span className="study-lesson-progress" aria-hidden="true">
+                        <span
+                          style={{
+                            width: `${(progress.state === 'done' ? 1 : ratio) * 100}%`,
+                          }}
+                        />
+                      </span>
+                      <span className="study-lesson-foot">
+                        <span className="study-lesson-state">
+                          {progress.state === 'done' && (
+                            <UiIcon name="check" width={18} height={18} />
+                          )}
+                          {progress.state === 'done'
+                            ? t('stateDone', points)
+                            : progress.state === 'progress'
+                              ? t('stateProgress', { ...progress, ...points })
+                              : t('stateNew', { steps: l.steps.length, max: points.max })}
+                        </span>
+                        <span className="study-lesson-cta">
+                          {isNext && <span className="study-next-label">{t('upNext')}</span>}
+                          {progress.state === 'done'
+                            ? t('review')
+                            : progress.state === 'progress'
+                              ? t('continue')
+                              : t('start')}
+                          <UiIcon name="arrowRight" width={18} height={18} />
+                        </span>
+                      </span>
+                    </span>
+                  </Link>
+                </li>
               );
             })}
-          {!r.data?.lessons.length && <p className="sch-empty">{s('noLessons')}</p>}
-        </div>
+          </ul>
+          {!visible.length && <p className="sch-empty">{s('noLessons')}</p>}
+          {(!subject || subject === 'chemistry') && (
+            <Link className="study-lab-link" href="/study/lab">
+              <span className="study-lesson-icon" aria-hidden="true">
+                <UiIcon name="flask" width={26} height={26} />
+              </span>
+              <span>
+                <strong>{t('openLab')}</strong>
+                <small>{t('openLabNote')}</small>
+              </span>
+              <UiIcon name="arrowRight" width={20} height={20} />
+            </Link>
+          )}
+        </>
       )}
-    </>
+    </div>
   );
 }
 export function StudyBoard() {
@@ -138,7 +254,7 @@ export function OpenLab() {
   return (
     <>
       <h1>{s('lab')}</h1>
-      <section className="study-stage">
+      <section className="study-stage study-lab-stage">
         <ChemLab />
       </section>
     </>
@@ -148,19 +264,21 @@ export function QuestionInput({
   item,
   value,
   onChange,
+  headingId,
 }: {
   item: QuizItem;
   value: unknown;
   onChange: (v: unknown) => void;
+  headingId?: string;
 }) {
   const { s, text } = useSchoolLanguage();
   return (
     <>
-      <h2>{text(item.prompt)}</h2>
+      <h2 id={headingId}>{text(item.prompt)}</h2>
       {item.kind === 'mcq' ? (
-        <div>
+        <div role="radiogroup" aria-labelledby={headingId}>
           {item.options.map((option, i) => (
-            <label className="sch-option" key={i}>
+            <label className="sch-option study-choice" key={i}>
               <input
                 type="radio"
                 name={item.id}
@@ -172,7 +290,7 @@ export function QuestionInput({
           ))}
         </div>
       ) : item.kind === 'numeric' ? (
-        <Field label={`${s('answer')} ${item.unit}`}>
+        <Field label={`${s('answer')} (${item.unit})`}>
           <input
             inputMode="decimal"
             value={
@@ -194,9 +312,50 @@ export function QuestionInput({
           }
         />
       ) : (
-        <ChemLab offered={item.reagentIds} onAnswer={onChange} />
+        <ChemLab
+          offered={item.reagentIds}
+          onAnswer={onChange}
+          initial={value as LabAnswer | undefined}
+        />
       )}
     </>
+  );
+}
+
+function Verdict({
+  correct,
+  saved,
+  explanation,
+}: {
+  correct: boolean;
+  saved?: boolean;
+  explanation?: string;
+}) {
+  const { t } = useStudyCopy();
+  return (
+    <div
+      className="study-verdict"
+      data-correct={correct}
+      data-saved={saved || undefined}
+      role="status"
+    >
+      <span className="study-verdict-icon" aria-hidden="true">
+        <UiIcon name={correct ? 'check' : 'restart'} width={26} height={26} />
+      </span>
+      <div>
+        <strong>
+          {saved ? t(correct ? 'savedCorrect' : 'savedWrong') : t(correct ? 'correct' : 'notYet')}
+        </strong>
+        {correct && explanation ? (
+          <p>
+            <span className="study-verdict-label">{t('why')}</span>
+            {explanation}
+          </p>
+        ) : !correct && !saved ? (
+          <p>{t('wrongNext')}</p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -205,15 +364,19 @@ export function LessonPlayer({ id }: { id: string }) {
 }
 function LessonPlayerContent({ id }: { id: string }) {
   const { s, text, language } = useSchoolLanguage(),
-    r = useSchoolResource<{ lesson: Lesson; attempt?: unknown }>('study/lessons/' + id),
-    action = useSchoolAction();
+    { t, n } = useStudyCopy(),
+    r = useSchoolResource<{ lesson: Lesson; attempt?: AttemptDoc | null }>('study/lessons/' + id),
+    action = useSchoolAction(),
+    hintAction = useSchoolAction();
   const [index, setIndex] = useState(0),
     [params, setParams] = useState<Record<string, unknown>>({}),
-    [answers, setAnswers] = useState<Record<string, unknown>>({}),
+    [edits, setEdits] = useState<Record<string, unknown>>({}),
+    [savedAttempt, setSavedAttempt] = useState<AttemptDoc>(),
+    [missing, setMissing] = useState<string[]>([]),
     [grades, setGrades] = useState<{
       context: string;
       answers: Record<string, unknown>;
-      result: GradeResponse;
+      result: GradeResult;
     }>(),
     [hints, setHints] = useState<
       Record<string, { hints: { en: string; bn: string }[]; nextHintIndex: number | null }>
@@ -232,6 +395,13 @@ function LessonPlayerContent({ id }: { id: string }) {
   }, []);
   const lesson = r.data?.lesson,
     step = lesson?.steps[index];
+  const loadedAttempt = r.data?.attempt ?? null;
+  const attempt = savedAttempt ?? loadedAttempt;
+  const restored = useMemo(
+    () => (lesson ? restoredAnswers(lesson, loadedAttempt) : {}),
+    [lesson, loadedAttempt],
+  );
+  const answers = useMemo(() => ({ ...restored, ...edits }), [restored, edits]);
   const context = `${id}:${lesson?.revision}:${index}`;
   const feedback =
     grades?.context === context && grades.answers === answers ? grades.result : undefined;
@@ -245,6 +415,7 @@ function LessonPlayerContent({ id }: { id: string }) {
       if (!active) return;
       if (step?.kind === 'explore') setParams(step.params);
       setGrades(undefined);
+      setMissing([]);
       setObservation(undefined);
       observeTime.current = 0;
       setHighlight('');
@@ -257,7 +428,7 @@ function LessonPlayerContent({ id }: { id: string }) {
     if (!lesson) return;
     const isCurrent = requests.capture();
     try {
-      const result = await schoolRequest<GradeResponse>(
+      const result = await schoolRequest<GradeResult>(
         `study/lessons/${id}/${quiz ? 'quiz' : 'check'}`,
         quiz
           ? {
@@ -274,15 +445,37 @@ function LessonPlayerContent({ id }: { id: string }) {
               answer: assessmentAnswer(items[0]!, answers[items[0]!.id]),
             },
       );
-      if (isCurrent()) setGrades({ context, answers, result });
+      if (isCurrent()) {
+        setGrades({ context, answers, result });
+        if (result.attempt) setSavedAttempt(result.attempt);
+      }
     } catch (error) {
       if (isCurrent()) throw error;
     }
+  }
+  function submit(items: QuizItem[], quiz: boolean) {
+    const open = unansweredItems(items, answers).map((i) => i.id);
+    setMissing(open);
+    if (open.length) {
+      action.setError('');
+      requestAnimationFrame(() => {
+        const card = document.getElementById(`question-${open[0]}`);
+        if (!card) return;
+        const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        card.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+        const field = card.querySelector<HTMLElement>('input:not([disabled]), button, select');
+        (field ?? card).focus({ preventScroll: true });
+      });
+      return;
+    }
+    void action.run(() => grade(items, quiz));
   }
   function moveTo(next: number) {
     requests.invalidate();
     setGrades(undefined);
     setIndex(next);
+    action.setError('');
+    document.getElementById('lesson-stage')?.scrollIntoView({ block: 'start' });
   }
   async function showHint(item: QuizItem) {
     if (!lesson) return;
@@ -310,35 +503,72 @@ function LessonPlayerContent({ id }: { id: string }) {
     }
   }
   if (r.loading) return <Loading />;
-  if (!lesson || !step) return <ErrorNotice error={r.error || s('noLessons')} retry={r.reload} />;
+  if (!lesson || !step) {
+    const unavailable =
+      !r.error || /not available|no longer available|not found|404/i.test(r.error);
+    return (
+      <section className="study-unavailable">
+        <h1>{t('lessonUnavailable')}</h1>
+        <ErrorNotice error={r.error || s('noLessons')} />
+        <div className="sch-toolbar">
+          <Link className="sch-action-link" href="/study">
+            <UiIcon name="back" width={20} height={20} />
+            {t('backToLessons')}
+          </Link>
+          {!unavailable && (
+            <button type="button" onClick={r.reload}>
+              {s('retry')}
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  }
+  const items = assessmentItems(step);
+  const quiz = step.kind === 'quiz';
+  const totals = quizPoints(lesson, attempt);
+  const completed = Boolean(attempt?.completedAt);
+  const wrong = feedback ? feedback.results.filter((g) => !g.correct).length : 0;
   return (
-    <>
-      <div className="sch-toolbar">
-        <Link href="/study">← {s('lessons')}</Link>
-        <Link className="sch-action-link" href={`/study/lessons/${id}/materials`}>
-          {language === 'bn' ? 'নোট ও অনুশীলনপত্র' : 'Notes & worksheet'}
+    <div className="study-player-page">
+      <nav className="study-player-bar" aria-label={s('lessons')}>
+        <Link className="study-quiet-link" href="/study">
+          <UiIcon name="back" width={20} height={20} />
+          {t('lessonsLink')}
         </Link>
-        <span className="study-step-progress">
-          {index + 1} / {lesson.steps.length}
-        </span>
-      </div>
-      <section className="study-stage study-player">
-        <h1>{text(lesson.title)}</h1>
+        <Link className="study-secondary-link" href={`/study/lessons/${id}/materials`}>
+          <UiIcon name="book" width={20} height={20} />
+          {t('notes')}
+        </Link>
+      </nav>
+      <section className="study-stage study-player" id="lesson-stage">
+        <header className="study-player-head">
+          <h1>{text(lesson.title)}</h1>
+          {completed && (
+            <span className="study-complete">
+              <UiIcon name="check" width={20} height={20} />
+              {s('completed')} · {n(totals.earned)}/{n(totals.max)} {t('pointsUnit')}
+            </span>
+          )}
+        </header>
         <nav className="study-step-tabs" aria-label={s('lessonSteps')}>
           {lesson.steps.map((st, i) => (
             <button
               key={i}
               type="button"
               aria-current={index === i ? 'step' : undefined}
+              aria-label={`${t('stepOf', { n: i + 1, total: lesson.steps.length })}: ${s(st.kind)}`}
               onClick={() => moveTo(i)}
             >
-              <span className="study-step-label">
-                {i + 1}. {s(st.kind)}
+              <span className="study-step-num" aria-hidden="true">
+                {n(i + 1)}
+              </span>
+              <span className="study-step-label" aria-hidden="true">
+                {s(st.kind)}
               </span>
             </button>
           ))}
         </nav>
-        <ActionNotice action={action} />
         {step.kind === 'intro' ? (
           <p className="study-step-copy">{text(step.body)}</p>
         ) : step.kind === 'explore' ? (
@@ -365,98 +595,168 @@ function LessonPlayerContent({ id }: { id: string }) {
           </>
         ) : (
           <>
-            <p>{step.kind === 'check' ? s('ungraded') : s('quiz')}</p>
-            {(step.kind === 'check' ? [step.item] : step.items).map((item) => (
-              <section className="study-question" key={item.id}>
-                <QuestionInput
-                  key={context + item.id}
-                  item={item}
-                  value={answers[item.id]}
-                  onChange={(value) => {
-                    requests.invalidate();
-                    setGrades(undefined);
-                    setAnswers((a) => ({ ...a, [item.id]: value }));
-                  }}
-                />
-                {step.kind === 'quiz' && (
-                  <p>
-                    {item.points} {s('points')}
-                  </p>
-                )}
-                {hints[context + ':' + item.id]?.nextHintIndex !== null && (
-                  <button
-                    disabled={action.busy}
-                    onClick={() => void action.run(() => showHint(item))}
-                  >
-                    {s('hint')} {(hints[context + ':' + item.id]?.hints.length ?? 0) + 1}/2
-                  </button>
-                )}
-                {hints[context + ':' + item.id]?.hints.map((hint, hintIndex) => (
-                  <p key={hintIndex} role="status">
-                    {text(hint)}
-                  </p>
-                ))}
-                {feedback?.results
-                  .filter((g) => g.itemId === item.id)
-                  .map((g) => (
-                    <p key={g.itemId} className={g.correct ? 'sch-result-good' : ''}>
-                      {s(g.correct ? 'correct' : 'tryAgain')} {text(g.explanation)}
+            <p className="study-assess-intro">
+              {quiz
+                ? t('quizIntro', {
+                    n: items.length,
+                    max: items.reduce((sum, item) => sum + item.points, 0),
+                  })
+                : t('practiceIntro')}
+            </p>
+            {items.map((item, itemIndex) => {
+              const hintKey = context + ':' + item.id;
+              const shown = hints[hintKey]?.hints ?? [];
+              const fresh = feedback?.results.find((g) => g.itemId === item.id);
+              const saved = fresh ? undefined : storedVerdict(attempt, item, answers[item.id]);
+              const explanation = fresh?.explanation ? text(fresh.explanation) : '';
+              const repeatsHint = shown.some((h) => text(h).trim() === explanation.trim());
+              const isMissing = missing.includes(item.id);
+              return (
+                <section
+                  className="study-question"
+                  key={item.id}
+                  id={`question-${item.id}`}
+                  tabIndex={-1}
+                  data-missing={isMissing || undefined}
+                  data-result={
+                    fresh ? String(fresh.correct) : saved !== undefined ? String(saved) : undefined
+                  }
+                  aria-describedby={isMissing ? `missing-${item.id}` : undefined}
+                >
+                  {quiz && (
+                    <p className="study-question-meta">
+                      <span>{t('questionOf', { n: itemIndex + 1, total: items.length })}</span>
+                      <span>
+                        {item.points === 1 ? t('itemPoint') : t('itemPoints', { n: item.points })}
+                      </span>
                     </p>
-                  ))}
-              </section>
-            ))}
-            <button
-              className="sch-primary"
-              disabled={action.busy}
-              onClick={() =>
-                void action.run(() =>
-                  grade(step.kind === 'check' ? [step.item] : step.items, step.kind === 'quiz'),
-                )
-              }
-            >
-              {s(step.kind === 'quiz' ? 'submitQuiz' : 'submit')}
-            </button>
-            {feedback && (
-              <p role="status">
-                {s('earned')}: {feedback.pointsAwarded ?? 0}
-              </p>
-            )}
+                  )}
+                  <QuestionInput
+                    key={context + item.id}
+                    item={item}
+                    headingId={`prompt-${item.id}`}
+                    value={answers[item.id]}
+                    onChange={(value) => {
+                      requests.invalidate();
+                      setGrades(undefined);
+                      setMissing((m) => m.filter((v) => v !== item.id));
+                      setEdits((a) => ({ ...a, [item.id]: value }));
+                    }}
+                  />
+                  {isMissing && (
+                    <p className="study-missing" id={`missing-${item.id}`}>
+                      {t('answerThis')}
+                    </p>
+                  )}
+                  {shown.length > 0 && (
+                    <ol className="study-hints">
+                      {shown.map((hint, hintIndex) => (
+                        <li key={hintIndex}>
+                          <span>{t('hintLabel', { n: hintIndex + 1 })}</span>
+                          {text(hint)}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  {fresh && (
+                    <Verdict
+                      correct={fresh.correct}
+                      explanation={repeatsHint ? undefined : explanation}
+                    />
+                  )}
+                  {saved !== undefined && <Verdict correct={saved} saved />}
+                  {hints[hintKey]?.nextHintIndex !== null && !fresh?.correct && !saved && (
+                    <button
+                      type="button"
+                      className="study-hint-button"
+                      disabled={hintAction.busy}
+                      onClick={() => void hintAction.run(() => showHint(item))}
+                    >
+                      <UiIcon name="search" width={20} height={20} />
+                      {t('showHint', { n: shown.length + 1 })}
+                    </button>
+                  )}
+                </section>
+              );
+            })}
+            <ActionNotice action={hintAction} />
+            <div className="study-submit">
+              <button
+                className="sch-primary"
+                disabled={action.busy}
+                onClick={() => submit(items, quiz)}
+              >
+                {action.busy
+                  ? t('checking')
+                  : quiz && (feedback || completed)
+                    ? t('resubmit')
+                    : s(quiz ? 'submitQuiz' : 'submit')}
+              </button>
+              <div className="study-submit-status">
+                {missing.length > 0 && (
+                  <p className="study-submit-error" role="alert">
+                    {missing.length === 1 ? t('answerOne') : t('answerAll', { n: missing.length })}
+                  </p>
+                )}
+                <ActionNotice action={action} />
+                {quiz && feedback && (
+                  <p role="status" className="study-submit-total">
+                    <strong>{t('totalPoints', { earned: totals.earned, max: totals.max })}</strong>
+                    <span>{t('pointsNow', { n: feedback.pointsAwarded ?? 0 })}</span>
+                    <span>
+                      {wrong === 0
+                        ? completed
+                          ? `${t('quizComplete')}. ${t('allCorrect')}`
+                          : t('allCorrect')
+                        : wrong === 1
+                          ? t('oneWrong')
+                          : t('someWrong', { n: wrong })}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
           </>
         )}
         <div className="study-step-nav">
           <button disabled={index === 0} onClick={() => moveTo(index - 1)}>
+            <UiIcon name="back" width={20} height={20} />
             {s('previous')}
           </button>
           {index < lesson.steps.length - 1 ? (
-            <button onClick={() => moveTo(index + 1)}>{s('next')}</button>
+            <button className="study-next" onClick={() => moveTo(index + 1)}>
+              {s('next')}
+              <UiIcon name="arrowRight" width={20} height={20} />
+            </button>
           ) : (
-            <Link className="sch-action-link" href="/study">
+            <Link className="sch-action-link study-next" href="/study">
               {s('finish')}
+              <UiIcon name="finish" width={20} height={20} />
             </Link>
           )}
         </div>
-        <TutorDock
-          key={id + language}
-          lessonId={id}
-          stepIndex={index}
-          subject={lesson.subject}
-          observation={observation}
-          onHighlight={setHighlight}
-          onSuggest={(key, value) => {
-            if (step.kind === 'explore')
-              setParams(
-                (p) =>
-                  applyTutorSuggestion(
-                    step.simId,
-                    Object.keys(p).length ? p : step.params,
-                    key,
-                    value,
-                    step.lockedParams,
-                  ) ?? p,
-              );
-          }}
-        />
       </section>
-    </>
+      <TutorDock
+        key={id + language}
+        lessonId={id}
+        stepIndex={index}
+        subject={lesson.subject}
+        observation={observation}
+        onHighlight={setHighlight}
+        onSuggest={(key, value) => {
+          if (step.kind === 'explore')
+            setParams(
+              (p) =>
+                applyTutorSuggestion(
+                  step.simId,
+                  Object.keys(p).length ? p : step.params,
+                  key,
+                  value,
+                  step.lockedParams,
+                ) ?? p,
+            );
+        }}
+      />
+    </div>
   );
 }

@@ -1,0 +1,131 @@
+.board {
+  display: grid;
+  gap: 16px;
+}
+
+/* The student's own standing, above the board and as wide as it. */
+.standing {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--mint) 70%, var(--ground));
+  overflow: hidden;
+}
+.standing > div {
+  display: grid;
+  gap: 2px;
+  padding: 16px 20px;
+}
+.standing > div + div {
+  border-inline-start: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+}
+.standing dt {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--soft);
+}
+.standing dd {
+  margin: 0;
+  font-family: Baloo, sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.standing dd small {
+  font-family: inherit;
+  font-size: 17px;
+  color: var(--soft);
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface, var(--ground));
+}
+.table caption {
+  padding: 16px 20px 4px;
+  text-align: start;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.table thead th {
+  padding-block: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--soft);
+}
+.table th,
+.table td {
+  padding-inline: 20px;
+  line-height: 1.35;
+}
+.table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.table tbody th {
+  font-weight: 700;
+}
+.table :global(.sch-rank) {
+  width: 76px;
+  text-align: center;
+  font-weight: 800;
+}
+/* Medal discs for the top three, drawn behind the rank number. */
+.table tr[data-medal] :global(.sch-rank) {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 36px 36px;
+}
+.table tr[data-medal='1'] :global(.sch-rank) {
+  background-image: radial-gradient(circle, #f7d76e 0 17px, #d9ae35 17px 18px, transparent 18.5px);
+}
+.table tr[data-medal='2'] :global(.sch-rank) {
+  background-image: radial-gradient(circle, #e4e7e3 0 17px, #a9b2ac 17px 18px, transparent 18.5px);
+}
+.table tr[data-medal='3'] :global(.sch-rank) {
+  background-image: radial-gradient(circle, #f2c7a4 0 17px, #c48a5f 17px 18px, transparent 18.5px);
+}
+.table :global(.sch-number) {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.table :global(.sch-board-own) > * {
+  background: color-mix(in srgb, var(--mint) 75%, var(--ground));
+}
+.table :global(.sch-board-own) > :first-child {
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+.you {
+  display: inline-block;
+  margin-inline-start: 10px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink, var(--ground));
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+
+@media (max-width: 480px) {
+  .standing > div {
+    padding: 12px 14px;
+  }
+  .standing dd {
+    font-size: 24px;
+  }
+  .table th,
+  .table td {
+    padding-inline: 12px;
+  }
+  .table :global(.sch-rank) {
+    width: 56px;
+  }
+}

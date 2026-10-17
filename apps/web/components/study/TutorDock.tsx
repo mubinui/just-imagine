@@ -1,12 +1,18 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { BrowserAudio } from '@just-imagine/characters';
 import { ServerMessageSchema } from '@just-imagine/protocol';
+import type { SimId } from '@just-imagine/stem-sims';
 import { currentIdToken } from '../../lib/firebase';
 import { env } from '../../lib/env';
 import { useSchoolLanguage } from '../../lib/i18n/study';
 import { CharacterArt } from '../studio/CharacterArt';
 import { ErrorNotice } from '../school/shared';
+import { UiIcon } from '../UiIcon';
+import { PARAMS } from '../stem/SimView';
+import { useStudyCopy } from './copy';
+import { mergeCaption, type Caption } from './study-logic';
+
 export function TutorDock({
   lessonId,
   stepIndex,
@@ -22,20 +28,37 @@ export function TutorDock({
   onSuggest?: (key: string, value: number) => void;
   onHighlight?: (key: string) => void;
 }) {
-  const { s } = useSchoolLanguage();
+  const { s, language } = useSchoolLanguage();
+  const { t, n } = useStudyCopy();
+  const panelId = useId();
   const socket = useRef<WebSocket | null>(null),
     audio = useRef<BrowserAudio | null>(null),
     connectPromise = useRef<Promise<void> | null>(null),
-    mount = useRef<HTMLDivElement>(null),
+    mount = useRef<HTMLElement>(null),
+    captionBox = useRef<HTMLDivElement>(null),
+    input = useRef<HTMLInputElement>(null),
     lastState = useRef(0);
   const [status, setStatus] = useState<'off' | 'connecting' | 'ready'>('off'),
-    [captions, setCaptions] = useState<{ role: string; text: string }[]>([]),
+    [captions, setCaptions] = useState<Caption[]>([]),
     [draft, setDraft] = useState(''),
     [error, setError] = useState(''),
     [voice, setVoice] = useState(false),
     [speaking, setSpeaking] = useState(false),
+    [waiting, setWaiting] = useState(false),
+    [open, setOpen] = useState(false),
     [suggestion, setSuggestion] = useState<{ key: string; value: number }>();
+  const character = subject === 'math' ? 'onkomama' : 'pori';
+  const name =
+    character === 'onkomama'
+      ? language === 'bn'
+        ? 'অঙ্কমামা'
+        : 'Onko Mama'
+      : language === 'bn'
+        ? 'পরী'
+        : 'Pori';
   function end() {
+    if (socket.current?.readyState === WebSocket.OPEN)
+      socket.current.send(JSON.stringify({ type: 'end' }));
     socket.current?.close();
     socket.current = null;
     connectPromise.current = null;
@@ -44,6 +67,7 @@ export function TutorDock({
     setStatus('off');
     setVoice(false);
     setSpeaking(false);
+    setWaiting(false);
     setCaptions([]);
   }
   useEffect(
@@ -67,6 +91,10 @@ export function TutorDock({
     lastState.current = Date.now();
     socket.current?.send(payload);
   }, [observation, status]);
+  useEffect(() => {
+    const box = captionBox.current;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [captions]);
   async function connect() {
     if (status === 'ready' && socket.current?.readyState === WebSocket.OPEN) return;
     if (connectPromise.current) return connectPromise.current;
@@ -111,22 +139,22 @@ export function TutorDock({
             setStatus('ready');
             resolve();
           } else if (msg.type === 'transcript') {
-            setCaptions((previous) => {
-              const next = [...previous];
-              if (!msg.final && next.at(-1)?.role === msg.role)
-                next[next.length - 1] = { role: msg.role, text: msg.text };
-              else next.push({ role: msg.role, text: msg.text });
-              return next.slice(-30);
-            });
+            if (msg.role !== 'child') setWaiting(false);
+            setCaptions((previous) =>
+              mergeCaption(previous, { role: msg.role, text: msg.text, final: msg.final }),
+            );
           } else if (msg.type === 'tutorAction') {
             if (msg.kind === 'highlightParam') onHighlight?.(msg.paramId);
             else if (msg.value !== undefined) setSuggestion({ key: msg.paramId, value: msg.value });
-          } else if (msg.type === 'characterState') setSpeaking(msg.speaking);
-          else if (msg.type === 'interrupted') {
+          } else if (msg.type === 'characterState') {
+            setSpeaking(msg.speaking);
+            if (msg.speaking) setWaiting(false);
+          } else if (msg.type === 'interrupted') {
             sound.flush();
             setSpeaking(false);
           } else if (msg.type === 'error') {
             setError(msg.message);
+            setWaiting(false);
             clearTimeout(timeout);
             reject(new Error(msg.message));
           } else if (msg.type === 'bye') {
@@ -134,6 +162,7 @@ export function TutorDock({
             setStatus('off');
             setVoice(false);
             setSpeaking(false);
+            setWaiting(false);
           }
         };
         ws.onerror = () => {
@@ -146,6 +175,7 @@ export function TutorDock({
           setStatus('off');
           setVoice(false);
           setSpeaking(false);
+          setWaiting(false);
           reject(new Error('Tutor connection ended.'));
           connectPromise.current = null;
         };
@@ -167,81 +197,176 @@ export function TutorDock({
     try {
       await connect();
       socket.current?.send(JSON.stringify({ type: 'text', text: question }));
+      setCaptions((previous) =>
+        mergeCaption(previous, { role: 'child', text: question, final: true, local: true }),
+      );
+      setWaiting(true);
       setDraft('');
     } catch {
       /* rendered above */
     }
   }
+  async function toggleVoice() {
+    if (voice) {
+      audio.current?.stopCapture();
+      setVoice(false);
+      return;
+    }
+    try {
+      await connect();
+      await audio.current?.startCapture();
+      setVoice(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : s('saveError'));
+    }
+  }
+  const state =
+    status === 'connecting'
+      ? 'connecting'
+      : speaking
+        ? 'speaking'
+        : waiting
+          ? 'thinking'
+          : voice
+            ? 'listening'
+            : status === 'ready'
+              ? 'ready'
+              : 'off';
+  const statusText =
+    state === 'connecting'
+      ? s('connect')
+      : state === 'speaking'
+        ? t('statusSpeaking')
+        : state === 'thinking'
+          ? t('statusThinking')
+          : state === 'listening'
+            ? t('statusListening')
+            : state === 'ready'
+              ? t('statusReady')
+              : t('statusOff');
+  const suggestionLabel =
+    suggestion && observation
+      ? (PARAMS[observation.simId as SimId]?.find((p) => p.id === suggestion.key)?.label[
+          language === 'bn' ? 1 : 0
+        ] ?? suggestion.key)
+      : suggestion?.key;
   return (
-    <section
-      className="tutor-dock"
+    <aside
+      className="tutor"
       ref={mount}
-      data-voice-character={subject === 'math' ? 'onkomama' : 'pori'}
+      data-open={open}
+      data-state={state}
+      data-voice-character={character}
       data-action={speaking ? 'idle' : 'listen'}
+      aria-label={t('tutorTitle')}
     >
-      <CharacterArt id={subject === 'math' ? 'onkomama' : 'pori'} />
-      <div>
-        <strong>{s('ask')}</strong>
-        <p className="tutor-note">{s('tutorNote')}</p>
-        <div className="tutor-actions">
-          <button onClick={() => void connect().catch(() => {})} disabled={status !== 'off'}>
-            {status === 'connecting' ? s('connect') : s('ask')}
-          </button>
+      <button
+        type="button"
+        className="tutor-launch"
+        aria-expanded={open}
+        aria-controls={panelId}
+        aria-label={`${t('askName', { name })}. ${statusText}`}
+        hidden={open}
+        onClick={() => {
+          setOpen(true);
+          requestAnimationFrame(() => input.current?.focus());
+        }}
+      >
+        <span className="tutor-launch-art">
+          <CharacterArt id={character} />
+        </span>
+      </button>
+      <section id={panelId} className="tutor-panel" hidden={!open}>
+        <header className="tutor-head">
+          <span className="tutor-portrait">
+            <CharacterArt id={character} />
+          </span>
+          <div>
+            <h2>{t('askName', { name })}</h2>
+            <p role="status" className="tutor-status">
+              <span className="tutor-dot" aria-hidden="true" />
+              {statusText}
+            </p>
+          </div>
           <button
-            disabled={voice}
-            onClick={() =>
-              void (async () => {
-                try {
-                  await connect();
-                  await audio.current?.startCapture();
-                  setVoice(true);
-                } catch (e) {
-                  setError(e instanceof Error ? e.message : s('saveError'));
-                }
-              })()
-            }
+            type="button"
+            className="tutor-icon"
+            aria-label={t('minimise')}
+            aria-expanded={open}
+            aria-controls={panelId}
+            onClick={() => setOpen(false)}
           >
-            {voice ? s('stop') : s('voice')}
+            <UiIcon name="arrowDown" width={22} height={22} />
           </button>
-          {status !== 'off' && <button onClick={end}>{s('stop')}</button>}
+        </header>
+        <div className="tutor-caption" ref={captionBox} aria-live="polite">
+          {captions.length ? (
+            captions.map((c, i) => (
+              <p key={i} data-role={c.role} data-final={c.final}>
+                <span className="sr-only">{c.role === 'child' ? t('you') : name}: </span>
+                {c.text}
+              </p>
+            ))
+          ) : (
+            <p className="tutor-empty">{s('tutorNote')}</p>
+          )}
         </div>
-        <p role="status">
-          {status === 'connecting' ? s('connect') : voice ? s('voice') : s('micOff')}
-        </p>
+        {suggestion && (
+          <button
+            type="button"
+            className="tutor-suggestion"
+            onClick={() => {
+              onSuggest?.(suggestion.key, suggestion.value);
+              setSuggestion(undefined);
+            }}
+          >
+            <UiIcon name="studio" width={20} height={20} />
+            {t('tryValue', { label: suggestionLabel ?? '', value: n(suggestion.value) })}
+          </button>
+        )}
+        <ErrorNotice error={error} />
         <form
+          className="tutor-form"
           onSubmit={(e) => {
             e.preventDefault();
             void send();
           }}
         >
           <input
+            ref={input}
             aria-label={s('askTyped')}
             placeholder={s('askTyped')}
             maxLength={2000}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           />
-          <button disabled={!draft.trim() || status === 'connecting'}>{s('send')}</button>
-        </form>
-        <ErrorNotice error={error} />
-        <div className="tutor-caption" aria-live="polite">
-          {captions.map((c, i) => (
-            <p key={i} data-role={c.role}>
-              {c.text}
-            </p>
-          ))}
-        </div>
-        {suggestion && (
           <button
-            onClick={() => {
-              onSuggest?.(suggestion.key, suggestion.value);
-              setSuggestion(undefined);
-            }}
+            className="sch-primary tutor-send"
+            disabled={!draft.trim() || status === 'connecting'}
+            aria-label={s('send')}
           >
-            {s('suggestion')}: {suggestion.key} = {suggestion.value}
+            <UiIcon name="arrowRight" width={22} height={22} />
           </button>
-        )}
-      </div>
-    </section>
+        </form>
+        <div className="tutor-actions">
+          <button
+            type="button"
+            className="tutor-voice"
+            aria-pressed={voice}
+            disabled={status === 'connecting'}
+            onClick={() => void toggleVoice()}
+          >
+            <UiIcon name={voice ? 'micOff' : 'mic'} width={20} height={20} />
+            {voice ? t('stopVoice') : s('voice')}
+          </button>
+          {status !== 'off' && (
+            <button type="button" className="tutor-end" onClick={end}>
+              <UiIcon name="hangUp" width={20} height={20} />
+              {s('stop')}
+            </button>
+          )}
+        </div>
+      </section>
+    </aside>
   );
 }

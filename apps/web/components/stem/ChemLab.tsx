@@ -3,19 +3,24 @@ import { useEffect, useState } from 'react';
 import { REAGENTS } from '@just-imagine/stem-content';
 import { useSchoolLanguage } from '../../lib/i18n/study';
 import { schoolRequest } from '../../lib/school/api';
-import { Field, ErrorNotice, useSchoolAction } from '../school/shared';
+import { ErrorNotice, useSchoolAction } from '../school/shared';
 import {
   MAX_IDEAL_PH_CONCENTRATION_M,
   type Reaction,
   type MixResult,
 } from '@just-imagine/stem-sims';
 import { requestSnapshot, runCurrentRequest } from '../../lib/school/request-snapshot';
+import { UiIcon } from '../UiIcon';
+import { useStudyCopy } from '../study/copy';
+import {
+  REAGENT_GROUPS,
+  groupReagents,
+  limitingSummary,
+  phRangeIssue,
+  type LabAnswer,
+} from './lab-logic';
 import '../../app/stem.css';
-export type LabAnswer = {
-  reagentIds: string[];
-  heat: boolean;
-  amounts: Record<string, { volumeMl: number; concentrationM: number }>;
-};
+export type { LabAnswer } from './lab-logic';
 type ReactResponse =
   | {
       status: 'reaction' | 'observation';
@@ -38,21 +43,38 @@ export function Formula({ value }: { value: string }) {
     </>
   );
 }
+const EMPTY: LabAnswer = { reagentIds: [], heat: false, amounts: {} };
+const reagent = (id: string) => REAGENTS.find((r) => r.id === id);
+/** Indicators are known by name; long organic formulas are noise on a school bench. */
+const showsFormula = (r: (typeof REAGENTS)[number]) => Boolean(r.formula) && r.kind !== 'indicator';
+
 export function ChemLab({
   offered = REAGENTS.map((r) => r.id),
   lessonId,
   stepIndex = 0,
   onAnswer,
+  initial,
 }: {
   offered?: string[];
   lessonId?: string;
   stepIndex?: number;
   onAnswer?: (answer: LabAnswer) => void;
+  initial?: LabAnswer;
 }) {
   const { s, language, text } = useSchoolLanguage(),
+    { t, n } = useStudyCopy(),
     action = useSchoolAction();
-  const [answer, setAnswer] = useState<LabAnswer>({ reagentIds: [], heat: false, amounts: {} }),
-    [result, setResult] = useState<ReactResponse>();
+  const [answer, setAnswer] = useState<LabAnswer>(() =>
+      initial && Array.isArray(initial.reagentIds)
+        ? {
+            reagentIds: initial.reagentIds,
+            heat: Boolean(initial.heat),
+            amounts: initial.amounts ?? {},
+          }
+        : EMPTY,
+    ),
+    [result, setResult] = useState<ReactResponse>(),
+    [mixed, setMixed] = useState<LabAnswer>();
   const [snapshots] = useState(requestSnapshot);
   const scope = JSON.stringify([lessonId, stepIndex, offered]);
   useEffect(() => () => snapshots.invalidate(), [snapshots, scope]);
@@ -64,73 +86,102 @@ export function ChemLab({
     onAnswer?.(next);
   }
   function toggle(id: string) {
-    const reagent = REAGENTS.find((r) => r.id === id)!;
+    const chosen = reagent(id)!;
     const ids = answer.reagentIds.includes(id)
       ? answer.reagentIds.filter((v) => v !== id)
       : [
           ...answer.reagentIds.filter(
-            (v) =>
-              reagent.kind !== 'indicator' ||
-              REAGENTS.find((r) => r.id === v)?.kind !== 'indicator',
+            (v) => chosen.kind !== 'indicator' || reagent(v)?.kind !== 'indicator',
           ),
           id,
         ];
     const amounts = Object.fromEntries(
       ids
         .filter((v) => {
-          const r = REAGENTS.find((r) => r.id === v);
+          const r = reagent(v);
           return r?.state === 'aq' && r.kind !== 'indicator';
         })
         .map((v) => [v, answer.amounts[v] ?? { volumeMl: 50, concentrationM: 0.1 }]),
     );
     update({ ...answer, reagentIds: ids, amounts });
   }
+  function setAmount(id: string, key: 'volumeMl' | 'concentrationM', value: number) {
+    update({
+      ...answer,
+      amounts: { ...answer.amounts, [id]: { ...answer.amounts[id]!, [key]: value } },
+    });
+  }
 
   const rawResult = result && 'result' in result ? result.result : null;
   const reaction = rawResult?.reaction ?? null;
-  const colour = rawResult?.indicator?.colour ?? reaction?.observations.colourTo ?? 'transparent';
+  const selected = answer.reagentIds.map(reagent).filter((r) => r !== undefined);
+  const restingColour =
+    selected.find((r) => r.kind !== 'indicator' && r.state !== 's')?.colour ?? null;
+  const colour =
+    rawResult?.indicator?.colour ?? reaction?.observations.colourTo ?? restingColour ?? null;
+  const hasLiquid = selected.some((r) => r.state !== 's' && r.state !== 'g') || Boolean(rawResult);
+  const groups = groupReagents(REAGENTS.filter((r) => offered.includes(r.id)));
+  const rangeIssue = mixed ? phRangeIssue(mixed) : null;
+  const limits =
+    reaction && rawResult?.quantities
+      ? limitingSummary(rawResult.quantities, reaction, REAGENTS)
+      : null;
+  const ph = rawResult?.ph ?? null;
+  const tempChange = reaction?.observations.tempChange;
+
   return (
     <div className="stem-lab">
-      <p>
-        {language === 'bn'
-          ? `এটি আদর্শ ভার্চুয়াল মডেল। ২৫°C তাপমাত্রায় শুধু HCl, NaOH ও KOH-এর ০.০০১–${MAX_IDEAL_PH_CONCENTRATION_M.toLocaleString('bn-BD')} M দ্রবণের পরিমাণ থেকে pH গণনা করা হয়। অন্য মিশ্রণের pH অজানা; বিক্রিয়ার পর্যবেক্ষণ গুণগত।`
-          : `Ideal virtual model. Quantitative pH uses only HCl, NaOH and KOH at 25°C, 0.001–${MAX_IDEAL_PH_CONCENTRATION_M} M. Other mixtures have unknown pH; reaction observations are qualitative.`}
-      </p>
       <div className="stem-bench">
-        <section>
-          <h2>{s('chooseReagents')}</h2>
-          <div
-            className="stem-reagents"
-            role="region"
-            tabIndex={0}
-            aria-label={s('chooseReagents')}
-          >
-            {REAGENTS.filter((r) => offered.includes(r.id)).map((r) => (
-              <button
-                type="button"
-                key={r.id}
-                draggable
-                onDragStart={(e) => e.dataTransfer.setData('text/plain', r.id)}
-                className="stem-reagent"
-                aria-pressed={answer.reagentIds.includes(r.id)}
-                onClick={() => toggle(r.id)}
-              >
-                <strong>
-                  <Formula value={r.formula ?? r.id} />
-                </strong>
-                <span>{text(r.name)}</span>
-                <span className="stem-reagent-state">
-                  {answer.reagentIds.includes(r.id)
-                    ? language === 'bn'
-                      ? 'নির্বাচিত'
-                      : 'Selected'
-                    : language === 'bn'
-                      ? 'যোগ করো'
-                      : 'Add to beaker'}
-                </span>
-              </button>
-            ))}
-          </div>
+        <section className="stem-shelf" aria-labelledby={`shelf-${stepIndex}`}>
+          <header className="stem-panel-head">
+            <h2 id={`shelf-${stepIndex}`}>{t('shelf')}</h2>
+            <p>{t('shelfNote')}</p>
+          </header>
+          {groups.map((group) => (
+            <div className="stem-reagent-group" key={group.id}>
+              <h3>{REAGENT_GROUPS[group.id][language === 'bn' ? 1 : 0]}</h3>
+              <div className="stem-reagents">
+                {group.reagents.map((r) => {
+                  const on = answer.reagentIds.includes(r.id);
+                  return (
+                    <button
+                      type="button"
+                      key={r.id}
+                      draggable
+                      onDragStart={(e) => e.dataTransfer.setData('text/plain', r.id)}
+                      className="stem-reagent"
+                      data-kind={r.kind}
+                      aria-pressed={on}
+                      onClick={() => toggle(r.id)}
+                    >
+                      <span
+                        className="stem-swatch"
+                        data-state={r.state}
+                        style={{ '--swatch': r.colour } as React.CSSProperties}
+                        aria-hidden="true"
+                      />
+                      <span className="stem-reagent-text">
+                        {showsFormula(r) ? (
+                          <>
+                            <strong>
+                              <Formula value={r.formula!} />
+                            </strong>
+                            <span>{text(r.name)}</span>
+                          </>
+                        ) : (
+                          <strong className="stem-reagent-name">{text(r.name)}</strong>
+                        )}
+                      </span>
+                      <span className="stem-reagent-state" aria-hidden="true">
+                        {on && <UiIcon name="check" width={20} height={20} />}
+                        <span className="sr-only">{on ? t('added') : t('add')}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </section>
         <section
           className="stem-beaker"
@@ -140,26 +191,45 @@ export function ChemLab({
             const id = e.dataTransfer.getData('text/plain');
             if (offered.includes(id) && !answer.reagentIds.includes(id)) toggle(id);
           }}
-          aria-label={s('mix')}
+          aria-labelledby={`beaker-${stepIndex}`}
         >
-          <div>
-            <svg viewBox="0 0 260 250" role="img" aria-label={s('observations')}>
-              <path
-                d="M60 35v170q0 12 12 12h116q12 0 12-12V35"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                d="M63 115h134v88q0 11-11 11H74q-11 0-11-11Z"
-                fill={colour === 'transparent' ? 'var(--mint)' : colour}
-              />
+          <header className="stem-panel-head">
+            <h2 id={`beaker-${stepIndex}`}>{t('inBeaker')}</h2>
+          </header>
+          <div className="stem-beaker-stage">
+            <svg viewBox="0 0 260 230" role="img" aria-label={s('observations')}>
+              {answer.heat && (
+                <path
+                  d="M104 222q-8-10 0-20t0-20M130 222q-8-10 0-20t0-20M156 222q-8-10 0-20t0-20"
+                  className="stem-heat"
+                />
+              )}
+              {hasLiquid && (
+                <path
+                  d="M63 95h134v88q0 11-11 11H74q-11 0-11-11Z"
+                  fill={colour ?? 'var(--stem-liquid)'}
+                  className="stem-liquid"
+                />
+              )}
+              {selected
+                .filter((r) => r.state === 's')
+                .map((r, i) => (
+                  <ellipse
+                    key={r.id}
+                    cx={100 + i * 30}
+                    cy={186}
+                    rx={14}
+                    ry={6}
+                    fill={r.colour}
+                    stroke="var(--soft)"
+                  />
+                ))}
               {reaction?.observations.gas &&
                 [0, 1, 2, 3, 4].map((i) => (
                   <circle
                     key={i}
                     cx={90 + i * 19}
-                    cy={105 - (i % 3) * 22}
+                    cy={85 - (i % 3) * 20}
                     r={5 + (i % 3)}
                     fill="none"
                     stroke="var(--accent)"
@@ -167,177 +237,272 @@ export function ChemLab({
                   />
                 ))}
               {reaction?.observations.precipitate && (
-                <path d="M66 194h128v16H66Z" fill={reaction.observations.precipitate.colour} />
+                <path d="M66 174h128v16H66Z" fill={reaction.observations.precipitate.colour} />
               )}
-              <text x="130" y="242" textAnchor="middle" fill="currentColor" fontSize="18">
-                pH {rawResult?.ph == null ? '—' : rawResult.ph.toFixed(2)}
-              </text>
-            </svg>
-            <label className="sch-option">
-              <input
-                type="checkbox"
-                checked={answer.heat}
-                onChange={(e) => update({ ...answer, heat: e.target.checked })}
+              <path
+                d="M52 22h8v163q0 14 14 14h112q14 0 14-14V22h8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-              {s('heat')}
-            </label>
-            <div className="sch-toolbar">
-              <button
-                className="sch-primary"
-                disabled={action.busy || !answer.reagentIds.length}
-                onClick={() =>
-                  void action.run(async () => {
-                    await runCurrentRequest(
-                      snapshots.begin(),
-                      schoolRequest<ReactResponse>('study/react', {
-                        ...answer,
-                        ...(lessonId ? { lessonId, stepIndex } : {}),
-                      }),
-                      setResult,
-                    );
-                  })
-                }
-              >
-                {action.busy ? s('loading') : s('mix')}
-              </button>
-              <button onClick={() => update({ reagentIds: [], heat: false, amounts: {} })}>
-                {s('reset')}
-              </button>
-            </div>
+              {[60, 100, 140].map((y) => (
+                <path key={y} d={`M182 ${y}h14`} stroke="var(--soft)" strokeWidth="2" />
+              ))}
+            </svg>
+            <p className="stem-ph-readout" aria-live="polite">
+              <span>pH</span>
+              <strong>{ph === null ? '—' : n(ph, 2)}</strong>
+            </p>
           </div>
-          <div>
-            {answer.reagentIds.map((id) => {
-              const reagent = REAGENTS.find((r) => r.id === id)!;
-              return (
-                <div key={id} className="stem-quantity">
-                  <strong>{text(reagent.name)}</strong>
-                  {reagent.state === 'aq' && reagent.kind !== 'indicator' && (
-                    <>
-                      <Field label={s('volume')}>
-                        <input
-                          type="number"
-                          min="1"
-                          max="1000"
-                          step="1"
-                          value={answer.amounts[id]?.volumeMl ?? 50}
-                          onChange={(e) =>
-                            update({
-                              ...answer,
-                              amounts: {
-                                ...answer.amounts,
-                                [id]: { ...answer.amounts[id]!, volumeMl: Number(e.target.value) },
-                              },
-                            })
-                          }
-                        />
-                      </Field>
-                      <Field label={s('concentration')}>
-                        <input
-                          type="number"
-                          min="0.001"
-                          max="5"
-                          step="0.001"
-                          value={answer.amounts[id]?.concentrationM ?? 0.1}
-                          onChange={(e) =>
-                            update({
-                              ...answer,
-                              amounts: {
-                                ...answer.amounts,
-                                [id]: {
-                                  ...answer.amounts[id]!,
-                                  concentrationM: Number(e.target.value),
-                                },
-                              },
-                            })
-                          }
-                        />
-                      </Field>
-                    </>
+          {selected.length ? (
+            <ul className="stem-contents">
+              {selected.map((r) => (
+                <li key={r.id} className="stem-quantity">
+                  <div className="stem-quantity-head">
+                    <span
+                      className="stem-swatch"
+                      data-state={r.state}
+                      style={{ '--swatch': r.colour } as React.CSSProperties}
+                      aria-hidden="true"
+                    />
+                    <strong>
+                      {showsFormula(r) && (
+                        <span>
+                          <Formula value={r.formula!} />
+                        </span>
+                      )}
+                      <span className="stem-quantity-name">{text(r.name)}</span>
+                    </strong>
+                    <button
+                      type="button"
+                      className="stem-remove"
+                      aria-label={t('remove', { name: text(r.name) })}
+                      onClick={() => toggle(r.id)}
+                    >
+                      <UiIcon name="close" width={18} height={18} />
+                    </button>
+                  </div>
+                  {r.state === 'aq' && r.kind !== 'indicator' && (
+                    <div className="stem-quantity-fields">
+                      <label>
+                        <span>{t('volume')}</span>
+                        <span className="stem-unit-input">
+                          <input
+                            type="number"
+                            min="1"
+                            max="1000"
+                            step="1"
+                            value={answer.amounts[r.id]?.volumeMl ?? 50}
+                            onChange={(e) => setAmount(r.id, 'volumeMl', Number(e.target.value))}
+                          />
+                          <span>mL</span>
+                        </span>
+                      </label>
+                      <label>
+                        <span>{t('concentration')}</span>
+                        <span className="stem-unit-input">
+                          <input
+                            type="number"
+                            min="0.001"
+                            max="5"
+                            step="0.001"
+                            value={answer.amounts[r.id]?.concentrationM ?? 0.1}
+                            onChange={(e) =>
+                              setAmount(r.id, 'concentrationM', Number(e.target.value))
+                            }
+                          />
+                          <span>M</span>
+                        </span>
+                      </label>
+                    </div>
                   )}
-                </div>
-              );
-            })}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="stem-beaker-empty">{t('beakerEmpty')}</p>
+          )}
+          <label className="sch-option stem-heat-toggle">
+            <input
+              type="checkbox"
+              checked={answer.heat}
+              onChange={(e) => update({ ...answer, heat: e.target.checked })}
+            />
+            {s('heat')}
+          </label>
+          <div className="stem-beaker-actions">
+            <button
+              className="sch-primary"
+              disabled={action.busy || !answer.reagentIds.length}
+              onClick={() =>
+                void action.run(async () => {
+                  const submitted = answer;
+                  await runCurrentRequest(
+                    snapshots.begin(),
+                    schoolRequest<ReactResponse>('study/react', {
+                      ...submitted,
+                      ...(lessonId ? { lessonId, stepIndex } : {}),
+                    }),
+                    (next) => {
+                      setMixed(submitted);
+                      setResult(next);
+                    },
+                  );
+                })
+              }
+            >
+              {action.busy ? t('mixing') : s('mix')}
+            </button>
+            <button
+              type="button"
+              disabled={!answer.reagentIds.length && !answer.heat}
+              onClick={() => update(EMPTY)}
+            >
+              <UiIcon name="restart" width={20} height={20} />
+              {s('reset')}
+            </button>
           </div>
+          <ErrorNotice error={action.error} />
         </section>
       </div>
-      <ErrorNotice error={action.error} />
-      {rawResult && !reaction && (
-        <section className="stem-lab-result">
-          <h2>{s('observations')}</h2>
-          <span className="sch-status">
-            {language === 'bn' ? 'গণনাভিত্তিক মডেল' : 'Deterministic model'}
-          </span>
-          {rawResult.ph !== null && <p>pH {rawResult.ph.toFixed(2)}</p>}
-          {rawResult.indicator && rawResult.ph !== null && (
-            <p>
-              {rawResult.indicator.colour === null
-                ? language === 'bn'
-                  ? 'নির্দেশকটি বর্ণহীন।'
-                  : 'The indicator is colourless.'
-                : language === 'bn'
-                  ? 'নির্দেশকের রং বিকারে দেখানো আছে।'
-                  : 'The indicator colour is shown in the beaker.'}
+      {rawResult && (
+        <section className="stem-lab-result" aria-live="polite">
+          <header className="stem-result-head">
+            <h2>{s('observations')}</h2>
+            <span className="sch-status">
+              {reaction
+                ? s(
+                    result?.status === 'reaction' && result.source === 'ai'
+                      ? 'aiSource'
+                      : 'tableSource',
+                  )
+                : t('model')}
+            </span>
+          </header>
+          {reaction && (
+            <p className="stem-equation">
+              <Formula value={reaction.equation} />
             </p>
           )}
+          {reaction && <p className="stem-result-copy">{text(reaction.explanation)}</p>}
+          <dl className="stem-result-facts">
+            <div>
+              <dt>{t('phResult')}</dt>
+              <dd>{ph === null ? '—' : n(ph, 2)}</dd>
+            </div>
+            {rawResult.quantities && (
+              <div>
+                <dt>{t('totalVolume')}</dt>
+                <dd>
+                  {n(rawResult.quantities.volumeMl, 1)} <span>mL</span>
+                </dd>
+              </div>
+            )}
+            {limits && (
+              <div>
+                <dt>{t('limiting')}</dt>
+                <dd>
+                  {limits.kind === 'exact' ? (
+                    t('exactAmounts')
+                  ) : (
+                    <>
+                      <Formula value={limits.formula} />
+                      {limits.leftover.length > 0 && (
+                        <small>
+                          {t('leftOver')}:{' '}
+                          {limits.leftover.map((l, i) => (
+                            <span key={l.formula}>
+                              {i > 0 && ', '}
+                              <Formula value={l.formula} /> {n(l.moles, 4)} mol
+                            </span>
+                          ))}
+                        </small>
+                      )}
+                    </>
+                  )}
+                </dd>
+              </div>
+            )}
+            {reaction && (
+              <div>
+                <dt>{t('temperature')}</dt>
+                <dd>
+                  {tempChange === 'up'
+                    ? t('warmer')
+                    : tempChange === 'down'
+                      ? t('cooler')
+                      : t('noChange')}
+                </dd>
+              </div>
+            )}
+          </dl>
+          {ph === null && (
+            <p className="stem-result-note" role="status">
+              {rangeIssue
+                ? t('phOutOfRange', {
+                    formula: reagent(rangeIssue.id)?.formula ?? rangeIssue.id,
+                    c: rangeIssue.concentrationM,
+                    max: MAX_IDEAL_PH_CONCENTRATION_M,
+                  })
+                : t('phUnknown')}
+              {rawResult.indicator && t('indicatorUnknown')}
+            </p>
+          )}
+          {rawResult.indicator && ph !== null && (
+            <p className="stem-result-note">
+              {rawResult.indicator.colour === null ? t('colourless') : t('colourShown')}
+            </p>
+          )}
+          {reaction && (
+            <>
+              <h3>{s('products')}</h3>
+              <ul className="stem-products">
+                {reaction.products.map((p) => (
+                  <li key={p.formula}>
+                    <strong>
+                      <Formula value={p.formula} />
+                    </strong>{' '}
+                    {text(p.name)}
+                    {rawResult.quantities?.productsMoles[p.formula] !== undefined && (
+                      <span className="stem-moles">
+                        {n(rawResult.quantities.productsMoles[p.formula], 4)} mol
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {(reaction.observations.gas || reaction.observations.precipitate) && (
+                <ul className="stem-products">
+                  {reaction.observations.gas && (
+                    <li>
+                      {t('gas')}:{' '}
+                      <strong>
+                        <Formula value={reaction.observations.gas} />
+                      </strong>
+                    </li>
+                  )}
+                  {reaction.observations.precipitate && (
+                    <li>
+                      {t('precipitate')}:{' '}
+                      <strong>
+                        <Formula value={reaction.observations.precipitate.formula} />
+                      </strong>
+                    </li>
+                  )}
+                </ul>
+              )}
+            </>
+          )}
         </section>
-      )}
-      {rawResult && rawResult.ph === null && (
-        <p role="status">
-          {language === 'bn'
-            ? 'এই মিশ্রণের pH গণনা করা হয়নি।'
-            : 'pH is not calculated for this mixture.'}
-          {rawResult.indicator &&
-            (language === 'bn'
-              ? ' নির্দেশকের রংও অনুমান করা হয়নি।'
-              : ' Indicator colour is not predicted.')}
-        </p>
       )}
       {result?.status === 'unsupported' && (
-        <p role="status">{language === 'bn' ? s('unknownReaction') : result.message}</p>
+        <p className="stem-result-note stem-unsupported" role="status">
+          {language === 'bn' ? s('unknownReaction') : result.message}
+        </p>
       )}
-      {reaction && (
-        <section className="stem-lab-result" aria-live="polite">
-          <span className="sch-status">
-            {s(
-              result?.status === 'reaction' && result.source === 'ai' ? 'aiSource' : 'tableSource',
-            )}
-          </span>
-          <p className="stem-equation">
-            <Formula value={reaction.equation} />
-          </p>
-          <p>{text(reaction.explanation)}</p>
-          {rawResult?.quantities && (
-            <p>
-              {s('volume')}: {rawResult.quantities.volumeMl.toFixed(1)} ·{' '}
-              {language === 'bn' ? 'সীমিত বিকারক' : 'Limiting reagent'}:{' '}
-              {rawResult.quantities.limitingReagent ?? '—'}
-            </p>
-          )}
-          <h3>{s('products')}</h3>
-          <p>{reaction.products.map((p) => `${text(p.name)} (${p.formula})`).join(' · ')}</p>
-          <h3>{s('observations')}</h3>
-          <p>
-            {reaction.observations.gas && (
-              <>
-                {language === 'bn' ? 'গ্যাস' : 'Gas'}: <Formula value={reaction.observations.gas} />{' '}
-                ·{' '}
-              </>
-            )}
-            {reaction.observations.precipitate && (
-              <>
-                {language === 'bn' ? 'অধঃক্ষেপ' : 'Precipitate'}:{' '}
-                <Formula value={reaction.observations.precipitate.formula} /> ·{' '}
-              </>
-            )}
-            {language === 'bn' ? 'তাপমাত্রা' : 'Temperature'}:{' '}
-            {reaction.observations.tempChange === 'up'
-              ? '↑'
-              : reaction.observations.tempChange === 'down'
-                ? '↓'
-                : '—'}
-          </p>
-        </section>
-      )}
+      <p className="stem-model-note">{t('idealModel', { max: MAX_IDEAL_PH_CONCENTRATION_M })}</p>
     </div>
   );
 }

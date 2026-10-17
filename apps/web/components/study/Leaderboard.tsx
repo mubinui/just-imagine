@@ -5,6 +5,9 @@ import type { BoardResponse, StudyMe } from '../../lib/school/types';
 import { useSchoolLanguage } from '../../lib/i18n/study';
 import { useSchoolSession } from '../school/SchoolShell';
 import { Loading, ErrorNotice } from '../school/shared';
+import { competitionRanks, displayRank } from './study-logic';
+import { useStudyCopy } from './copy';
+import styles from './Leaderboard.module.css';
 export function Leaderboard({
   teacher = false,
   classId = '',
@@ -62,16 +65,33 @@ export function Leaderboard({
 
 function BoardResults({ path, teacher, label }: { path: string; teacher: boolean; label: string }) {
   const { s } = useSchoolLanguage();
+  const { t, n } = useStudyCopy();
   const me = useSchoolSession() as StudyMe | null;
   const resource = useSchoolResource<BoardResponse>(path);
+  const entries = resource.data?.board?.entries ?? [];
+  const ranks = competitionRanks(entries);
+  const ownRank = displayRank(resource.data?.own?.points, resource.data?.own?.rank);
+  const own = !teacher && !resource.loading && !resource.error ? resource.data?.own : undefined;
   return (
-    <div aria-busy={resource.loading}>
+    <div aria-busy={resource.loading} className={styles.board}>
       <ErrorNotice error={resource.error} retry={resource.reload} />
+      {own && (
+        <dl className={styles.standing}>
+          <div>
+            <dt>{s('yourPoints')}</dt>
+            <dd>{n(own.points)}</dd>
+          </div>
+          <div>
+            <dt>{s('rank')}</dt>
+            <dd>{ownRank ? n(ownRank) : <small>{t('notRanked')}</small>}</dd>
+          </div>
+        </dl>
+      )}
       {resource.error ? null : resource.loading ? (
         <Loading />
       ) : resource.data?.board?.entries.length ? (
-        <div className="sch-table-wrap">
-          <table className="sch-board-table">
+        <div className={`sch-table-wrap ${styles.card}`}>
+          <table className={`sch-board-table ${styles.table}`}>
             <caption>{label}</caption>
             <thead>
               <tr>
@@ -85,27 +105,29 @@ function BoardResults({ path, teacher, label }: { path: string; teacher: boolean
               </tr>
             </thead>
             <tbody>
-              {resource.data.board.entries.map((entry, index) => (
-                <tr
-                  key={entry.studentId}
-                  className={entry.studentId === me?.studentId ? 'sch-board-own' : ''}
-                >
-                  <td className="sch-rank">{index + 1}</td>
-                  <th scope="row">{entry.firstName}</th>
-                  <td className="sch-number">{entry.points}</td>
-                </tr>
-              ))}
+              {entries.map((entry, index) => {
+                const rank = ranks[index],
+                  mine = entry.studentId === me?.studentId;
+                return (
+                  <tr
+                    key={entry.studentId}
+                    className={mine ? 'sch-board-own' : ''}
+                    data-medal={rank && rank <= 3 ? rank : undefined}
+                  >
+                    <td className="sch-rank">{rank ? n(rank) : '—'}</td>
+                    <th scope="row">
+                      {entry.firstName}
+                      {mine && <span className={styles.you}>{t('you')}</span>}
+                    </th>
+                    <td className="sch-number">{n(entry.points)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       ) : (
         <p className="sch-empty">{s('boardHidden')}</p>
-      )}
-      {!teacher && !resource.loading && !resource.error && resource.data?.own && (
-        <p className="sch-notice">
-          {s('yourPoints')}: {resource.data.own.points} · {s('rank')}:{' '}
-          {resource.data.own.rank ?? '—'}
-        </p>
       )}
     </div>
   );

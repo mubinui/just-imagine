@@ -140,7 +140,7 @@ if (!existing.exists) {
     batch.create(
       db().doc(schoolPaths.student(sid, id)),
       StudentDocSchema.parse({
-        firstName: 'শিক্ষার্থী ' + String(i + 1),
+        firstName: 'শিক্ষার্থী ' + banglaDigits(i + 1),
         username,
         classId: classes[i % 2],
         avatar: 'fox',
@@ -151,7 +151,7 @@ if (!existing.exists) {
       }),
     );
     batch.create(db().doc(schoolPaths.studentSecret(sid, id)), await secret(pin));
-    pins.push({ firstName: 'শিক্ষার্থী ' + String(i + 1), schoolCode: code, username, pin });
+    pins.push({ firstName: 'শিক্ষার্থী ' + banglaDigits(i + 1), schoolCode: code, username, pin });
   }
 }
 batch.set(marker, { schoolId: sid, teacherUid: teacher.uid, lessonIds, updatedAt: Date.now() });
@@ -174,3 +174,8 @@ console.log(
       : 'Existing teacher credentials were preserved.') +
     ' Family data was not changed.',
 );
+
+/** Demo names are Bangla, so their numbers use Bangla digits too. */
+function banglaDigits(value: number): string {
+  return String(value).replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)]!);
+}
