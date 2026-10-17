@@ -47,26 +47,22 @@ beforeAll(async () => {
   await db()
     .doc('schools/rs1/classes/c2')
     .set({ grade: 9, section: 'B', name: '9-B', createdAt: 1 });
-  await db()
-    .doc('schools/rs1/students/p1')
-    .set({
-      firstName: 'Rahim',
-      username: 'rahim',
-      classId: 'c1',
-      avatar: 'fox',
-      language: 'bn',
-      createdAt: 1,
-    });
-  await db()
-    .doc('schools/rs1/students/p2')
-    .set({
-      firstName: 'Karim',
-      username: 'karim',
-      classId: 'c2',
-      avatar: 'owl',
-      language: 'en',
-      createdAt: 1,
-    });
+  await db().doc('schools/rs1/students/p1').set({
+    firstName: 'Rahim',
+    username: 'rahim',
+    classId: 'c1',
+    avatar: 'fox',
+    language: 'bn',
+    createdAt: 1,
+  });
+  await db().doc('schools/rs1/students/p2').set({
+    firstName: 'Karim',
+    username: 'karim',
+    classId: 'c2',
+    avatar: 'owl',
+    language: 'en',
+    createdAt: 1,
+  });
   await db()
     .doc('schools/rs1/studentSecrets/p1')
     .set({ pinHash: 'aa', salt: 'bb', failedAttempts: 0, lockedUntil: null });
@@ -81,36 +77,30 @@ beforeAll(async () => {
     });
   await db().doc('schools/rs1/attempts/p1_l1').set({ studentId: 'p1', lessonId: 'l1' });
   await db().doc('schools/rs1/attempts/p2_l1').set({ studentId: 'p2', lessonId: 'l1' });
-  await db()
-    .doc('schools/rs1/boards/class_c1_all')
-    .set({
-      scope: 'class',
-      classId: 'c1',
-      period: 'all',
-      weekKey: null,
-      entries: [],
-      updatedAt: 1,
-    });
-  await db()
-    .doc('schools/rs1/boards/class_c2_all')
-    .set({
-      scope: 'class',
-      classId: 'c2',
-      period: 'all',
-      weekKey: null,
-      entries: [],
-      updatedAt: 1,
-    });
-  await db()
-    .doc('schools/rs1/boards/school_all')
-    .set({
-      scope: 'school',
-      classId: null,
-      period: 'all',
-      weekKey: null,
-      entries: [],
-      updatedAt: 1,
-    });
+  await db().doc('schools/rs1/boards/class_c1_all').set({
+    scope: 'class',
+    classId: 'c1',
+    period: 'all',
+    weekKey: null,
+    entries: [],
+    updatedAt: 1,
+  });
+  await db().doc('schools/rs1/boards/class_c2_all').set({
+    scope: 'class',
+    classId: 'c2',
+    period: 'all',
+    weekKey: null,
+    entries: [],
+    updatedAt: 1,
+  });
+  await db().doc('schools/rs1/boards/school_all').set({
+    scope: 'school',
+    classId: null,
+    period: 'all',
+    weekKey: null,
+    entries: [],
+    updatedAt: 1,
+  });
   const lesson = (scope: string, schoolId: string | null, classIds: string[], status: string) => ({
     scope,
     schoolId,
