@@ -61,6 +61,7 @@ import {
 import { LabDrawer } from './studio/LabDrawer';
 import { Dock, StageHeader } from './studio/Dock';
 import { StudioMenu } from './studio/StudioMenu';
+import { clearBuild, rememberBuild } from '../lib/building';
 import { UiIcon } from './UiIcon';
 import { PetFollower } from './pets/PetFollower';
 import { PetSlot } from './pets/PetSlot';
@@ -296,6 +297,16 @@ export function Studio() {
           const heardAt = Date.now();
           setShowStartedAt((t) => (message.status === 'queued' ? heardAt : (t ?? heardAt)));
           setJob(message.status);
+          // Leaving the Studio mid-build keeps a small badge on the other child screens.
+          if (!env.fake) {
+            if (message.status === 'ready' || message.status === 'failed') clearBuild();
+            else
+              rememberBuild({
+                worldId: message.worldId,
+                characterId: hello.current?.characterId ?? 'bhombol',
+                startedAt: heardAt,
+              });
+          }
           if (!env.fake) {
             // A queued world does not exist yet; Firestore correctly denies reads without an owner.
             // Subscribe only after the builder publishes the first playable document.

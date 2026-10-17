@@ -25,6 +25,7 @@ import { env } from '../../lib/env';
 import { watchActor } from '../acting/clock';
 import { avatarPresence } from './presence';
 import { UiIcon, type UiIconName } from '../UiIcon';
+import { BuildingBadge } from '../BuildingBadge';
 import '../../app/companion.css';
 
 const CompanionContext = createContext<{
@@ -190,6 +191,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     <CompanionContext.Provider value={{ child, speaking, caption, status, error, start }}>
       <div className={`child-shell${separateNavigation ? ' has-child-navigation' : ''}`}>
         {children}
+        {separateNavigation && <BuildingBadge />}
         {separateNavigation && (
           <div className="child-appbar">
             <ChildNavigation />
