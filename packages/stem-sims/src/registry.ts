@@ -33,7 +33,8 @@ export type TaskCheck =
   | { ok: true; met: boolean }
   | {
       ok: false;
-      reason: 'unknown-sim' | 'invalid-params' | 'unknown-predicate' | 'invalid-args';
+      reason:
+        'unknown-sim' | 'invalid-params' | 'unknown-predicate' | 'invalid-args' | 'invalid-task';
     };
 
 const MODELS: Readonly<Record<string, SimModel<unknown>>> = SIMS;
@@ -53,6 +54,35 @@ export function checkSimTask(simId: string, rawParams: unknown, task: SimTask): 
   const args = check.args.safeParse(task.args);
   if (!args.success) return { ok: false, reason: 'invalid-args' };
   return { ok: true, met: check.test(params.data, model.solve(params.data), args.data) };
+}
+
+/** A quiz simTask item, structurally: the sim, its start params and the keys a student may edit. */
+export interface LockedSimItem {
+  simId: string;
+  startParams: Record<string, unknown>;
+  editableParams: readonly string[];
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/** Grades a student's submission for a sim-task item: only editable keys may be submitted; every
+ *  other param comes from the item's startParams. Any submitted key outside editableParams is refused. */
+export function checkLockedSimTask(
+  item: LockedSimItem,
+  submitted: unknown,
+  task: SimTask,
+): TaskCheck {
+  const parsedTask = SimTaskSchema.safeParse(task);
+  if (!parsedTask.success) return { ok: false, reason: 'invalid-task' };
+  if (!isPlainObject(submitted)) return { ok: false, reason: 'invalid-params' };
+  const locked = (key: string | symbol) =>
+    typeof key !== 'string' || !item.editableParams.includes(key);
+  if (Reflect.ownKeys(submitted).some(locked)) return { ok: false, reason: 'invalid-params' };
+  return checkSimTask(item.simId, { ...item.startParams, ...submitted }, parsedTask.data);
 }
 
 export function describeSim(simId: SimId): { id: SimId; predicates: string[] } {

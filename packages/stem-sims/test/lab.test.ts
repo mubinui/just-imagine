@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   checkLabTask,
+  gradeLabSubmission,
   indicatorColour,
   mix,
   mixKey,
@@ -156,5 +157,54 @@ describe('checkLabTask', () => {
     expect(checkLabTask(heated, { predicate: 'producedGas', gas: 'CO2' })).toBe(true);
     expect(checkLabTask(heated, { predicate: 'solutionColour', colour: '#1f1f1f' })).toBe(true);
     expect(checkLabTask(heated, { predicate: 'formedPrecipitate', formula: 'CuO' })).toBe(false);
+  });
+});
+
+describe('gradeLabSubmission', () => {
+  const item = { reagentIds: ['hcl', 'naoh', 'litmus'] };
+  const neutral = { predicate: 'pHBetween', min: 6.5, max: 7.5 } as const;
+
+  it('refuses a reagent the item does not offer', () => {
+    expect(
+      gradeLabSubmission(
+        item,
+        { reagentIds: ['hcl', 'cuco3'], heat: true },
+        neutral,
+        reagents,
+        reactions,
+      ),
+    ).toEqual({ ok: false, reason: 'reagent-not-offered' });
+  });
+
+  it('grades offered reagents on the recomputed mix', () => {
+    const met = gradeLabSubmission(
+      item,
+      { reagentIds: ['naoh', 'hcl', 'litmus'], heat: false },
+      neutral,
+      reagents,
+      reactions,
+    );
+    expect(met.ok && met.met).toBe(true);
+    expect(met.ok && met.result.reaction?.id).toBe('neutral-hcl-naoh');
+    const missed = gradeLabSubmission(
+      item,
+      { reagentIds: ['hcl', 'litmus'], heat: false },
+      neutral,
+      reagents,
+      reactions,
+    );
+    expect(missed).toMatchObject({ ok: true, met: false });
+  });
+
+  it('reports an offered id the bench does not know as unknown-reagent', () => {
+    expect(
+      gradeLabSubmission(
+        { reagentIds: ['hcl', 'tnt'] },
+        { reagentIds: ['hcl', 'tnt'], heat: false },
+        neutral,
+        reagents,
+        reactions,
+      ),
+    ).toEqual({ ok: false, reason: 'unknown-reagent' });
   });
 });

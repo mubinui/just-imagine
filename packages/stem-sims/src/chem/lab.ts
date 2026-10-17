@@ -165,3 +165,28 @@ export function checkLabTask(result: MixResult, task: LabTask): boolean {
       return obs?.precipitate?.formula === task.formula;
   }
 }
+
+/**
+ * Grades a student's lab submission for a labTask item: every submitted reagent must be one the
+ * item offers, and the mix is recomputed on the server before the task is checked.
+ */
+export function gradeLabSubmission(
+  item: { reagentIds: readonly string[] },
+  submitted: { reagentIds: readonly string[]; heat: boolean },
+  task: LabTask,
+  reagents: readonly Reagent[],
+  reactions: readonly Reaction[],
+):
+  | { ok: true; met: boolean; result: MixResult }
+  | { ok: false; reason: 'reagent-not-offered' | 'unknown-reagent' } {
+  if (!submitted.reagentIds.every((id) => item.reagentIds.includes(id)))
+    return { ok: false, reason: 'reagent-not-offered' };
+  let result: MixResult;
+  try {
+    result = mix(submitted, reagents, reactions);
+  } catch (error) {
+    if (error instanceof MixError) return { ok: false, reason: 'unknown-reagent' };
+    throw error;
+  }
+  return { ok: true, met: checkLabTask(result, task), result };
+}
