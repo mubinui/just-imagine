@@ -48,12 +48,41 @@ describe('parseEquation and atomBalance', () => {
   });
 
   it('treats an element missing from one side as unbalanced', () => {
-    expect(atomBalance('Na + H2O -> NaOH').balanced).toBe(false);
+    expect(atomBalance('Na + H2O -> H2').balanced).toBe(false);
   });
 
   it('never throws from isBalanced', () => {
     expect(isBalanced('not an equation')).toBe(false);
     expect(isBalanced('A -> B -> C')).toBe(false);
     expect(isBalanced('HCl + NaOH -> NaCl + H2O')).toBe(true);
+  });
+});
+
+describe('malformed input is rejected', () => {
+  it('rejects zero counts and coefficients', () => {
+    expect(() => parseFormula('H0')).toThrow(FormulaError);
+    expect(() => parseFormula('Ca(OH)0')).toThrow(FormulaError);
+    expect(() => parseFormula('CuSO4·0H2O')).toThrow(FormulaError);
+    expect(() => parseEquation('0H2 + O2 -> O2')).toThrow(FormulaError);
+    expect(isBalanced('0H2 + O2 -> O2')).toBe(false);
+    expect(isBalanced('0O2 -> 0N2')).toBe(false);
+  });
+
+  it('rejects mismatched brackets and empty groups', () => {
+    expect(() => parseFormula('Ca(OH]2')).toThrow(FormulaError);
+    expect(() => parseFormula('Ca[OH)2')).toThrow(FormulaError);
+    expect(() => parseFormula('H()')).toThrow(FormulaError);
+    expect(counts('Ca[OH]2')).toEqual({ Ca: 1, O: 2, H: 2 });
+  });
+
+  it('rejects empty equation terms', () => {
+    expect(() => parseEquation('H2 + + O2 -> H2O')).toThrow(FormulaError);
+    expect(isBalanced('H2 +  -> H2')).toBe(false);
+  });
+
+  it('rejects counts beyond the safe integer range', () => {
+    expect(() => parseFormula('H9007199254740993')).toThrow(FormulaError);
+    expect(isBalanced('H9007199254740993 -> H9007199254740992')).toBe(false);
+    expect(isBalanced('9007199254740993H2 -> 9007199254740992H2')).toBe(false);
   });
 });

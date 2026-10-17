@@ -17,26 +17,35 @@ function addInto(target: AtomCounts, source: AtomCounts, times: number): void {
   for (const [element, n] of source) target.set(element, (target.get(element) ?? 0) + n * times);
 }
 
+/** Parses a digit string as a positive safe integer, so zero and huge counts cannot slip through. */
+function positiveInt(digits: string, where: string): number {
+  const n = Number(digits);
+  if (!Number.isSafeInteger(n) || n < 1)
+    throw new FormulaError(`Invalid count "${digits}" in ${where}.`);
+  return n;
+}
+
 function parseGroup(text: string): AtomCounts {
   let pos = 0;
   const readNumber = (): number => {
     const match = /^\d+/.exec(text.slice(pos));
     if (!match) return 1;
     pos += match[0].length;
-    return Number(match[0]);
+    return positiveInt(match[0], text);
   };
-  const sequence = (closing: boolean): AtomCounts => {
+  const sequence = (closer: string | null): AtomCounts => {
     const counts: AtomCounts = new Map();
     while (pos < text.length) {
       const ch = text[pos]!;
       if (ch === '(' || ch === '[') {
         pos++;
-        const inner = sequence(true);
+        const inner = sequence(ch === '(' ? ')' : ']');
+        if (inner.size === 0) throw new FormulaError(`Empty group in ${text}.`);
         addInto(counts, inner, readNumber());
         continue;
       }
       if (ch === ')' || ch === ']') {
-        if (!closing) throw new FormulaError(`Unexpected "${ch}" in ${text}.`);
+        if (ch !== closer) throw new FormulaError(`Unexpected "${ch}" in ${text}.`);
         pos++;
         return counts;
       }
@@ -46,10 +55,10 @@ function parseGroup(text: string): AtomCounts {
       pos += match[0].length;
       addInto(counts, new Map([[match[0], 1]]), readNumber());
     }
-    if (closing) throw new FormulaError(`Unclosed bracket in ${text}.`);
+    if (closer) throw new FormulaError(`Unclosed bracket in ${text}.`);
     return counts;
   };
-  const counts = sequence(false);
+  const counts = sequence(null);
   if (counts.size === 0) throw new FormulaError('Empty formula.');
   return counts;
 }
@@ -61,20 +70,21 @@ export function parseFormula(formula: string): AtomCounts {
   const total: AtomCounts = new Map();
   for (const [index, part] of text.split(/[·.*]/).entries()) {
     const hydrate = index > 0 ? /^(\d+)(.+)$/.exec(part) : null;
-    addInto(total, parseGroup(hydrate ? hydrate[2]! : part), hydrate ? Number(hydrate[1]) : 1);
+    addInto(
+      total,
+      parseGroup(hydrate ? hydrate[2]! : part),
+      hydrate ? positiveInt(hydrate[1]!, text) : 1,
+    );
   }
   return total;
 }
 
 function parseSide(side: string): EquationTerm[] {
-  const terms = side
-    .split('+')
-    .map((t) => t.trim())
-    .filter(Boolean);
-  if (terms.length === 0) throw new FormulaError('An equation side is empty.');
+  const terms = side.split('+').map((t) => t.trim());
+  if (terms.some((t) => t === '')) throw new FormulaError('An equation has an empty term.');
   return terms.map((term) => {
     const match = /^(\d*)\s*(.+)$/.exec(term)!;
-    return { coefficient: match[1] ? Number(match[1]) : 1, formula: match[2]! };
+    return { coefficient: match[1] ? positiveInt(match[1], term) : 1, formula: match[2]! };
   });
 }
 
