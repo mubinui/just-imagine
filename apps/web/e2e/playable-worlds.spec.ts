@@ -4,6 +4,8 @@ import { test, expect, type Page } from '@playwright/test';
 // walk through all five worlds sat right at the time limit. Separate tests keep each world's budget
 // and name the world that breaks.
 const errors = new WeakMap<Page, string[]>();
+// Clicks wait on a live simulation; on a two-core runner six peg drops alone take about 20 s.
+test.describe.configure({ timeout: 60_000 });
 
 test.beforeEach(async ({ page }) => {
   const seen: string[] = [];
