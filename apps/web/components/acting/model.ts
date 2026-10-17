@@ -36,9 +36,11 @@ export const actorOffset = (id: string) =>
 export type SpeechPose = { energy: number; frame: 0 | 3 | 4; silentFor: number; heldFor: number };
 export const restingSpeech = (): SpeechPose => ({ energy: 0, frame: 0, silentFor: 0, heldFor: 0 });
 export const SPEECH_POSE_DWELL_MS = 180;
-export const SPEECH_PHRASE_RELEASE_MS = 180;
-/** These atlas cells change the whole body, not just lips. Respond at onset, then hold
- * each gesture and bridge short syllable gaps instead of flickering at the audio rate. */
+/** Pauses between words shorter than this keep the speaking pose; longer ones settle. */
+export const SPEECH_PHRASE_RELEASE_MS = 650;
+/** These atlas cells change the whole body, not just lips, so swapping them mid-phrase reads as
+ * shaking. Respond at onset with one pose sized to the opening energy, hold it through the
+ * phrase and its natural pauses, and settle once the friend has really stopped. */
 export function advanceSpeech(state: SpeechPose, input: number, milliseconds: number): SpeechPose {
   const target = Number.isFinite(input) ? Math.max(0, Math.min(1, input)) : 0;
   const dt = Math.max(0, Math.min(100, milliseconds));
@@ -49,23 +51,8 @@ export function advanceSpeech(state: SpeechPose, input: number, milliseconds: nu
     ? 0
     : state.energy +
       (target - state.energy) * (1 - Math.exp(-dt / (target > state.energy ? 20 : 55)));
-  const candidate =
-    state.frame === 4
-      ? energy > 0.28
-        ? 4
-        : energy > 0.035
-          ? 3
-          : 0
-      : energy > 0.4
-        ? 4
-        : energy > (state.frame === 3 ? 0.035 : 0.065)
-          ? 3
-          : 0;
-  const frame = ended
-    ? 0
-    : state.frame !== 0 && (silentFor > 0 || heldFor < SPEECH_POSE_DWELL_MS)
-      ? state.frame
-      : candidate;
+  const onset = energy > 0.4 ? 4 : energy > 0.065 ? 3 : 0;
+  const frame = ended ? 0 : state.frame !== 0 ? state.frame : onset;
   return { energy, frame, silentFor, heldFor: frame === state.frame ? heldFor : 0 };
 }
 

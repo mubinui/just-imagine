@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { fibonacciSphere, projectPoint, type OrbMode } from './dot-orb';
+import { advanceOrb, fibonacciSphere, projectMotion, restingOrb, type OrbMode } from './dot-orb';
 
 const POINTS = fibonacciSphere(520);
 
@@ -17,7 +17,8 @@ export function DotOrb({ mode, className }: { mode: OrbMode; className?: string 
     if (!el || !ctx) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let frame = 0;
-    let start = performance.now();
+    let motion = restingOrb(modeRef.current);
+    let last = 0;
     let warmColour = '#f7d76e',
       lightColour = '#fff9ee';
     const paletteChanged = () => {
@@ -38,11 +39,15 @@ export function DotOrb({ mode, className }: { mode: OrbMode; className?: string 
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
-      const t = reduce ? 0.8 : (now - start) / 1000;
+      // Motion eases between modes, so speech flickering in and out never jolts the orb.
+      motion = reduce
+        ? { ...restingOrb(modeRef.current), time: 0.8 }
+        : advanceOrb(motion, modeRef.current, last ? now - last : 0);
+      last = now;
       const radius = Math.min(w, h) * 0.42;
       const cx = w / 2;
       const cy = h / 2;
-      const projected = POINTS.map((p) => projectPoint(p, t, radius, modeRef.current)).sort(
+      const projected = POINTS.map((p) => projectMotion(p, motion, radius)).sort(
         (a, b) => a.depth - b.depth,
       );
       for (const q of projected) {
@@ -57,7 +62,6 @@ export function DotOrb({ mode, className }: { mode: OrbMode; className?: string 
       if (!reduce) frame = requestAnimationFrame(draw);
     };
     paletteChanged();
-    start = performance.now();
     frame = requestAnimationFrame(draw);
     return () => {
       observer.disconnect();

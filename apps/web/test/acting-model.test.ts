@@ -3,7 +3,6 @@ import {
   actingFrame,
   advanceSpeech,
   restingSpeech,
-  SPEECH_POSE_DWELL_MS,
   SPEECH_PHRASE_RELEASE_MS,
   toothFrame,
 } from '../components/acting/model';
@@ -37,50 +36,43 @@ it('covers every predefined learning character except the preserved eight-pose T
     }
   expect(Object.keys(ACTING)).toHaveLength(54);
 });
-it('responds promptly to speech without chattering at a mouth threshold, and settles after phrase silence', () => {
+it('responds promptly to speech and holds one pose for the whole phrase', () => {
   let speech = advanceSpeech(restingSpeech(), 0.8, 1000 / 30);
   expect(speech.frame).toBe(4);
-  for (let frame = 0; frame < 20; frame++) {
-    speech = advanceSpeech(speech, frame % 2 ? 0.355 : 0.365, 1000 / 30);
+  // Loud and quiet syllables inside one phrase never swap the whole-body pose.
+  for (let frame = 0; frame < 40; frame++) {
+    speech = advanceSpeech(speech, frame % 3 ? 0.08 : 0.9, 1000 / 30);
     expect(speech.frame).toBe(4);
   }
-  for (let frame = 0; frame < 6; frame++) speech = advanceSpeech(speech, 0, 1000 / 30);
-  expect(speech.frame).toBe(0);
-  expect(speech.energy).toBe(0);
+  // A quiet onset keeps its calmer pose even when the phrase grows loud.
+  speech = advanceSpeech(restingSpeech(), 0.2, 1000 / 30);
+  expect(speech.frame).toBe(3);
+  for (let frame = 0; frame < 20; frame++) speech = advanceSpeech(speech, 0.95, 1000 / 30);
+  expect(speech.frame).toBe(3);
 });
 
-it('keeps whole-body pose changes at least180ms apart under varying30Hz speech energy', () => {
+it('changes the whole-body pose at most once per phrase under varying 30Hz speech energy', () => {
   let speech = restingSpeech(),
-    lastChange = -Infinity,
     previous = 0,
     changes = 0;
   for (let tick = 0; tick < 90; tick++) {
-    const now = (tick * 1000) / 30;
     speech = advanceSpeech(speech, tick % 12 < 6 ? 0.95 : 0.05, 1000 / 30);
     if (speech.frame !== previous) {
-      expect(now - lastChange).toBeGreaterThanOrEqual(SPEECH_POSE_DWELL_MS);
-      lastChange = now;
       previous = speech.frame;
       changes++;
     }
   }
-  expect(changes).toBeGreaterThan(1);
-  expect(changes).toBeLessThanOrEqual(17);
+  expect(changes).toBe(1);
 });
 
-it('bridges short syllable gaps but returns to closed exactly at the phrase-release bound', () => {
+it('bridges natural pauses between words and settles only after the phrase-release bound', () => {
   let speech = advanceSpeech(restingSpeech(), 0.9, 1000 / 30);
   const initial = speech.frame;
-  for (let time = 0; time < 100; time += 10) {
+  for (let time = 10; time < SPEECH_PHRASE_RELEASE_MS; time += 10) {
     speech = advanceSpeech(speech, 0, 10);
     expect(speech.frame).toBe(initial);
   }
-  speech = advanceSpeech(speech, 0.9, 10);
-  expect(speech.frame).not.toBe(0);
-  for (let time = 10; time < SPEECH_PHRASE_RELEASE_MS; time += 10) {
-    speech = advanceSpeech(speech, 0.02, 10);
-    expect(speech.frame).not.toBe(0);
-  }
+  expect(SPEECH_PHRASE_RELEASE_MS).toBeGreaterThanOrEqual(600);
   speech = advanceSpeech(speech, 0, 10);
   expect(speech.frame).toBe(0);
   expect(speech.energy).toBe(0);
