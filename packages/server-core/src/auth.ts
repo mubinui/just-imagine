@@ -1,4 +1,11 @@
-import { AdminFlagsDocSchema, adminPaths } from '@just-imagine/protocol';
+import {
+  AdminFlagsDocSchema,
+  adminPaths,
+  SchoolDocSchema,
+  schoolClaimsOf,
+  schoolPaths,
+  studentUid,
+} from '@just-imagine/protocol';
 import { adminAuth, db } from './firebase';
 
 export class AuthError extends Error {
@@ -57,4 +64,76 @@ export async function isAccountSuspended(uid: string): Promise<boolean> {
   const snap = await db().doc(adminPaths.flags(uid)).get();
   if (!snap.exists) return false;
   return AdminFlagsDocSchema.parse(snap.data()).suspended;
+}
+
+// ---------- schools (docs/superpowers/specs/2026-10-17-schools-stem-design.md §4.2) ----------
+
+/** The token is valid but lacks the school role this route needs. */
+export class SchoolRoleRequiredError extends Error {
+  readonly code = 'FORBIDDEN' as const;
+  constructor(message = 'school role required') {
+    super(message);
+    this.name = 'SchoolRoleRequiredError';
+  }
+}
+
+export interface SchoolAdminActor {
+  uid: string;
+  email: string | null;
+  /** Null only for a super admin who did not name a school. */
+  schoolId: string | null;
+  superAdmin: boolean;
+}
+export interface StudentActor {
+  uid: string;
+  schoolId: string;
+  studentId: string;
+  classId: string;
+}
+
+async function decodeChecked(idToken: string) {
+  try {
+    return await adminAuth().verifyIdToken(idToken, true);
+  } catch (e) {
+    throw new AuthError(e instanceof Error ? e.message : 'invalid token');
+  }
+}
+
+/**
+ * A teacher of `schoolId` (or of their own school when omitted), or the super admin acting
+ * inside `schoolId`. Throws AuthError for bad tokens and SchoolRoleRequiredError otherwise.
+ */
+export async function requireSchoolAdmin(
+  idToken: string,
+  schoolId?: string,
+): Promise<SchoolAdminActor> {
+  const decoded = await decodeChecked(idToken);
+  const email = decoded.email ?? null;
+  if (isAdmin(decoded))
+    return { uid: decoded.uid, email, schoolId: schoolId ?? null, superAdmin: true };
+  const claims = schoolClaimsOf(decoded);
+  if (claims?.role !== 'schoolAdmin' || (schoolId !== undefined && schoolId !== claims.schoolId))
+    throw new SchoolRoleRequiredError();
+  return { uid: decoded.uid, email, schoolId: claims.schoolId, superAdmin: false };
+}
+
+/** A student whose uid is exactly the one the api mints for their claims. */
+export async function requireStudent(idToken: string): Promise<StudentActor> {
+  const decoded = await decodeChecked(idToken);
+  const claims = schoolClaimsOf(decoded);
+  if (claims?.role !== 'student' || decoded.uid !== studentUid(claims.schoolId, claims.studentId))
+    throw new SchoolRoleRequiredError();
+  return {
+    uid: decoded.uid,
+    schoolId: claims.schoolId,
+    studentId: claims.studentId,
+    classId: claims.classId,
+  };
+}
+
+/** True when the school is suspended or missing. Read errors propagate (callers fail closed). */
+export async function isSchoolSuspended(schoolId: string): Promise<boolean> {
+  const snap = await db().doc(schoolPaths.school(schoolId)).get();
+  if (!snap.exists) return true;
+  return SchoolDocSchema.parse(snap.data()).status === 'suspended';
 }
