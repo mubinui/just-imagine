@@ -28,7 +28,7 @@ const env = z
     GOOGLE_CLOUD_PROJECT: z.string().optional(),
     API_AUDIENCE: z.url().optional(),
     BUILDER_URL: z.url().optional(),
-    BUILDER_QUEUE: z.string().default('builds'),
+    BUILDER_QUEUE: z.string().default('world-builds'),
     TASK_SERVICE_ACCOUNT: z.email().optional(),
     DELETION_QUEUE: z.string().default('deletions'),
   })

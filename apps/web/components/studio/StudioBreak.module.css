@@ -1,0 +1,105 @@
+.page {
+  width: min(100%, 960px);
+  max-width: none;
+  margin: 32px auto;
+  padding: 32px 24px;
+  display: grid;
+  grid-template-columns: minmax(160px, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 40px;
+  color: var(--ink);
+}
+.portrait {
+  width: min(100%, 260px);
+  aspect-ratio: 1;
+  justify-self: center;
+  --mouth-open: 0;
+}
+.portrait > svg,
+.portrait > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.content {
+  min-width: 0;
+}
+.content h1 {
+  font-size: 36px;
+  line-height: 1.15;
+}
+.content h1:focus {
+  outline: none;
+}
+.copy {
+  margin-top: 16px;
+  max-width: 45ch;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 15px;
+}
+.status svg {
+  flex: none;
+}
+.return {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
+  min-height: 56px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 0;
+  font-weight: 800;
+}
+.return:hover {
+  background: color-mix(in srgb, var(--accent) 85%, var(--ink));
+}
+.destinations {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 24px;
+  row-gap: 4px;
+  margin-top: 24px;
+}
+.destinations a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  color: var(--accent);
+  font-weight: 800;
+}
+.destinations svg {
+  width: 20px;
+  height: 20px;
+}
+.explorers {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin-top: 12px;
+  color: var(--soft);
+}
+@media (max-width: 600px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .portrait {
+    width: 144px;
+  }
+  .content h1 {
+    font-size: 30px;
+  }
+  .return {
+    width: 100%;
+  }
+}

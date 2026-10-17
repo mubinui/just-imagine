@@ -7,6 +7,19 @@ import type { StringTable } from './en';
  * native reader are listed in docs/i18n/bangla-review.md.
  */
 export const bn: StringTable = {
+  childNavigation: {
+    label: 'তোমার জায়গাগুলো',
+    studio: 'স্টুডিও',
+    learn: 'শিখি',
+    stories: 'গল্প',
+    worlds: 'জগৎ',
+    assistant: 'লাইভ সহকারী',
+    assistantTitle: '{name}-এর সঙ্গে কথা বলো',
+    assistantHelp:
+      'প্রশ্ন করো অথবা তোমার কল্পনার কথা বন্ধুকে বলো। তৈরি হলে চলো কথা বলি বোতামে চাপ দাও।',
+    voiceActive: 'লাইভ কথা চালু আছে',
+    chooseExplorer: 'অভিযাত্রী বেছে নাও',
+  },
   landing: {
     title: 'কল্পনা থেকে আবিষ্কার',
     intro:

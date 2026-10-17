@@ -7,7 +7,13 @@ import { useEffect, useRef, useState } from 'react';
 const gravity = { earth: 9.81, moon: 1.62 } as const;
 
 /** A small gravity experiment: equal drop height and restitution, different acceleration. */
-export function GravityPlayground() {
+export function GravityPlayground({
+  compact = false,
+  autoPlay = false,
+}: {
+  compact?: boolean;
+  autoPlay?: boolean;
+}) {
   useLanguage();
   const [planet, setPlanet] = useState<'earth' | 'moon'>('earth');
   const [drop, setDrop] = useState(0);
@@ -27,7 +33,8 @@ export function GravityPlayground() {
       shadow.current?.setAttribute('opacity', String(0.08 + (y / 380) * 0.12));
     };
     paint();
-    if (!drop) return;
+    if (!drop && (!autoPlay || window.matchMedia('(prefers-reduced-motion: reduce)').matches))
+      return;
     const animate = (time: number) => {
       const dt = previous ? Math.min((time - previous) / 1000, 1 / 30) : 0;
       previous = time;
@@ -47,7 +54,7 @@ export function GravityPlayground() {
     };
     frame.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame.current);
-  }, [drop, planet]);
+  }, [drop, planet, autoPlay]);
 
   function release(next = planet) {
     setPlanet(next);
@@ -56,12 +63,17 @@ export function GravityPlayground() {
   }
 
   return (
-    <section className="gravity-playground" aria-label={uiText('Try a gravity experiment')}>
+    <section
+      className={`gravity-playground${compact ? ' gravity-playground--compact' : ''}`}
+      aria-label={uiText('Try a gravity experiment')}
+    >
       <div className="gravity-heading">
         <span>{uiText('What if gravity changed?')}</span>
-        <span className="experiment-live">
-          <i aria-hidden="true" /> {uiText('Try it here')}
-        </span>
+        {!compact && (
+          <span className="experiment-live">
+            <i aria-hidden="true" /> {uiText('Try it here')}
+          </span>
+        )}
       </div>
       <div className="gravity-scene" data-planet={planet}>
         <svg
@@ -136,7 +148,9 @@ export function GravityPlayground() {
           </svg>
         </button>
       </div>
-      <p className="gravity-note">{uiText('One small change. A whole new “what if?”')}</p>
+      {!compact && (
+        <p className="gravity-note">{uiText('One small change. A whole new “what if?”')}</p>
+      )}
     </section>
   );
 }

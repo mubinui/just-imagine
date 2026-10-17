@@ -149,7 +149,7 @@ test('landing gravity experiment responds to choices and opens the explorer pick
   await expect.poll(() => ball.getAttribute('transform')).not.toBe(initial);
   await page.getByRole('button', { name: 'Earth', exact: true }).click();
   await expect(page.locator('.gravity-reading')).toContainText('9.81 m/s²');
-  await page.getByRole('link', { name: 'Start imagining', exact: true }).click();
+  await page.locator('#parents').click();
   await expect(page.getByRole('heading', { name: 'Who’s imagining today?' })).toBeVisible();
 });
 

@@ -3,11 +3,10 @@ import { copy as uiText } from '../../lib/i18n/ui';
 import { useState, useEffect } from 'react';
 import { UiIcon } from '../UiIcon';
 import { useLanguage } from '../../lib/i18n';
-import Link from 'next/link';
 import { SPECIALISTS, CHARACTERS, type CharacterId, type Companion } from '@just-imagine/protocol';
 import { s } from '../../lib/strings/en';
 import { CharacterArt } from './CharacterArt';
-import { CompanionArt } from '../companion/Companion';
+import { ChildNavigation, CompanionArt } from '../companion/Companion';
 import { ThemePicker } from '../ThemePicker';
 import type { JobStatus, VoiceStatus } from './parts';
 
@@ -66,7 +65,6 @@ export function Dock({
   onRestart,
   onCaptions,
   onFinish,
-  explore,
   pet,
 }: {
   cast: (typeof CHARACTERS)[CharacterId][];
@@ -85,7 +83,6 @@ export function Dock({
   onRestart: () => void;
   onCaptions: () => void;
   onFinish: () => void;
-  explore?: React.ReactNode;
   /** The child's buddy pet (components/pets/PetSlot), after the friends. */
   pet?: React.ReactNode;
 }) {
@@ -99,7 +96,7 @@ export function Dock({
   }, [demonstrating]);
   const live = status === 'connected' || status === 'connecting' || status === 'reconnecting';
   return (
-    <nav className="dock" aria-label={s.guides}>
+    <footer className="dock studio-dock" aria-label={s.guides}>
       {demonstrating && (
         <aside className="specialist-intro" role="status" key={demonstrating}>
           <CharacterArt id={demonstrating} action="build" />
@@ -175,6 +172,9 @@ export function Dock({
           </button>
         )}
       </div>
+      <div className="studio-navigation">
+        <ChildNavigation />
+      </div>
       <div className="dock-tiles">
         <button type="button" className="dock-tile" onClick={onNewGame}>
           <UiIcon name="game" />
@@ -188,16 +188,11 @@ export function Dock({
           <UiIcon name="captions" />
           <span>{s.captions}</span>
         </button>
-        <Link href="/learn" className="dock-tile">
-          <UiIcon name="book" />
-          <span>{s.learnWorlds.tile}</span>
-        </Link>
-        {explore}
         <button type="button" className="dock-tile is-quiet" onClick={onFinish}>
           <UiIcon name="finish" />
           <span>{s.end}</span>
         </button>
       </div>
-    </nav>
+    </footer>
   );
 }

@@ -9,9 +9,11 @@ Tooling available on this machine (VERIFIED): Java 17 on PATH plus Corretto 21 i
 ## Key question 1: Deployment reality — is there anything a judge can click today?
 
 ### Takeaway
+
 No. There is no live URL anywhere in the repo, Cloud Build only builds an image, Terraform describes a credible Cloud Run/Firestore/Tasks/Secret Manager/Monitoring estate but has never been applied (no backend, no tfvars, no triggers, no WIF), and the Next.js web app has no provisioned host at all. The only running system is Docker Compose on the author's laptop at `http://localhost:3300`.
 
 ### Cited Findings
+
 - README states plainly: "No cloud deployment or production release is implied: real Firebase/Vertex/Stripe integration ... require staging credentials and separate evidence." — [README.md:96](README.md#L96) (READ)
 - Deployment runbook opens with "No cloud resources have been created by this implementation session." and ends with "A credentialed Terraform plan/apply, actual CloudRun URL/IAM checks ... are not proven by local builds." — [docs/runbooks/deployment.md:3](docs/runbooks/deployment.md#L3), [:24](docs/runbooks/deployment.md#L24) (READ)
 - Live-URL grep over `*.md|ts|tsx|yaml|tf|json|.example` for `run.app|web.app|firebaseapp.com|hosted.app|justimagine` returns only two placeholder values in a plan document (`https://api.staging.justimagine.app`) — [docs/superpowers/plans/2026-10-15-plan-a3-web.md:308-311](docs/superpowers/plans/2026-10-15-plan-a3-web.md#L308) (VERIFIED)
@@ -27,11 +29,13 @@ No. There is no live URL anywhere in the repo, Cloud Build only builds an image,
 - GitHub Actions on `main` (VERIFIED with `gh run list --repo mubinui/just-imagine --limit 8`): latest push run `ci` success (2026-10-16 06:24, 8m56s), the six runs before it failed or were cancelled, and the scheduled `builder-evaluations` on 2026-10-17 failed after 33 s (its staging job requires `GCP_PROJECT_ID`/`WIF_PROVIDER` vars that do not exist). Remote: `https://github.com/mubinui/just-imagine.git`, tag `demo-2026-10-16`.
 
 ### Inferences
+
 - A judge who opens the README and the runbook will understand this is a local-only demo; a judge who asks for a URL gets `localhost`. For a Google Cloud hackathon this is the single most score-limiting fact.
 - Terraform is closer to real than most hackathon infra (least-privilege SAs, OIDC-protected internal routes, Scheduler retry), but with no backend, no triggers and no applied state it is unproven; the queue-name drift above suggests nobody has ever run the api against the Terraform env.
 - The web tier has no deployment story at all (no App Hosting backend, no Cloud Run service, no Dockerfile stage); "Firebase App Hosting" is claimed in the spec but nothing provisions it.
 
 ### Gaps
+
 - Could not run `gcloud run services list` / Firestore / Cloud Build history: `gcloud` is not installed and no project id is configured anywhere in the repo, so "no cloud resources exist" rests on the runbook's statement plus the absence of any project id/URL in source.
 - `terraform plan` was not run (needs credentials and a project).
 
@@ -40,24 +44,27 @@ No. There is no live URL anywhere in the repo, Cloud Build only builds an image,
 ## Key question 2: Hard-rule compliance
 
 ### Takeaway
+
 Three of six hard rules pass cleanly (no audio stored, no world content over the WebSocket, secrets outside git). Rule 1 is PARTIAL: every Gemini client has a server-side `GEMINI_API_KEY` branch that bypasses Vertex AI, and that is the documented local path. Rule 3 FAILS as written: the child's moderated verbatim words are copied into build jobs and persisted in world documents. Rule 4 is PARTIAL: the child doc now carries far more than name/avatar/band, including a generated image of the child.
 
 ### Cited Findings
 
-| Rule | Status | Evidence |
-|---|---|---|
-| 1. Every model call via Vertex AI in `us-central1` with ADC; no API key in the browser | **PARTIAL** | Browser: the only `apiKey` in `apps/web` is the public Firebase web config — [apps/web/lib/firebase.ts:11](apps/web/lib/firebase.ts#L11) (VERIFIED grep). Server: all five `GoogleGenAI` constructors branch `config.apiKey ? { apiKey } : { vertexai: true, project, location: 'us-central1' }` — [services/gateway/src/live.ts:28-36](services/gateway/src/live.ts#L28), [services/builder/src/vertex.ts:28-32](services/builder/src/vertex.ts#L28), [services/api/src/companion.ts:64-68](services/api/src/companion.ts#L64), [services/api/src/editions.ts:12-16](services/api/src/editions.ts#L12), and `GameScriptModel` defaults to `location: config.location ?? 'global'` — [services/builder/src/game-model.ts:22-25](services/builder/src/game-model.ts#L22) with `GAME_MODEL_LOCATION` default `global` — [services/builder/src/main.ts:33](services/builder/src/main.ts#L33), [compose.local.yaml:86](compose.local.yaml#L86). The README tells users to "Put the server-only `GEMINI_API_KEY` in root `.env.local`" — [README.md:36](README.md#L36); `services/api/.env.example:12-13` says "Set an AI Studio key, or COMPANION_VERTEX=1 with ADC". Terraform sets no `GEMINI_API_KEY`, so a cloud deploy would take the Vertex path — [main.tf:216-228](infra/terraform/main.tf#L216). No `generativelanguage.googleapis.com` or `x-goog-api-key` literals anywhere (VERIFIED grep). |
-| 2. No raw audio stored | **PASS** | Gateway relays 640-byte PCM frames straight to Live (`active.live?.audio(raw)`) and output 960-byte frames straight to the socket; no `writeFile`/`createWriteStream`/bucket `.save` exists in `services/gateway/src` or `services/api/src` (VERIFIED grep) — [services/gateway/src/gateway.ts:1227-1230](services/gateway/src/gateway.ts#L1227), [:228-235](services/gateway/src/gateway.ts#L228); `live.ts` keeps `pending` buffers in memory only — [live.ts:86-99](services/gateway/src/live.ts#L86). The only GCS writes are builder sprite/collider files — [services/builder/src/worker.ts:689-703](services/builder/src/worker.ts#L689). |
-| 3. Transcripts only in gateway memory, discarded at session end | **FAIL (as written)** | In-memory part holds: `TranscriptBuffer` is memory-only — [services/gateway/src/transcripts.ts:1-16](services/gateway/src/transcripts.ts#L1); `session.transcript` capped at 100 lines and zeroed on end — [gateway.ts:248-249](services/gateway/src/gateway.ts#L248), [:177-178](services/gateway/src/gateway.ts#L177); summaries are model-generated with "omit names and personal information" — [live.ts:220-227](services/gateway/src/live.ts#L220); `logEvent` accepts only operational fields — [packages/server-core/src/telemetry.ts:24-35](packages/server-core/src/telemetry.ts#L24). **But** the gateway copies the last 1-4 moderated child utterances (≤4000 chars) into `BuilderJob.childRequest` — [gateway.ts:597-614](services/gateway/src/gateway.ts#L597), [:633-649](services/gateway/src/gateway.ts#L633); schema comment: "Server-captured moderated child words" — [packages/protocol/src/jobs.ts:20-21](packages/protocol/src/jobs.ts#L20); the builder persists it as `world.creation.originalWish` / `creation.changes[]` and as `worlds/{id}/versions/{jobId}.reason` — [services/builder/src/revisions.ts:54](services/builder/src/revisions.ts#L54), [:97](services/builder/src/revisions.ts#L97), [services/builder/src/worker.ts:388](services/builder/src/worker.ts#L388), [:553-559](services/builder/src/worker.ts#L553), schema [packages/protocol/src/firestore.ts:73-79](packages/protocol/src/firestore.ts#L73), [:103](packages/protocol/src/firestore.ts#L103). The README says the opposite: "Build jobs use a deterministic age/tier/concept brief rather than transcript excerpts" — [README.md:92](README.md#L92). The payload also sits in the Cloud Tasks queue body — [services/gateway/src/store.ts:274](services/gateway/src/store.ts#L274). |
-| 4. Child profiles hold first name, avatar, age band only | **PARTIAL** | `ChildDocSchema` holds `firstName`, `avatar`, `ageBand` plus `companion` (name, characterId and a `data:image/webp;base64` ≤130 KB generated likeness), `tier`, `labsUnlocked`, `captions`, `language`, `points`, `storyPreferences`, `pets`, `sessionTargetMinutes`, `loopsCompleted` — [packages/protocol/src/firestore.ts:39-56](packages/protocol/src/firestore.ts#L39). The chibi is written by [services/api/src/companion.ts:196-206](services/api/src/companion.ts#L196). Spec §12 states the rule and §18 lists "user-uploaded images or photos" as out of scope — [spec:634](docs/superpowers/specs/2026-10-15-just-imagine-design.md#L634), [spec:727](docs/superpowers/specs/2026-10-15-just-imagine-design.md#L727). Mitigations: source photo re-encoded, metadata stripped, never persisted, buffer zeroed — [companion.ts:44-50](services/api/src/companion.ts#L44), [:221](services/api/src/companion.ts#L221). |
-| 5. World content never over the WebSocket | **PASS** | `ServerMessageSchema` carries only `worldJob` status/ids, transcripts, dials, discovery cards, quiz/points and a `learningLook` image data URL; no `SceneDoc` or `WorldDoc` member — [packages/protocol/src/ws.ts:122-196](packages/protocol/src/ws.ts#L122). Worlds reach the browser from Firestore under owner-read rules — [firestore.rules:13-19](firestore.rules#L13). |
-| 6. Secrets from Secret Manager or git-ignored `.env` | **PASS** | `.gitignore` ignores `.env`, `.env.*` (keeps `.env.example`), `*.tfvars`, logs — [.gitignore:5-7](.gitignore#L5); `git ls-files | grep -iE "\.env|key|secret|credential"` returns only the two `.env.example` files and sound assets (VERIFIED); `.env.local` is untracked, mode 0600, contains only `GEMINI_API_KEY` (VERIFIED, value not printed); `git log --all -S` for `private_key`, `BEGIN PRIVATE KEY`, `AIza`, `sk_live` returns nothing (VERIFIED); Stripe secrets come from Secret Manager via `value_source.secret_key_ref` (version `latest`) only when `enable_billing` — [main.tf:123-143](infra/terraform/main.tf#L123), [:230-252](infra/terraform/main.tf#L230); Stripe client refuses non-`sk_test_` keys — [services/api/src/billing.ts:13-14](services/api/src/billing.ts#L13). |
+| Rule                                                                                   | Status                | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Every model call via Vertex AI in `us-central1` with ADC; no API key in the browser | **PARTIAL**           | Browser: the only `apiKey` in `apps/web` is the public Firebase web config — [apps/web/lib/firebase.ts:11](apps/web/lib/firebase.ts#L11) (VERIFIED grep). Server: all five `GoogleGenAI` constructors branch `config.apiKey ? { apiKey } : { vertexai: true, project, location: 'us-central1' }` — [services/gateway/src/live.ts:28-36](services/gateway/src/live.ts#L28), [services/builder/src/vertex.ts:28-32](services/builder/src/vertex.ts#L28), [services/api/src/companion.ts:64-68](services/api/src/companion.ts#L64), [services/api/src/editions.ts:12-16](services/api/src/editions.ts#L12), and `GameScriptModel` defaults to `location: config.location ?? 'global'` — [services/builder/src/game-model.ts:22-25](services/builder/src/game-model.ts#L22) with `GAME_MODEL_LOCATION` default `global` — [services/builder/src/main.ts:33](services/builder/src/main.ts#L33), [compose.local.yaml:86](compose.local.yaml#L86). The README tells users to "Put the server-only `GEMINI_API_KEY` in root `.env.local`" — [README.md:36](README.md#L36); `services/api/.env.example:12-13` says "Set an AI Studio key, or COMPANION_VERTEX=1 with ADC". Terraform sets no `GEMINI_API_KEY`, so a cloud deploy would take the Vertex path — [main.tf:216-228](infra/terraform/main.tf#L216). No `generativelanguage.googleapis.com` or `x-goog-api-key` literals anywhere (VERIFIED grep).                                                                                                                                                                                                                                                                                                                                                                                            |
+| 2. No raw audio stored                                                                 | **PASS**              | Gateway relays 640-byte PCM frames straight to Live (`active.live?.audio(raw)`) and output 960-byte frames straight to the socket; no `writeFile`/`createWriteStream`/bucket `.save` exists in `services/gateway/src` or `services/api/src` (VERIFIED grep) — [services/gateway/src/gateway.ts:1227-1230](services/gateway/src/gateway.ts#L1227), [:228-235](services/gateway/src/gateway.ts#L228); `live.ts` keeps `pending` buffers in memory only — [live.ts:86-99](services/gateway/src/live.ts#L86). The only GCS writes are builder sprite/collider files — [services/builder/src/worker.ts:689-703](services/builder/src/worker.ts#L689).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 3. Transcripts only in gateway memory, discarded at session end                        | **FAIL (as written)** | In-memory part holds: `TranscriptBuffer` is memory-only — [services/gateway/src/transcripts.ts:1-16](services/gateway/src/transcripts.ts#L1); `session.transcript` capped at 100 lines and zeroed on end — [gateway.ts:248-249](services/gateway/src/gateway.ts#L248), [:177-178](services/gateway/src/gateway.ts#L177); summaries are model-generated with "omit names and personal information" — [live.ts:220-227](services/gateway/src/live.ts#L220); `logEvent` accepts only operational fields — [packages/server-core/src/telemetry.ts:24-35](packages/server-core/src/telemetry.ts#L24). **But** the gateway copies the last 1-4 moderated child utterances (≤4000 chars) into `BuilderJob.childRequest` — [gateway.ts:597-614](services/gateway/src/gateway.ts#L597), [:633-649](services/gateway/src/gateway.ts#L633); schema comment: "Server-captured moderated child words" — [packages/protocol/src/jobs.ts:20-21](packages/protocol/src/jobs.ts#L20); the builder persists it as `world.creation.originalWish` / `creation.changes[]` and as `worlds/{id}/versions/{jobId}.reason` — [services/builder/src/revisions.ts:54](services/builder/src/revisions.ts#L54), [:97](services/builder/src/revisions.ts#L97), [services/builder/src/worker.ts:388](services/builder/src/worker.ts#L388), [:553-559](services/builder/src/worker.ts#L553), schema [packages/protocol/src/firestore.ts:73-79](packages/protocol/src/firestore.ts#L73), [:103](packages/protocol/src/firestore.ts#L103). The README says the opposite: "Build jobs use a deterministic age/tier/concept brief rather than transcript excerpts" — [README.md:92](README.md#L92). The payload also sits in the Cloud Tasks queue body — [services/gateway/src/store.ts:274](services/gateway/src/store.ts#L274). |
+| 4. Child profiles hold first name, avatar, age band only                               | **PARTIAL**           | `ChildDocSchema` holds `firstName`, `avatar`, `ageBand` plus `companion` (name, characterId and a `data:image/webp;base64` ≤130 KB generated likeness), `tier`, `labsUnlocked`, `captions`, `language`, `points`, `storyPreferences`, `pets`, `sessionTargetMinutes`, `loopsCompleted` — [packages/protocol/src/firestore.ts:39-56](packages/protocol/src/firestore.ts#L39). The chibi is written by [services/api/src/companion.ts:196-206](services/api/src/companion.ts#L196). Spec §12 states the rule and §18 lists "user-uploaded images or photos" as out of scope — [spec:634](docs/superpowers/specs/2026-10-15-just-imagine-design.md#L634), [spec:727](docs/superpowers/specs/2026-10-15-just-imagine-design.md#L727). Mitigations: source photo re-encoded, metadata stripped, never persisted, buffer zeroed — [companion.ts:44-50](services/api/src/companion.ts#L44), [:221](services/api/src/companion.ts#L221).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 5. World content never over the WebSocket                                              | **PASS**              | `ServerMessageSchema` carries only `worldJob` status/ids, transcripts, dials, discovery cards, quiz/points and a `learningLook` image data URL; no `SceneDoc` or `WorldDoc` member — [packages/protocol/src/ws.ts:122-196](packages/protocol/src/ws.ts#L122). Worlds reach the browser from Firestore under owner-read rules — [firestore.rules:13-19](firestore.rules#L13).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 6. Secrets from Secret Manager or git-ignored `.env`                                   | **PASS**              | `.gitignore` ignores `.env`, `.env.*` (keeps `.env.example`), `*.tfvars`, logs — [.gitignore:5-7](.gitignore#L5); `git ls-files                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | grep -iE "\.env | key | secret | credential"`returns only the two`.env.example`files and sound assets (VERIFIED);`.env.local`is untracked, mode 0600, contains only`GEMINI_API_KEY`(VERIFIED, value not printed);`git log --all -S`for`private_key`, `BEGIN PRIVATE KEY`, `AIza`, `sk_live`returns nothing (VERIFIED); Stripe secrets come from Secret Manager via`value_source.secret_key_ref`(version`latest`) only when `enable_billing` — [main.tf:123-143](infra/terraform/main.tf#L123), [:230-252](infra/terraform/main.tf#L230); Stripe client refuses non-`sk_test_` keys — [services/api/src/billing.ts:13-14](services/api/src/billing.ts#L13). |
 
 ### Inferences
+
 - The API-key branch exists for local convenience, but it means the only real-model evidence in the repo (CHECKPOINT's local voice/world/companion runs) was produced through the Gemini Developer API, not Vertex AI. A Google judge will ask "show me Vertex" and there is nothing to show.
 - Rule 3 is a product trade-off (preserve the child's exact wishes) that was made without updating the rule, the README, or the privacy page, so it reads as a broken promise rather than a decision.
 
 ### Gaps
+
 - Whether Developer-API (AI Studio key) requests carrying a child's photo fall under different data-use terms than Vertex AI was not checked against Google's current terms; the privacy page only says "Processing by Gemini is subject to the selected provider service and its data terms" — [apps/web/app/privacy/page.tsx:17](apps/web/app/privacy/page.tsx#L17).
 
 ---
@@ -65,9 +72,11 @@ Three of six hard rules pass cleanly (no audio stored, no world content over the
 ## Key question 3: Firestore security rules
 
 ### Takeaway
+
 The rules are small, deny-by-default and correct for the design: every client write is denied, reads are scoped to `request.auth.uid`, admin collections are server-only, and admin-hidden worlds are hidden from their own family. Coverage is narrower than the data model (stories, learn progress, builderJobs and all lock collections are simply unreadable, which is fine because the API serves them), and the rules tests are three emulator REST tests rather than a `@firebase/rules-unit-testing` suite.
 
 ### Cited Findings
+
 - Full rules: `users/{uid}` read if `parent(uid)`; `children/{childId}` and `discoveries/{concept}` read if parent; `worlds/{worldId}` read if `visibleTo(resource.data)` = owner and `hidden != true`; `versions/{version}` read via `get()` of the parent world; `sessions` read if `parent(resource.data.uid)`; `usageDaily` same; `subscriptions/{uid}` read if parent; `adminAudit` and `adminFlags` `allow read, write: if false`; catch-all `match /{document=**} { allow write: if false; }` — [firestore.rules:1-28](firestore.rules#L1) (READ)
 - No `allow read, write: if true` and no bare `request.auth != null` rule exists (VERIFIED by reading the 28-line file).
 - Because all writes are denied there is no client-side schema/size validation to audit; every writer is the Admin SDK through Zod (`readDoc`/`writeDoc`/`updateDoc` parse on both sides) — [packages/server-core/src/docs.ts:14-51](packages/server-core/src/docs.ts#L14)
@@ -78,9 +87,11 @@ The rules are small, deny-by-default and correct for the design: every client wr
 - Indexes: three composite indexes (`worlds` ownerUid+childId+createdAt, `sessions` uid+childId+startedAt, `builderJobs` uid+status) and a `children.companion.image` index exemption — [firestore.indexes.json](firestore.indexes.json); but `store.listWorlds`/`listSessions` filter without `orderBy` and sort in memory, so the declared indexes are not what those queries use — [services/api/src/store.ts:134-152](services/api/src/store.ts#L134), [:157-165](services/api/src/store.ts#L157) (READ). The emulator warned nothing, but admin queries like `sessions.where('startedAt','>=')` + `select` and `worlds.where('updatedAt','>=')` + `where('hidden')` would need indexes not declared — [services/api/src/admin.ts:164-170](services/api/src/admin.ts#L164), [:592-594](services/api/src/admin.ts#L592) (READ, not verified against a real project)
 
 ### Inferences
+
 - The rules are a genuine strength; the main risk is not the rules but the amount of child-derived text that an owner-scoped read can legitimately return.
 
 ### Gaps
+
 - Not covered by tests: list queries against `worlds`/`sessions` (the earlier direction check also flagged this), and the `versions` `get()` cost under list reads.
 
 ---
@@ -88,9 +99,11 @@ The rules are small, deny-by-default and correct for the design: every client wr
 ## Key question 4: API security (Fastify REST)
 
 ### Takeaway
+
 Auth, ownership, input validation, error hygiene, CORS, Stripe signature verification and OIDC-protected internal routes are all present and tested; I found no IDOR. What is missing is any rate limiting, request correlation, logging of 500s, re-authentication for destructive routes, and three acknowledged moderation/billing gaps (hidden worlds still served, comp plan overwritten, suspension not enforced on the gateway).
 
 ### Cited Findings
+
 - Auth middleware: `Bearer` Firebase ID token verified with revocation check (`verifyIdToken(token, true)`), then a suspension check that fails closed — [services/api/src/app.ts:96-114](services/api/src/app.ts#L96), [packages/server-core/src/auth.ts:12-19](packages/server-core/src/auth.ts#L12), [:56-60](packages/server-core/src/auth.ts#L56). Admin routes require the exact custom claim `admin === true` — [auth.ts:31-50](packages/server-core/src/auth.ts#L31), granted by a script that refuses real projects without `--yes` and refuses parent accounts — [scripts/grant-admin.mjs:47-51](scripts/grant-admin.mjs#L47), [:69-75](scripts/grant-admin.mjs#L69) (READ)
 - Principals: there is no child principal; `req.parentUid` scopes everything; child/world/story ids are path-checked against the verified uid — [store.ts:53-58](services/api/src/store.ts#L53), [:124-130](services/api/src/store.ts#L124) (foreign world → 404, fixed since the direction check), [stories.ts:29-37](services/api/src/stories.ts#L29), [:150](services/api/src/stories.ts#L150), [companion.ts:140-155](services/api/src/companion.ts#L140), [learn.ts:40-57](services/api/src/learn.ts#L40) (READ). Tests: "uses the verified uid rather than any supplied owner", "cannot update another parent child", "does not read another owner world", "never shows one family another family child" — all passed (VERIFIED)
 - Input validation: every body goes through protocol Zod schemas (`CreateChildBodySchema`, `UpdateChildBodySchema`, `CheckoutBodySchema` strict, `CreateStorySchema`, `SetAppearanceSchema`...), path ids through `DocumentIdSchema`, `x-app-language` through `LanguageSchema` — [app.ts:115-116](services/api/src/app.ts#L115), [:122](services/api/src/app.ts#L122), [:259-264](services/api/src/app.ts#L259) (READ). Zod errors and Fastify 400s collapse to a generic `INVALID_ARGUMENT`; everything else to a generic `INTERNAL` — no stack or message leaks — [app.ts:55-76](services/api/src/app.ts#L55); test "never exposes internal exception text" passed (VERIFIED)
@@ -108,9 +121,11 @@ Auth, ownership, input validation, error hygiene, CORS, Stripe signature verific
 - Unbounded list queries remain: `listWorlds`/`listSessions` fetch all docs and sort in memory — [store.ts:134-166](services/api/src/store.ts#L134) (READ)
 
 ### Inferences
+
 - The API would pass a routine IDOR/authz review. The gaps are the "second-day" controls (rate limits, request ids, 500 logging, step-up auth) and the three moderation/billing follow-ups the team already knows about.
 
 ### Gaps
+
 - No test exercises `/v1/worlds/:id/text-edition` abuse or any throughput limit; no evidence of running behind a load balancer/Cloud Armor.
 
 ---
@@ -118,9 +133,11 @@ Auth, ownership, input validation, error hygiene, CORS, Stripe signature verific
 ## Key question 5: Gateway (WebSocket) security
 
 ### Takeaway
+
 Strong. A socket must send a valid Firebase ID token in `hello` within 10 s before any Vertex session is opened; frames are size- and rate-limited, output is backpressured, one voice session per child is enforced with a Firestore lease, and quota/kill switch are checked at admission. The two gaps are no suspension check at `hello` and best-effort reconnect semantics across Cloud Run instances.
 
 ### Cited Findings
+
 - Authentication: first message must be `hello` with `idToken`, `childId`, `characterId`; anything else closes with 1008; a 10 s `helloDeadline` closes idle sockets; kill switch is checked, then `store.authorize` → `verifyIdToken` + consent + child existence + deletion fences + remaining voice seconds; only after `claim` succeeds is `openLive` called — [services/gateway/src/gateway.ts:1216](services/gateway/src/gateway.ts#L1216), [:1249-1264](services/gateway/src/gateway.ts#L1249), [:1296](services/gateway/src/gateway.ts#L1296), [:1330](services/gateway/src/gateway.ts#L1330), [services/gateway/src/store.ts:53-70](services/gateway/src/store.ts#L53) (READ); test "rejects invalid tokens without opening a model session" exists in `services/gateway/test/gateway.test.ts` (READ, not run here)
 - Origin check: `verifyClient: !info.origin || options.origins.includes(info.origin)` with `origins = [WEB_URL]` — browsers are pinned to the web origin; non-browser clients without an Origin header are allowed (they still need a token) — [gateway.ts:108-114](services/gateway/src/gateway.ts#L108), [main.ts:28](services/gateway/src/main.ts#L28) (READ)
 - Message limits: `maxPayload: 64 KiB`; per-connection sliding-second limits of 30 control / 80 binary messages; binary frames must be exactly 640 bytes (20 ms of 16 kHz PCM) or are dropped — [gateway.ts:111](services/gateway/src/gateway.ts#L111), [:1218-1230](services/gateway/src/gateway.ts#L1218); per-session serialized work queue caps at 16 pending operations then ends the session — [:119-132](services/gateway/src/gateway.ts#L119) (READ)
@@ -134,9 +151,11 @@ Strong. A socket must send a valid Firebase ID token in `hello` within 10 s befo
 - Gateway has no HTTP health route; it is a bare `ws` server (plain GET answers 426), so Terraform uses a TCP startup probe and there is no gateway uptime check — [gateway.ts:108](services/gateway/src/gateway.ts#L108), [observability.tf:178-182](infra/terraform/observability.tf#L178), admin comment at [admin.ts:775](services/api/src/admin.ts#L775) (READ)
 
 ### Inferences
+
 - An unauthenticated client cannot burn Vertex minutes: the model session is opened strictly after token verification, quota check and lock claim. The residual abuse surface is TCP/handshake churn, which Cloud Run concurrency (80) and the 10 s deadline bound but nothing rate-limits per IP.
 
 ### Gaps
+
 - Gateway tests were not executed in this audit (only read); CHECKPOINT reports 53 unit / 61 integration passing.
 
 ---
@@ -144,9 +163,11 @@ Strong. A socket must send a valid Firebase ID token in `hello` within 10 s befo
 ## Key question 6: Child safety, consent, retention, deletion and compliance
 
 ### Takeaway
+
 The safety pipeline is layered and real (blocklist, strict Vertex safety settings, transcript moderation, scene review, image safety check on every generated asset, kill switch, admin hide/suspend/delete with audit). Consent is a self-attested checkbox with no verifiable parental consent or age gate, there is no data export, and the retention story is contradicted by persisting the child's words. COPPA/GDPR-K/Bangladesh analysis exists only as the spec's "product control, not legal advice" sentence.
 
 ### Cited Findings
+
 - Consent: sign-up checkbox "I am a parent or guardian and consent to creating this family account and processing my child's play data as described in the privacy policy" — [apps/web/lib/strings/en.ts:46-47](apps/web/lib/strings/en.ts#L46), enforced server-side (`body.consent !== true` → no account, `consentAt` stored) — [apps/web/app/api/session/route.ts:24-37](apps/web/app/api/session/route.ts#L24); the api refuses accounts without `consentAt` — [store.ts:49-50](services/api/src/store.ts#L49). The spec itself says "This is a product control, not legal advice" — [spec:612](docs/superpowers/specs/2026-10-15-just-imagine-design.md#L612). No age gate, no verifiable-consent mechanism, no email verification step anywhere in `apps/web` (VERIFIED grep for `coppa|age gate|parent gate|over 18|adult` found only the consent strings) (READ)
 - Photo companion consent: a second explicit checkbox is required before upload and the api test "requires a signed-in parent and explicit photo permission" passed — [apps/web/components/companion/CompanionSetup.tsx:48](apps/web/components/companion/CompanionSetup.tsx#L48), [:194-199](apps/web/components/companion/CompanionSetup.tsx#L194) (VERIFIED test). The privacy page documents it: "does not save the original photo... generated artwork is stored in the private child profile and is removed when the profile or account is deleted" — [apps/web/app/privacy/page.tsx:14-17](apps/web/app/privacy/page.tsx#L14)
 - Moderation pipeline (READ): deterministic blocklist on builder inputs and discoveries — [gateway.ts:598](services/gateway/src/gateway.ts#L598), [store.ts:286](services/gateway/src/store.ts#L286); `BLOCK_LOW_AND_ABOVE` safety settings on every `generateContent`/`live.connect` — [live.ts:11-16](services/gateway/src/live.ts#L11), [services/builder/src/vertex.ts:10-15](services/builder/src/vertex.ts#L10), [companion.ts:71-76](services/api/src/companion.ts#L71); per-utterance transcript moderation (question 5); model "creation review" of generated scenes — [vertex.ts:37-56](services/builder/src/vertex.ts#L37); image safety check (`safeImage`) before any asset is stored or cached, rejected images never reused as repair references, `assetCache.safetyChecked` gate — [worker.ts:656-679](services/builder/src/worker.ts#L656), [:589-596](services/builder/src/worker.ts#L589), [:705-714](services/builder/src/worker.ts#L705); second-model `{"safe":boolean}` check on companion and costume images — [companion.ts:109-128](services/api/src/companion.ts#L109), [live.ts:198-217](services/gateway/src/live.ts#L198)
@@ -159,10 +180,12 @@ The safety pipeline is layered and real (blocklist, strict Vertex safety setting
 - Logging hygiene: `logEvent` field allowlist with `childHash` (sha256 of uid+childId, 24 chars) instead of ids; `liveErrorDetails` strips provider message bodies — [telemetry.ts:18-35](packages/server-core/src/telemetry.ts#L18), [services/gateway/src/live-errors.ts:1-24](services/gateway/src/live-errors.ts#L1) (READ); admin family view "never child names" test passed (VERIFIED)
 
 ### Inferences
+
 - A privacy reviewer would accept the architecture (parent principal only, server-only writes, hashed ids, no audio) but would flag three things immediately: the checkbox-only consent for a product that processes children's voice and photos, the undocumented persistence of verbatim child speech, and the absence of export/access tooling.
 - The photo-companion feature expands the privacy surface beyond the spec's own out-of-scope list; it is well-engineered (no source photo stored) but it is exactly the kind of feature a COPPA counsel would want to see justified.
 
 ### Gaps
+
 - No legal analysis for COPPA verifiable parental consent, GDPR-K (Art. 8 age thresholds), or Bangladesh's current cyber/data-protection regime exists in the repo, and I did not research those statutes; the spec explicitly defers them.
 - Whether the privacy page mentions transcripts at all: grep for `transcript|audio|record|retain` in `apps/web/app/privacy/page.tsx` matched only the photo paragraph, so the page appears silent on voice retention (READ, partial: only grep, not a full read of the page).
 
@@ -171,9 +194,11 @@ The safety pipeline is layered and real (blocklist, strict Vertex safety setting
 ## Key question 7: Billing (Stripe test mode)
 
 ### Takeaway
+
 Billing is the most carefully written commercial code in the repo: test-mode-only, lease-serialized, idempotent, reconciled from live Stripe state, with deletion cancelling subscriptions and expiring open checkouts. Pricing matches the spec (USD 9.99/month, 7-day trial, one Family price). Without keys the api boots with billing disabled and every billing route answers 503. The comp-plan overwrite is a real, acknowledged defect.
 
 ### Cited Findings
+
 - Constructor refuses keys not starting with `sk_test_`; webhook rejects `event.livemode` — [billing.ts:13-14](services/api/src/billing.ts#L13), [:139-140](services/api/src/billing.ts#L139) (READ)
 - Checkout: customer created with idempotency key `parent-${uid}` and stored transactionally; refuses when any non-terminal subscription exists; reuses an `open` Checkout Session from `billingState/{uid}`; `trial_period_days: 7`, `line_items: [{ price: priceId }]`, success/cancel URLs under `WEB_URL/parent/billing`; `client_reference_id = uid` and `subscription_data.metadata.uid` — [billing.ts:56-102](services/api/src/billing.ts#L56) (READ). Test "reuses an open checkout and rejects overlapping portal initialization" passed (VERIFIED)
 - Portal: `billingPortal.sessions.create` with return URL — [billing.ts:104-113](services/api/src/billing.ts#L104)
@@ -186,9 +211,11 @@ Billing is the most carefully written commercial code in the repo: test-mode-onl
 - No real Stripe test-mode run has ever happened: TODO "Configure Stripe TEST price/keys/webhook and run real test checkout" unchecked — [TODO.md:205](TODO.md#L205); runbook step 5 — [deployment.md:9](docs/runbooks/deployment.md#L9)
 
 ### Inferences
+
 - Judges who click "Upgrade" in the local demo get a friendly 503, which is honest but visibly unfinished. The logic is ready for a Stripe CLI test-mode run; nothing suggests it was done.
 
 ### Gaps
+
 - Secret Manager version pinning (`latest`) and rotation were not exercised.
 
 ---
@@ -196,9 +223,11 @@ Billing is the most carefully written commercial code in the repo: test-mode-onl
 ## Key question 8: Operations — logging, tracing, health, shutdown, scaling, cost, load, backups, incidents
 
 ### Takeaway
+
 Operations are designed on paper to a good standard (structured JSON events, Cloud Trace via OpenTelemetry, log-based metrics, four alert policies, uptime checks, dashboard, kill switch, graceful SIGTERM in all three services), but nothing has ever run in Cloud Run, there are no request ids, 500s are swallowed unlogged, no Error Reporting, no backups, no budget, no notification channels, local Terraform state, and the k6 load test has never produced a result. The team would not survive 50 judges on the shared demo account because one voice session per child profile is enforced.
 
 ### Cited Findings
+
 - Structured logging: `logEvent` writes one JSON line per event with `severity`, `event`, `service` (`K_SERVICE`), allowlisted fields — [telemetry.ts:25-35](packages/server-core/src/telemetry.ts#L25); Terraform metrics key on `jsonPayload.event` — [observability.tf:3-10](infra/terraform/observability.tf#L3) (READ). No request id / `logging.googleapis.com/trace` correlation on any log line; the api/builder `onResponse` hook logs only status and duration — [api main.ts:124-126](services/api/src/main.ts#L124), [builder main.ts:140-142](services/builder/src/main.ts#L140) (READ)
 - Tracing: `startTelemetry` starts the OTEL NodeSDK with the Cloud Trace exporter only when `OTEL_ENABLED=1` (Terraform sets it); `traced()` wraps operations; `roles/cloudtrace.agent` granted — [telemetry.ts:36-62](packages/server-core/src/telemetry.ts#L36), [main.tf:218](infra/terraform/main.tf#L218), [observability.tf:254-261](infra/terraform/observability.tf#L254) (READ)
 - Error Reporting: nothing emits `@type: type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent` or stack traces; api 500s are not logged at all (question 4); gateway writes two failure events to stderr as JSON without severity — [gateway.ts:160-162](services/gateway/src/gateway.ts#L160), [:173-175](services/gateway/src/gateway.ts#L173) (READ)
@@ -214,10 +243,12 @@ Operations are designed on paper to a good standard (structured JSON events, Clo
 - CI health: 6 of the last 8 `ci` runs on `main` failed or were cancelled; the latest push run passed; the nightly `builder-evaluations` fails because staging vars are unset (VERIFIED `gh run list`)
 
 ### Inferences
+
 - Nothing here is wrong in design; almost all of it is unexercised. The first real incident would be debugged with grep over `jsonPayload.event` and no request correlation.
 - The demo plan, not the architecture, is the 50-judge risk: multiple judges need their own parent accounts (sign-up + consent), or the single-session lock will turn the demo into a queue.
 
 ### Gaps
+
 - No Cloud Logging/Trace/Monitoring data exists to inspect; all operational claims are from Terraform and code.
 
 ---
@@ -225,9 +256,11 @@ Operations are designed on paper to a good standard (structured JSON events, Clo
 ## Key question 9: CI/CD
 
 ### Takeaway
+
 `ci.yml` is a genuinely complete PR/main gate (format, lint, typecheck, emulator-backed tests with Java 21, build, Playwright against the fake gateway) and `evals.yml` adds offline builder evals nightly with a WIF-based staging job. There is no deploy automation anywhere, no image promotion pipeline beyond a hand-run Cloud Build file, and the `main` history is mostly red.
 
 ### Cited Findings
+
 - `ci.yml`: on `pull_request` and `push: main`; concurrency cancel-in-progress; `timeout-minutes: 20`; steps `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (which includes `scripts/test-emulators.mjs` on isolated ports 8085/9095), `pnpm build` with `NEXT_PUBLIC_FAKE=1`, Playwright Chromium install, fixture gateway + web start, `pnpm --filter web e2e`, test-results artifact on failure — [.github/workflows/ci.yml:1-50](.github/workflows/ci.yml#L1), [scripts/test-emulators.mjs:16-46](scripts/test-emulators.mjs#L16) (READ)
 - No secrets referenced in `ci.yml`; `evals.yml` uses repository `vars` and `google-github-actions/auth@v3` Workload Identity Federation (`id-token: write`, `permissions: contents: read`) for the billable staging run — [.github/workflows/evals.yml:17](.github/workflows/evals.yml#L17), [:41-68](.github/workflows/evals.yml#L41) (READ). `ci.yml` sets no `permissions:` block (default token scope) (READ)
 - No deploy job, no `google_cloudbuild_trigger`, no GitHub→Cloud Build hand-off; spec §13 promised "Merges to main trigger Cloud Build to build images, push to Artifact Registry, deploy to staging, run Playwright end-to-end against staging, then wait for manual approval" — [spec:651](docs/superpowers/specs/2026-10-15-just-imagine-design.md#L651) (READ)
@@ -236,9 +269,11 @@ Operations are designed on paper to a good standard (structured JSON events, Clo
 - No dependency audit, CodeQL, secret scanning or Dependabot configuration under `.github/` (VERIFIED: only `workflows/ci.yml` and `workflows/evals.yml` exist)
 
 ### Inferences
+
 - CI proves the code, not the deployment. A judge looking at the Actions tab sees a red streak and a scheduled job that has never had a staging to talk to.
 
 ### Gaps
+
 - Branch protection / required checks live in GitHub settings and were not inspected.
 
 ---
@@ -246,35 +281,38 @@ Operations are designed on paper to a good standard (structured JSON events, Clo
 ## Key question 10: Google Cloud services actually used vs claimed
 
 ### Takeaway
+
 The code integrates with eleven Google Cloud / Firebase surfaces through real SDK calls, and Terraform declares most of the spec's table; but every one of them is "configured, never run" and three claimed services (App Hosting, Error Reporting, Cloud Build as a pipeline) have no implementation.
 
 ### Cited Findings
 
-| Service | Claimed (spec §4.4/§13) | In code | In Terraform | Ever exercised |
-|---|---|---|---|---|
-| Vertex AI (Gemini Live, Flash, Argon, image models) | yes | `@google/genai` with `vertexai: true, location: 'us-central1'` in 5 clients (plus API-key branch) — [live.ts:28-36](services/gateway/src/live.ts#L28) | APIs enabled, `roles/aiplatform.user` — [main.tf:3](infra/terraform/main.tf#L3), [:83-89](infra/terraform/main.tf#L83) | **No** (local runs used `GEMINI_API_KEY`) — [README.md:36](README.md#L36) |
-| Cloud Run (gateway/api/builder) | yes | SIGTERM handling, `K_SERVICE` guards — [api main.ts:55](services/api/src/main.ts#L55) | 3 `google_cloud_run_v2_service` | No |
-| Firebase Authentication | yes | Admin SDK verify/revocation, session cookies, custom claims — [auth.ts](packages/server-core/src/auth.ts) | `identitytoolkit`/`firebase` APIs, IAM roles | Emulator only (VERIFIED tests) |
-| Firestore (nam5) | yes | Admin SDK transactions everywhere; client SDK reads — [apps/web/lib/firebase.ts](apps/web/lib/firebase.ts) | database resource; rules/indexes in files, not TF | Emulator only |
-| Cloud Storage + Cloud CDN | yes | `@google-cloud/storage` saves in builder — [worker.ts:689-703](services/builder/src/worker.ts#L689) | public bucket + optional CDN chain — [cdn.tf](infra/terraform/cdn.tf) | No (local filesystem adapter used) |
-| Cloud Tasks | yes | `CloudTasksClient.createTask` with OIDC — [gateway store.ts:264-281](services/gateway/src/store.ts#L264), [api tasks.ts](services/api/src/tasks.ts) | 2 queues | No (local `localBuildTasks` queue) — [local-queue.ts](services/builder/src/local-queue.ts) |
-| Cloud Scheduler | not in §4.4 (used for deletion retry) | `/internal/deletions` handler — [api main.ts:119-122](services/api/src/main.ts#L119) | 1 job | No |
-| Secret Manager | yes | env injection only | 2 secrets + accessor | No |
-| Cloud Logging / log-based metrics | yes | JSON stdout events | 6 metrics, 4 alerts, dashboard | No |
-| Cloud Trace (OpenTelemetry) | yes | NodeSDK + Cloud Trace exporter — [telemetry.ts:57-62](packages/server-core/src/telemetry.ts#L57) | `roles/cloudtrace.agent` | No |
-| Cloud Monitoring uptime checks | yes | n/a | web + api checks | No |
-| Error Reporting | yes | **nothing** | nothing | No |
-| Artifact Registry | yes | n/a | repository | No (image never pushed) |
-| Cloud Build | yes (pipeline) | n/a | no triggers | No (files only) |
-| Firebase App Hosting (web) | yes | `apphosting.yaml` stub | nothing | No |
-| Genkit | yes (builder flows) | `genkit().defineFlow('buildWorld')` wraps the dispatcher — [builder main.ts:84-87](services/builder/src/main.ts#L84) | n/a | Local only |
-| Cloud Armor / IAP / LB for services / custom domain | not claimed | none | none | n/a |
-| Budgets | implied by "cost controls" | admin cost estimate only | none | n/a |
+| Service                                             | Claimed (spec §4.4/§13)               | In code                                                                                                                                               | In Terraform                                                                                                           | Ever exercised                                                                             |
+| --------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Vertex AI (Gemini Live, Flash, Argon, image models) | yes                                   | `@google/genai` with `vertexai: true, location: 'us-central1'` in 5 clients (plus API-key branch) — [live.ts:28-36](services/gateway/src/live.ts#L28) | APIs enabled, `roles/aiplatform.user` — [main.tf:3](infra/terraform/main.tf#L3), [:83-89](infra/terraform/main.tf#L83) | **No** (local runs used `GEMINI_API_KEY`) — [README.md:36](README.md#L36)                  |
+| Cloud Run (gateway/api/builder)                     | yes                                   | SIGTERM handling, `K_SERVICE` guards — [api main.ts:55](services/api/src/main.ts#L55)                                                                 | 3 `google_cloud_run_v2_service`                                                                                        | No                                                                                         |
+| Firebase Authentication                             | yes                                   | Admin SDK verify/revocation, session cookies, custom claims — [auth.ts](packages/server-core/src/auth.ts)                                             | `identitytoolkit`/`firebase` APIs, IAM roles                                                                           | Emulator only (VERIFIED tests)                                                             |
+| Firestore (nam5)                                    | yes                                   | Admin SDK transactions everywhere; client SDK reads — [apps/web/lib/firebase.ts](apps/web/lib/firebase.ts)                                            | database resource; rules/indexes in files, not TF                                                                      | Emulator only                                                                              |
+| Cloud Storage + Cloud CDN                           | yes                                   | `@google-cloud/storage` saves in builder — [worker.ts:689-703](services/builder/src/worker.ts#L689)                                                   | public bucket + optional CDN chain — [cdn.tf](infra/terraform/cdn.tf)                                                  | No (local filesystem adapter used)                                                         |
+| Cloud Tasks                                         | yes                                   | `CloudTasksClient.createTask` with OIDC — [gateway store.ts:264-281](services/gateway/src/store.ts#L264), [api tasks.ts](services/api/src/tasks.ts)   | 2 queues                                                                                                               | No (local `localBuildTasks` queue) — [local-queue.ts](services/builder/src/local-queue.ts) |
+| Cloud Scheduler                                     | not in §4.4 (used for deletion retry) | `/internal/deletions` handler — [api main.ts:119-122](services/api/src/main.ts#L119)                                                                  | 1 job                                                                                                                  | No                                                                                         |
+| Secret Manager                                      | yes                                   | env injection only                                                                                                                                    | 2 secrets + accessor                                                                                                   | No                                                                                         |
+| Cloud Logging / log-based metrics                   | yes                                   | JSON stdout events                                                                                                                                    | 6 metrics, 4 alerts, dashboard                                                                                         | No                                                                                         |
+| Cloud Trace (OpenTelemetry)                         | yes                                   | NodeSDK + Cloud Trace exporter — [telemetry.ts:57-62](packages/server-core/src/telemetry.ts#L57)                                                      | `roles/cloudtrace.agent`                                                                                               | No                                                                                         |
+| Cloud Monitoring uptime checks                      | yes                                   | n/a                                                                                                                                                   | web + api checks                                                                                                       | No                                                                                         |
+| Error Reporting                                     | yes                                   | **nothing**                                                                                                                                           | nothing                                                                                                                | No                                                                                         |
+| Artifact Registry                                   | yes                                   | n/a                                                                                                                                                   | repository                                                                                                             | No (image never pushed)                                                                    |
+| Cloud Build                                         | yes (pipeline)                        | n/a                                                                                                                                                   | no triggers                                                                                                            | No (files only)                                                                            |
+| Firebase App Hosting (web)                          | yes                                   | `apphosting.yaml` stub                                                                                                                                | nothing                                                                                                                | No                                                                                         |
+| Genkit                                              | yes (builder flows)                   | `genkit().defineFlow('buildWorld')` wraps the dispatcher — [builder main.ts:84-87](services/builder/src/main.ts#L84)                                  | n/a                                                                                                                    | Local only                                                                                 |
+| Cloud Armor / IAP / LB for services / custom domain | not claimed                           | none                                                                                                                                                  | none                                                                                                                   | n/a                                                                                        |
+| Budgets                                             | implied by "cost controls"            | admin cost estimate only                                                                                                                              | none                                                                                                                   | n/a                                                                                        |
 
 ### Inferences
+
 - The integration depth is real (OIDC between services, transactions, Tasks payloads, Trace exporter) — this is not a mock. The absence of any evidence of a single Vertex call is the gap that most undercuts a "built on Google Cloud" story.
 
 ### Gaps
+
 - Could not confirm from the cloud side whether any project, Cloud Run service or Cloud Build history exists (no `gcloud`).
 
 ---
@@ -282,6 +320,7 @@ The code integrates with eleven Google Cloud / Firebase surfaces through real SD
 ## Key question 11: Findings by severity
 
 ### Takeaway
+
 Nothing here is an exploitable security hole against other families. The P0s are "not deployable/clickable" and a child-privacy promise broken in code; the P1s are what a careful Google judge would find in an hour; the P2s are polish.
 
 ### Cited Findings
@@ -316,9 +355,11 @@ Nothing here is an exploitable security hole against other families. The P0s are
 20. Deletion leaves `adminFlags/{uid}`, `deletionJobs`, `storyDeletionLocks` (uid/childId) and shared GCS assets; no export. [deletion.ts:81-116](services/api/src/deletion.ts#L81) (READ).
 
 ### Inferences
+
 - Items 2, 5, 6, 11, 13 are each a one-file fix with an existing test harness; items 1, 3, 4, 10 need a credentialed project and a day of real work.
 
 ### Gaps
+
 - Gateway and builder test suites were not re-run here (only server-core and api).
 
 ---
@@ -326,9 +367,11 @@ Nothing here is an exploitable security hole against other families. The P0s are
 ## Key question 12: Genuinely strong
 
 ### Takeaway
+
 The security architecture is better than typical hackathon work: single parent principal, server-only writes, deny-by-default rules, OIDC between services, durable fenced deletion, lease-serialized billing, and a WebSocket gateway that cannot be made to spend Vertex money without a valid token.
 
 ### Cited Findings
+
 - Firestore rules deny every client write and scope reads to the owner, with admin collections server-only and admin-hidden worlds hidden from their own family; emulator tests prove it — [firestore.rules](firestore.rules), [rules.integration.test.ts](services/api/test/rules.integration.test.ts), [admin-rules.integration.test.ts](services/api/test/admin-rules.integration.test.ts) (VERIFIED passing)
 - Durable, idempotent, fenced deletion across ten collections plus Auth, with a leased worker, Cloud Tasks dispatch and a Scheduler retry, honoured by every writer — [deletion.ts](services/api/src/deletion.ts), [main.tf:292-311](infra/terraform/main.tf#L292) (READ; 3 deletion tests VERIFIED)
 - Quota enforcement in Firestore transactions with ten concurrent last-unit race tests passing — [quota.ts:41-70](packages/server-core/src/quota.ts#L41) (VERIFIED `quota.test.ts 25 passed`)
@@ -342,9 +385,11 @@ The security architecture is better than typical hackathon work: single parent p
 - Honest documentation: README, runbooks and CHECKPOINT repeatedly refuse to claim cloud readiness — [README.md:96](README.md#L96), [deployment.md:24](docs/runbooks/deployment.md#L24), [TODO.md:211](TODO.md#L211) (READ)
 
 ### Inferences
+
 - If this Terraform were applied and the Vertex path smoke-tested, the security posture would be ahead of most entrants; the gap is evidence, not design.
 
 ### Gaps
+
 - None material for this section.
 
 ---
@@ -352,16 +397,20 @@ The security architecture is better than typical hackathon work: single parent p
 ## Key question 13: Verdict and the three upgrades
 
 ### Takeaway
+
 Platform/security/ops are **not winner-level yet**: the design is winner-grade, the proof is absent.
 
 ### Cited Findings
+
 - Verdict paragraph: Just Imagine's platform work reads like a team that knows how to run a children's SaaS on Google Cloud — deny-all Firestore rules, a single parent principal, OIDC-authenticated internal hops, fenced durable deletion, transactional quotas, a WebSocket gateway that is hard to abuse, strict safety settings with layered moderation, least-privilege Terraform that validates, log-based SLO alerts and a kill switch. But on a Google Cloud judging panel it currently has no URL, no Cloud Run revision, no Artifact Registry image, no Vertex AI call log, no load-test result, mostly-red CI, and a README that honestly says so; its only verified runtime is Docker Compose with an AI Studio key on one laptop, which contradicts its own hard rule 1. Its child-privacy story has two self-inflicted cracks — verbatim child speech persisted in world documents against the stated retention rule, and a checkbox-only consent for a product that processes children's voice and photos — and three acknowledged moderation/billing follow-ups (hidden worlds served by the API and un-hidden by the builder, suspension not enforced at the gateway, comp plan overwritten by webhooks). It would pass a security sniff test; it would fail a "show me it running on Google Cloud" test, and a child-privacy reviewer would ask for the transcript-retention and consent answers before signing off. (Sources: all citations above.)
 - Upgrade 1 — **Deploy it, for real, once**: add a GCS backend and `staging.tfvars`, `terraform apply` to one project, push the image, run the three Cloud Run services with ADC on Vertex (remove `GEMINI_API_KEY` from the cloud path and fix `BUILDER_QUEUE`), host the web app (App Hosting or a fourth Cloud Run service), and put the staging URL in the README with a screenshot of the Vertex AI request log and the Cloud Trace span. Evidence it is missing: [cloudbuild.yaml](cloudbuild.yaml), [versions.tf](infra/terraform/versions.tf), [api main.ts:31](services/api/src/main.ts#L31), [README.md:96](README.md#L96).
 - Upgrade 2 — **Make the privacy promise true and provable**: either stop persisting `childRequest` (keep it in the Cloud Tasks payload only and store a model-written brief) or change the rule, README, spec §10/§12 and privacy page to say the child's moderated wishes are kept with the world and deleted with it; add the gateway suspension check, API/builder `hidden` handling, `compPlan` in the webhook, and a `/v1/me/export`. Evidence: [revisions.ts:54,97](services/builder/src/revisions.ts#L54), [README.md:92](README.md#L92), [CHECKPOINT.md:455-457](CHECKPOINT.md#L455).
 - Upgrade 3 — **Produce operational evidence for the demo day**: run `infra/load/sessions.js` against staging with 200 minted tokens and publish the p95, add request ids + Error Reporting + a gateway `/health`, a `google_billing_budget`, Firestore backup schedule and a notification channel, and prepare N judge accounts (not one shared "Ari") so the one-session-per-child lock does not serialize the panel. Evidence: [infra/load/sessions.js:16-18](infra/load/sessions.js#L16), empty `reports/` (VERIFIED), [gateway store.ts:81-82](services/gateway/src/store.ts#L81), absent-resource grep (VERIFIED).
 
 ### Inferences
+
 - With upgrade 1 alone the score moves from "nice local prototype" to "credible Google Cloud deployment"; upgrades 2 and 3 are what separate "credible" from "winner".
 
 ### Gaps
+
 - No judging rubric was available; "winner-level" is my calibration against a hostile-but-fair Google Cloud panel.

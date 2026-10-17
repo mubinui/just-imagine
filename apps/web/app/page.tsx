@@ -46,10 +46,6 @@ export default function Home() {
           <div className="home-invitation">
             <h1>{copy.title}</h1>
             <p className="lead">{copy.intro}</p>
-            <a className="home-experiment-link" href="#home-experiment">
-              {copy.experimentLink}
-              <UiIcon name="chevron" width="18" height="18" />
-            </a>
           </div>
           <div className="home-entrances">
             <nav aria-label={copy.entryLabel}>
@@ -79,6 +75,7 @@ export default function Home() {
               </p>
             )}
           </div>
+          <GravityPlayground compact autoPlay />
         </section>
         <section
           className="home-experiment"
@@ -88,20 +85,19 @@ export default function Home() {
           <div className="home-experiment-copy">
             <h2 id="home-experiment-title">{copy.experimentTitle}</h2>
             <p className="lead">{copy.experimentIntro}</p>
-            <ul className="home-discoveries">
-              {[
-                [s.feature1, s.feature1Body],
-                [s.feature2, s.feature2Body],
-                [s.feature3, s.feature3Body],
-              ].map(([title, body]) => (
-                <li key={title}>
-                  <h3>{title}</h3>
-                  <p>{body}</p>
-                </li>
-              ))}
-            </ul>
           </div>
-          <GravityPlayground />
+          <ul className="home-discoveries">
+            {[
+              [s.feature1, s.feature1Body],
+              [s.feature2, s.feature2Body],
+              [s.feature3, s.feature3Body],
+            ].map(([title, body]) => (
+              <li key={title}>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </li>
+            ))}
+          </ul>
         </section>
         <section className="home-together" aria-labelledby="home-together-title">
           <div>

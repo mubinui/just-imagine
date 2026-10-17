@@ -1,91 +1,94 @@
 # Just Imagine
 
-Imagination to simulation for children aged 6 to 13. Younger children talk with animal companions in Playgrounds; older children summon guides in Labs. Together they turn imagination into a live, interactive, physics-respecting 2.5D world. Every world teaches the real physics behind what the child imagined, and the session structure gradually lengthens attention span.
+A bilingual imagination and learning app built with Gemini, Firebase and Google Cloud.
 
-Built for the Google Cloud AI competition on Gemini and Google Cloud.
+Families with children aged 6–13 can meet a play friend, explore illustrated learning worlds, play story adventures and collect their own creations. A separate school workspace serves class 9/10 STEM lessons, teachers and students.
 
-## How it works
+## What is included
 
-- **Talk.** Mishti, Bhombol, and Chandni hold a live voice conversation through the Gemini Live API (`gemini-3.8-live` on Vertex AI), with Pori Apu, Onko Mama, and Jadu Kaka available as guides.
-- **Build.** A world builder on `gemini-4-argon` turns the conversation into a strictly validated Scene DSL. A deterministic physics validator keeps materials, masses, and rules plausible, and marks impossible wishes as "pretend".
-- **Play.** The browser renders the world with PixiJS and simulates it with Rapier2D. Children poke, drag, flick, and turn what-if dials for gravity, wind, and material.
-- **Discover.** Characters explain what happened, Discovery Cards unlock, and the parent dashboard shows progress.
+- **Families:** parent signup and consent, explorer profiles, character voice calls, English/Bangla, illustrated stories, Learn activities, Studio and gallery.
+- **Schools:** teacher invitations, classes, CSV rosters and student PINs; bilingual lesson authoring, AI text proposals, language approval and publication checks.
+- **Students:** deterministic physics/maths simulations and a virtual chemistry bench, practice, section-based quizzes, progressive hints, results, leaderboards and printable notes/worksheets.
+- **Operators:** separate admin access for school management, shared content, moderation, appearance and audited controls.
 
-## Documents
+This is a working local prototype with test and browser evidence, **not a production deployment**. Fresh generated-world acceptance remains blocked: the latest five recorded creation requests failed before artwork/publication. Existing authored games and school workflows are separate verified paths. See [current status](CHECKPOINT.md) and [generation evidence](docs/handoff/generated-world-runtime-acceptance.md).
 
-- Design spec: [docs/superpowers/specs/2026-10-15-just-imagine-design.md](docs/superpowers/specs/2026-10-15-just-imagine-design.md)
-- Master plan: [docs/superpowers/plans/2026-10-15-just-imagine-master.md](docs/superpowers/plans/2026-10-15-just-imagine-master.md)
-- Module plans: [docs/superpowers/plans/](docs/superpowers/plans/)
-- Working agreements for Claude Code: [CLAUDE.md](CLAUDE.md)
-- Current handoff: [CHECKPOINT.md](CHECKPOINT.md)
-- Implementation progress: [TODO.md](TODO.md)
-- Local and deployment runbooks: [docs/runbooks/](docs/runbooks/)
+## Project screenshots
 
-## Setup
+| Welcome                                               | Learn                                                 | Studio                                                               |
+| ----------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| ![Just Imagine welcome page](docs/images/landing.png) | ![Illustrated learning worlds](docs/images/learn.png) | ![Studio characters and combined navigation](docs/images/studio.png) |
 
-```bash
-corepack enable
-corepack use pnpm@10.34.7
-pnpm install
-pnpm lint && pnpm typecheck && pnpm test
-```
+Open the full Studio views: [laptop, 1440 × 900](docs/images/laptop.png) · [tablet, 1024 × 768](docs/images/tablet.png). These are actual app captures; [capture details](docs/images/PROVENANCE.md).
 
-## Full local app with Gemini
+## Run locally
 
-Run `node scripts/local.mjs start` with Docker Desktop running, then open **http://localhost:3300**. Put the server-only `GEMINI_API_KEY` in root `.env.local`; `node scripts/local.mjs reload-key` applies key changes. This runs real voice, game generation, companion creation and persistence with local Firebase services. The separate3200 preview remains fixture-only.
-
-See [local app and demo account instructions](docs/handoff/local-development.md).
-
-## Local fixtures
-
-Start the scripted WebSocket gateway without Firebase or Vertex AI credentials:
-
-```bash
-pnpm --filter @just-imagine/fixtures dev
-# Optional: stream a one-second synthetic tone on hello.
-TONE=1 pnpm --filter @just-imagine/fixtures dev
-```
-
-It listens at `ws://127.0.0.1:8787` (`PORT` overrides the port). Send a protocol `hello` with any non-empty development token, a child ID, and a character ID. Control messages and synthetic audio arrive over the socket; world documents come through a separate source:
-
-```ts
-import { FakeWorldSource, progressiveScript } from '@just-imagine/fixtures/browser';
-
-const source = new FakeWorldSource(progressiveScript('jellyDragon'));
-const unsubscribe = source.subscribe('w_fixture_jelly_dragon', (world) => {
-  console.log(world.status, world.doc.title);
-});
-// Call unsubscribe() when the view closes.
-```
-
-Fixtures include Jelly Dragon, Moon Bounce, Pond Float, and a projectile lab. The additive `LAB_WORLDS` catalog includes a Galton board and a fractions lab. The progressive source simulates asset availability using placeholder image URLs. Node tests can import the gateway from `@just-imagine/fixtures/gateway`.
-
-## Run the application
-
-In separate terminals:
+Requires **Node 22.12+**, **pnpm 10.34.7**, and Docker Desktop/Engine with Compose. Run commands from the repository root.
 
 ```sh
-pnpm --filter @just-imagine/fixtures dev
-NEXT_PUBLIC_FAKE=1 pnpm --filter @just-imagine/web dev --port 3100
+git clone https://github.com/mubinui/just-imagine.git
+cd just-imagine
+corepack enable
+pnpm install --frozen-lockfile
+cp .env.example .env.local
+chmod 600 .env.local
 ```
 
-Open `http://localhost:3100/play` and choose Ari. Preview mode uses local sample data, synthetic audio and playable fixtures; it does not open a microphone or accept payments. Public environment values are compiled into the web build, so rebuild when changing preview/real mode.
+On a fresh clone, edit `.env.local` and set the server-only `GEMINI_API_KEY`, then:
 
-## Workspace
+```sh
+pnpm local:start
+```
 
-| Location                               | Responsibility                                                         |
-| -------------------------------------- | ---------------------------------------------------------------------- |
-| `packages/scene-schema`, `protocol`    | Validated scenes, physics rules and service contracts                  |
-| `packages/fixtures`, `server-core`     | Offline worlds/fakes, Firebase, transactions and telemetry             |
-| `packages/engine`, `characters`        | Pixi/Rapier simulation, browser audio, voice client and Rive adapter   |
-| `apps/web`                             | Marketing/auth, child Studio/gallery, parent profiles/progress/billing |
-| `services/gateway`                     | Authenticated Live voice, tools, pacing, quotas and session summaries  |
-| `services/builder`                     | Versioned prompts, scene/patch generation, safe assets and evaluations |
-| `services/api`                         | Ownership, profiles, worlds, Stripe test billing and durable deletion  |
-| `infra`, `.github`, `cloudbuild*.yaml` | Terraform, operations, CI, load scenario and image promotion           |
+Open **http://localhost:3300**. Create a local parent account, give consent and add an explorer. For an existing checkout, preserve its `.env.local` and local accounts. AI features require access and quota for the configured models; no key is needed for the separate [fixture preview](apps/web/README.md#fixture-preview).
 
-Worlds arrive through Firestore. WebSockets carry control messages and PCM only. Raw audio is never stored; transcripts stay in gateway memory, while persisted summaries/learning records contain the session outcome. Build jobs use a deterministic age/tier/concept brief rather than transcript excerpts.
+| Person        | Entry point                                                      |
+| ------------- | ---------------------------------------------------------------- |
+| Parent/family | `/sign-up`, `/sign-in`, `/parent/dashboard`                      |
+| Explorer      | `/play`, then Studio, Learn, Stories or My worlds                |
+| Teacher       | `/school/sign-in`; accept an operator invitation first           |
+| Student       | `/study/sign-in`; use the school's code, username and issued PIN |
+| Operator      | `/admin/sign-in`; requires an admin claim                        |
 
-## Status
+Keep teacher, student and operator identities separate from family accounts. There are no public shared credentials. For school seeding and operator setup, see the [local guide](docs/handoff/local-development.md).
 
-All application/service modules are implemented locally, with regression tests, emulator coverage, browser flows and deployment source. See [CHECKPOINT.md](CHECKPOINT.md) for the latest verified results and remaining gates. No cloud deployment or production release is implied: real Firebase/Vertex/Stripe integration, authored character assets, device performance and model/load acceptance require staging credentials and separate evidence. Model IDs are configurable; defaults preserve the design spec and must be verified in the selected project before use.
+```sh
+pnpm local:status
+pnpm local:logs
+pnpm local:reload-key  # recreate API/builder/gateway after a key change
+pnpm local:stop        # stop services and preserve saved data
+```
+
+The local runner also works as `node scripts/local.mjs start` without host pnpm dependencies. Docker installs its own dependencies. Local ports are web 3300, API 3301, builder/assets 3302 and voice 8788; Firebase data stays in Docker volumes. Browser-facing URLs are built into the local web image, so URL changes require a rebuild.
+
+## Develop and verify
+
+Java 21 is required for the isolated Firebase tests.
+
+```sh
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test
+NEXT_PUBLIC_FAKE=1 pnpm build
+```
+
+`pnpm test` includes an isolated emulator run on 8085/9095. Do not point tests at the saved local demo on 8080/9099. Preview browser-test commands are in the [web README](apps/web/README.md).
+
+## Repository map
+
+| Path                                                                     | Purpose                                                                      |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `apps/web`                                                               | Next.js family, school, student and operator interfaces                      |
+| `services/api`                                                           | Authenticated profiles, lessons, grading, catalogs, billing and deletion     |
+| `services/gateway`                                                       | Live voice, character handoffs, tutor tools and quotas                       |
+| `services/builder`                                                       | Scene/game/story generation, validation and artwork                          |
+| `packages/engine`, `game-runtime`                                        | PixiJS/Rapier rendering and sandboxed generated behaviour                    |
+| `packages/characters`, `learning-content`                                | Audio lifecycle, character presentation and authored learning content        |
+| `packages/stem-sims`, `stem-content`                                     | Deterministic STEM models, chemistry and chapter content                     |
+| `packages/protocol`, `scene-schema`, `server-core`, `fixtures`, `config` | Contracts, validation, Firebase services, offline doubles and shared tooling |
+| `infra`, `.github`, `cloudbuild*.yaml`                                   | Infrastructure, CI, evaluations and image promotion                          |
+
+WebSockets carry control messages and PCM; worlds and persistent progress use Firestore. Raw voice audio is not stored. Transcripts are bounded gateway memory; summaries, learning records and generated content are persisted. Server credentials and private student answer keys are not bundled into public client assets.
+
+For operations, environment boundaries, staging, deployment and rollback, use the [DevOps guide](docs/runbooks/deployment.md). [CHECKPOINT.md](CHECKPOINT.md) records the latest acceptance results and remaining limits.

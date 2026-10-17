@@ -19,145 +19,209 @@
 .companion-art[data-companion-kind='chibi'] > img {
   transform-origin: 50% 100%;
 }
-/* Speech changes the registered facial pose; the entire friend does not rock. */
-.companion-dock {
-  position: fixed;
-  bottom: 20px;
-  right: 24px;
-  z-index: 45;
+
+.child-shell {
+  --child-nav-height: calc(80px + env(safe-area-inset-bottom));
 }
-.companion-toggle {
+.child-shell.has-child-navigation > [data-world='child'] {
+  padding-bottom: var(--child-nav-height);
+}
+.child-shell.has-child-navigation .stage {
+  bottom: var(--child-nav-height);
+}
+.child-shell.has-child-navigation .story-room {
+  min-height: calc(100dvh - var(--child-nav-height));
+}
+.child-shell:has([role='dialog']) {
+  --child-nav-height: 0px;
+}
+.child-shell:has([role='dialog']) .child-appbar {
+  display: none;
+}
+.child-appbar {
+  --nav-bg: var(--surface);
+  --nav-text: var(--soft);
+  --nav-hover-bg: color-mix(in srgb, var(--mint) 45%, var(--surface));
+  --nav-hover-text: var(--ink);
+  --nav-focus: var(--focus);
+  --nav-border: var(--line);
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: minmax(0, 560px) auto;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  height: var(--child-nav-height);
+  padding: 8px 24px max(8px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--nav-border);
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  isolation: isolate;
+}
+.child-navigation {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.child-navigation a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 56px;
+  gap: 4px;
+  border-radius: 12px;
+  color: var(--nav-text);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.child-navigation a:hover {
+  color: var(--nav-hover-text);
+  background: var(--nav-hover-bg);
+}
+.child-navigation a[aria-current='page'] {
+  background: var(--mint);
+  color: var(--ink);
+}
+.child-appbar :is(a, button):focus-visible {
+  outline: 3px solid var(--nav-focus);
+  outline-offset: 3px;
+}
+.companion-dock,
+.companion-dock.is-inline {
+  position: relative;
+  min-width: 0;
+}
+.companion-toggle,
+.companion-dock.is-inline .companion-toggle {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 48px;
-  padding: 8px 18px 8px 8px;
-  border: 0;
-  border-radius: 100px;
-  background: var(--ground);
+  width: 200px;
+  min-height: 60px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
   color: var(--ink);
-  box-shadow: 0 8px 26px -10px rgb(17 48 39 / 30%);
+  background: var(--ground);
+  text-align: left;
+}
+.companion-toggle:hover {
+  border-color: var(--accent);
 }
 .companion-toggle > .companion-art {
-  width: 64px;
-  height: 64px;
-}
-.companion-toggle > span:last-child {
-  font-family: var(--font-display, 'Baloo 2', sans-serif);
-  font-size: 20px;
-  font-weight: 700;
-}
-.companion-dock.is-inline {
-  position: relative;
-  bottom: auto;
-  right: auto;
-  z-index: 45;
-}
-.companion-dock.is-inline .companion-toggle {
-  padding: 0 16px;
-  gap: 8px;
-  box-shadow: none;
-}
-.companion-dock.is-inline .companion-toggle span {
-  font: inherit;
-}
-.companion-dock.is-inline .companion-toggle > .companion-art {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-}
-.companion-toggle > .companion-art > svg {
-  width: 100%;
-  height: 100%;
+  flex: none;
+  width: 44px;
+  height: 44px;
 }
 .companion-toggle-label {
-  max-width: 14ch;
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.3;
+}
+.companion-toggle-label strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+.companion-toggle-label > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--soft);
+}
+.companion-toggle[data-live='true'] {
+  border-color: var(--accent);
+}
+.companion-toggle[data-live='true']::after {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--yellow);
 }
 .companion-menu {
+  --nav-focus: var(--focus);
   position: absolute;
-  bottom: calc(100% + 12px);
+  bottom: calc(100% + 16px);
   right: 0;
-  width: 344px;
+  width: 360px;
   max-width: calc(100vw - 24px);
-  max-height: min(580px, calc(100dvh - 110px));
-  overflow: auto;
-  padding: 20px;
+  max-height: calc(100dvh - var(--child-nav-height) - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px;
   border-radius: 16px;
   background: var(--ground);
   color: var(--ink);
-  box-shadow: 0 14px 42px -12px rgb(15 38 30 / 35%);
+  box-shadow: 0 14px 42px -12px color-mix(in srgb, var(--ink) 35%, transparent);
   text-align: left;
 }
 .companion-greeting {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 16px;
 }
 .companion-greeting .companion-art {
+  flex: none;
   width: 72px;
   height: 72px;
-  flex-shrink: 0;
 }
 .companion-menu h2 {
   font-size: 24px;
-  line-height: 1.15;
+  line-height: 1.25;
   margin: 0 0 6px;
 }
 .companion-menu p {
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
   margin: 0;
 }
 .companion-menu .companion-caption {
-  margin-bottom: 12px;
-  max-height: 90px;
-  overflow: auto;
-}
-.companion-menu .companion-invitation {
-  margin-bottom: 16px;
-}
-.companion-menu nav {
-  display: grid;
-  gap: 6px;
-}
-.companion-menu nav button {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 48px;
-  padding: 8px 12px;
-  background: color-mix(in srgb, var(--mint) 45%, var(--ground));
-  color: var(--ink);
-  border: 0;
-  border-radius: 10px;
-  text-align: left;
-  font-size: 16px;
-}
-.companion-menu nav button:hover {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 12px;
   background: var(--mint);
-}
-.companion-menu nav button[aria-current='page'] {
-  background: var(--mint);
-  font-weight: 700;
 }
 .companion-voice {
-  margin-top: 16px;
   display: grid;
-  gap: 8px;
+  justify-items: start;
+  gap: 12px;
+  margin-top: 24px;
   font-size: 13px;
 }
 .companion-voice button,
 .companion-close {
   min-height: 44px;
   border: 0;
-  border-radius: 100px;
+  border-radius: 12px;
   background: var(--accent);
-  color: var(--ground);
-  padding: 8px 16px;
+  color: var(--accent-ink);
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 800;
+}
+.companion-explorer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  margin-top: 24px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
 }
 .companion-close {
   margin-top: 12px;
@@ -288,8 +352,65 @@
   width: 96px;
   height: 96px;
 }
-[data-world='child']:has(.companion-dock:not(.is-inline)) .gallery {
-  padding-bottom: 140px;
+
+@media (max-width: 700px) {
+  .child-appbar {
+    gap: 12px;
+    padding-inline: 12px;
+  }
+  .child-navigation {
+    gap: 4px;
+  }
+  .child-navigation a {
+    font-size: 12px;
+  }
+  .child-navigation svg {
+    width: 22px;
+    height: 22px;
+  }
+  .companion-toggle,
+  .companion-dock.is-inline .companion-toggle {
+    width: 132px;
+    gap: 6px;
+    padding-inline: 6px;
+  }
+  .companion-toggle > .companion-art {
+    width: 36px;
+    height: 36px;
+  }
+  .companion-toggle-label,
+  .companion-toggle-label strong {
+    font-size: 12px;
+  }
+  .companion-menu {
+    padding: 20px;
+  }
+}
+@media (max-width: 360px) {
+  .child-shell {
+    --child-nav-height: calc(120px + env(safe-area-inset-bottom));
+  }
+  .child-appbar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 56px 44px;
+    gap: 4px;
+    padding-inline: 8px;
+  }
+  .companion-toggle,
+  .companion-dock.is-inline .companion-toggle {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .companion-toggle > .companion-art {
+    width: 32px;
+    height: 32px;
+  }
+  .companion-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 @media (max-width: 600px) {
   .companion-setup {
@@ -306,20 +427,6 @@
     width: 80px;
     height: 80px;
   }
-  .companion-dock {
-    right: 12px;
-    bottom: 12px;
-  }
-  .companion-dock.is-inline .companion-menu {
-    position: fixed;
-    right: 12px;
-    bottom: 184px;
-    max-height: calc(100dvh - 216px);
-  }
-  .companion-dock.is-inline .companion-toggle {
-    min-height: 44px;
-    padding: 0 12px;
-  }
   .companion-personalities small {
     font-size: 11px;
   }
@@ -327,56 +434,6 @@
 @media (prefers-reduced-motion: reduce) {
   .companion-art[data-companion-kind='chibi'] > img {
     transform: none !important;
-  }
-  .companion-art.is-speaking {
-    animation: none;
-  }
-}
-/* Reserve a separate control row so navigation never covers a friend's hit target. */
-.stage:has(.cast-strip .companion-dock) {
-  --strip-h: 164px;
-}
-.cast-strip:has(.companion-dock) {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 48px minmax(0, 1fr);
-}
-.cast-strip:has(.companion-dock) .cast-list {
-  grid-row: 2;
-  grid-column: 1;
-  padding: 6px 16px;
-}
-.cast-strip:has(.companion-dock) .corner.right {
-  position: static;
-  grid-row: 1;
-  grid-column: 1;
-  justify-self: end;
-  padding: 4px 16px 0;
-}
-.cast-strip:has(.companion-dock) .corner.left {
-  position: static;
-  grid-row: 1;
-  grid-column: 1;
-  justify-self: start;
-  padding: 4px 16px 0;
-}
-@media (max-width: 600px) {
-  .stage:has(.cast-strip .companion-dock) {
-    --strip-h: 174px;
-  }
-  .stage:has(.cast-strip .companion-dock):has(.quota-note) {
-    --strip-h: 198px;
-  }
-  .cast-strip:has(.companion-dock):has(.quota-note) {
-    grid-template-rows: 24px 48px minmax(0, 1fr);
-  }
-  .cast-strip:has(.companion-dock):has(.quota-note) .corner.right {
-    grid-row: 2;
-  }
-  .cast-strip:has(.companion-dock):has(.quota-note) .cast-list {
-    grid-row: 3;
-  }
-  .cast-strip:has(.companion-dock) .corner.right {
-    padding: 4px 12px 0;
   }
 }
 .companion-photo input::file-selector-button {
@@ -388,56 +445,4 @@
   color: var(--ink);
   font: inherit;
   cursor: pointer;
-}
-
-/* Outside the theatre the friend owns a footer slot, so no persistent helper covers page actions. */
-.companion-shelf {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 24px 24px;
-  background: var(--ground);
-}
-.companion-shelf .companion-dock.is-inline .companion-toggle {
-  min-height: 56px;
-  padding: 8px 16px;
-}
-@media (max-width: 600px) {
-  .companion-shelf {
-    padding: 12px 16px 24px;
-  }
-  .companion-shelf .companion-dock.is-inline .companion-menu {
-    position: absolute;
-    bottom: calc(100% + 12px);
-    right: 0;
-    max-height: calc(100dvh - 100px);
-  }
-}
-
-/* A single reserved chat target: its art grows inside the existing dock tile. */
-.companion-dock .companion-toggle,
-.companion-dock.is-inline .companion-toggle,
-.companion-shelf .companion-dock.is-inline .companion-toggle {
-  position: relative;
-  width: 68px;
-  height: 68px;
-  min-width: 68px;
-  padding: 2px;
-  gap: 0;
-}
-.companion-dock .companion-toggle > .companion-art,
-.companion-dock.is-inline .companion-toggle > .companion-art {
-  width: 60px;
-  height: 60px;
-}
-.companion-chat-mark {
-  position: absolute;
-  width: 23px;
-  height: 23px;
-  right: 0;
-  bottom: 0;
-  fill: var(--ground);
-  stroke: var(--ink);
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  pointer-events: none;
 }

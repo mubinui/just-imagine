@@ -1,6 +1,6 @@
 locals {
 
-  apis = toset(["run.googleapis.com", "firestore.googleapis.com", "identitytoolkit.googleapis.com", "firebase.googleapis.com", "cloudtasks.googleapis.com", "cloudscheduler.googleapis.com", "aiplatform.googleapis.com", "artifactregistry.googleapis.com", "secretmanager.googleapis.com", "monitoring.googleapis.com", "logging.googleapis.com", "cloudbuild.googleapis.com", "cloudtrace.googleapis.com"])
+  apis = toset(["run.googleapis.com", "firestore.googleapis.com", "identitytoolkit.googleapis.com", "firebase.googleapis.com", "iam.googleapis.com", "iamcredentials.googleapis.com", "cloudtasks.googleapis.com", "cloudscheduler.googleapis.com", "aiplatform.googleapis.com", "artifactregistry.googleapis.com", "secretmanager.googleapis.com", "monitoring.googleapis.com", "logging.googleapis.com", "cloudbuild.googleapis.com", "cloudtrace.googleapis.com"])
   services = {
     gateway = {
       min = 1, max = 50, concurrency = 80, cpu = "1", memory = "1Gi", timeout = "3600s"
@@ -81,7 +81,7 @@ resource "google_project_iam_member" "firestore" {
 }
 
 resource "google_project_iam_member" "vertex" {
-  for_each = toset(["gateway", "builder"])
+  for_each = toset(["gateway", "api", "builder"])
   project  = var.project_id
   role     = "roles/aiplatform.user"
   member   = "serviceAccount:${google_service_account.service[each.key].email}"
@@ -94,6 +94,15 @@ resource "google_project_iam_member" "auth" {
   role     = each.key == "api" ? "roles/firebaseauth.admin" : "roles/firebaseauth.viewer"
   member   = "serviceAccount:${google_service_account.service[each.key].email}"
 
+}
+
+# Firebase Admin uses IAM signBlob for student custom tokens under Cloud Run ADC.
+# Grant the API identity permission to sign only as itself, never project-wide.
+resource "google_service_account_iam_member" "api_custom_token_signer" {
+  service_account_id = google_service_account.service["api"].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.service["api"].email}"
+  depends_on         = [google_project_service.apis]
 }
 
 resource "google_project_iam_member" "enqueue" {
@@ -216,7 +225,7 @@ resource "google_cloud_run_v2_service" "service" {
       dynamic "env" {
         for_each = merge(var.models, {
           OTEL_ENABLED = "1", GOOGLE_CLOUD_PROJECT = var.project_id, WEB_URL = var.web_url, BUILDER_URL = local.urls.builder, BUILDER_AUDIENCE = local.urls.builder, API_AUDIENCE = local.urls.api, TASK_SERVICE_ACCOUNT = google_service_account.service["tasks"].email, ASSET_BUCKET = var.asset_bucket, ASSET_BASE_URL = var.asset_domain == "" ? "https://storage.googleapis.com/${var.asset_bucket}" : "https://${var.asset_domain}", STRIPE_PRICE_ID = var.stripe_price_id
-          }
+          }, each.key == "api" ? { COMPANION_VERTEX = "1" } : {}
         )
         content {
           name  = env.key
@@ -267,7 +276,7 @@ resource "google_cloud_run_v2_service" "service" {
 
   }
 
-  depends_on = [google_project_service.apis, google_project_iam_member.firestore, google_project_iam_member.vertex, google_secret_manager_secret_iam_member.api_secrets]
+  depends_on = [google_project_service.apis, google_project_iam_member.firestore, google_project_iam_member.vertex, google_secret_manager_secret_iam_member.api_secrets, google_service_account_iam_member.api_custom_token_signer]
 
 }
 

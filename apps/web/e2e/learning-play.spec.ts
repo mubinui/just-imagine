@@ -16,7 +16,7 @@ test('learning games use direct manipulation and reserve Pip a dock position', a
     await page.getByRole('button', { name: 'Brush this patch', exact: true }).first().click();
   await expect(page.locator('.story-adventure')).toHaveAttribute('data-phase', 'ending');
   await expect(page.locator('.story-goal')).toBeVisible();
-  const helper = page.locator('.learn-dock .companion-dock');
+  const helper = page.locator('.child-appbar .companion-dock');
   expect(await helper.evaluate((e) => getComputedStyle(e).position)).toBe('relative');
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

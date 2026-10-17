@@ -9,11 +9,11 @@ related_targets: ['components/CharacterFace.tsx', 'components/studio']
 
 Scope: the child-facing play screen, Experience mode. The visitor is a child aged 6 to 13 on a landscape tablet held in two hands, in a living room in daylight or lamplight, with a parent nearby. The job: speak an idea, watch it become a world, poke it, hear why it behaved that way. Actions are voice, tap, drag, flick, dial, slider, keypad; never typed text. Proof is the live world itself. Constraints: the engine canvas is 16:9 and resizes to its host width; the voice client and world source are fixed contracts; e2e flows rely on the names "Voice connection: connected", the prediction option buttons, the `gravity` select with preset values, "Cannon and Cup", "Lab tools", "Enter a number", "Clear", "Apply number", range sliders, "Start over", "Finish playing", and the "World actions" region.
 
-Memorable moment: a friend is already waiting on the stage, and when a guide is summoned they arrive in a burst of sparkles and conjure the world.
+Memorable moment: the selected friend is waiting on the stage, with a named voice action and a world that responds directly to play.
 
-Unresolved: Rive characters and painted art are external; the authored SVG cast stands in with identical mounting so the swap costs no layout.
+Current art uses the approved local registered raster cast in the established SVG slots. Optional external Rive delivery remains separate; earlier SVG and sparkle direction is retained below as history.
 
-## Direction contract
+## Original direction contract — 2026-10-16
 
 THESIS: The Studio is a stage, not a page. The world fills the viewport and everything else floats over it at the edges; it refuses the category default of a canvas inside a card with a stack of controls and headings scrolling below.
 
@@ -26,6 +26,16 @@ FIRST VIEWPORT: Landscape 1180x820. The 16:9 world letterboxed to the width with
 FORM: Full-bleed stage with cast strip, first of three structures considered (stage with cast strip; world plus side panel; split lab layout). Code-led. The concept roll was not run: on 2026-10-16 the user answered the structured three-option question with "Full-bleed stage (Recommended)", "Six authored SVG characters (Recommended)" and "A storybook tray on stage (Recommended)"; that pick stands in for the roll by the user's own choice. Seed key: none.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
+## Navigation and finished-session extension — 2026-10-17
+
+The user clarified that the two Studio menus should merge on Studio only. The shared child layout therefore suppresses its ordinary paper appbar on `/studio`; one theme-ink Dock contains the cast, a single named Talk/Stop action, Studio/Learn/Stories/Worlds navigation and Build a game, Start over, Captions and Finish playing. Other child pages keep their shared navigation and named assistant panel. Navigation uses the existing SVG icon family and visible labels, ground text on ink, mint/ink current-page state and yellow focus. Navigating or opening the assistant elsewhere does not start microphone capture.
+
+The header, scene and footer remain separate grid rows. The footer explicitly fills the stage width without an inherited page maximum or outer margin, and grows with its contents instead of reserving a second fixed navigation strip: on wide screens friends and destinations share the left column beside voice and game actions; at 1100px and below voice and actions share a right column; at 700px and below destinations and game actions take their own full-width rows. Cast names and destination labels remain visible, and the world retains its 16:9 frame. Lab tools remain beside the world on desktop and below on phones; compact-height stage scrolling remains the existing responsive exception.
+
+Finish playing stops child voice, clears pending voice work and stops music before presenting a calm, selected-character finish view. The view focuses its heading and pairs a short rest invitation with an actual voice-state message. Back to Studio returns to the retained world and remounts the engine without starting a new Live session. Learn, Stories, My worlds and Choose another explorer are real routes and release the voice session when leaving. The page makes no fabricated save, progress or achievement claim. Desktop uses a portrait beside the copy; at 600px and below the portrait and copy stack, with a full-width return action.
+
+Source checked: `components/Studio.tsx`, `components/studio/{Dock,StudioBreak}.tsx`, `components/studio/StudioBreak.module.css`, `components/companion/Companion.tsx`, `app/{studio,companion}.css` and `test/{child-navigation,studio-break}.test.tsx`. Root reports passing source tests and workspace checks. The latest combined-footer build and native review are recorded separately; repository `docs/images/{landing,learn,studio,laptop,tablet}.png` and `.impeccable/review/navigation/` are capture destinations, and first-pass captures can predate this final composition. This source documentation does not independently approve a screenshot set or establish new Live/provider acceptance. Token frontmatter and `.impeccable/design.json` remain unchanged; previously recorded metadata drift is deferred.
 
 ## Implemented extension — 2026-10-16
 

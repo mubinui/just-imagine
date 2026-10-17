@@ -4,6 +4,7 @@ import { copy as uiText, uiError } from '../../lib/i18n/ui';
 /* eslint-disable @next/next/no-img-element -- Private, bounded data URLs are generated per child and cannot use the public image optimizer. */
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   CHILD_DESTINATIONS,
   ChildResponseSchema,
@@ -23,6 +24,7 @@ import {
 import { env } from '../../lib/env';
 import { watchActor } from '../acting/clock';
 import { avatarPresence } from './presence';
+import { UiIcon, type UiIconName } from '../UiIcon';
 import '../../app/companion.css';
 
 const CompanionContext = createContext<{
@@ -183,25 +185,52 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       );
     }
   }
+  const separateNavigation = Boolean(child && pathname !== '/studio');
   return (
     <CompanionContext.Provider value={{ child, speaking, caption, status, error, start }}>
-      {children}
-      {pathname !== '/studio' && pathname !== '/stories' && !pathname.startsWith('/learn') && (
-        <div className="companion-shelf">
-          <CompanionMenu inline />
-        </div>
-      )}
+      <div className={`child-shell${separateNavigation ? ' has-child-navigation' : ''}`}>
+        {children}
+        {separateNavigation && (
+          <div className="child-appbar">
+            <ChildNavigation />
+            <CompanionMenu key={pathname} inline />
+          </div>
+        )}
+      </div>
     </CompanionContext.Provider>
   );
 }
+export function ChildNavigation() {
+  const { t } = useLanguage();
+  const pathname = usePathname();
+  const destinations = [
+    { id: 'studio', icon: 'game' },
+    { id: 'learn', icon: 'book' },
+    { id: 'stories', icon: 'chat' },
+    { id: 'gallery', icon: 'gallery' },
+  ] as const satisfies readonly { id: ChildDestination; icon: UiIconName }[];
+  return (
+    <nav className="child-navigation" aria-label={t('childNavigation.label')}>
+      {destinations.map(({ id, icon }) => {
+        const href = CHILD_DESTINATIONS[id];
+        const active = pathname === href || pathname.startsWith(href + '/');
+        return (
+          <Link key={id} href={href} aria-current={active ? 'page' : undefined}>
+            <UiIcon name={icon} />
+            <span>{t(`childNavigation.${id === 'gallery' ? 'worlds' : id}`)}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 export function CompanionMenu({ inline = false }: { inline?: boolean }) {
-  useLanguage();
+  const { t } = useLanguage();
   const { child, speaking, caption, status, error, start } = useContext(CompanionContext);
-  const router = useRouter(),
-    pathname = usePathname();
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null),
-    firstDestination = useRef<HTMLButtonElement>(null);
+    firstAction = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLElement>(null);
   const closeMenu = () => {
     setOpen(false);
     trigger.current?.focus();
@@ -213,9 +242,22 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
         trigger.current?.focus();
       }
     };
-    if (open) firstDestination.current?.focus();
+    if (open) firstAction.current?.focus();
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !panel.current?.contains(event.target) &&
+        !trigger.current?.contains(event.target)
+      )
+        setOpen(false);
+    };
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
   }, [open]);
   const companion = child?.companion ?? {
     kind: 'preset' as const,
@@ -223,25 +265,20 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
     name: CHARACTERS.bhombol.displayName,
   };
   if (!child) return null;
-  const go = (destination: ChildDestination) => {
-    setOpen(false);
-    if (destination === 'studio') {
-      void getVoice()
-        .unlockAudio()
-        .then(() => router.push(CHILD_DESTINATIONS[destination]));
-    } else router.push(CHILD_DESTINATIONS[destination]);
-  };
+  const live = status === 'connected' || status === 'connecting' || status === 'reconnecting';
   return (
     <div className={inline ? 'companion-dock is-inline' : 'companion-dock'}>
       {open && (
         <section
+          ref={panel}
+          id="live-assistant-panel"
           className="companion-menu"
-          aria-label={uiText('{v0} navigation', { v0: companion.name })}
+          aria-label={t('childNavigation.assistant')}
         >
           <div className="companion-greeting">
             <CompanionArt companion={companion} speaking={speaking} />
             <div>
-              <h2>{uiText('Where shall we go?')}</h2>
+              <h2>{t('childNavigation.assistantTitle', { name: companion.name })}</h2>
               <p>
                 {uiText(companion.name)}
                 {uiText(', your AI play friend')}
@@ -249,81 +286,45 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
             </div>
           </div>
           <p className="companion-invitation">
-            {env.fake
-              ? uiText('Choose where we go together.')
-              : uiText('You can say “Show my saved worlds” or “Let’s make a game.”')}
+            {env.fake ? uiText('Choose where we go together.') : t('childNavigation.assistantHelp')}
           </p>
           {caption && (
             <p className="companion-caption" aria-live="polite">
               {uiText(caption)}
             </p>
           )}
-          <nav aria-label={uiText('Explore with your friend')}>
-            <button
-              ref={firstDestination}
-              type="button"
-              aria-current={pathname === '/studio' ? 'page' : undefined}
-              onClick={() => go('studio')}
-            >
-              {uiText('Our adventure')}
-              <DestinationArrow />
-            </button>
-            <button
-              type="button"
-              aria-current={pathname === '/gallery' ? 'page' : undefined}
-              onClick={() => go('gallery')}
-            >
-              {uiText('Saved worlds')}
-              <DestinationArrow />
-            </button>
-            <button
-              type="button"
-              aria-current={pathname === '/play' ? 'page' : undefined}
-              onClick={() => go('play')}
-            >
-              {uiText('Choose explorer')}
-              <DestinationArrow />
-            </button>
-            <button
-              type="button"
-              aria-current={pathname.startsWith('/learn') ? 'page' : undefined}
-              onClick={() => go('learn')}
-            >
-              {uiText('Learning worlds')}
-              <DestinationArrow />
-            </button>
-            <button
-              type="button"
-              aria-current={pathname === '/stories' ? 'page' : undefined}
-              onClick={() => go('stories')}
-            >
-              {uiText('Katha’s story room')}
-              <DestinationArrow />
-            </button>
-          </nav>
           <div className="companion-voice">
             <span role="status">
               {env.fake
                 ? uiText('Preview friend · tap to explore')
                 : status === 'connected'
-                  ? uiText('Listening · you can speak')
+                  ? t('childNavigation.voiceActive')
                   : status === 'connecting' || status === 'reconnecting'
                     ? uiText('Connecting…')
                     : uiText('Microphone off')}
             </span>
             {!env.fake &&
               (status === 'connected' || status === 'connecting' || status === 'reconnecting' ? (
-                <button type="button" onClick={stopChildVoice}>
+                <button ref={firstAction} type="button" onClick={stopChildVoice}>
                   {uiText('Stop talking')}
                 </button>
               ) : (
-                <button type="button" onClick={() => void start()}>
+                <button ref={firstAction} type="button" onClick={() => void start()}>
                   {uiText('Talk together')}
                 </button>
               ))}
           </div>
           {error && <p role="alert">{uiText(error)}</p>}
-          <button type="button" className="companion-close" onClick={closeMenu}>
+          <Link className="companion-explorer" href="/play" onClick={() => setOpen(false)}>
+            {t('childNavigation.chooseExplorer')}
+            <DestinationArrow />
+          </Link>
+          <button
+            ref={env.fake ? firstAction : undefined}
+            type="button"
+            className="companion-close"
+            onClick={closeMenu}
+          >
             {uiText('Close')}
           </button>
         </section>
@@ -331,16 +332,18 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
       <button
         type="button"
         ref={trigger}
-        className={inline ? 'dock-tile companion-toggle' : 'companion-toggle'}
+        className="companion-toggle"
         aria-expanded={open}
-        aria-label={uiText('Chat with {v0}', { v0: String(companion.name) })}
+        aria-controls="live-assistant-panel"
+        aria-label={`${t('childNavigation.assistant')}: ${uiText(companion.name)}`}
+        data-live={live && !env.fake ? 'true' : undefined}
         onClick={() => setOpen(!open)}
       >
         <CompanionArt companion={companion} speaking={speaking} />
-        <svg className="companion-chat-mark" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-5 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
-          <path d="M8 10h.01M12 10h.01M16 10h.01" />
-        </svg>
+        <span className="companion-toggle-label">
+          <strong>{t('childNavigation.assistant')}</strong>
+          <span>{uiText(companion.name)}</span>
+        </span>
       </button>
     </div>
   );

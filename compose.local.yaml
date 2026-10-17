@@ -99,7 +99,7 @@ services:
       PORT: '8788'
       BUILDER_URL: http://builder:3302
       TASK_SERVICE_ACCOUNT: local@demo-just-imagine-local.iam.gserviceaccount.com
-      LIVE_MODEL: gemini-3.8-live
+      LIVE_MODEL: ${LIVE_MODEL:-gemini-3.8-live}
     ports: ['127.0.0.1:8788:8788']
     depends_on:
       emulators: { condition: service_healthy }

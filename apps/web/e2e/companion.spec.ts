@@ -27,15 +27,25 @@ test('parent chooses a friend and the same voice session follows navigation acro
     .click();
   await page.getByRole('button', { name: 'bounce', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pip', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Chat with Pip' }).click();
-  await expect(page.getByRole('button', { name: 'Our adventure', exact: true })).toBeFocused();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('button', { name: 'Chat with Pip' })).toBeFocused();
-  await page.keyboard.press('Enter');
-  await page.getByRole('button', { name: 'Saved worlds', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Your spaces', exact: true })
+    .getByRole('link', { name: 'Worlds', exact: true })
+    .click();
   await expect(page).toHaveURL(/\/gallery$/);
-  await page.getByRole('button', { name: 'Chat with Pip' }).click();
-  await page.getByRole('button', { name: 'Our adventure', exact: true }).click();
+  const assistant = page.getByRole('button', { name: 'Live assistant: Pip', exact: true });
+  await assistant.click();
+  await expect(
+    page
+      .getByRole('region', { name: 'Live assistant', exact: true })
+      .getByRole('button', { name: 'Close', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(assistant).toBeFocused();
+  await page.keyboard.press('Enter');
+  await page
+    .getByRole('navigation', { name: 'Your spaces', exact: true })
+    .getByRole('link', { name: 'Studio', exact: true })
+    .click();
   await expect(page).toHaveURL(/\/studio$/);
   await expect(page.locator('.engine-host canvas')).toBeVisible();
   await expect(page.locator('.stage-error')).toHaveCount(0);

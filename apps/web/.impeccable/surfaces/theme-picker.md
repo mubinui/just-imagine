@@ -14,3 +14,9 @@ The complete picker appears in parent Settings. A compact labeled select remains
 The operator continues to publish the shared default through Admin Appearance. The separate validated `ji-theme-preference` device value takes precedence over the published-default `ji-appearance` cache and polling. Follow app default removes that override. Tokens, mark/favicon, browser color and theme manifest resolve from the same effective preset. Storage failure retains a working in-memory choice and states that it applies for this visit. Cross-tab changes update the selection without writing them back.
 
 Verification belongs to source regressions for precedence, cache/reload, invalid data, polling/event races, cross-tab changes, unavailable storage and cleanup. Root performs native desktop/phone confirmation; this implementation agent performs no browser automation or production data writes.
+
+## Native select contrast — 2026-10-17
+
+The native select explicitly pairs ink text with ground, and option text with the surface role, so dark Studio/Learn/Stories chrome cannot pass light text into a light system menu. Hover and selected options pair accent with accent-ink. The control requests a light native color scheme and retains the existing semantic presets, selected edition, immediate device preference and visible focus behavior.
+
+This is a local contrast correction in `app/theme-picker.css`, with no new palette or freeform colors. Native popup rendering remains controlled by the browser and operating system; the source assignments alone do not certify every platform’s menu appearance. Root owns the desktop/phone native confirmation and final review; this documentation merge does not claim a new browser or provider test. DESIGN.md token frontmatter and `.impeccable/design.json` are unchanged.

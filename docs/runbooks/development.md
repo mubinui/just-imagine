@@ -1,27 +1,15 @@
-# Local development and handoff
+# Development entry points
 
-Start with [the checkpoint](../../CHECKPOINT.md) and current review reports in `docs/handoff/`. Source is on `feat/full-development` and has not been pushed.
+Use the maintained guides below; this page keeps older development links working.
 
-## Install and verify
+- [Root README](../../README.md#run-locally): clone, install and start the complete local Docker app.
+- [Local operation and private account setup](../handoff/local-development.md): parent, school and operator access without shared credentials in documentation.
+- [Web README](../../apps/web/README.md): fixture preview and frontend/browser checks.
+- [DevOps guide](deployment.md): environment boundaries, isolated tests, staging, deployment, rollback and troubleshooting.
+- [Checkpoint](../../CHECKPOINT.md): current verification evidence and unresolved acceptance limits.
 
-Node22.12+ and pnpm10.34.7; Java21 for emulators. `pnpm install --frozen-lockfile`, then `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
+The complete local app is **http://localhost:3300**. The fixture preview is **http://localhost:3100**. They are separate modes; public web variables are fixed at build time.
 
-If pnpm is absent, prefix commands with `npm exec --yes --cache .npm-cache --package pnpm@10.34.7 -- pnpm`. This workstation has local Java21 at `.tools/amazon-corretto-21.jdk/Contents/Home`; export `JAVA_HOME` to that path. Tool caches are ignored. CI uses Node22/Java21.
+Host development uses Node 22.12+, pnpm 10.34.7 and Java 21 for Firebase tests. The disposable test runners own ports **8085/9095**; the saved Docker app uses **8080/9099**. Keep tests off saved local or real user databases.
 
-`pnpm test:emulator` starts Auth and Firestore once and runs the backend packages sequentially to avoid port collisions. Use the demo project only. Tests never need Vertex credentials or Stripe secrets. Do not run the production startup entrypoints for unit tests.
-
-## Preview
-
-Run the fake gateway with `pnpm --filter @just-imagine/fixtures dev` (port8787), and the web app with its `dev:fake` script. Demo mode is explicitly separate from real accounts and live generation. See `apps/web/.env.example` for configuration.
-
-Production adapters: api8081; builder8082; gateway8788. They require their documented environment variables and ADC. The builder and deletion worker verify OIDC audience plus the configured task service account. Child worlds arrive over Firestore, never over WebSocket.
-
-## Data lifecycle
-
-All browser writes go through authenticated API endpoints or the web session route. Firestore client rules permit only owned reads. Deletion records are durable in `deletionJobs`, with account/profile fences in `deletionLocks`; CloudTasks and the five-minute Scheduler retry worker finish cleanup. Gateway/builder publication must check the same fences. Do not delete fences before in-flight jobs have stopped.
-
-Only synthetic PCM appears in tests. Real PCM is relayed in bounded memory buffers, never persisted. Transcripts are bounded session memory and discarded on end. Logs must not include transcript/audio/token/Stripe payloads.
-
-## Reviews
-
-Do not equate package tests with release readiness. Check the current engine and backend review reports for unresolved findings. Browser/device performance, real Rive files, external credentials, model availability, production data retention and load/evaluation gates need explicit evidence.
+Preserve private `.env.*` files, Docker volumes and existing identities. Logs and review artifacts should contain operational identifiers/status/timing only, without credentials, transcripts or raw audio. Local package/browser checks do not establish cloud deployment or fresh generated-world acceptance.

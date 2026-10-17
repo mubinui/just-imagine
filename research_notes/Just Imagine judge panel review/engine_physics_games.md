@@ -7,9 +7,11 @@ Test baseline (VERIFIED, `npx vitest run` per package; log at `/private/tmp/clau
 ## Q1. How expressive is the Scene DSL, and is the "deterministic physics validator" real?
 
 ### Takeaway
+
 The DSL is a tight, closed vocabulary (4 entity kinds, 6 behaviors, 2 joint types, 6 rule events, 11 actions, 3 dials, 7 lab bindings, 8 visuals) and the validator is a real deterministic TypeScript module that enforces the structural checks the spec lists. But it validates only what the schema bounds: every `Vec2` in the document (gravity, wind, impulses, polygon vertices, transforms) is unbounded, "pretend" is self-declared by the model rather than inferred, and the engine never runs the validator client-side. I produced four schema-valid documents that break the world (hero launched to x=1e12, an invisible 200 m polygon that ejects the hero, a hero embedded in a static, a "stone" with cloud density).
 
 ### Cited Findings
+
 - Vocabulary (READ): entity kinds `sprite|ground|water|particle`, behaviors `wander|float|bounceIdle|glow|emit|face`, joints `spring|pin`, rule events `collision|tap|enterMedium|timer|dial|challengeComplete`, actions `spawn|applyImpulse|setMaterial|remove|celebrate|say|sound|launch|setGravity|setTimeScale|scaleEntity`, 3 dials, 7 variable bindings (`game|gravity|wind|timeScale|material|launch|scale`), 8 visuals, challenges — [schema.ts:72-188](packages/scene-schema/src/schema.ts#L72), [schema.ts:193-290](packages/scene-schema/src/schema.ts#L193). Optional presentation fields `character`, `locomotion` (walk/run/swim/fly/roll + wheels) and `asset.animation` (motion atlas up to 8x8, 32 frames) were added on top — [schema.ts:18-47](packages/scene-schema/src/schema.ts#L18), [schema.ts:131-132](packages/scene-schema/src/schema.ts#L131).
 - Limits (READ): 24 entities, 16 joints, 12 rules, 8 materials, 3 dials, 3 concepts, entity 0.2–8 m, terrain ≤16 m, fixed 16x9 bounds, density 0.05–20, mass 0.01–2000 kg — [limits.ts:1-15](packages/scene-schema/src/limits.ts#L1); lab limits 6 variables / 6 visuals / 3 challenges — [schema.ts:191](packages/scene-schema/src/schema.ts#L191); game script ≤20 KB — [schema.ts:372](packages/scene-schema/src/schema.ts#L372). The `game` field is deliberately outside the generated-output schema so the scene model can never emit it — [schema.ts:393-394](packages/scene-schema/src/schema.ts#L393).
 - Validator checks that exist (READ, matches spec 5.4): duplicate ids, materials ≤8, material range clamp against a 16-word table, unknown material refs, oversize, mass clamp by resizing (resize-to-range, else `MASS_OUT_OF_RANGE`), clamp-into-bounds, exactly one ground unless `space` or `learning.mode: 'incidental'`, static-vs-static AABB overlap (0.1 m tolerance, ground excluded), tag/entity/template references, concept consistency, hero exists, at-least-one-concept-rule, heroMaterial needs ≥2 materials, blocklist over all text, lab consistency, script byte size — [validator.ts:55-86](packages/scene-schema/src/validator.ts#L55), [validator.ts:125-147](packages/scene-schema/src/validator.ts#L125), [validator.ts:149-216](packages/scene-schema/src/validator.ts#L149), [validator.ts:218-265](packages/scene-schema/src/validator.ts#L218), [validator.ts:346-389](packages/scene-schema/src/validator.ts#L346).
@@ -23,19 +25,23 @@ The DSL is a tight, closed vocabulary (4 entity kinds, 6 behaviors, 2 joint type
 - Patches: RFC 6902 via fast-json-patch, max 40 ops, full re-validation — [patch.ts:18-46](packages/scene-schema/src/patch.ts#L18) (READ).
 
 ### Inferences
+
 - The validator is honest about structure but not about physics magnitudes: a model (or a prompt-injected child) can emit a schema-valid world whose hero disappears on the first tap. Clamping `Vec2` magnitudes (gravity/wind ≤30, impulse ≤20 m/s mass-normalised, polygon vertices within ±size/2, dynamic-vs-static initial overlap) would close every probe above in under 50 lines.
 - Because `pretend` is model-declared, the "impossible wishes marked pretend" story is a prompt behaviour, not a validator guarantee; a judge who asks "show me the code that decides pretend" will find none.
 
 ### Gaps
+
 - I did not test the builder's prompt-level clamping (services/builder prompts may instruct the model to keep magnitudes sane); the task scope was the shared contract and engine.
 - No Bangla blocklist evaluation was attempted.
 
 ## Q2. Engine quality: Rapier integration, what-if dials, the 2.5D claim, performance strategy, lifecycle, WASM
 
 ### Takeaway
+
 The Rapier integration is competent and better than the 2026-10-16 direction check found: fixed 60 Hz accumulator with render interpolation, time scale now changes tick count instead of the step, CCD on every body, mass-conserving 3x3 soft lattices with impulses distributed over nodes, spring/revolute document joints, deterministic replay (verified identical), clean dispose paths. The what-if dials genuinely change the live Rapier world (gravity vector, wind force, material rebuild) but do not "re-simulate" (no rewind/replay API). The "2.5D" claim is not implemented: the renderer has three flat containers (background, entities, overlay), the backdrop and mid-layer are two static 16x9 sprites with no parallax offset and no depth sorting. Performance strategy is mostly absent (no batching strategy, no quality tiers, bodies never sleep, two full contact scans per tick); it survives because worlds are tiny.
 
 ### Cited Findings
+
 - Fixed timestep and interpolation (READ): accumulator `pendingTicks += min(60, dt) * 60 * timeScale`, `world.timestep = 1/60` every tick, `frame().interpolation = pendingTicks`, renderer lerps previous→current pose — [simulation.ts:1076-1086](packages/engine/src/simulation.ts#L1076), [simulation.ts:1324-1341](packages/engine/src/simulation.ts#L1324), [renderer.ts:435-437](packages/engine/src/renderer.ts#L435). Renderer caps a frame's advance at 0.1 s (spiral-of-death guard) — [renderer.ts:376](packages/engine/src/renderer.ts#L376). `step()` caps at 3,600 frames — [simulation.ts:1071-1075](packages/engine/src/simulation.ts#L1071).
 - CCD on every dynamic body and every lattice node — [simulation.ts:429](packages/engine/src/simulation.ts#L429), [simulation.ts:507](packages/engine/src/simulation.ts#L507); flick velocity capped at 20 m/s in gesture and simulation — [gesture.ts:20](packages/engine/src/gesture.ts#L20), [simulation.ts:847-850](packages/engine/src/simulation.ts#L847). VERIFIED: a 20 m/s downward flick stays contained (hero y=2.02 after 2 s, no tunnelling) — `adv/validator.ts` E14.
 - Soft bodies fixed since the last review (VERIFIED): node density conserves document mass ([simulation.ts:399-402](packages/engine/src/simulation.ts#L399)), impulses are mass-weighted across nodes ([simulation.ts:403-412](packages/engine/src/simulation.ts#L403)), contact impulses are summed per pair and rules fire once per contact episode ([simulation.ts:1160-1199](packages/engine/src/simulation.ts#L1160)); the flagship `jelly-dragon` `r_bounce` rule (minImpulse 2) now fires on a 4 s drop (`fired=["r_bounce"]`) — `adv/validator.ts` E15; covered by [soft-body.test.ts:11-80](packages/engine/test/soft-body.test.ts#L11).
@@ -53,19 +59,23 @@ The Rapier integration is competent and better than the 2026-10-16 direction che
 - Effects (READ): `celebrate`/`sound` now have a presentation: a 32-particle pool burst and five synthesized oscillator cues inside the engine ([renderer.ts:133-167](packages/engine/src/renderer.ts#L133), [sound.ts:16-22](packages/engine/src/sound.ts#L16)); the web layer additionally plays an authored 56-cue pack keyed to engine events and impulse bands — [apps/web/lib/sound/manifest.ts:88-111](apps/web/lib/sound/manifest.ts#L88).
 
 ### Inferences
+
 - "Physics-respecting" is fair for the simulation core; "2.5D" is marketing without code behind it. A judge with the renderer open will see one flat layer stack.
 - The perf posture is "small worlds hide the lack of strategy": no sleeping and two O(colliders) scans per tick are fine at 24 rigid entities on a laptop, but the quality bar (60 fps p5 on a 2021 iPad with particles and parallax) has no path or measurement yet.
 
 ### Gaps
+
 - No browser/device frame-time measurement was possible from this sandbox (no GPU); the headless numbers above are physics only.
 - I did not measure Pixi draw calls per frame.
 
 ## Q3. Characters and art: what a judge actually sees
 
 ### Takeaway
+
 There is real, consistent, generated 2D character art for the cast (friends, planets, animals, body parts), delivered as eight-pose "Tooth Town" acting atlases and driven by an SVG frame-stepper, plus hand-made preview world art for four fixtures. The physics stage itself, however, shows painted assets only for those four preview worlds (six WebPs, 976 KB, generated with Codex's built-in image tool, not Vertex); every other world (Galton, fractions, catch-the-flies, any fresh live wish before its hero sprite arrives) renders tag-driven geometric placeholders. Live hero generation through `gemini-nano-banana-2.1` exists in the builder and is cached in GCS, but the team's own handoff records an 82–90 s code phase and a 53 s art phase per creation, with registration failures on animated sheets. No Rive files exist.
 
 ### Cited Findings
+
 - Eight-pose actor atlases are present and used (READ): 14 `*-acting-v2.webp` atlases in `apps/web/public/characters/acting/` (plus `.png` sources and `.webp.json` prompt sidecars; sidecar prompt: "EXACTLY EIGHT equal columns ... in the same ... craft as Tooth Town", created 2026-10-16T13:27) — [friends-pets-acting-v2.webp.json](apps/web/public/characters/acting/friends-pets-acting-v2.webp.json). `Actor.tsx` selects the row from a catalog and steps the frame by setting the `<image x>` to `-frame*100` on an 800 px-wide sheet — [Actor.tsx:60-99](apps/web/components/acting/Actor.tsx#L60), [catalog.ts:1-80](apps/web/components/acting/catalog.ts#L1); `CharacterArt.tsx` wraps it for the preset friends — [CharacterArt.tsx:1-26](apps/web/components/studio/CharacterArt.tsx#L1). Pose selection is a discrete state machine (idle/blink/listen/speak x2/wave x2/cheer) keyed to voice RMS and DOM state — [model.ts:1-34](apps/web/components/acting/model.ts#L1).
 - Learning-world cinematic sheets (READ): 71 files / 57 MB under `public/learn/cinematic` (acting, locomotion 6x4 at 256 px cells, world plates, `tooth-town-*`), with prompt sidecars — e.g. [animals-farm-locomotion-v2.webp.json](apps/web/public/learn/cinematic/animals-farm-locomotion-v2.webp.json).
 - Stage art in preview (READ): `playablePreview()` injects `/worlds/{meadow,moon-garden,pond-garden,cloud,jelly-dragon,duck-toy,toy-cannon,catching-cup}.webp` into the four `FIXTURE_WORLDS` and resets every other asset to `placeholder` — [playable-preview.ts:7-86](apps/web/lib/playable-preview.ts#L7), wired in [world-source.ts:17-55](apps/web/lib/world-source.ts#L17). Provenance: "AI-generated demonstration sprite, created 2026-10-16 with the built-in image-generation tool ... not evidence of live Vertex generation" — [PROVENANCE.md](apps/web/public/worlds/PROVENANCE.md). The fixture JSONs themselves carry no assets (`assetsReady 0/0` for all seven, VERIFIED via node summary).
@@ -77,19 +87,23 @@ There is real, consistent, generated 2D character art for the cast (friends, pla
 - Public payload (VERIFIED `du`): `apps/web/public` is 108 MB; PNG masters are shipped next to every WebP (e.g. `body-acting-v2.png` 2.98 MB beside a 0.5 MB WebP), i.e. ~30 MB of unused PNGs in the deployable.
 
 ### Inferences
+
 - In a fresh session a judge sees: polished SVG cast characters immediately; a painted stage only if the demo opens one of the four preview fixtures; otherwise flat coloured shapes while the builder spends roughly two to three minutes on code plus art. The demo is therefore safe only if it is scripted around the four painted fixtures or a pre-generated world.
 - The cast art is generated with a disciplined pipeline (prompt sidecars, registration rules), which is a credible story; the world-art story (hybrid library + live hero) is still a plan.
 
 ### Gaps
+
 - I could not open the browser from this sandbox to confirm first-paint timings or how the placeholders look at tablet scale.
 - Whether cached production heroes exist in the local emulator bucket for the demo account was not checked (outside the simulation-core scope).
 
 ## Q4. Generated games: API surface, sandbox design and static check
 
 ### Takeaway
+
 This is the strongest engineering in the audited area. The Game API is a 23-method, event-driven contract shipped as `api.d.ts`; the static check is a real acorn AST walk (ES2022 module grammar, scope-aware free-identifier rejection, forbidden members, `this`/`import`/`export`/`import.meta` rejection) rather than regex; the runtime is a Blob Web Worker (Node `worker_threads` for tests/smoke) whose shim deletes and pins 38 globals along the prototype chain, shadows 53 more as parameters, neuters all four `Function` constructors, freezes core intrinsics, and streams only Zod-validated messages. Physics never runs in the worker. Weaknesses: budgets account synchronous time only (microtasks are free), there is no memory limit, the script can delete the ground/hero and flood `say`, and `Promise.prototype` is mutable.
 
 ### Cited Findings
+
 - API surface (READ): `spawn, remove, find, on, every, after, cancel, impulse, move, setGravity, setWind, setMaterial, score, lives, level, win, lose, hud, say, ask, sound, celebrate, random`; events `tick, collision, tap, drag, flick, dial, variable, timer`; allowed globals `game, Math, Number, String, Array, Object, JSON, Boolean, console.log` — [api.ts:28-78](packages/game-runtime/src/api.ts#L28), contract [api.d.ts:140-199](packages/game-runtime/src/api.d.ts#L140). `move` may reposition fixed bodies (documented as "illustrated motion") — [api.d.ts:165-170](packages/game-runtime/src/api.d.ts#L165), [simulation.ts:989-1007](packages/engine/src/simulation.ts#L989).
 - Static check (READ): acorn parse with `sourceType: 'module'`, `ecmaVersion: 2022` — [static-check.ts:82-90](packages/game-runtime/src/static-check.ts#L82); 38 forbidden identifiers — [static-check.ts:31-68](packages/game-runtime/src/static-check.ts#L31); forbidden members `constructor|__proto__|prototype` for non-computed or string-literal keys — [static-check.ts:70](packages/game-runtime/src/static-check.ts#L70), [static-check.ts:277-283](packages/game-runtime/src/static-check.ts#L277); scope tracking for var/let/const/class/function/params/catch — [static-check.ts:96-154](packages/game-runtime/src/static-check.ts#L96); infinite `for(;;)`/`while(true)` without exit is only a warning — [static-check.ts:314-321](packages/game-runtime/src/static-check.ts#L314). `Promise`, `Error`, `Date`, `Map`, `Set`, `RegExp`, `Symbol`, `Reflect`, `Proxy` are all rejected as free identifiers (VERIFIED: probes using `Promise`, `Float64Array`, `Error` were rejected with `free-identifier`).
 - Sandbox shim (READ): `KILLED_GLOBALS` (fetch, XMLHttpRequest, WebSocket, EventSource, importScripts, postMessage, close, indexedDB, caches, localStorage, sessionStorage, timers, queueMicrotask, rAF, Atomics, SharedArrayBuffer, WebAssembly, Worker, SharedWorker, MessageChannel/Port, BroadcastChannel, navigator, location, crypto, structuredClone, process, Buffer, Function, eval) deleted along the prototype chain then pinned non-writable — [worker-shim.ts:12-49](packages/game-runtime/src/worker-shim.ts#L12), [worker-shim.ts:176-184](packages/game-runtime/src/worker-shim.ts#L176); `SHADOWED_GLOBALS` bound as `undefined` parameters (globalThis, self, window, document, require, module, performance, Reflect, Proxy...) — [worker-shim.ts:56-108](packages/game-runtime/src/worker-shim.ts#L56); `Function`/`AsyncFunction`/`GeneratorFunction`/`AsyncGeneratorFunction` `.constructor` replaced by a thrower — [worker-shim.ts:186-198](packages/game-runtime/src/worker-shim.ts#L186); `Object/Array/String/Number/Boolean.prototype`, `Math`, `JSON` frozen — [worker-shim.ts:202-204](packages/game-runtime/src/worker-shim.ts#L202). User code runs inside an `async function` with `'use strict'` — [worker-shim.ts:132-135](packages/game-runtime/src/worker-shim.ts#L132). The browser factory creates a same-origin Blob worker — [host.ts:67-83](packages/game-runtime/src/host.ts#L67).
@@ -100,71 +114,83 @@ This is the strongest engineering in the audited area. The Game API is a 23-meth
 - Contradiction with the repo's own rules (READ): CLAUDE.md hard rule "The Scene DSL is declarative. No generated code is executed anywhere." — [CLAUDE.md:41](CLAUDE.md#L41); design spec 5.1 "Declarative only. No executable code." — [design spec:205](docs/superpowers/specs/2026-10-15-just-imagine-design.md#L205); the quality spec explicitly reverses this ("Gemini writes the game's rules as a small program ... Sandbox ...") and states it supersedes sections 3, 6, 7, 9, 12 of the design spec — [quality spec header and §6](docs/superpowers/specs/2026-10-16-quality-program-design.md). CLAUDE.md and README were not updated.
 
 ### Inferences
+
 - The sandbox is a genuine, thoughtfully layered design and far above hackathon norm; the realistic residual risk is denial of service of the child's tab (CPU and memory inside continuations) and gameplay-quality abuse (deleting the ground), not data exfiltration or code execution on the host.
 - The CLAUDE.md contradiction is the kind of thing a hostile judge quotes: either update the hard rule to "no generated code outside the sandboxed worker" or expect to be asked why the rule exists.
 
 ### Gaps
+
 - I did not test the Blob-worker path in a real browser (no browser here); the Node `worker_threads` path uses `require('node:worker_threads')` inside the shim ([worker-shim.ts:168](packages/game-runtime/src/worker-shim.ts#L168)), which the browser path never reaches.
 
 ## Q5. Adversarial sandbox results
 
 ### Takeaway
+
 Of twelve adversarial scripts, nine were blocked where the team expected (static or runtime). Three real gaps: CPU work inside promise continuations is unmetered (A1), memory is unbounded when allocated inside a continuation (A12: 535 MB in two seconds with zero breaches), and command floods within budget (19,990 `say` or `setMaterial` per ten ticks) reach the main thread and the gateway (A8/A10). None escapes the worker.
 
 ### Cited Findings
+
 All rows VERIFIED with Node `worker_threads` through the real `createGameHost`/`checkScript` (`adv/sandbox*.ts`, 50 ms real-time ticks). Expected = the team's claim in quality spec §6 / budgets.ts.
 
-| # | Script (10 lines or fewer) | Expected (team claim) | Actual |
-|---|---|---|---|
-| A1 | `game.on('tick', () => (async()=>{})().then(() => spin(30)))` where `spin(30)` is 31 ms of CPU | aggregate 50 ms/s breach | **No breach.** 40/40 ticks acked (max ack 14 ms), 40 x 31 ms of CPU burned; `account()` only times the synchronous handler |
-| A2 | `keep.push(new Array(1<<21).fill(n))` per tick (8 MB sync) | some budget | handler breach at 8.06 ms after 10 ticks (timing catch, not a memory limit) |
-| A2b | same with 4 MB per tick | some budget | aggregate breach after 15 ticks (68 ms/s of fill time) |
-| A12 | A1 + A2 combined: 8 MB arrays allocated inside `.then` | some budget | **No breach.** 40/40 acked, RSS +535 MB in 2 s; a tab-OOM is reachable |
-| A3 | `const k=['constr','uctor'].join(''); (()=>{})[k]('return 42')` | runtime block | runtime error "the Function constructor is not available" every tick (host reports it; Studio shows "tangled") |
-| A4 | `Object.getPrototypeOf(async()=>{})[k]('return 1')` | runtime block | same runtime error |
-| A5 | overwrite `Promise.prototype.then` (reached via an async function) and capture the shim's `flush` | n/a (not in red-team set) | **Captured** `flush` and could call it; no host access, no escape |
-| A5b | `then` hijack to drop rejection handlers, then throw in an async handler | hidden error | worker crashed on unhandled rejection; host reported `worker` error (fail-closed) |
-| A6 | top-level `for(;;){}` | hang breach | hang breach at 501 ms (static check only warned) |
-| A7 | `async function loop(){for(;;){await null}} loop()` | hang breach | hang breach at 501 ms |
-| A8 | 1,999 `game.setMaterial('frog', alternating)` per tick | commands budget | **Accepted**: 19,990 commands in 10 ticks, no breach; engine cost measured at 94 ms main-thread per 1,999 rebuilds (`adv/validator.ts` E12) |
-| A9 | 50 timers at 20 Hz each doing 2e4 adds | timers/aggregate | accepted (49 timers allowed, work under budget), 40/40 acked |
-| A10 | 1,999 `game.say(...)` per tick | n/a | **Accepted**: 19,990 `say` commands; bridge forwards each to caption + gateway `simEvent` |
-| A11 | `game.remove('ground'); game.remove('hero')` | n/a | accepted; script may delete any document entity |
+| #   | Script (10 lines or fewer)                                                                        | Expected (team claim)     | Actual                                                                                                                                      |
+| --- | ------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | `game.on('tick', () => (async()=>{})().then(() => spin(30)))` where `spin(30)` is 31 ms of CPU    | aggregate 50 ms/s breach  | **No breach.** 40/40 ticks acked (max ack 14 ms), 40 x 31 ms of CPU burned; `account()` only times the synchronous handler                  |
+| A2  | `keep.push(new Array(1<<21).fill(n))` per tick (8 MB sync)                                        | some budget               | handler breach at 8.06 ms after 10 ticks (timing catch, not a memory limit)                                                                 |
+| A2b | same with 4 MB per tick                                                                           | some budget               | aggregate breach after 15 ticks (68 ms/s of fill time)                                                                                      |
+| A12 | A1 + A2 combined: 8 MB arrays allocated inside `.then`                                            | some budget               | **No breach.** 40/40 acked, RSS +535 MB in 2 s; a tab-OOM is reachable                                                                      |
+| A3  | `const k=['constr','uctor'].join(''); (()=>{})[k]('return 42')`                                   | runtime block             | runtime error "the Function constructor is not available" every tick (host reports it; Studio shows "tangled")                              |
+| A4  | `Object.getPrototypeOf(async()=>{})[k]('return 1')`                                               | runtime block             | same runtime error                                                                                                                          |
+| A5  | overwrite `Promise.prototype.then` (reached via an async function) and capture the shim's `flush` | n/a (not in red-team set) | **Captured** `flush` and could call it; no host access, no escape                                                                           |
+| A5b | `then` hijack to drop rejection handlers, then throw in an async handler                          | hidden error              | worker crashed on unhandled rejection; host reported `worker` error (fail-closed)                                                           |
+| A6  | top-level `for(;;){}`                                                                             | hang breach               | hang breach at 501 ms (static check only warned)                                                                                            |
+| A7  | `async function loop(){for(;;){await null}} loop()`                                               | hang breach               | hang breach at 501 ms                                                                                                                       |
+| A8  | 1,999 `game.setMaterial('frog', alternating)` per tick                                            | commands budget           | **Accepted**: 19,990 commands in 10 ticks, no breach; engine cost measured at 94 ms main-thread per 1,999 rebuilds (`adv/validator.ts` E12) |
+| A9  | 50 timers at 20 Hz each doing 2e4 adds                                                            | timers/aggregate          | accepted (49 timers allowed, work under budget), 40/40 acked                                                                                |
+| A10 | 1,999 `game.say(...)` per tick                                                                    | n/a                       | **Accepted**: 19,990 `say` commands; bridge forwards each to caption + gateway `simEvent`                                                   |
+| A11 | `game.remove('ground'); game.remove('hero')`                                                      | n/a                       | accepted; script may delete any document entity                                                                                             |
 
 Probe sources: `/private/tmp/claude-502/-Users-mubinuiislam-Home-Hackathons-just-imagine/7ea1b76e-ae56-4b7f-80de-c9cec5c34ac9/scratchpad/adv/sandbox.ts`, `sandbox2.ts`, `sandbox3.ts`, `sandbox4.ts`, `sandbox5.ts`, `sandbox6.ts`. Outputs are quoted in the findings above.
 
 ### Inferences
-- Fixes are small: (1) time microtasks by wrapping `queueMicrotask`/promise job completion, or simpler, measure wall time between the host's `event` message and the ack *inside the worker* and count any idle gap > 8 ms toward the budget; (2) add a host-side memory watchdog using `performance.measureUserAgentSpecificMemory` where available or a per-second cap on `state`/`commands` sizes plus a terminate-on-RSS in the Node smoke runner; (3) per-type command rate limits in the bridge (`say` ≤2/s, `setMaterial` ≤10/s).
+
+- Fixes are small: (1) time microtasks by wrapping `queueMicrotask`/promise job completion, or simpler, measure wall time between the host's `event` message and the ack _inside the worker_ and count any idle gap > 8 ms toward the budget; (2) add a host-side memory watchdog using `performance.measureUserAgentSpecificMemory` where available or a per-second cap on `state`/`commands` sizes plus a terminate-on-RSS in the Node smoke runner; (3) per-type command rate limits in the bridge (`say` ≤2/s, `setMaterial` ≤10/s).
 
 ### Gaps
+
 - Browser-specific vectors (e.g. `OffscreenCanvas`, `FileReader`, `fetch` re-acquired via `new Request`) were not tested; `Request`/`Response`/`FileReader` are not in the kill list but are free identifiers, so the static check should reject them (not verified at runtime).
 
 ## Q6. Smoke runner and playtest gate: does it catch broken games, and what fraction is rejected?
 
 ### Takeaway
+
 The headless smoke run is real: it drives the generated script against the actual Rapier engine for ten simulated seconds with scripted taps, one dial change and one flick, fails on static errors, runtime errors, budget breaches, missing goal (`win`/`score`) and moderation, and the builder retries once then refuses to publish (no silent fallback). On top of it, a model-written "gameplay plan" is replayed in fresh worlds with idle and input-prefix controls. What does not exist is any measured pass rate: the 60-wish eval set is 28 wishes used only to test a regex heuristic, and the only real-model evidence is two recorded Argon programmes (one needed two attempts) plus prose in the handoff.
 
 ### Cited Findings
+
 - Smoke mechanics (READ): `smokeRun` → `createEngineStage` (real `createSimulation`) → `driveScript` at 20 Hz for `seconds` (builder uses 10), tap every 0.25 s from t=1 over all tappable sprites, first dial at t=2, flick `{4,-6}` at t=3, pending asks auto-answered with option 0, collisions detected by AABB overlap per frame, commands applied back through the engine's public API — [smoke.ts:60-287](packages/game-runtime/src/smoke.ts#L60), [drive.ts:86-296](packages/game-runtime/src/drive.ts#L86). Failure reasons: `static | runtime | budget | no-goal | moderation` — [smoke.ts:28-33](packages/game-runtime/src/smoke.ts#L28).
 - Builder gate (READ): `gateScript` = static check + smoke + moderation (default moderation is the 39-word blocklist, [imagine-game.ts:57](services/builder/src/imagine-game.ts#L57)); two model attempts with error feedback; then `GameGenerationError` and "Never substitute a plain scene" — [imagine-game.ts:85-105](services/builder/src/imagine-game.ts#L85), [imagine-game.ts:179-216](services/builder/src/imagine-game.ts#L179). Edits through the patch flow must pass the same gate or the whole edit is rejected — [imagine-game.ts:224-238](services/builder/src/imagine-game.ts#L224).
-- Gameplay plan (READ): a structured plan with inputs/checks (`near`, speed both axes ≤0.5 m/s, displacement, exists, command counts, score) is evaluated in fresh real worlds; an idle run and, per positive effect, an input-prefix run must *fail* the check, otherwise "that control has no demonstrated effect" — [game-playtest.ts:335-377](services/builder/src/game-playtest.ts#L335). The Codex/Claude review that motivated the prefix control is recorded — [2026-10-17-game-quality-claude.md](docs/reviews/2026-10-17-game-quality-claude.md).
+- Gameplay plan (READ): a structured plan with inputs/checks (`near`, speed both axes ≤0.5 m/s, displacement, exists, command counts, score) is evaluated in fresh real worlds; an idle run and, per positive effect, an input-prefix run must _fail_ the check, otherwise "that control has no demonstrated effect" — [game-playtest.ts:335-377](services/builder/src/game-playtest.ts#L335). The Codex/Claude review that motivated the prefix control is recorded — [2026-10-17-game-quality-claude.md](docs/reviews/2026-10-17-game-quality-claude.md).
 - Smoke run exercised in CI (VERIFIED): `smoke.test.ts` runs the eight example games and the 40 red-team scripts through `smokeRun` on the real engine, 60 tests pass; examples also pass a fake-stage ten-second run (`examples.test.ts`, 25 tests).
-- Eval evidence (READ): `game-wishes.ts` holds ≥20 game + ≥8 playground wishes and is used only to assert the `wantsGame` regex — [game-wishes.test.ts:6-11](services/builder/test/game-wishes.test.ts#L6); the only eval report in the repo is a 50-case *scene* eval run on fixture doubles ("Fixture doubles ... do not measure model quality") — [reports/builder-eval-double.json](services/builder/reports/builder-eval-double.json). Real-model game evidence: two recordings (`game-quality-planets.json`, `game-quality-portal.json`) and the handoff: planets "required two code attempts", portal passed first time; a later fox world "reintroduced an unrequested solid lantern tree ... The strong arrival test failed correctly" — [generated-game-quality-operations.md](docs/handoff/generated-game-quality-operations.md), [generated-animation-reliability-plan.md](docs/handoff/generated-animation-reliability-plan.md). The quality spec target is "95 percent pass the static check and smoke run first time" on a sixty-wish set — [quality spec §1, §6](docs/superpowers/specs/2026-10-16-quality-program-design.md).
+- Eval evidence (READ): `game-wishes.ts` holds ≥20 game + ≥8 playground wishes and is used only to assert the `wantsGame` regex — [game-wishes.test.ts:6-11](services/builder/test/game-wishes.test.ts#L6); the only eval report in the repo is a 50-case _scene_ eval run on fixture doubles ("Fixture doubles ... do not measure model quality") — [reports/builder-eval-double.json](services/builder/reports/builder-eval-double.json). Real-model game evidence: two recordings (`game-quality-planets.json`, `game-quality-portal.json`) and the handoff: planets "required two code attempts", portal passed first time; a later fox world "reintroduced an unrequested solid lantern tree ... The strong arrival test failed correctly" — [generated-game-quality-operations.md](docs/handoff/generated-game-quality-operations.md), [generated-animation-reliability-plan.md](docs/handoff/generated-animation-reliability-plan.md). The quality spec target is "95 percent pass the static check and smoke run first time" on a sixty-wish set — [quality spec §1, §6](docs/superpowers/specs/2026-10-16-quality-program-design.md).
 - Smoke-stage fidelity (READ): the stage applies `spawn/remove/setGravity/setWind/setMaterial` by mutating the document and calling `sim.update(doc)` and applies `impulse` as a `flick` ([smoke.ts:209-252](packages/game-runtime/src/smoke.ts#L209)), whereas the browser bridge calls `engine.spawn/impulse/setGravity` directly ([game-bridge.ts:167-192](apps/web/lib/game-bridge.ts#L167)). Two code paths, one contract; the smoke stage's spawn ignores the 200-body script budget (document update path, capped at 24 instead).
 
 ### Inferences
+
 - The gate will reliably reject crashing, hanging, mute and goal-less scripts; it cannot tell a boring or wrong game from a good one beyond what the model-authored plan asserts (the handoff says so itself). The honest number a judge can be given today is "n=3 real creations, 2 first-try passes".
 - Because smoke and browser use different command paths, a script can pass headless and behave differently live (e.g. spawn beyond 24 in the browser but not in smoke).
 
 ### Gaps
+
 - No Vertex access from this audit, so no pass-rate measurement of my own.
 
 ## Q7. Fixtures: coverage and impressiveness
 
 ### Takeaway
+
 Seven JSON worlds (jelly dragon, moon bounce, pond float, projectile lab, Galton board, fractions lab, catch-the-flies). They are small (3–16 entities), use zero joints, zero locomotion, zero animated atlases, and carry no art of their own; four get hand-placed painted art in preview. Of the quality spec's four play kinds (draw, catapult/targets, marble run/bridges, creatures/vehicles) the fixtures cover one and a half (projectile lab ≈ catapult; catch-the-flies is a scripted creature game). Draw mode does not exist in the engine or Studio.
 
 ### Cited Findings
+
 - Inventory (VERIFIED, node summary over `packages/fixtures/worlds/*.json`): jelly-dragon 4 entities/3 rules/dials gravity+heroMaterial/soft jelly+cloud; moon-bounce 3/3/gravity; pond-float 4/2/heroMaterial; projectile-lab (tier lab) 4 entities, 3 variables, 4 visuals, 1 challenge; galton-board (lab) 16 entities, 1 variable, 1 visual, 1 challenge; fractions-lab (lab) 4 entities, 1 variable, 4 visuals, 1 challenge; catch-the-flies (playground + game) 8 entities, 1,997-byte hand-written script (`game.setGravity(0)`, 45 s timer, goal 8 flies) — [catch-the-flies.json](packages/fixtures/worlds/catch-the-flies.json). Joints: 0 in all seven. `locomotion`/`animation`: 0.
 - Catalogues (READ): `FIXTURE_WORLDS` (4), `LAB_WORLDS` (2), `GAME_WORLDS` (1) — [worlds.ts:11-28](packages/fixtures/src/worlds.ts#L11). Used by the fake gateway, the engine tests, the smoke tests and the Playwright flows (`e2e/playable-worlds.spec.ts`, `e2e/generated-game.spec.ts` which taps fly homes and asserts the score changes) — [generated-game.spec.ts:13-56](apps/web/e2e/generated-game.spec.ts#L13).
 - Preview assets (READ): progressive fixture script points hero assets at `https://cdn.invalid/...` ([fake-world-source.ts:37](packages/fixtures/src/fake-world-source.ts#L37)); the web replaces them with `/worlds/*.webp` for the four painted keys only — [playable-preview.ts:19-28](apps/web/lib/playable-preview.ts#L19).
@@ -172,17 +198,21 @@ Seven JSON worlds (jelly dragon, moon bounce, pond float, projectile lab, Galton
 - Example games in the runtime tests are hand-written: catapult-the-acorns, catch-the-flies, frog-and-owl-chase, keep-the-bubble-alive, marble-run-to-the-cup, snail-race-in-the-rain, soft-moon-landing, stack-higher-than-the-giraffe — `packages/game-runtime/test/examples/`. They are few-shot material and test fixtures, not demo worlds (they run on synthetic `EXAMPLE_SCENES`).
 
 ### Inferences
+
 - A judge will find the fixtures pedagogically neat (Galton histogram, fraction bar, launch angle) but visually generic outside the four painted ones, and will notice that nothing in the demo exercises joints, vehicles, bridges or drawing.
 
 ### Gaps
+
 - Whether the local demo account has richer saved worlds (the handoff mentions "Ari's ... 16 worlds") was outside scope.
 
 ## Q8. Performance evidence and bundle size
 
 ### Takeaway
+
 The only measured numbers are a 2026-10-16 engine bundle (820,517 → 810,378 bytes gzip including Rapier and Pixi, under the 1.2 MB budget) and a software-WebGL Chromium lifecycle smoke (~452 ms mount + 300 ms advance + remount). There is no device FPS, first-paint or memory-growth measurement anywhere, and the team's own checkpoint lists "2022 iPad/Safari fps/audio" as missing release evidence. My own measurements: the Next build's engine chunk is 1.79 MB raw / 663 KB gzip; Rapier init plus first world is ~21 ms in Node; headless physics is 0.68 ms/step at the 24-entity cap.
 
 ### Cited Findings
+
 - Team numbers (READ): "Browser esbuild minified ESM bundle is 2.2MB raw and 820,517 bytes gzip including Rapier/Pixi" and later "810,378 bytes" — [engine-report.md:11](docs/handoff/engine-report.md#L11), [engine-report.md:29](docs/handoff/engine-report.md#L29); "This is browser lifecycle evidence, not an iPad performance measurement" — same line 29. Release gates still open: "2022iPad/Safari fps/audio ... Local software WebGL is not device evidence" — [CHECKPOINT.md:296](CHECKPOINT.md#L296). The direction check marked the performance budget "unverified" — [direction check:29](docs/reviews/2026-10-16-engine-characters-direction-check.md#L29).
 - My bundle measurement (VERIFIED): `apps/web/.next/static/chunks/3pu2dykjk0juq.js` 1,787,488 bytes raw / 662,821 gzip, contains the base64 WASM (`AGFzbQ`) and WebGPU strings (build `v6YBqGcpGsuTeChATH1_`, 2026-10-16 22:18, so it predates some working-tree edits). Rapier package files: `rapier_wasm2d_bg.wasm` 1,175,792 B, `rapier_wasm2d.js` 188,815 B (`@dimforge/rapier2d-compat@0.19.3`); `pixi.js@8.22.0`.
 - Load time (VERIFIED, Node, Apple silicon): engine module import 25 ms; `RAPIER.init()` + first `createSimulation` 21 ms; second world 0.2 ms — `adv/rapier-init.ts`.
@@ -190,19 +220,23 @@ The only measured numbers are a 2026-10-16 engine bundle (820,517 → 810,378 by
 - Perf tooling (READ): `infra/load/sessions.js` is a gateway session load scenario, not a render benchmark; Playwright specs assert behaviour, not frame times; no quality-tier code (`packages/engine/src/render/quality.ts` from plan A6 does not exist).
 
 ### Inferences
+
 - Bundle budget: met. Frame-rate budget: unknown, and the renderer's lack of sleeping, per-tick scans and 2x-DPR antialiased canvas make the 2021-iPad p5 target a genuine risk once parallax/particles are added.
 
 ### Gaps
+
 - No GPU in this sandbox; no device measurement possible.
 
 ## Q9. Honesty check: stubbed, mocked, placeholder or flagged things a judge might take for real
 
 ### Takeaway
+
 Most claims are either real-but-narrow or clearly documented as preview; the items below are where a judge could be misled.
 
 ### Cited Findings
+
 - "2.5D world" (README:5, spec 6.1): flat 2D with two static backdrop sprites; no parallax, depth or tilt — Q2 (READ).
-- "Validator marks impossible wishes as pretend" (README:13, spec 5.4): `pretend` is model-declared; the validator only *skips* checks when it is set — [validator.ts:133](packages/scene-schema/src/validator.ts#L133) (VERIFIED by probe V6).
+- "Validator marks impossible wishes as pretend" (README:13, spec 5.4): `pretend` is model-declared; the validator only _skips_ checks when it is set — [validator.ts:133](packages/scene-schema/src/validator.ts#L133) (VERIFIED by probe V6).
 - "Deterministic physics validator ... run by the engine before loading": not run client-side — Q1 (READ).
 - Painted worlds in the preview are six Codex-tool images hand-attached to four fixtures; provenance says so — [PROVENANCE.md](apps/web/public/worlds/PROVENANCE.md). Everything else on the stage is geometric placeholders — [placeholder.ts](packages/engine/src/placeholder.ts) (READ).
 - `NEXT_PUBLIC_FAKE=1` preview mode swaps Firestore/gateway for `FakeWorldSource`/fake gateway with synthetic audio — [world-source.ts:30-55](apps/web/lib/world-source.ts#L30), [README.md:60-66](README.md#L60). README is explicit; the Studio status chip shows a preview label per quality spec §7a (READ).
@@ -219,22 +253,28 @@ Most claims are either real-but-narrow or clearly documented as preview; the ite
 - `projectileLab` is listed under `FIXTURE_WORLDS` (playground catalogue) but is `tier: 'lab'` (READ, minor).
 
 ### Inferences
+
 - The team's internal docs are unusually candid (every handoff separates "model double" from "real"); the public-facing README and CLAUDE.md are the places where claims have drifted ahead of code.
 
 ### Gaps
+
 - Music/sound provenance files were not audited in depth (`public/learn/sounds/PROVENANCE.md` exists).
 
 ## Q10. Prioritised findings
 
 ### Takeaway
+
 Nothing is demo-breaking if the demo stays on the four painted fixtures and a pre-generated game; two items violate the repo's own hard rules or published claims; the rest are what a graphics/physics judge will notice in the first ten minutes with the code open.
 
 ### Cited Findings
+
 **P0 (violates own rules / published claim with no code behind it)**
+
 - P0-1 CLAUDE.md hard rule "No generated code is executed anywhere" is contradicted by `packages/game-runtime` executing model-written JavaScript in a worker; README/CLAUDE.md not updated — [CLAUDE.md:41](CLAUDE.md#L41) vs [host.ts:67-83](packages/game-runtime/src/host.ts#L67) (READ). Not a safety failure (the sandbox is good), but a judge will read it as the team not knowing its own boundary.
 - P0-2 "2.5D" is claimed in README/spec and absent in the renderer: no parallax, depth sorting or layered scene; three flat containers — [renderer.ts:24-28](packages/engine/src/renderer.ts#L24), [README.md:5](README.md#L5) (READ, grep).
 
 **P1 (a judge would notice)**
+
 - P1-1 Validator passes physically absurd magnitudes; one tap launches the hero to x=1e12; a 1x1 "polygon" with ±100 m vertices ejects the hero outside the stage — [schema.ts:11](packages/scene-schema/src/schema.ts#L11), [validator.ts:226-233](packages/scene-schema/src/validator.ts#L226), engine [simulation.ts:708-709](packages/engine/src/simulation.ts#L708) (VERIFIED, `adv/validator.ts` V1/V3/V4/E3/E4).
 - P1-2 `pretend` is never inferred; the validator skips clamping when the model sets it or uses an unknown material word — [validator.ts:133](packages/scene-schema/src/validator.ts#L133) (VERIFIED V6/V6b).
 - P1-3 Sandbox budgets ignore microtasks: 31 ms CPU per tick and 535 MB in two seconds with zero breaches — [worker-shim.ts:290-302](packages/game-runtime/src/worker-shim.ts#L290) (VERIFIED A1, A12).
@@ -245,6 +285,7 @@ Nothing is demo-breaking if the demo stays on the four painted fixtures and a pr
 - P1-8 Engine never runs the validator (spec's "defense in depth"), client parses shape only — [world-source.ts:65](apps/web/lib/world-source.ts#L65) (READ).
 
 **P2 (polish)**
+
 - P2-1 Bodies never sleep (`addForce(..., true)` on every body every tick) and two full `contactPairsWith` scans per tick — [simulation.ts:1107-1123](packages/engine/src/simulation.ts#L1107), [simulation.ts:1178-1184](packages/engine/src/simulation.ts#L1178), [simulation.ts:1227-1239](packages/engine/src/simulation.ts#L1227) (READ).
 - P2-2 Spawn budget counts entities, not bodies: 200 soft spawns = ~1,836 Rapier bodies, 11.7 ms/step headless (VERIFIED E11).
 - P2-3 Static overlap check ignores dynamic-inside-static and ground; hero can start embedded in a platform (VERIFIED V5).
@@ -259,17 +300,21 @@ Nothing is demo-breaking if the demo stays on the four painted fixtures and a pr
 - P2-12 `catch-the-flies` fixture described as a "generated" script; `projectileLab` in the playground catalogue (READ).
 
 ### Inferences
+
 - None of the P1 items needs architectural change; P1-1/2/3/4/8 are each a day of work with the existing tests as a harness.
 
 ### Gaps
+
 - Browser-only behaviours (Blob worker memory, WebGPU fallback, pointer capture on iPad) remain unverified from this sandbox.
 
 ## Q11. Genuinely strong
 
 ### Takeaway
+
 A judge who reads the code will find several things that are better than the usual hackathon build.
 
 ### Cited Findings
+
 - Real Rapier physics with fixed step, interpolation, CCD, document joints, mass-conserving soft lattices rendered as deformed `MeshPlane`s, and verified deterministic replay — Q2 (VERIFIED E13/E14/E15, 77 engine tests).
 - The generated-game sandbox: AST static check with scope analysis, prototype-chain global killing, Function-constructor neutering, frozen intrinsics, Zod-validated message protocol, host-side independent budgets and hang watchdog, 40-script red-team suite, and a headless smoke run against the real engine with scripted inputs and a causal input-prefix playtest — Q4–Q6 (VERIFIED 206 tests + 12 probes, 9 blocked).
 - Fail-closed publication: a game that fails the gate twice is refused, never silently downgraded; patched scripts re-run the gate — [imagine-game.ts:179-238](services/builder/src/imagine-game.ts#L179) (READ).
@@ -279,24 +324,31 @@ A judge who reads the code will find several things that are better than the usu
 - Generated cast art pipeline with registration rules, prompt sidecars and an eight-pose acting standard reused across every surface — Q3 (READ).
 
 ### Inferences
+
 - The simulation and sandbox layers are the technical moat; the visual layer is the gap between them and a winning demo.
 
 ### Gaps
+
 - None.
 
 ## Q12. Verdict and the three upgrades
 
 ### Takeaway
+
 The simulation core is solid, honest engineering at roughly "strong finalist" level, not yet winner level. The physics is real, deterministic and tested; the generated-game sandbox is the best-built piece of the system and survives eleven of twelve adversarial scripts with only denial-of-service residue. What a graphics/physics judge will hold against it: the "2.5D" and "validator marks pretend" claims have no code behind them, the validator can be talked into worlds that break on the first tap, there is zero device performance evidence, and the stage a child actually looks at is painted only in four hand-dressed fixtures while live art takes minutes. The team's own docs already know most of this; the public claims have drifted ahead.
 
 ### Cited Findings
+
 - Evidence is consolidated in Q1–Q11 above; the verdict rests on VERIFIED items P1-1, P1-3, P1-4, E10–E15 and A1–A12, and READ items P0-1, P0-2, P1-5, P1-6.
 
 ### Inferences
+
 Three upgrades that would most move a judge's score, in order:
+
 1. **Make the stage look 2.5D and painted by default (P0-2, P1-6).** Add two parallax layers and a near-ground plate to `renderer.ts` (pointer/hero-offset parallax is ~40 lines), ship a small bundled library of themed backdrops/props with `asset.libraryId` so every world, including Galton/fractions/catch-the-flies and any fresh wish, paints instantly, and keep the live hero as the only generated sprite. This is the quality spec's own §2–§3 and it is the difference between "placeholders" and "a world" in the first five seconds of a demo.
 2. **Close the validator and sandbox magnitude holes and measure it (P1-1, P1-2, P1-3, P1-4, P1-8).** Clamp `Vec2` magnitudes and polygon extents in `scene-schema`, infer `pretend` from table deviation, run `validateScene` in the engine `load()`, meter microtask time and add a memory/command-rate watchdog in the worker shim and bridge, then add the probe scripts from this audit to `red-team/` so the number of blocked escape attempts goes from 40 to 50 with the two real holes closed.
 3. **Produce device evidence and a real generated-game pass rate (P1-5, P1-7).** One afternoon on a 2021 iPad with a frame-time overlay (p5/p50 at 24 entities, with and without soft bodies), a Playwright memory-growth check across ten world switches, and a twenty-wish Vertex run of `imagineGame` reporting first-try/second-try/refused counts. Judges reward measured numbers over budgets; today the repo has budgets.
 
 ### Gaps
+
 - Items that need credentials or hardware (Vertex pass rate, iPad frame times, Blob-worker memory in Safari) could not be produced from this audit and remain the team's to supply.

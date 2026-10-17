@@ -4,11 +4,11 @@ Audited the working tree of `feat/creative-experience-upgrades` on 2026-10-17 (r
 
 Verification run by the auditor (pnpm is not on this shell's PATH; each package's own vitest binary was used under Node v25.8.0; emulator-backed `*.integration.test.ts` files are excluded automatically when `FIRESTORE_EMULATOR_HOST` is unset, per [services/gateway/vitest.config.ts](services/gateway/vitest.config.ts) and [services/builder/vitest.config.ts](services/builder/vitest.config.ts)):
 
-| Package | Command | Result |
-|---|---|---|
-| `@just-imagine/protocol` | `./node_modules/.bin/vitest run` | 14 files, **89/89 passed**, 0.49 s |
-| `@just-imagine/gateway` | `./node_modules/.bin/vitest run` | 7 files, **53/53 passed**, 4.2 s (unit only) |
-| `@just-imagine/builder` | `./node_modules/.bin/vitest run` | 14 files, **117/117 passed**, 6.6 s (unit only) |
+| Package                      | Command                          | Result                                                      |
+| ---------------------------- | -------------------------------- | ----------------------------------------------------------- |
+| `@just-imagine/protocol`     | `./node_modules/.bin/vitest run` | 14 files, **89/89 passed**, 0.49 s                          |
+| `@just-imagine/gateway`      | `./node_modules/.bin/vitest run` | 7 files, **53/53 passed**, 4.2 s (unit only)                |
+| `@just-imagine/builder`      | `./node_modules/.bin/vitest run` | 14 files, **117/117 passed**, 6.6 s (unit only)             |
 | `@just-imagine/game-runtime` | `./node_modules/.bin/vitest run` | 9 files, **206/206 passed**, incl. `red-team.test.ts` 41/41 |
 
 ---
@@ -16,9 +16,11 @@ Verification run by the auditor (pnpm is not on this shell's PATH; each package'
 ## Key question 1: Live voice. How does the gateway talk to Gemini Live, what happens on disconnect/GoAway/errors, is barge-in handled, is the prompt solid, is voice off by default?
 
 ### Takeaway
+
 The Live plumbing is real and reasonably complete (resumption, context compression, transcription, tuned VAD, reconnect with backoff, fresh-session-with-summary, quota wrap-up), but every run the team has ever recorded went through the Gemini Developer API with an API key, not Vertex AI with ADC; the Live session carries no safety settings; and every character switch or tap-on-character tears the Live session down and waits on a Flash summary before reopening, so voice continuity is the weakest judge-visible property.
 
 ### Cited Findings
+
 - **Transport selection prefers the API key.** `VertexLiveProvider` builds `new GoogleGenAI(config.apiKey ? { apiKey } : { vertexai: true, project, location: 'us-central1' })` — [services/gateway/src/live.ts:28-36](services/gateway/src/live.ts). The same pattern is in [services/builder/src/vertex.ts:28-33](services/builder/src/vertex.ts) and [services/builder/src/game-model.ts:22-26](services/builder/src/game-model.ts) (the latter defaults `location` to `'global'`, [services/builder/src/main.ts:33](services/builder/src/main.ts)). `GEMINI_API_KEY` is an accepted env var in both services ([services/gateway/src/main.ts:15-18](services/gateway/src/main.ts), [services/builder/src/main.ts:20-23](services/builder/src/main.ts)); the root `.env.local` (git-ignored, mode 0600) contains exactly one key name, `GEMINI_API_KEY` (VERIFIED, names only, value not read); compose passes it to api/builder/gateway via `env_file` — [compose.local.yaml](compose.local.yaml). README's "Full local app with Gemini" section instructs the key — [README.md](README.md). The team's own 10-16 review states "No real Vertex call has ever been made from this tree" — [docs/reviews/2026-10-16-gateway-builder-direction-check.md](docs/reviews/2026-10-16-gateway-builder-direction-check.md); the 10-17 operations note says "Real Argon access with the supplied key succeeded" and "API-key requests use the Gemini API" — [docs/handoff/generated-game-quality-operations.md](docs/handoff/generated-game-quality-operations.md). The hard rule says "Every model call goes through Vertex AI in us-central1 with Application Default Credentials" — [CLAUDE.md](CLAUDE.md), [spec §4.3](docs/superpowers/specs/2026-10-15-just-imagine-design.md).
 - **No key or ephemeral token reaches the browser.** The browser sends a Firebase ID token in `hello` ([packages/protocol/src/ws.ts:73-80](packages/protocol/src/ws.ts)); the gateway verifies it with revocation checking ([packages/server-core/src/auth.ts:12-19](packages/server-core/src/auth.ts)); the web `env` exposes only `NEXT_PUBLIC_GATEWAY_URL`/`API_URL`/`FAKE` ([apps/web/lib/env.ts](apps/web/lib/env.ts)). Audio to/from the model is relayed by the gateway as 640-byte PCM16 frames ([services/gateway/src/gateway.ts:1227-1231](services/gateway/src/gateway.ts)).
 - **Live config actually sent**: `responseModalities: [AUDIO]`, prebuilt voice, system instruction, function declarations, input+output transcription, `sessionResumption`, `contextWindowCompression: { triggerTokens: '100000', slidingWindow: {} }`, `automaticActivityDetection: { silenceDurationMs: 900 }` — [services/gateway/src/live.ts:59-77](services/gateway/src/live.ts). **Not sent**: `safetySettings`, `proactivity`, `enableAffectiveDialog`, `thinkingConfig`, `speechConfig.languageCode` (grep over services/packages/apps source found none of `proactivity`, `enableAffectiveDialog`, `includeThoughts`, `languageCode`); the unit test explicitly asserts the setup has no `safetySettings` and no `proactivity` — [services/gateway/test/live.test.ts:54-56](services/gateway/test/live.test.ts). Spec §8.2 claims "Proactive audio on" and "Vertex safety settings at the strictest threshold" for the Live session — [spec §8.2](docs/superpowers/specs/2026-10-15-just-imagine-design.md).
@@ -34,12 +36,14 @@ The Live plumbing is real and reasonably complete (resumption, context compressi
 - **Quota and pacing while live**: metering every 10 s; under 120 s left the client gets `quota` and the model gets one wrap-up note; at 0 the session ends with `bye: quota` — [gateway.ts:1333-1365](services/gateway/src/gateway.ts). Daily quota: 15 min free, 60 min family — [packages/protocol/src/plans.ts](packages/protocol/src/plans.ts).
 
 ### Inferences
+
 - The Vertex code path is plausible but unproven; the first real Vertex Live `connect` is where the Live setup fields (`contextWindowCompression`, `realtimeInputConfig`, `sessionResumption`) and the model id would be rejected if the Vertex surface differs. The CHECKPOINT line "Fixed … unsupported Live setup fields" shows setup rejection has already happened once on the Developer API.
 - Without Live `safetySettings`, the voice channel runs on Google's default thresholds; the strictness claim is only true for the `generateContent` calls (moderation, summary, images), where `BLOCK_LOW_AND_ABOVE` is applied ([live.ts:11-16](services/gateway/src/live.ts), [vertex.ts:10-15](services/builder/src/vertex.ts)).
-- Because native-audio models ignore `languageCode`, prompt-level pinning is the correct lever; the risk is Bengali *dialect* (the prompt asks for Bangladeshi vocabulary, the API offers `bn`), which only a native-speaker listening test can judge. The team records ten real bilingual turns passing — [CHECKPOINT.md](CHECKPOINT.md).
+- Because native-audio models ignore `languageCode`, prompt-level pinning is the correct lever; the risk is Bengali _dialect_ (the prompt asks for Bangladeshi vocabulary, the API offers `bn`), which only a native-speaker listening test can judge. The team records ten real bilingual turns passing — [CHECKPOINT.md](CHECKPOINT.md).
 - Expected dead air in a demo: ≥ 0.5–1 s at every ~10-minute GoAway; 2–5 s at every character tap/summon/handoff (Flash summary + new setup); the full reconnect ladder (0.5+1+2+4 s plus a summary) if Live hiccups.
 
 ### Gaps
+
 - No real-Vertex Live transcript or latency distribution exists anywhere in the repo; first-word p50/p95 against the §9.6 budget (1.2 s / 2.0 s) is unmeasured.
 - Could not confirm from Google docs which Vertex regions host `gemini-3.8-live` (the Vertex Live API page returned only navigation; the language/voice sub-page 404'd).
 
@@ -48,11 +52,13 @@ The Live plumbing is real and reasonably complete (resumption, context compressi
 ## Key question 2: Tool calling. Which tools, how validated, can a tool start a build, what is the wish-to-world latency budget, where is the dead air?
 
 ### Takeaway
+
 Tooling is the best-engineered part of the gateway (29 Zod-validated declarations, actionable descriptions, persona-scoped gating, structured errors back to the model, fire-and-notify with Firestore-driven milestone notes). The dead air is not in the tool call; it is in the builder, which publishes nothing to Firestore until scene + review + plan + script have all finished (team-measured minutes), while the spec promised placeholders in 3 s.
 
 ### Cited Findings
+
 - 29 tools are declared with Zod schemas and real descriptions; declarations go through `toGeminiJsonSchema` — [services/gateway/src/tools.ts:18-106](services/gateway/src/tools.ts). Gating: story sessions get `story_topic/navigate/end_session`; pack personas get quiz/costume tools; companions get build/modify/undo/dial/prediction/discovery/handoff/spell/variables; `ask_prediction` is withheld in incidental (child-directed) worlds — [tools.ts:121-139](services/gateway/src/tools.ts), [gateway.ts:578-582](services/gateway/src/gateway.ts).
-- Every tool argument is parsed with its Zod schema inside `execute`; `ZodError`s are returned to the model as `Check the tool arguments: …`, `ToolRefusal`s as their message, anything else as a generic refusal; failures are logged as `tool_failed` with a `tool:<name>` milestone — [gateway.ts:288-324](services/gateway/src/gateway.ts). Terminal tools (`switch_character`, `summon_guide`, `talk_to_character`, `end_session`, valid `summon_pack_character`) are acknowledged `{accepted:true}` *before* execution so the old session is not left waiting — [gateway.ts:293-303](services/gateway/src/gateway.ts).
+- Every tool argument is parsed with its Zod schema inside `execute`; `ZodError`s are returned to the model as `Check the tool arguments: …`, `ToolRefusal`s as their message, anything else as a generic refusal; failures are logged as `tool_failed` with a `tool:<name>` milestone — [gateway.ts:288-324](services/gateway/src/gateway.ts). Terminal tools (`switch_character`, `summon_guide`, `talk_to_character`, `end_session`, valid `summon_pack_character`) are acknowledged `{accepted:true}` _before_ execution so the old session is not left waiting — [gateway.ts:293-303](services/gateway/src/gateway.ts).
 - `build_world` checks the blocklist on both the model's description and the captured child words, enforces Labs lock, builds a `BuilderJobSchema` job, awaits `store.enqueue` (kill switch + `reserveWorld` quota + Cloud Tasks `createTask` with a 300 s dispatch deadline), starts watching the world/job docs, sends `worldJob: queued` and returns `{jobId}` — [gateway.ts:594-630](services/gateway/src/gateway.ts), [services/gateway/src/store.ts:238-282](services/gateway/src/store.ts).
 - Milestones are derived from Firestore snapshots (`placeholders` → `hero` → `ready`/`failed`) and injected into Live as a `World milestone` note carrying the full declared world (ids, tags, dials, variables, challenges, characters) — [gateway.ts:469-552](services/gateway/src/gateway.ts). Snapshot errors are swallowed (`() => {}`) — [store.ts:355-376](services/gateway/src/store.ts).
 - **The first Firestore write of a new world happens only after the whole authoring chain**: `buildScene` (up to 3 Argon attempts, 60 s timeout each, each followed by a Flash creation review) → `compileBehavior` (Argon plan, Argon script up to 2 attempts, each with a 90 s transport timeout / 100 s abort, plus smoke run and plan playtests) → `publish(status:'building')` — [services/builder/src/worker.ts:151-192](services/builder/src/worker.ts), [services/builder/src/pipeline.ts:23-53](services/builder/src/pipeline.ts), [services/builder/src/imagine-game.ts:124-217](services/builder/src/imagine-game.ts), [services/builder/src/game-model.ts:33-52](services/builder/src/game-model.ts), [services/builder/src/vertex.ts:88-92](services/builder/src/vertex.ts). Only then do assets stream (4 concurrent, 180 s deadline) — [worker.ts:193-272](services/builder/src/worker.ts).
@@ -61,10 +67,12 @@ Tooling is the best-engineered part of the gateway (29 Zod-validated declaration
 - Moderation of each final child utterance and tool execution share one per-session promise chain (`serial`), capped at 16 pending (then `bye: error`) — [gateway.ts:119-132, 255-285, 288-324](services/gateway/src/gateway.ts). The team's review marked this P1 and the follow-up pass left it "deliberately unhandled" — [docs/reviews/2026-10-16-gateway-builder-direction-check.md](docs/reviews/2026-10-16-gateway-builder-direction-check.md), [docs/handoff/backend-direction-fixes.md](docs/handoff/backend-direction-fixes.md).
 
 ### Inferences
+
 - Wish-to-world budget as the code stands (sum of configured ceilings): tool call + enqueue ≈ 1–3 s; scene 10–180 s; review 3–60 s; plan up to 200 s; script up to 200 s; smoke/playtests seconds; assets up to 180 s. Realistic (team numbers): **≈ 3–4 minutes** to `ready`, with **≈ 2 minutes before any world document exists**. During that window the browser has only the `worldJob: queued` chip and the character has no milestone to talk about; the "generation show" of quality spec §5 cannot start because there is no backdrop/placeholder document to drive it.
 - A tool call cannot be lost to serialization under normal pacing, but a slow Flash moderation (15 s timeout) ahead of a `build_world` result will visibly stall the character.
 
 ### Gaps
+
 - No p50/p95 of `scene_build` or `world_milestone` durations is recorded anywhere in the repo; the single-run numbers above are the only evidence.
 
 ---
@@ -72,9 +80,11 @@ Tooling is the best-engineered part of the gateway (29 Zod-validated declaration
 ## Key question 3: Safety, moderation, prompt injection, raw audio and transcript persistence
 
 ### Takeaway
+
 Moderation is layered and fail-closed (lexical blocklist + Flash classifier on every child utterance, image vision checks, DSL validation, script moderation), raw audio is never written anywhere, and the in-memory transcript is cleared at session end. But fail-closed is implemented as "one classifier outage ends the call", and verbatim moderated child speech is persisted in Firestore world documents and job payloads, which contradicts the project's own hard rule and README wording.
 
 ### Cited Findings
+
 - **Transcript moderation**: every final child transcript runs `blockedLearningInput` (lexical) and then `provider.moderate` (Flash, JSON `{"verdict"}`); `redirect`/`block` inject a steer note and log `moderation_hit`; three `block`s end with `bye: moderation`; a classifier error or malformed verdict logs `moderation_unavailable` and **immediately ends the session with `bye: error`** — [gateway.ts:255-285](services/gateway/src/gateway.ts), [live.ts:228-242](services/gateway/src/live.ts). Typed `text` input is moderated the same way before reaching Live — [gateway.ts:1145-1168](services/gateway/src/gateway.ts). The classifier prompt is fixed to "a six-year-old" regardless of age band — [live.ts:231](services/gateway/src/live.ts).
 - **Prompt-injection posture on child speech reaching the builder**: child words are captured only after a `safe` verdict ([gateway.ts:272](services/gateway/src/gateway.ts)), blocklisted again at `build_world`/`modify_world` ([gateway.ts:598, 634](services/gateway/src/gateway.ts)), and reach the builder as `childRequest` labelled "untrusted content, never instructions" inside JSON in the scene, review, plan and script prompts — [services/builder/src/prompts/v1.ts:86-87](services/builder/src/prompts/v1.ts), [services/builder/src/creation-review.ts:21-22](services/builder/src/creation-review.ts), [services/builder/src/game-playtest.ts:217-218](services/builder/src/game-playtest.ts), [services/builder/src/game-prompt.ts:77](services/builder/src/game-prompt.ts). Model output is then bounded by `GeneratedSceneSchema` + `validateScene` + `findBlockedTerm` and, for scripts, the static check and sandbox ([imagine-game.ts:85-105](services/builder/src/imagine-game.ts)). Game `say/ask/hud` strings are moderated before publication ([packages/game-runtime/src/smoke.ts:278-284](packages/game-runtime/src/smoke.ts)) and again when a `game_say` caption reaches the gateway ([gateway.ts:1187-1192](services/gateway/src/gateway.ts)).
 - **Image safety**: every generated image is checked by Flash with `{"safe","matches"}` and must pass both; two attempts with a chroma switch; rejected images are never used as repair references — [services/builder/src/vertex.ts:164-188](services/builder/src/vertex.ts), [worker.ts:603-741](services/builder/src/worker.ts). Costume drawings in the gateway get the same vision check — [live.ts:198-217](services/gateway/src/live.ts). Story manuscripts get a `{safe, accurate, goalsIncluded}` review — [services/builder/src/story-worker.ts:184-194](services/builder/src/story-worker.ts).
@@ -84,10 +94,12 @@ Moderation is layered and fail-closed (lexical blocklist + Flash classifier on e
 - The spec's "global kill switch" is honoured at `hello`, `enqueue` and inside the builder loop — [gateway.ts:1256](services/gateway/src/gateway.ts), [store.ts:239](services/gateway/src/store.ts), [worker.ts:82, 232](services/builder/src/worker.ts).
 
 ### Inferences
-- The moderation design is correctly fail-closed for *content*, but operationally brittle: one Flash 429/timeout during a judge's session produces `bye: error` with no child-facing explanation beyond the generic error UI. The earlier behaviour (count as a block) was replaced by this, per the backend fixes note; neither is "run moderation in parallel and gate only the build tools".
+
+- The moderation design is correctly fail-closed for _content_, but operationally brittle: one Flash 429/timeout during a judge's session produces `bye: error` with no child-facing explanation beyond the generic error UI. The earlier behaviour (count as a block) was replaced by this, per the backend fixes note; neither is "run moderation in parallel and gate only the build tools".
 - The `childRequest` persistence is a product decision (undo history, "preserve the child's words"), not an accident, but it makes the privacy sentence in CLAUDE.md/README false as written. The data is first-name-free and moderated, so the exposure is modest; the credibility cost with a judge who reads the claims is higher than the privacy cost.
 
 ### Gaps
+
 - No evidence of a semantic (non-lexical) safety eval on real model output; the 50-case eval's "safety hits" are lexical only, as its own `limitations` say — [services/builder/src/evals/evaluate.ts:114-121](services/builder/src/evals/evaluate.ts).
 
 ---
@@ -95,12 +107,14 @@ Moderation is layered and fail-closed (lexical blocklist + Flash classifier on e
 ## Key question 4: Builder pipeline, queueing, retries, fallbacks, prompts and evals
 
 ### Takeaway
+
 The pipeline is thorough (3-attempt scene repair with validator issues and a Flash "does this match the child's words" review, plan-before-code game authoring with real-engine causal playtests, versioned prompt constants, content-addressed asset cache) and it no longer hides failures behind canned fixtures. Its weaknesses are production-only and unmeasured: the Cloud Tasks path has never run, its 300 s deadline is shorter than the pipeline, the evals that run in CI exercise fixture doubles, and the staging eval job has never been configured.
 
 ### Cited Findings
+
 - **Queueing**: production enqueues to Cloud Tasks queue `world-builds` with OIDC and a 300 s dispatch deadline ([store.ts:264-281](services/gateway/src/store.ts)); the builder `/jobs` route verifies the OIDC token audience and caller ([services/builder/src/main.ts:114-127](services/builder/src/main.ts)). Local development (`LOCAL_DEV=1`, `demo-` project, both emulators, no `K_SERVICE`) swaps in a Firestore-polled queue with a 120 s lease renewed every 30 s and ≤ 5 attempts — [packages/server-core/src/local.ts](packages/server-core/src/local.ts), [services/builder/src/local-queue.ts](services/builder/src/local-queue.ts). The queue in Terraform retries up to 100 times over 24 h (min backoff 5 s) — [infra/terraform/main.tf:145-162](infra/terraform/main.tf); builder Cloud Run timeout is 300 s with concurrency 4 — [infra/terraform/main.tf:10](infra/terraform/main.tf).
 - **Idempotency/leases**: a job claims `builderJobs/{jobId}` and a 360 s `worldLocks/{worldId}` lease in one transaction; `complete`/`fallback` short-circuit, but `running`/`failed` do not — [worker.ts:80-143](services/builder/src/worker.ts). Permanent errors (`SceneValidationError`, `MotionArtworkError`, `GameGenerationError`, `EditError`) return 200 `{status:'failed'}`; everything else returns 503 so Cloud Tasks retries — [main.ts:128-139](services/builder/src/main.ts).
-- **Retry/fallback for invalid DSL**: `buildScene` tries 3 times, feeding back validator issues *and* the previous candidate JSON with "repair, do not start a different world"; a Flash `reviewScene` can also send it back; third failure throws `SceneValidationError` — [pipeline.ts:23-53](services/builder/src/pipeline.ts). The model adapter falls back from `SCENE_MODEL` to `FAST_MODEL` for the rest of a session after **one** failure (spec said two) — [vertex.ts:57-73](services/builder/src/vertex.ts). Structured output uses `responseJsonSchema` through the sanitizer and falls back to JSON mode on HTTP 400 — [vertex.ts:79-110](services/builder/src/vertex.ts), [packages/scene-schema/src/json-schema.ts](packages/scene-schema/src/json-schema.ts).
+- **Retry/fallback for invalid DSL**: `buildScene` tries 3 times, feeding back validator issues _and_ the previous candidate JSON with "repair, do not start a different world"; a Flash `reviewScene` can also send it back; third failure throws `SceneValidationError` — [pipeline.ts:23-53](services/builder/src/pipeline.ts). The model adapter falls back from `SCENE_MODEL` to `FAST_MODEL` for the rest of a session after **one** failure (spec said two) — [vertex.ts:57-73](services/builder/src/vertex.ts). Structured output uses `responseJsonSchema` through the sanitizer and falls back to JSON mode on HTTP 400 — [vertex.ts:79-110](services/builder/src/vertex.ts), [packages/scene-schema/src/json-schema.ts](packages/scene-schema/src/json-schema.ts).
 - **Canned fallback**: `nearestConceptFixture` exists but is referenced only by the eval double ([services/builder/src/fallback.ts](services/builder/src/fallback.ts), [evals/evaluate.ts:70](services/builder/src/evals/evaluate.ts)); the worker never publishes it, `imagineGame` documents "Never substitute a plain scene" and throws `GameGenerationError` — [imagine-game.ts:118-123, 216](services/builder/src/imagine-game.ts). The gateway's "This is a safe sample world instead" note for status `fallback` is vestigial — [gateway.ts:497-501](services/gateway/src/gateway.ts). The spec §14 row "A cached fixture world … is offered as a fallback" is therefore no longer what the code does (an improvement).
 - **Edits** recompose the whole scene against the current world with the full creation history and then recompile the script; art is reused only for unchanged descriptions; failures keep the previous world; patches/undo are snapshot-versioned — [services/builder/src/revisions.ts](services/builder/src/revisions.ts), [worker.ts:354-566](services/builder/src/worker.ts).
 - **Prompt versions**: scene `PROMPT_VERSION='v1'`, world-design rules `wd4`, game prompt `game-v2`, Live `v1`, persona `persona-v1` — [prompts/v1.ts:6](services/builder/src/prompts/v1.ts), [prompts/world-design.ts:3](services/builder/src/prompts/world-design.ts), [game-prompt.ts:8](services/builder/src/game-prompt.ts), [services/gateway/src/prompts/v1.ts:5](services/gateway/src/prompts/v1.ts). Few-shot fixture scenes are now sent only for Labs; playgrounds get composition rules instead — [prompts/v1.ts:79-85](services/builder/src/prompts/v1.ts).
@@ -109,10 +123,12 @@ The pipeline is thorough (3-attempt scene repair with validator issues and a Fla
 - **Required art gates publication**: `requireMotionArtwork` throws `MotionArtworkError` after asset generation if any locomotion actor lacks a registered sheet, failing the whole world — [worker.ts:273](services/builder/src/worker.ts), [services/builder/src/motion.ts:25-30](services/builder/src/motion.ts). The team recorded "all four full real browser creation attempts … failed required fox artwork registration" before later improvements, and "Native generation and latency remain variable" — [CHECKPOINT.md](CHECKPOINT.md).
 
 ### Inferences
+
 - Production timing hazard: worst-case configured ceilings (scene 3×60 s + review 3×20 s + plan ≤ 200 s + script ≤ 200 s + assets 180 s) far exceed both the Cloud Tasks dispatch deadline and the Cloud Run request timeout (300 s each); the one real run measured (~4 min including art) is already at that edge. A timed-out dispatch is retried every 5 s; retries collide with the 360 s world lease (`Another job is updating this world` → 503) and, after the lease lapses, re-run the whole Argon chain because `running` is not treated as terminal. Net effect: duplicate model spend and possibly a second `building` publish over a world that was about to be `ready`. The durable local queue (which is what every demo has used) masks all of this.
 - Because the offline eval cannot fail on model quality and the staging eval has no configured variables, the project has no regression signal on prompt changes against the real models; `wd4`/`game-v2` were tuned by hand against a handful of real runs.
 
 ### Gaps
+
 - No real-model eval report (validity, recall, first-try script pass rate against the 95 % target in quality spec §6) exists in the repo.
 - Cloud Tasks → builder has never been executed end-to-end (team: "Cloud dispatch/lease timing needs its own deployment acceptance").
 
@@ -121,23 +137,27 @@ The pipeline is thorough (3-attempt scene repair with validator issues and a Fla
 ## Key question 5: Generated game scripts. The hard-rule contradiction, sandbox threat model, static check, and whether a judge could break it live
 
 ### Takeaway
+
 The sandbox is the strongest engineering in the repo: a scope-aware acorn static check, a shim that deletes and pins 37 globals, shadows 50 more, neuters every `Function` constructor and freezes intrinsics, a host that Zod-validates every worker message and independently enforces body/timer/hang budgets, 41 red-team scripts (VERIFIED passing), and a plan-before-code playtest with idle and input-prefix causal controls. The contradiction is documentary and architectural, not an exploit: CLAUDE.md, spec §5.1 and §20 still forbid executing generated code while the quality spec adopted it, and the builder executes every candidate script server-side in `worker_threads` without resource limits.
 
 ### Cited Findings
-- **Rule vs. reality**: "The Scene DSL is declarative. No generated code is executed anywhere." — [CLAUDE.md](CLAUDE.md); spec §20 lists "Model-generated code in a sandbox" as the *rejected* alternative — [spec §20](docs/superpowers/specs/2026-10-15-just-imagine-design.md); the quality spec §6 and §13 adopt "Generated game scripts in a sandboxed worker" — [quality spec](docs/superpowers/specs/2026-10-16-quality-program-design.md). README does not mention generated code; local-development.md does ("JavaScript isolated in a budgeted Game API worker") — [docs/handoff/local-development.md](docs/handoff/local-development.md).
+
+- **Rule vs. reality**: "The Scene DSL is declarative. No generated code is executed anywhere." — [CLAUDE.md](CLAUDE.md); spec §20 lists "Model-generated code in a sandbox" as the _rejected_ alternative — [spec §20](docs/superpowers/specs/2026-10-15-just-imagine-design.md); the quality spec §6 and §13 adopt "Generated game scripts in a sandboxed worker" — [quality spec](docs/superpowers/specs/2026-10-16-quality-program-design.md). README does not mention generated code; local-development.md does ("JavaScript isolated in a budgeted Game API worker") — [docs/handoff/local-development.md](docs/handoff/local-development.md).
 - **Static check**: acorn, `ecmaVersion: 2022`, `sourceType: 'module'` (strict), rejects import/export/`import()`/`import.meta`, top-level `this`, `eval`, `Function`, `globalThis/self/window/global/document`, all timers, `postMessage`, `importScripts`, network/storage globals, `Atomics/SharedArrayBuffer/WebAssembly`, `require/process/module/exports/Buffer`, members `constructor/__proto__/prototype`, `__proto__` keys, any free identifier outside `game, Math, Number, String, Array, Object, JSON, Boolean, console.log`, and sources over 20 KB; warns on `while(true)`/`for(;;)` without exit — [packages/game-runtime/src/static-check.ts:31-70, 219-236, 506-534](packages/game-runtime/src/static-check.ts), [packages/game-runtime/src/api.ts:28-41](packages/game-runtime/src/api.ts). Consequence: `Map`, `Set`, `Date`, `Promise`, `Error`, `RegExp`, `parseInt/parseFloat`, `Symbol`, `isNaN` are all rejected as free identifiers (checked against `ALLOWED_GLOBALS`).
 - **Shim**: user source is wrapped in an async function whose parameters shadow 59 names; the shim captures the message port first, deletes each killed global along the prototype chain and pins it `undefined`, replaces `constructor` on all four function prototypes with a thrower, freezes `Object/Array/String/Number/Boolean.prototype`, `Math`, `JSON` and the function prototypes, and hands the script a frozen `game` and a `console` limited to 200 `log`s — [packages/game-runtime/src/worker-shim.ts:12-120, 129-204, 523-544](packages/game-runtime/src/worker-shim.ts). `Math.random` is replaced by the seeded `game.random` — [worker-shim.ts:525](packages/game-runtime/src/worker-shim.ts).
-- **Budgets**: 200 bodies, 50 timers, 8 ms per handler, 50 ms script time per second, 500 ms ack hang, 5 s ready, 2,000 commands per flush — [packages/game-runtime/src/budgets.ts](packages/game-runtime/src/budgets.ts). The host enforces hang/body/timer limits itself and validates every worker message against `WorkerMessageSchema`, failing the game on the first invalid one — [packages/game-runtime/src/host.ts:146-283](packages/game-runtime/src/host.ts), [packages/game-runtime/src/protocol.ts](packages/game-runtime/src/protocol.ts). The in-worker handler timer is checked *after* a handler returns ([worker-shim.ts:290-302](packages/game-runtime/src/worker-shim.ts)), so a synchronous infinite loop is caught by the host's 500 ms hang timer, not the 8 ms budget (red-team case 11 asserts exactly this, VERIFIED).
+- **Budgets**: 200 bodies, 50 timers, 8 ms per handler, 50 ms script time per second, 500 ms ack hang, 5 s ready, 2,000 commands per flush — [packages/game-runtime/src/budgets.ts](packages/game-runtime/src/budgets.ts). The host enforces hang/body/timer limits itself and validates every worker message against `WorkerMessageSchema`, failing the game on the first invalid one — [packages/game-runtime/src/host.ts:146-283](packages/game-runtime/src/host.ts), [packages/game-runtime/src/protocol.ts](packages/game-runtime/src/protocol.ts). The in-worker handler timer is checked _after_ a handler returns ([worker-shim.ts:290-302](packages/game-runtime/src/worker-shim.ts)), so a synchronous infinite loop is caught by the host's 500 ms hang timer, not the 8 ms budget (red-team case 11 asserts exactly this, VERIFIED).
 - **Browser**: Blob URL worker named `game-script` — [host.ts:67-83](packages/game-runtime/src/host.ts). **Server**: `new Worker(source, { eval: true })` with no `resourceLimits` — [packages/game-runtime/src/node.ts:6](packages/game-runtime/src/node.ts); in Node the shim obtains the port via `require('node:worker_threads')` before `require` is shadowed for user code — [worker-shim.ts:167-173](packages/game-runtime/src/worker-shim.ts). The builder runs each candidate script through `smokeRun` (10 simulated seconds, scripted taps/flick/dial) and then through every plan scenario, an idle control, and one input-prefix control per trigger — [imagine-game.ts:85-105, 195-210](services/builder/src/imagine-game.ts), [packages/game-runtime/src/smoke.ts:264-286](packages/game-runtime/src/smoke.ts), [game-playtest.ts:336-382](services/builder/src/game-playtest.ts). Physics never runs in the worker; commands go through the engine's public API so the material table still governs — [smoke.ts:54-58, 208-252](packages/game-runtime/src/smoke.ts).
 - **Red team**: 40 escape scripts (fetch, XHR, WebSocket, importScripts, IndexedDB, localStorage, caches, eval, `new Function`, infinite tick loop, 10,000 spawns, proto pollution, constructor chain, top-level this, globalThis, self.postMessage, dynamic/static import, timers, 20 KB+ script, Atomics/SAB, WebAssembly, `with`, `require('fs')`, `process.exit`, `navigator.sendBeacon`, Worker spawn, MessageChannel, too many timers, heavy tick handler, computed constructor/proto, command flood, `arguments.callee`, `console.error`, Reflect/Proxy, import.meta, export) — [packages/game-runtime/test/red-team/](packages/game-runtime/test/red-team/); `red-team.test.ts` 41/41 and `smoke.test.ts` 60/60 passed in this audit (VERIFIED).
 - **Script delivery**: scripts reach the browser only inside the Firestore world document written by the builder (`SceneDoc.game.script {apiVersion, source, hash}`) — [imagine-game.ts:107-116](services/builder/src/imagine-game.ts); clients cannot write worlds (spec §12 "Firestore rules deny all client writes").
 
 ### Inferences
-- A judge cannot inject a script directly; they can only coax the model. The static check runs on the *model's* output, so a prompt-injection that makes Argon emit `fetch(...)` fails closed at publication (the script never ships) and the child sees "Creation did not finish". Breaking the browser sandbox live would require a V8/Worker primitive escape, which the 41 cases do not cover but which no static check would either.
+
+- A judge cannot inject a script directly; they can only coax the model. The static check runs on the _model's_ output, so a prompt-injection that makes Argon emit `fetch(...)` fails closed at publication (the script never ships) and the child sees "Creation did not finish". Breaking the browser sandbox live would require a V8/Worker primitive escape, which the 41 cases do not cover but which no static check would either.
 - The server-side executions are the real threat-model gap: 3–6 runs of untrusted code per attempt inside the builder process that holds ADC and Firestore access, in an isolate with no `maxOldGenerationSizeMb`. An allocation bomb inside one 8 ms handler can OOM the worker (safe) or, under the 2 GiB Cloud Run limit, the container. Mitigation is cheap: `resourceLimits`, or a separate minimal-privilege Cloud Run service for smoke runs.
 - The allowlist excluding `Map/Set/Date/Promise/Error/parseInt/RegExp` is a correctness-by-construction choice (determinism, no clocks) but will cost first-try pass rate; the prompt warns the model ([game-prompt.ts:52](services/builder/src/game-prompt.ts)) and there is only one repair attempt ([imagine-game.ts:180](services/builder/src/imagine-game.ts)).
 
 ### Gaps
+
 - No pass-rate statistics for generated scripts against the 95 % target; the team itself says "Model planning is still fallible; this is a measurable publication gate, not a guarantee" — [docs/handoff/generated-game-quality-plan.md](docs/handoff/generated-game-quality-plan.md).
 
 ---
@@ -145,9 +165,11 @@ The sandbox is the strongest engineering in the repo: a scope-aware acorn static
 ## Key question 6: Images. Model, safety, caching, cost control, failure handling, critical path
 
 ### Takeaway
+
 Image generation is production-grade in shape (hero vs prop model split, 16:9/2K and 1:1/1K `imageConfig`, chroma-key + collider pipeline, vision safety-and-match check, content-addressed cache, per-plan image caps) and runs after the `building` publish so the world is visible while sprites stream; the exceptions are 9-pose locomotion sheets, whose failure fails the whole world, and the 2–4 minute wall before art even starts.
 
 ### Cited Findings
+
 - Models: `HERO_MODEL` default `gemini-nano-banana-2.1` for backdrop/mid-layer/hero/characters/animated sheets/retries, `PROP_MODEL` default `gemini-3.1-flash-lite-image` for other props — [main.ts:35-36](services/builder/src/main.ts), [vertex.ts:126-163](services/builder/src/vertex.ts), [worker.ts:622-628](services/builder/src/worker.ts). Costume drawings in the gateway use `COMPANION_IMAGE_MODEL` (nano-banana) at 1:1/1K then Flash vision check, resized to 512 px WebP ≤ 130 KB — [live.ts:175-219](services/gateway/src/live.ts).
 - Safety: Flash vision `{"safe","matches"}` must both be true; two attempts; chroma switches magenta→green on background or safety failure; `asset_review_failed`/`asset_background_failed` logged with attempt count — [vertex.ts:164-188](services/builder/src/vertex.ts), [worker.ts:637-679](services/builder/src/worker.ts).
 - Cache: SHA-256 of normalised description + kind + style/cutout/motion version; a hit with `safetyChecked` skips generation entirely; `asset_cache` logged — [services/builder/src/assets.ts:4-13](services/builder/src/assets.ts), [worker.ts:577-596](services/builder/src/worker.ts). Cost counters: `addImages(uid, 1)` per generated image — [worker.ts:715](services/builder/src/worker.ts), [packages/server-core/src/quota.ts:95-98](packages/server-core/src/quota.ts). Caps: `imagesPerWorld` 8 free / 16 family, backdrop and mid-layer exempt — [plans.ts](packages/protocol/src/plans.ts), [worker.ts:219](services/builder/src/worker.ts); 4 concurrent generations, 180 s deadline, kill-switch checked per asset — [worker.ts:193, 228-272](services/builder/src/worker.ts).
@@ -155,9 +177,11 @@ Image generation is production-grade in shape (hero vs prop model split, 16:9/2K
 - Critical path: nothing synchronous in the voice path; the gateway costume draw is explicitly off the audio path (`void provider.drawLearningLook(...)`) — [gateway.ts:790-828](services/gateway/src/gateway.ts). Art is sequential after `building` — [worker.ts:192-272](services/builder/src/worker.ts). Team-measured artwork phase: 53 s — [docs/handoff/generated-game-quality-operations.md](docs/handoff/generated-game-quality-operations.md).
 
 ### Inferences
+
 - Per world worst case: (1 backdrop + 1 overlay + up to 16 sprites) × ≤ 2 attempts = up to 36 image generations plus 36 Flash vision checks, bounded by the 180 s deadline and 4-way concurrency. Typical: 6–12 generations.
 
 ### Gaps
+
 - No measured cache hit rate; `asset_cache` events exist but no dashboard query was found in scope.
 
 ---
@@ -165,9 +189,11 @@ Image generation is production-grade in shape (hero vs prop model split, 16:9/2K
 ## Key question 7: Cost and quota. Per-session caps, token budgets, session length, concurrency, cost per 10-minute session, unbounded loops
 
 ### Takeaway
+
 Quotas are well-structured (daily voice seconds, worlds per day, images per world, saved worlds, costume attempts, story image budgets, one session per child, socket rate limits), but three loops are unbounded by anything but the daily voice quota: character taps/handoffs (each a Flash summary + fresh Live setup), game-caption moderation (one Flash call per caption at up to 2/s), and Cloud Tasks retries of a timed-out build (100 attempts).
 
 ### Cited Findings
+
 - Plan limits: free = 1 child, 15 min voice/day, 3 worlds/day, 8 images/world, 10 saved worlds; family = 4 children, 60 min, 20 worlds, 16 images, 200 saved — [packages/protocol/src/plans.ts](packages/protocol/src/plans.ts). Voice metered every 10 s with a monotonic checkpoint — [gateway.ts:133-146, 1333-1365](services/gateway/src/gateway.ts), [store.ts:109-148](services/gateway/src/store.ts). Session target length 8 min rising +2 per 3 loops to 20 — [spec §3.3](docs/superpowers/specs/2026-10-15-just-imagine-design.md), [store.ts:170-179](services/gateway/src/store.ts).
 - Per-session caps: 6 costume drawings ([gateway.ts:771-774](services/gateway/src/gateway.ts)); 16 pending serial operations ([gateway.ts:121](services/gateway/src/gateway.ts)); 30 control / 80 audio frames per second per socket, 64 KB max payload ([gateway.ts:1108-1114, 1218-1226](services/gateway/src/gateway.ts)); one active session per child via `sessionLocks` ([store.ts:71-108](services/gateway/src/store.ts)); 500 ms throttle on interaction/simEvent/variable/challenge messages ([gateway.ts:1181-1183](services/gateway/src/gateway.ts)).
 - Model-call budgets: moderation/summary/review 15 s timeouts; scene/patch 60 s; image 60 s (+65 s abort when bounded); plan/script 90 s transport / 100 s abort, `maxOutputTokens` 12,288 (plan) / 24,000 (script), `thinkingLevel` MEDIUM/HIGH on `gemini-4-*`; story 16,384 tokens — [live.ts:224, 235](services/gateway/src/live.ts), [vertex.ts:44-47, 91, 117-121, 154-156, 181-183](services/builder/src/vertex.ts), [game-model.ts:38-50](services/builder/src/game-model.ts).
@@ -175,10 +201,12 @@ Quotas are well-structured (daily voice seconds, worlds per day, images per worl
 - Unbounded-by-quota paths: every `game_say` caption from a running script triggers a Flash moderation call ([gateway.ts:1187-1192](services/gateway/src/gateway.ts)) limited only by the 500 ms throttle; every tap on a character entity or handoff triggers `summarize` + a new Live setup ([gateway.ts:1006-1017, 368-468](services/gateway/src/gateway.ts)); Cloud Tasks retries a 503'd build up to 100 times ([main.tf:155-160](infra/terraform/main.tf)) and the claim transaction re-runs a job whose prior status is `running` or `failed` ([worker.ts:97](services/builder/src/worker.ts)). Translation editions are capped globally at 3 concurrent and 160/family/day — [CHECKPOINT.md](CHECKPOINT.md).
 
 ### Inferences
+
 - **Estimated calls for a 10-minute family session with one world** (from the code's settings; prices for `gemini-3.8-*`/`gemini-4-argon`/`nano-banana-2.1` are not in the repo or confirmed by the auditor, so dollars below use current public Flash/Pro/Image price classes as a proxy and should be treated as order-of-magnitude): Live audio in ≈ 600 s of mic (Gemini bills audio at about 32 tokens/s → ≈ 19k input tokens) plus ≈ 150–250 s of model speech (≈ 5–8k output audio tokens) plus one ~3k-token system instruction per connection (re-sent on every handoff/tap/GoAway); 20–40 Flash moderation calls (~0.7k tokens each); 1 Flash summary per session end and per handoff; one world = 1–3 Argon scene calls (~8–12k in, 2–6k out), 1–3 Flash reviews with the full scene JSON, 1–2 Argon plan calls with MEDIUM thinking (up to 12k out), 1–2 Argon script calls with HIGH thinking (up to 24k out; the observed 82–90 s calls imply tens of thousands of thinking tokens), 6–12 image generations (2K backdrop, 1K sprites, 2K sheets) and the same number of Flash vision checks. Proxy cost: voice ≈ $0.15–0.40; one world ≈ $0.40–1.20 (dominated by Argon thinking tokens and images); **≈ $0.6–1.6 per session, rising ≈ $0.5–1 per extra world or regenerate-heavy edit**. The free plan's 3 worlds/day and 15 min voice cap exposure at roughly $3–5/day/family worst case.
-- Nothing in the gateway bounds the *number* of Live sessions per voice-minute; a child tapping planets rapidly can open a new Live session every few seconds, each paying the system-instruction tokens and a Flash summary.
+- Nothing in the gateway bounds the _number_ of Live sessions per voice-minute; a child tapping planets rapidly can open a new Live session every few seconds, each paying the system-instruction tokens and a Flash summary.
 
 ### Gaps
+
 - Actual per-model pricing for the configured model ids is not recorded anywhere in the repo; the admin "estimated model cost per day" panel (quality spec §9b) was not audited for its formula.
 
 ---
@@ -186,17 +214,21 @@ Quotas are well-structured (daily voice seconds, worlds per day, images per worl
 ## Key question 8: Observability. Could the team debug a failure live at the finale?
 
 ### Takeaway
-Structured JSON logs with session/job/world ids and a useful `first_audio` metric exist, and Vertex failures are classified into actionable categories; but error *messages* are stripped everywhere by design, tracing is opt-in and not wired through Genkit, and there is no persisted latency distribution, so a novel failure during the finale would show up as a bare category with no text to search.
+
+Structured JSON logs with session/job/world ids and a useful `first_audio` metric exist, and Vertex failures are classified into actionable categories; but error _messages_ are stripped everywhere by design, tracing is opt-in and not wired through Genkit, and there is no persisted latency distribution, so a novel failure during the finale would show up as a bare category with no text to search.
 
 ### Cited Findings
+
 - `logEvent` writes one JSON line with `severity`, `event`, `service` and an allow-list of `sessionId/worldId/jobId/childHash/milestone/durationMs/count/success/cached/status`; it is silenced under `NODE_ENV=test` — [packages/server-core/src/telemetry.ts:5-35](packages/server-core/src/telemetry.ts). `traced()` opens an OTel span and logs duration; the exporter starts only when `OTEL_ENABLED=1` — [telemetry.ts:36-62](packages/server-core/src/telemetry.ts). Spans exist for `scene_build` and `game_plan_model`/`game_script_model` — [worker.ts:151-153](services/builder/src/worker.ts), [game-model.ts:33](services/builder/src/game-model.ts).
 - Gateway events: `session_started/ended`, `first_audio` (ms), `live_open_failed`, `live_transport_failed`, `moderation_hit`, `moderation_unavailable`, `tool_failed` — each with a `milestone` category from `liveErrorDetails` (`check_adc_and_iam`, `check_model_and_schema`, `check_model_and_region`, `check_vertex_quota`, `vertex_timeout`, `vertex_connection_failed`) and never the provider message — [services/gateway/src/live-errors.ts](services/gateway/src/live-errors.ts), [gateway.ts:222, 263-269, 305-313, 359-366](services/gateway/src/gateway.ts). Builder events: `builder_result`, `world_milestone` with `durationMs`, `asset_cache`, `asset_failed/attempt_failed/background_failed/review_failed`, `scene_request_review`, `game_kind/game_fallback`, `story_text_attempt_failed` — [worker.ts](services/builder/src/worker.ts), [vertex.ts:50-55](services/builder/src/vertex.ts).
 - Spec promises custom metrics (time to first audio, build time per milestone, DSL validity rate, moderation hits, cache hit rate), alerts and Error Reporting — [spec §13](docs/superpowers/specs/2026-10-15-just-imagine-design.md); Terraform has an observability module ([infra/terraform/observability.tf](infra/terraform/observability.tf)) which was not audited line by line.
 
 ### Inferences
-- At the finale the team could tail Cloud Logging by `sessionId` and see *where* a session died and *which class* of Vertex error it was, which is better than most hackathon entries. They could not see the error string, the model's refusal reason, or whether a 400 came from the schema or the model id, and nothing surfaces first-word latency live. A redacted-message field (first 120 chars, child text stripped) and a tiny admin tile for `first_audio` p50 would close most of the gap.
+
+- At the finale the team could tail Cloud Logging by `sessionId` and see _where_ a session died and _which class_ of Vertex error it was, which is better than most hackathon entries. They could not see the error string, the model's refusal reason, or whether a 400 came from the schema or the model id, and nothing surfaces first-word latency live. A redacted-message field (first 120 chars, child text stripped) and a tiny admin tile for `first_audio` p50 would close most of the gap.
 
 ### Gaps
+
 - No evidence that `OTEL_ENABLED=1` is set in any deployed environment; no dashboard definitions were checked.
 
 ---
@@ -204,9 +236,11 @@ Structured JSON logs with session/job/world ids and a useful `first_audio` metri
 ## Key question 9: Honesty check. What is stubbed, mocked, flagged off or fake that a judge might mistake for real?
 
 ### Takeaway
+
 The team is unusually candid in its own docs (every checkpoint lists limits), and there is no hidden canned world in the production path. The items a judge could mistake: "Vertex AI" everywhere in prose while all runs used the Developer API; "Genkit" as a no-op wrapper; eval "100 % validity" from fixture doubles; a privacy sentence that no longer matches the data model; and the fixture gateway/worlds, which are correctly flag-gated but still compiled into the client bundle with a fallback URL pointing at the fake port.
 
 ### Cited Findings
+
 - Fake gateway: a scripted `ws` server on 8787 that accepts any token and plays JSON scenarios — [packages/fixtures/src/fake-gateway.ts](packages/fixtures/src/fake-gateway.ts); used by the 3100/3200 preview (`NEXT_PUBLIC_FAKE=1`) and by e2e ([apps/web/e2e/companion.spec.ts:10](apps/web/e2e/companion.spec.ts)); the real app (3300) builds with `NEXT_PUBLIC_FAKE=0` — [docs/handoff/local-development.md](docs/handoff/local-development.md). In production builds `env.fake` is false but the branches and `FIXTURE_WORLDS` imports remain in the bundle ([apps/web/components/Studio.tsx:201, 687-693](apps/web/components/Studio.tsx), [apps/web/lib/preview-worlds.ts](apps/web/lib/preview-worlds.ts)) and `gatewayUrl` defaults to `ws://127.0.0.1:8787` when the env var is missing — [apps/web/lib/env.ts:4](apps/web/lib/env.ts).
 - Local adapters (Firestore queue, filesystem assets) are guarded by `LOCAL_DEV=1` + `demo-` project + both emulators + no `K_SERVICE`, so they cannot activate on Cloud Run — [packages/server-core/src/local.ts](packages/server-core/src/local.ts).
 - In-process provider mocks: gateway tests mock `LiveProvider` and `SessionStore` entirely ([services/gateway/test/gateway.test.ts:9-62](services/gateway/test/gateway.test.ts)); `live.test.ts` mocks `GoogleGenAI.live.connect` ([services/gateway/test/live.test.ts:4-10](services/gateway/test/live.test.ts)); "fake Live websocket coverage" is listed as not done — [docs/handoff/backend-direction-fixes.md](docs/handoff/backend-direction-fixes.md).
@@ -216,9 +250,11 @@ The team is unusually candid in its own docs (every checkpoint lists limits), an
 - The team's own candour: "Do not infer production readiness from completed source checkboxes" — [TODO.md](TODO.md); "This still involves substantial generation latency; do not describe it as instant or universally reliable" — [docs/handoff/generated-game-quality-operations.md](docs/handoff/generated-game-quality-operations.md).
 
 ### Inferences
+
 - A judge who runs the 3300 stack will see real Gemini voice, real generated art and real generated games; the "fake" surfaces are honestly labelled preview/e2e. The credibility risk is in the written claims (Vertex, Genkit, privacy sentence, declarative-only DSL), not in the running product.
 
 ### Gaps
+
 - Whether `scripts/` or `docs/art` tooling used `gemini-3-pro-image` offline could not be established (no source reference found; prompts are recorded as JSON under `docs/art`).
 
 ---
@@ -226,44 +262,47 @@ The team is unusually candid in its own docs (every checkpoint lists limits), an
 ## Key question 10: Gemini depth. Capabilities used vs claimed, against a winner-level bar
 
 ### Takeaway
+
 Breadth is genuinely high for a hackathon: Live bidi audio with function calling, transcription, resumption, compression and tuned VAD; structured output with schema sanitising and JSON-mode fallback; thinking levels per purpose; native image generation with aspect/size control and reference-image repair; multimodal vision checks; multi-model routing. The misses that separate it from winner level are depth-of-use: no Vertex run, no Live safety/proactivity/thinking, no context caching on large repeated prefixes, no real-model evals, and no latency engineering that keeps the model talking while the world builds.
 
 ### Cited Findings (capability table)
 
-| Capability | In code? | Where | Claimed? |
-|---|---|---|---|
-| Live API bidirectional audio (PCM16 16k in / 24k out) | Yes | [live.ts:59-77, 143-147](services/gateway/src/live.ts), [ws.ts:23-36](packages/protocol/src/ws.ts) | Yes |
-| Live function calling (29 tools) + tool responses | Yes | [tools.ts](services/gateway/src/tools.ts), [live.ts:158-159](services/gateway/src/live.ts) | Yes |
-| Live system instruction, per-speaker, versioned, language-pinned | Yes | [prompts/](services/gateway/src/prompts/), [language-policy.ts](packages/protocol/src/language-policy.ts) | Yes |
-| Live input/output transcription | Yes | [live.ts:72-73](services/gateway/src/live.ts) | Yes |
-| Live session resumption + GoAway handling | Yes (resume yes; GoAway = close-then-reconnect) | [live.ts:74, 113-119](services/gateway/src/live.ts) | Yes |
-| Live context window compression | Yes (100k trigger) | [live.ts:75](services/gateway/src/live.ts) | Yes |
-| Live VAD tuning | Yes (900 ms) | [live.ts:76](services/gateway/src/live.ts) | Yes |
-| Live prebuilt voices per character | Yes (Sulafat + 6) | [prompts/index.ts:24-29](services/gateway/src/prompts/index.ts) | Yes |
-| Live safety settings | **No** | test asserts absence [live.test.ts:55](services/gateway/test/live.test.ts) | Yes (§8.2, §12) |
-| Live proactive audio / affective dialog | **No** | grep: none | Proactive claimed (§8.2) |
-| Live thinking / thought summaries | No | grep: none | Not claimed |
-| Async (NON_BLOCKING) function calling | No | grep: none | "where available" (§8.4) |
-| Structured output (`responseJsonSchema`, JSON mime) with sanitizer and JSON-mode fallback | Yes | [vertex.ts:79-110](services/builder/src/vertex.ts), [game-model.ts:38-39, 59-77](services/builder/src/game-model.ts) | Yes |
-| Thinking levels (HIGH for code, MEDIUM for plans) | Yes | [game-model.ts:42-48](services/builder/src/game-model.ts) | Yes (ops doc) |
-| Safety settings `BLOCK_LOW_AND_ABOVE` on generateContent | Yes | [vertex.ts:10-15](services/builder/src/vertex.ts), [live.ts:11-16](services/gateway/src/live.ts) | Yes |
-| Native image generation with `imageConfig` 16:9/2K, 1:1/1K | Yes | [vertex.ts:150-152](services/builder/src/vertex.ts), [live.ts:183](services/gateway/src/live.ts) | Yes |
-| Image reference input (identity-preserving repair) | Yes | [vertex.ts:136-146](services/builder/src/vertex.ts), [worker.ts:731-737](services/builder/src/worker.ts) | Yes |
-| Multimodal vision checks (safety + match) | Yes | [vertex.ts:164-188](services/builder/src/vertex.ts), [live.ts:198-217](services/gateway/src/live.ts) | Yes |
-| Multi-model routing (live / argon / flash / nano-banana / flash-lite-image) with session-scoped fallback | Yes | [main.ts](services/builder/src/main.ts), [vertex.ts:57-73](services/builder/src/vertex.ts) | Yes |
-| Text-to-speech (`gemini-3.8-flash-tts`) | **No** | grep: none | Yes (CLAUDE.md, §4.3) |
-| Music (`lyria-3-clip-preview`) | **No** | grep: none | Yes (quality spec §4) |
-| Context caching (`cachedContent`) | **No** | grep: none | Not claimed |
-| Grounding / Google Search | No (by design) | — | Correctly excluded (§8.2) |
-| Code execution tool | No | — | Not claimed |
-| Vertex AI + ADC, us-central1 | Code path only; **zero recorded runs** | [live.ts:28-36](services/gateway/src/live.ts), [vertex.ts:28-33](services/builder/src/vertex.ts) | Yes (hard rule) |
-| Genkit flows + Genkit OTel | Decorative wrapper only | [main.ts:84-88](services/builder/src/main.ts) | Yes (§4.2, §9, §13) |
-| Real-model evals in CI | No (doubles only) | [evals.yml](.github/workflows/evals.yml) | Yes (§15) |
+| Capability                                                                                               | In code?                                        | Where                                                                                                                | Claimed?                  |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| Live API bidirectional audio (PCM16 16k in / 24k out)                                                    | Yes                                             | [live.ts:59-77, 143-147](services/gateway/src/live.ts), [ws.ts:23-36](packages/protocol/src/ws.ts)                   | Yes                       |
+| Live function calling (29 tools) + tool responses                                                        | Yes                                             | [tools.ts](services/gateway/src/tools.ts), [live.ts:158-159](services/gateway/src/live.ts)                           | Yes                       |
+| Live system instruction, per-speaker, versioned, language-pinned                                         | Yes                                             | [prompts/](services/gateway/src/prompts/), [language-policy.ts](packages/protocol/src/language-policy.ts)            | Yes                       |
+| Live input/output transcription                                                                          | Yes                                             | [live.ts:72-73](services/gateway/src/live.ts)                                                                        | Yes                       |
+| Live session resumption + GoAway handling                                                                | Yes (resume yes; GoAway = close-then-reconnect) | [live.ts:74, 113-119](services/gateway/src/live.ts)                                                                  | Yes                       |
+| Live context window compression                                                                          | Yes (100k trigger)                              | [live.ts:75](services/gateway/src/live.ts)                                                                           | Yes                       |
+| Live VAD tuning                                                                                          | Yes (900 ms)                                    | [live.ts:76](services/gateway/src/live.ts)                                                                           | Yes                       |
+| Live prebuilt voices per character                                                                       | Yes (Sulafat + 6)                               | [prompts/index.ts:24-29](services/gateway/src/prompts/index.ts)                                                      | Yes                       |
+| Live safety settings                                                                                     | **No**                                          | test asserts absence [live.test.ts:55](services/gateway/test/live.test.ts)                                           | Yes (§8.2, §12)           |
+| Live proactive audio / affective dialog                                                                  | **No**                                          | grep: none                                                                                                           | Proactive claimed (§8.2)  |
+| Live thinking / thought summaries                                                                        | No                                              | grep: none                                                                                                           | Not claimed               |
+| Async (NON_BLOCKING) function calling                                                                    | No                                              | grep: none                                                                                                           | "where available" (§8.4)  |
+| Structured output (`responseJsonSchema`, JSON mime) with sanitizer and JSON-mode fallback                | Yes                                             | [vertex.ts:79-110](services/builder/src/vertex.ts), [game-model.ts:38-39, 59-77](services/builder/src/game-model.ts) | Yes                       |
+| Thinking levels (HIGH for code, MEDIUM for plans)                                                        | Yes                                             | [game-model.ts:42-48](services/builder/src/game-model.ts)                                                            | Yes (ops doc)             |
+| Safety settings `BLOCK_LOW_AND_ABOVE` on generateContent                                                 | Yes                                             | [vertex.ts:10-15](services/builder/src/vertex.ts), [live.ts:11-16](services/gateway/src/live.ts)                     | Yes                       |
+| Native image generation with `imageConfig` 16:9/2K, 1:1/1K                                               | Yes                                             | [vertex.ts:150-152](services/builder/src/vertex.ts), [live.ts:183](services/gateway/src/live.ts)                     | Yes                       |
+| Image reference input (identity-preserving repair)                                                       | Yes                                             | [vertex.ts:136-146](services/builder/src/vertex.ts), [worker.ts:731-737](services/builder/src/worker.ts)             | Yes                       |
+| Multimodal vision checks (safety + match)                                                                | Yes                                             | [vertex.ts:164-188](services/builder/src/vertex.ts), [live.ts:198-217](services/gateway/src/live.ts)                 | Yes                       |
+| Multi-model routing (live / argon / flash / nano-banana / flash-lite-image) with session-scoped fallback | Yes                                             | [main.ts](services/builder/src/main.ts), [vertex.ts:57-73](services/builder/src/vertex.ts)                           | Yes                       |
+| Text-to-speech (`gemini-3.8-flash-tts`)                                                                  | **No**                                          | grep: none                                                                                                           | Yes (CLAUDE.md, §4.3)     |
+| Music (`lyria-3-clip-preview`)                                                                           | **No**                                          | grep: none                                                                                                           | Yes (quality spec §4)     |
+| Context caching (`cachedContent`)                                                                        | **No**                                          | grep: none                                                                                                           | Not claimed               |
+| Grounding / Google Search                                                                                | No (by design)                                  | —                                                                                                                    | Correctly excluded (§8.2) |
+| Code execution tool                                                                                      | No                                              | —                                                                                                                    | Not claimed               |
+| Vertex AI + ADC, us-central1                                                                             | Code path only; **zero recorded runs**          | [live.ts:28-36](services/gateway/src/live.ts), [vertex.ts:28-33](services/builder/src/vertex.ts)                     | Yes (hard rule)           |
+| Genkit flows + Genkit OTel                                                                               | Decorative wrapper only                         | [main.ts:84-88](services/builder/src/main.ts)                                                                        | Yes (§4.2, §9, §13)       |
+| Real-model evals in CI                                                                                   | No (doubles only)                               | [evals.yml](.github/workflows/evals.yml)                                                                             | Yes (§15)                 |
 
 ### Inferences
-- Against a "winner level" Gemini entry (real Vertex deployment, Live with safety + proactive audio + a measured sub-2 s first word, agentic tool loops that keep the conversation alive during long jobs, cached prompt prefixes, nightly real-model evals with checked-in numbers, and observability a judge can watch), this core is about two-thirds of the way: the *surface area* of Gemini used is winner-level; the *proof* (Vertex runs, metrics, evals) and the *latency experience* are not.
+
+- Against a "winner level" Gemini entry (real Vertex deployment, Live with safety + proactive audio + a measured sub-2 s first word, agentic tool loops that keep the conversation alive during long jobs, cached prompt prefixes, nightly real-model evals with checked-in numbers, and observability a judge can watch), this core is about two-thirds of the way: the _surface area_ of Gemini used is winner-level; the _proof_ (Vertex runs, metrics, evals) and the _latency experience_ are not.
 
 ### Gaps
+
 - Whether `gemini-3.8-live` on Vertex accepts the exact setup fields used could not be confirmed from docs reachable in this audit.
 
 ---
@@ -271,6 +310,7 @@ Breadth is genuinely high for a hackathon: Live bidi audio with function calling
 ## Consolidated findings by severity
 
 ### Takeaway
+
 Four P0s, all of the "claim vs reality" or "dead air" kind rather than security holes; nine P1s a judge would notice in a 10-minute session or a 10-minute read; the rest polish.
 
 ### Cited Findings
@@ -309,9 +349,11 @@ Four P0s, all of the "claim vs reality" or "dead air" kind rather than security 
 24. Gateway at 80 sessions/vCPU does base64 transcoding plus `sharp` for costume images in-process — [live.ts:192-196](services/gateway/src/live.ts), [main.tf:6](infra/terraform/main.tf).
 
 ### Inferences
+
 - None of the P0s require deep new engineering: (1) is a deployment flip plus one real run; (2) and (3) are rule/README/spec edits plus `resourceLimits`; (4) needs an early `building` publish and a parallel/faster script path.
 
 ### Gaps
+
 - No live Vertex call was made in this audit, so items 1, 5 and 8 remain inferred from code and the team's records.
 
 ---
@@ -319,9 +361,11 @@ Four P0s, all of the "claim vs reality" or "dead air" kind rather than security 
 ## Genuinely strong
 
 ### Takeaway
+
 The parts a Google AI engineer would respect are the tool-calling discipline, the sandbox and causal playtest design, the privacy engineering, and the candour of the written record.
 
 ### Cited Findings
+
 - Fire-and-notify tool loop with Firestore-driven milestone notes carrying the declared world, and pre-acknowledged terminal tools — [gateway.ts:288-324, 469-552](services/gateway/src/gateway.ts).
 - Zod at every boundary: WS frames both directions ([gateway.ts:115-117, 1232-1240](services/gateway/src/gateway.ts)), tool args, job payloads, Firestore docs, worker messages ([host.ts:227-283](packages/game-runtime/src/host.ts)); errors returned to the model as actionable text; the `ToolRefusal` pattern.
 - Sandbox: static check + shim + host budgets + 41 red-team cases + 206 runtime tests (VERIFIED) — [packages/game-runtime](packages/game-runtime/src/).
@@ -335,9 +379,11 @@ The parts a Google AI engineer would respect are the tool-calling discipline, th
 - Candid limits in every checkpoint and eval report — [TODO.md](TODO.md), [builder-eval-offline.json](docs/handoff/builder-eval-offline.json).
 
 ### Inferences
+
 - The architecture is ahead of its evidence: most P1s are "prove it" items rather than "build it" items.
 
 ### Gaps
+
 - None.
 
 ---
@@ -345,15 +391,19 @@ The parts a Google AI engineer would respect are the tool-calling discipline, th
 ## Verdict and the three upgrades
 
 ### Takeaway
+
 Not yet winner-level, but closer than the P0 list suggests: the Gemini surface area and the safety/sandbox engineering are winner-grade; the proof and the pacing are not. A hostile-but-fair Google judge would score it as a strong technical entry undermined by (a) never having touched Vertex AI despite claiming it everywhere, (b) a 2–4 minute silence between a child's wish and anything on screen, and (c) a rulebook (CLAUDE.md/README/spec) that contradicts the code on three load-bearing claims. Fix those and the remaining P1s are polish a judge forgives.
 
 ### Cited Findings
+
 - The verdict rests on findings 1–4 above and the capability table in Q10.
 
 ### Inferences (the three upgrades that would most change a judge's score)
-1. **Kill the dead air.** Publish a `building` world document within ~5 s of `build_world` (scene JSON plus a model-chosen backdrop description and placeholder entities) *before* plan/script, so the engine's generation show and the character's milestone notes start immediately; run plan+script in parallel with backdrop/hero art; cap script authoring (lower thinking level or 30–40 s abort with the smoke-passing simpler programme as the publishable fallback); make locomotion art optional-with-placeholder instead of world-fatal. This alone moves the experience from "minutes of filler" to the spec's choreographed wait. Entry points: [worker.ts:151-192, 273](services/builder/src/worker.ts), [game-model.ts:42-50](services/builder/src/game-model.ts).
+
+1. **Kill the dead air.** Publish a `building` world document within ~5 s of `build_world` (scene JSON plus a model-chosen backdrop description and placeholder entities) _before_ plan/script, so the engine's generation show and the character's milestone notes start immediately; run plan+script in parallel with backdrop/hero art; cap script authoring (lower thinking level or 30–40 s abort with the smoke-passing simpler programme as the publishable fallback); make locomotion art optional-with-placeholder instead of world-fatal. This alone moves the experience from "minutes of filler" to the spec's choreographed wait. Entry points: [worker.ts:151-192, 273](services/builder/src/worker.ts), [game-model.ts:42-50](services/builder/src/game-model.ts).
 2. **Run it on Vertex and show the numbers.** Switch the 3300 stack to ADC/us-central1 (one env change per [compose.local.yaml](compose.local.yaml)), run `eval:vertex` plus a 30-wish script pass-rate eval nightly and check the reports in, add `safetySettings` to the Live setup, set `OTEL_ENABLED=1`, add a redacted error-message field, and surface `first_audio` p50 and build-milestone durations in the admin Overview. Then update CLAUDE.md/README/spec §5/§20 to say what the product actually does (generated scripts in a sandbox; the child's moderated wish is stored; API-key local mode vs Vertex production).
 3. **Make voice continuous.** Keep one Live session across character switches by swapping persona through a client-content note (or pre-open the next session before closing the old one and skip the blocking Flash summary); honour `GoAway.timeLeft` by pre-connecting with the handle; move moderation off the tool chain and gate only `build_world/modify_world` on a pending verdict; treat a moderation outage as "no new builds" rather than "end the call"; add context caching for the Game API and scene-rule prefixes to cut both latency and cost. Entry points: [gateway.ts:255-285, 368-468, 1006-1017](services/gateway/src/gateway.ts), [live.ts:113-119](services/gateway/src/live.ts).
 
 ### Gaps
+
 - Whether `gemini-3.8-live` with these setup fields is accepted on Vertex in us-central1 is the one unknown that could turn upgrade 2 from a flip into a debugging session; the team's own `check_model_and_region` log category suggests they expect this.

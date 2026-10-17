@@ -8,7 +8,6 @@ import { PlayActions } from './studio/PlayActions';
 import { WorldCast } from './studio/WorldCast';
 import { CreationActions } from './studio/CreationActions';
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ChildResponseSchema,
@@ -43,7 +42,7 @@ import { recordDemoDiscovery } from '../lib/demo';
 import { env } from '../lib/env';
 import { castFor, effectiveCaptions, clampToVariable } from '../lib/helpers';
 import { s } from '../lib/strings/en';
-import { CompanionArt, CompanionMenu } from './companion/Companion';
+import { CompanionArt } from './companion/Companion';
 import { CharacterFace } from './CharacterFace';
 import { Modal } from './Modal';
 import {
@@ -65,6 +64,7 @@ import { PetFollower } from './pets/PetFollower';
 import { PetSlot } from './pets/PetSlot';
 import { GenerationShow } from './studio/GenerationShow';
 import { GameHud } from './studio/GameHud';
+import { StudioBreak } from './studio/StudioBreak';
 import {
   mountGameBridge,
   type GameAsk,
@@ -499,8 +499,9 @@ export function Studio() {
   }, []);
   const musicTheme = world?.status === 'ready' ? musicThemeFor(world.doc) : undefined;
   useEffect(() => {
-    if (musicTheme) getMixer().playMusic(musicTheme);
-  }, [musicTheme]);
+    if (ended) getMixer().stopMusic();
+    else if (musicTheme) getMixer().playMusic(musicTheme);
+  }, [musicTheme, ended]);
   useEffect(() => {
     if (!host.current || !hasWorld) return;
     let active = true;
@@ -613,15 +614,22 @@ export function Studio() {
     setGameRun((n) => n + 1);
   }
   useEffect(() => {
+    if (ended) return;
     const scene = host.current?.closest<HTMLElement>('.stage-scene');
     const canvasFrame = host.current?.parentElement;
     if (!scene || !canvasFrame) return;
-    const measure = () => scene.style.setProperty('--world-width', `${canvasFrame.clientWidth}px`);
+    const stage = scene.closest<HTMLElement>('.stage');
+    const dock = stage?.querySelector<HTMLElement>('.studio-dock');
+    const measure = () => {
+      scene.style.setProperty('--world-width', `${canvasFrame.clientWidth}px`);
+      if (dock?.offsetHeight) stage?.style.setProperty('--strip-h', `${dock.offsetHeight}px`);
+    };
     const observer = new ResizeObserver(measure);
     observer.observe(canvasFrame);
+    if (dock) observer.observe(dock);
     measure();
     return () => observer.disconnect();
-  }, [hasWorld, world?.id]);
+  }, [hasWorld, world?.id, ended]);
   function switchWorld(key: FixtureWorldKey) {
     if (selectedWorld.current === FIXTURE_WORLDS[key].worldId) return;
     clearPending();
@@ -694,8 +702,7 @@ export function Studio() {
     } else game.tap(world.doc.learning.heroEntityId);
   }
   function finish() {
-    clearPending();
-    stopChildVoice();
+    stopVoice();
     setEnded(true);
   }
   const live = status === 'connected' || status === 'connecting' || status === 'reconnecting';
@@ -741,13 +748,14 @@ export function Studio() {
   }
   if (ended)
     return (
-      <main className="bye">
-        <h1>{s.ended}</h1>
-        <p>{s.endedText}</p>
-        <Link className="button primary" href="/play" onClick={() => releaseVoice()}>
-          {s.return}
-        </Link>
-      </main>
+      <StudioBreak
+        title={s.ended}
+        character={character}
+        voiceActive={live}
+        companion={child?.companion?.characterId === character ? child.companion : undefined}
+        onReturn={() => setEnded(false)}
+        onLeave={releaseVoice}
+      />
     );
   const cast = child
     ? castFor(child.ageBand, child.companion?.characterId).map((c) =>
@@ -762,7 +770,7 @@ export function Studio() {
   );
   const building = Boolean(job && job !== 'ready' && job !== 'failed');
   return (
-    <main className={discovery ? 'stage has-toast' : 'stage'}>
+    <main className={discovery ? 'stage studio-stage has-toast' : 'stage studio-stage'}>
       <StageHeader
         title={world?.title ?? s.studioTitle}
         status={status}
@@ -943,7 +951,6 @@ export function Studio() {
         onRestart={resetWorld}
         onCaptions={() => setCaptions(!captions)}
         onFinish={finish}
-        explore={<CompanionMenu inline />}
         pet={child && <PetSlot childId={child.id} />}
       />
       {summoning && <SummonOverlay character={summoning} />}

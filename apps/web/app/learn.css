@@ -2765,3 +2765,27 @@ button.pet-card:hover {
     overflow: hidden;
   }
 }
+
+/* Global destinations and the assistant have their own reserved bar. Keep the
+   remaining lesson controls together in one row while no character is open. */
+.learn-stage:not(.learn-map) > .learn-dock:not(:has(.talk)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto;
+  min-height: 84px;
+  gap: 12px;
+  padding-block: 8px;
+}
+.learn-stage:not(.learn-map) > .learn-dock:not(:has(.talk)) .dock-friends {
+  grid-column: 1;
+  grid-row: 1;
+}
+.learn-stage:not(.learn-map) > .learn-dock:not(:has(.talk)) .dock-talk {
+  display: none;
+}
+.learn-stage:not(.learn-map) > .learn-dock:not(:has(.talk)) .dock-tiles {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

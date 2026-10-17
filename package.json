@@ -8,7 +8,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
-    "test": "turbo run test --filter=!@just-imagine/server-core && pnpm test:emulator",
+    "test": "turbo run test --concurrency=1 --filter=!@just-imagine/server-core && pnpm test:emulator",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",

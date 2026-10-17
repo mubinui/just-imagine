@@ -16,6 +16,21 @@
   background-color: var(--ground);
   border-color: var(--soft);
   caret-color: var(--accent);
+  color-scheme: light;
+}
+/* Native popup menus can otherwise mix inherited stage text with an OS menu surface. */
+.theme-picker option {
+  color: var(--ink);
+  background-color: var(--surface);
+}
+.theme-picker select:hover {
+  color: var(--ink);
+  background-color: var(--surface);
+}
+.theme-picker option:hover,
+.theme-picker option:checked {
+  color: var(--accent-ink);
+  background-color: var(--accent);
 }
 .theme-picker--settings label {
   margin-top: 16px;

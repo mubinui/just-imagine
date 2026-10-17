@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { useLanguage } from '../../lib/i18n';
 import { getMixer } from '../../lib/sound';
 import { env } from '../../lib/env';
-import { CompanionMenu } from '../companion/Companion';
 import { StageHeader } from '../studio/Dock';
 import { PetCelebration } from '../pets/PetCelebration';
 import { PetShelf } from '../pets/PetShelf';
@@ -403,7 +402,6 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
           ) : null}
         </div>
         <div className="dock-tiles">
-          <CompanionMenu inline />
           {character && !onCallWith && (
             <button
               type="button"

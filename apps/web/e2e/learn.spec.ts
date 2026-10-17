@@ -21,7 +21,9 @@ test('Learn Map to Space: Saturn comes closer, asks a challenge, pays points and
   await expect(page).toHaveURL(/\/learn$/);
   await expect(page.getByRole('heading', { name: 'Where shall we learn today?' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Space, 3 of 13 challenges' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Animals, 0 of 10 challenges' })).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Animals, 10 challenges to discover' }),
+  ).toBeVisible();
   await expect(page.locator('.island.is-soon')).toHaveCount(0);
   await expect(page.locator('.island.is-open')).toHaveCount(6);
   await expect(page.getByLabel('My points: 6')).toBeVisible();
@@ -55,7 +57,7 @@ test('Learn Map to Space: Saturn comes closer, asks a challenge, pays points and
   await found.getByRole('button', { name: 'Make Tuktuk my buddy' }).click();
   await expect(page.locator('.learn-dock').getByRole('button', { name: 'Tuktuk' })).toBeVisible();
 
-  // Hang up returns the call to the friend; the shelf shows the buddy.
+  // Hang up closes the character call; the shelf shows the buddy.
   await page.getByRole('button', { name: 'Hang up' }).click();
   await expect(page.getByRole('button', { name: 'Ask Saturn' })).toBeVisible();
   await page.getByRole('button', { name: 'My pets' }).click();

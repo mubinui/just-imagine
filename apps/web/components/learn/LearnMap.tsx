@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChildResponseSchema, type ChildResponse } from '@just-imagine/protocol';
 import { useLanguage } from '../../lib/i18n';
-import { CompanionMenu } from '../companion/Companion';
 import { StageHeader } from '../studio/Dock';
 import { getVoice } from '../../lib/voice';
 import { PetShelf } from '../pets/PetShelf';
@@ -250,15 +249,10 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
         </div>
         <div className="dock-talk" />
         <div className="dock-tiles">
-          <CompanionMenu inline />
           <button type="button" className="dock-tile" onClick={() => setShelf(true)}>
             <LearnIcon name="paw" />
             <span>{t('learnWorlds.myPets')}</span>
           </button>
-          <Link href="/studio" className="dock-tile is-quiet">
-            <LearnIcon name="studio" filled />
-            <span>{t('learnWorlds.studio')}</span>
-          </Link>
         </div>
       </nav>
       {shelf && child && (

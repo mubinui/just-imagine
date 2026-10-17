@@ -1,4 +1,17 @@
 export const english = {
+  childNavigation: {
+    label: 'Your spaces',
+    studio: 'Studio',
+    learn: 'Learn',
+    stories: 'Stories',
+    worlds: 'Worlds',
+    assistant: 'Live assistant',
+    assistantTitle: 'Talk with {name}',
+    assistantHelp:
+      'Ask a question or tell your friend what you imagine. Press Talk together when you are ready.',
+    voiceActive: 'Live voice is on',
+    chooseExplorer: 'Choose explorer',
+  },
   landing: {
     title: 'A world of “what if?”',
     intro:

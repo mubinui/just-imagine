@@ -11,7 +11,6 @@ import { useLanguage } from '../../lib/i18n';
 import { getVoice } from '../../lib/voice';
 import { useChild } from '../learn/LearnMap';
 import { Actor } from '../acting/Actor';
-import { CompanionMenu } from '../companion/Companion';
 import { useStoryNarration } from './useStoryNarration';
 import { ThemePicker } from '../ThemePicker';
 import '../../app/studio.css';
@@ -696,7 +695,6 @@ export function StoryRoom() {
             ? 'তোমার শেখার লক্ষ্য অভিভাবক ঠিক করতে পারেন'
             : uiText('Parents can shape learning goals in Settings')}
         </span>
-        <CompanionMenu inline />
       </footer>
     </main>
   );

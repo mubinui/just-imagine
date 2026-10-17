@@ -13,9 +13,11 @@ Caveat: the working tree changed while I was auditing. `components/studio/Creati
 ## 1. How many taps from landing to "child talking to a character in a world", and where do a child or judge get stuck?
 
 ### Takeaway
+
 A signed-in family needs 3 taps to start talking (Let's play, then the child's profile, then Talk). A first-time judge needs about 8 steps, including email and password typing and a browser mic prompt. In my real-build run, the step "talk and get a world" failed: after about 33 s of a generic waiting animation the build ended in "Your world could not finish". The friend never offered a ready-made world, because that offer is only wired in fake mode.
 
 ### Cited Findings
+
 - **Signed-out path, VERIFIED.** Landing "Start imagining" goes to "Parent sign in": email, password, a consent checkbox shown even on sign-in, then Continue. Next is "Who's imagining today?" (tap Ari), then Studio, then Talk, then the browser mic permission, then speaking. That is about 8 interactions plus typing. There is no guest or sample-family path on the real build. The `previewSignIn` "Open sample family" exists only when `env.fake` is set. Sources: [shots/real-landing-ipad.png](shots/real-landing-ipad.png), [shots/real-signin-ipad.png](shots/real-signin-ipad.png), [shots/real-play-picker-ipad.png](shots/real-play-picker-ipad.png), [AuthForm.tsx:20-26,98-102](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/AuthForm.tsx), [en.ts:137](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/lib/strings/en.ts).
 - **Speed, VERIFIED.** Sign-in through profile pick to the Studio took 2,048 ms. Profile tap to Studio took 221 ms. Sources: `real5-report.json` `signInToStudioMs`; `real2-report.json` `pickToStudioMs`.
 - **Voice connects quickly, VERIFIED.** After tapping Talk the status reads "Connecting" at 1 s and "Listening" by 2.5-5 s. The gateway WebSocket delivered `ready`, `transcript` and binary audio frames (223 frames in about 13 s), so the friend really speaks. Sources: [shots/real2-studio-talk-1s.png](shots/real2-studio-talk-1s.png), [shots/real2-studio-talk-5s.png](shots/real2-studio-talk-5s.png), `real2-report.json` `ws`.
@@ -32,10 +34,12 @@ A signed-in family needs 3 taps to start talking (Let's play, then the child's p
 - **Parent copy on the child loading screen, READ.** `ChildGuard` shows `s.load` = "Opening your family space…" while child screens authenticate. Sources: [ChildGuard.tsx:20](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/ChildGuard.tsx), [en.ts:82](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/lib/strings/en.ts).
 
 ### Inferences
+
 - In a live judging demo, the headline promise ("say an idea and get a world") rests on one real build that I saw fail once in one attempt. Without a real-mode fallback, a failure in front of judges ends in an error toast. Whoever demos should open a saved world as the backup, and the fallback offer should be wired for real mode.
 - "Build a game" clearing the child's world without building anything will look like a bug to a judge who taps it.
 
 ### Gaps
+
 - I ran only one real text build because each one costs real model calls. The failure rate is unknown. The builder/gateway researcher should report the root cause of `scene_build success:false`.
 - I could not test a real spoken wish: the fake microphone plays a tone, not words.
 
@@ -44,9 +48,11 @@ A signed-in family needs 3 taps to start talking (Let's play, then the child's p
 ## 2. How well does the Studio communicate its state (listening, thinking, building, playing), and what are the error states?
 
 ### Takeaway
+
 Idle and listening are clear: a big friend portrait, a headline, an animated dot-orb and a status pill. Building (GenerationShow) is the weakest screen. It is small and mostly CSS, its role text is nearly invisible, and it waits on one "Getting ready" state. Error states use the wrong words: denying the microphone tells a 7-year-old to "sign in with the correct account" in formal Bangla, and an unreachable gateway shows "Reconnecting" forever under a headline that still asks the child to speak.
 
 ### Cited Findings
+
 - **Idle, VERIFIED.** "Tap a friend to start" with a large Pip portrait and a status pill ("Voice off"). At 1180x820 and 1024x768, the subtitle under the headline overflows the stage card and is cut off. The audit measured `listeningP.bottom 573 > containerBottom 552` (overflow true). Sources: [shots/real-studio-idle-laptop.png](shots/real-studio-idle-laptop.png), [shots/real-studio-idle-ipad-sm.png](shots/real-studio-idle-ipad-sm.png), [shots/real5-studio-en-idle.png](shots/real5-studio-en-idle.png), `real3-report.json` `studioLayout`.
 - **Listening, VERIFIED.** A gold dot-orb ring around the friend, a mic badge, "Tell Pip what you imagine", and a "Listening" pill. Tapping a friend opens an introduction card ("Mishti · World artist …"). Sources: [shots/real2-studio-talk-5s.png](shots/real2-studio-talk-5s.png), [shots/real4-studio-tap-friend-5s.png](shots/real4-studio-tap-friend-5s.png).
 - **No "thinking" or "speaking" pill, READ.** The status labels are only Connecting, Listening, Reconnecting, Voice lost and Voice off. Speaking is shown only by the orb mode and an `is-speaking` class. Sources: [en.ts:149-156](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/lib/strings/en.ts), [studio/parts.tsx:206](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/studio/parts.tsx).
@@ -69,9 +75,11 @@ Idle and listening are clear: a big friend portrait, a headline, an animated dot
 - **Reload mid-session, VERIFIED.** It returns cleanly to idle ("Voice off"). Source: [shots/real2-studio-after-reload.png](shots/real2-studio-after-reload.png).
 
 ### Inferences
+
 - The states a child sees most often (waiting, failure, no connection) are where the friend character disappears and system-error language takes over. For ages 6-10 every failure should be voiced by the friend, with one big obvious next step.
 
 ### Gaps
+
 - I could not capture a successful build's hero, props and reveal beats, or a world appearing after generation, because the build failed.
 
 ---
@@ -79,9 +87,11 @@ Idle and listening are clear: a big friend portrait, a headline, an animated dot
 ## 3. Are Studio, Learn, Stories, Companion and Pets coherent, or is this scope sprawl?
 
 ### Takeaway
+
 There are at least five navigation patterns and three visual styles across the child screens, over twenty named characters, and four separate ways to start a voice conversation. Each screen is polished on its own, but a 7-year-old (or a judge in 3 minutes) has to learn several apps.
 
 ### Cited Findings
+
 - **Navigation patterns, VERIFIED.**
   1. Landing, picker and gallery use a marketing top bar (logo, "Let's play", "Parent space") plus a "Back" button ([shots/real6-gallery-en.png](shots/real6-gallery-en.png)).
   2. The Studio has a title bar plus a 13-control bottom dock: 5-6 friends, Talk, Build a game, Start over, Captions, Learn, companion, Finish playing ([shots/real5-studio-en-idle.png](shots/real5-studio-en-idle.png); [Dock.tsx:102-221](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/studio/Dock.tsx)).
@@ -101,9 +111,11 @@ There are at least five navigation patterns and three visual styles across the c
 - **Age band disagrees, VERIFIED.** The landing says "ages 6–13" ([app/page.tsx:44](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/app/page.tsx)). CLAUDE.md says 6 to 10. The picker card shows "Ages 8-10".
 
 ### Inferences
+
 - A judge will read this as breadth that pulls focus away from the "imagine → world → physics" core. The strongest single story is the Studio, but Learn and Stories look more finished, so the core looks like the weaker sibling.
 
 ### Gaps
+
 - None material.
 
 ---
@@ -111,9 +123,11 @@ There are at least five navigation patterns and three visual styles across the c
 ## 4. Art quality: real painted or generated assets, or CSS and emoji?
 
 ### Takeaway
+
 The character and backdrop art is genuinely good and on brief: soft 3D-cartoon Pixar-style characters and painted cinematic scenes. It is uneven across screens, though. The gallery uses CSS blobs instead of world thumbnails, GenerationShow is mostly CSS, and opened worlds show unpainted collider rectangles.
 
 ### Cited Findings
+
 - **Strong art, VERIFIED.**
   - Learn map hosts on floating islands ([shots/real-learn-ipad.png](shots/real-learn-ipad.png)).
   - The Sun host over a painted observatory ([shots/real-learn-pack-ipad.png](shots/real-learn-pack-ipad.png)).
@@ -134,9 +148,11 @@ The character and backdrop art is genuinely good and on brief: soft 3D-cartoon P
 - **Pets, VERIFIED.** 8 grey locked silhouettes at 10-250 points. The child has 3 points, so every pet is "?". Source: [shots/real5-pets-shelf.png](shots/real5-pets-shelf.png).
 
 ### Inferences
+
 - The art direction itself would compete for a "Best UI/UX" prize. What lets it down is the places where the pipeline's output (thumbnails, collider shapes, GenerationShow) shows instead of authored art, which are exactly the surfaces that demonstrate the AI.
 
 ### Gaps
+
 - I did not check whether the left green rectangle is an intended wall entity that is missing its sprite or a rendering defect. That belongs with the engine researcher.
 
 ---
@@ -144,9 +160,11 @@ The character and backdrop art is genuinely good and on brief: soft 3D-cartoon P
 ## 5. Touch targets, contrast, copy level, typography and Bangla rendering
 
 ### Takeaway
+
 Touch targets are generous: child screens set a 64 px minimum, and only a few small links remain. The biggest visual-quality bug is typography. On the real build, English body text renders in system Helvetica and Baloo 700 text renders in Times New Roman, because Bangla-range font faces registered under the same family names shadow the Latin faces. Bangla glyph shaping itself is good.
 
 ### Cited Findings
+
 - **Touch targets, VERIFIED.**
   - The Studio has 19-20 visible controls. The only ones under 48 px are the logo link (200x42) and the companion "Close" (56x40). The Learn map has 13 controls with only the logo under 48 px. No control lacks an accessible name. Source: `real5-report.json` `a11y_studio`, `a11y_world`, `a11y_learn`.
   - Story room text links are 27 px tall ("← Learning worlds" 267x27, "Play in learning worlds" 116x27). Source: `real2-report.json` `storyBtns`.
@@ -183,9 +201,11 @@ Touch targets are generous: child screens set a 64 px minimum, and only a few sm
   - Sources: [lib/i18n/ui.ts:24-35](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/lib/i18n/ui.ts), [LearnMap.tsx:143-151](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/learn/LearnMap.tsx).
 
 ### Inferences
+
 - The font fallback quietly undermines the "cute, Disney-inspired" brand on every English screen: Helvetica body text and Times titles where rounded Nunito and Baloo were designed. A design judge will notice Times New Roman on the gallery cards immediately. The fix is small (give the Bengali-range aliases distinct family names, or match the weight ranges).
 
 ### Gaps
+
 - I did not test on a real iPad, an Android tablet or VoiceOver.
 
 ---
@@ -193,9 +213,11 @@ Touch targets are generous: child screens set a 64 px minimum, and only a few sm
 ## 6. Accessibility, reduced motion, robustness, bundle weight, and what is mocked
 
 ### Takeaway
+
 The accessibility basics are in place: landmarks, named icon tiles, reduced motion handled in CSS and in the JS animation loops. Robustness is weak when offline or when the gateway is unreachable. The engine chunk is heavy but lazy-loaded. Three Playwright failures come from assertions that no longer match the UI, not from new product bugs, but they leave the "world renders → predict → lab" path with no passing coverage.
 
 ### Cited Findings
+
 - **Landmarks and names, VERIFIED.** Studio, world view and Learn each have one `main`, 2 `nav`, 2 `header` and `lang` set (`en` or `bn-BD`). No visible control lacks a name, and the companion tile has `aria-label="Chat with Pip"`. The page `<title>` is the same marketing title on every child route ("Just Imagine — little wonders, big discoveries"). The Studio has two `h1`s. Sources: `real5-report.json` `a11y_*`; [Companion.tsx:286-288](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/companion/Companion.tsx).
 - **Reduced motion, READ + VERIFIED.** There are 12 `prefers-reduced-motion` blocks across studio, learn, stories, companion and globals CSS. `DotOrb.tsx:18-57` draws a static frame under reduce, and `acting/clock.ts:35` feeds `reduced` to the Actor sprites. The reduced-motion world screenshot renders correctly. Sources: grep counts this session, [DotOrb.tsx](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/studio/DotOrb.tsx), [shots/real4-world-open-reduced-motion.png](shots/real4-world-open-reduced-motion.png).
 - **Bundle weight, VERIFIED.**
@@ -217,9 +239,11 @@ The accessibility basics are in place: landmarks, named icon tiles, reduced moti
 - **Hard rule conflict, READ (out of my scope, flagged for the security/engine researcher).** `Studio.tsx:500-520` runs `world.doc.game.script.source` "in the sandbox" through `mountGameBridge`, while CLAUDE.md says "No generated code is executed anywhere." Source: [Studio.tsx:493-520](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/Studio.tsx).
 
 ### Inferences
+
 - A tablet in a school or demo room with flaky Wi-Fi will show "Reconnecting" with no way forward. An offline shell and a friend-voiced "I can't hear the internet, let's play a saved world" would remove the worst dead end.
 
 ### Gaps
+
 - Not checked: screen-reader announcements during a build (the `.show-caption` has `role=status aria-live=polite`, READ, [GenerationShow.tsx](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/studio/GenerationShow.tsx)), keyboard-only play, and focus order. `real-studio-focus-after-tabs.png` exists but I did not review it.
 
 ---
@@ -227,17 +251,20 @@ The accessibility basics are in place: landmarks, named icon tiles, reduced moti
 ## 7. Findings by severity, screenshot index, genuine strengths, and verdict
 
 ### Takeaway
+
 The child frontend has winner-level art and many careful details (64 px targets, reduced motion, real Bangla typography, a beat-driven wait). It is not yet winner-level as an experience. The core imagine-to-world loop has no real-mode fallback and failed in my one run, the error and offline states break character, the English typography is silently wrong, and the scope spreads across five navigation systems.
 
 ### Cited Findings
 
 #### P0: demo-breaking or embarrassing
+
 1. **A real build failed after about 33 s, with no fallback world offered in real mode.** VERIFIED ([shots/real5-build-40.0s.png](shots/real5-build-40.0s.png); builder log `scene_build success:false durationMs:32680`). READ: fallback is wired only when `env.fake` is set ([Studio.tsx:760-762](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/Studio.tsx)).
 2. **Mic denied tells the child to sign in with the correct account**, in the formal register. VERIFIED ([shots/real4-studio-mic-denied.png](shots/real4-studio-mic-denied.png)). READ: the regex in [lib/i18n/ui.ts:59-60](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/lib/i18n/ui.ts). There is no microphone copy at all.
 3. **English typography falls back to Helvetica and Times New Roman** on the landing, picker, gallery and story room. VERIFIED ([shots/real6-gallery-en.png](shots/real6-gallery-en.png); CDP font probe). READ: [lib/i18n/fonts.css:72-85](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/lib/i18n/fonts.css) vs [globals.css:1-12](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/app/globals.css).
 4. **"Build a game" clears the child's world and builds nothing** unless the child then speaks a wish. VERIFIED ([shots/real2-studio-build-60s.png](shots/real2-studio-build-60s.png)). READ: [Studio.tsx:252-260,686-698](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/Studio.tsx).
 
 #### P1
+
 5. **No parent gate**: one tap from the child screens into billing, settings and deletion. VERIFIED ([shots/real4-child-to-parent.png](shots/real4-child-to-parent.png)). READ: [Shell.tsx:26](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/Shell.tsx).
 6. **Gateway down or offline shows "Reconnecting" forever** under a "Tell Pip what you imagine" headline. An offline reload gives a white page. VERIFIED ([shots/real4-studio-gateway-down-12s.png](shots/real4-studio-gateway-down-12s.png), [shots/real6-offline-start-12s.png](shots/real6-offline-start-12s.png), [shots/real-studio-offline-reload.png](shots/real-studio-offline-reload.png)).
 7. **GenerationShow is visually thin**: a small card, a 40 px sprite, CSS easel, an illegible role line, and no progress past "Getting ready". VERIFIED ([shots/real5-build-9.0s.png](shots/real5-build-9.0s.png)).
@@ -248,6 +275,7 @@ The child frontend has winner-level art and many careful details (64 px targets,
 12. **Learn activity screen is cluttered**: two stacked title bars, the instruction repeated three times, and a tiny slider as the "game". VERIFIED ([shots/real6-learn-activity.png](shots/real6-learn-activity.png)).
 
 #### P2
+
 13. **Formal আপনি register** in child error toasts and the companion "Close". VERIFIED ([shots/real4-studio-explore-menu.png](shots/real4-studio-explore-menu.png)). READ: [lib/i18n/ui.ts:52-62](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/lib/i18n/ui.ts).
 14. **Inconsistent words**: জগৎ, দুনিয়া and জগত for "world". The age band reads 6–13 on the landing, 6–10 in docs and 8-10 on the picker. The cast differs between CLAUDE.md, the README and the UI. VERIFIED and READ (section 3).
 15. **Parent copy on the child loading screen** ("Opening your family space…"). READ ([ChildGuard.tsx:20](file:///Users/mubinuiislam/Home/Hackathons/just-imagine/apps/web/components/ChildGuard.tsx)).
@@ -258,44 +286,46 @@ The child frontend has winner-level art and many careful details (64 px targets,
 20. **Build failure toast lingers** into later states. The failure is not voiced by the friend. VERIFIED ([shots/real5-offline-talk-6s.png](shots/real5-offline-talk-6s.png)).
 
 #### Screenshot index (paths relative to `shots/`)
-| Screenshot | Verdict |
-|---|---|
-| real-landing-ipad.png | Calm, competent parent-facing landing with an interactive gravity toy. English text renders in Helvetica and Times, not the brand fonts. |
-| real-signin-ipad.png | Clean parent sign-in. It is a wall before any child delight, and the consent checkbox appears on sign-in too. |
-| real-play-picker-ipad.png | Cute puppy avatar card with a 64 px target. "Ari" renders in Times. Lots of empty space with a single child. |
-| real-studio-idle-laptop.png | Bangla Studio idle: clear call to action and a big friend portrait. Sixth friend label clipped ("জাদু কা"). |
-| real-studio-idle-ipad-sm.png | At 1024x768 the subtitle is hidden behind the card edge. |
-| real-studio-idle-phone.png | On phone, the dock overflows and Talk overlaps the friend row. Not the target device. |
-| real2-studio-talk-5s.png | Listening state reads well: dot-orb, mic badge, "Listening" pill. |
-| real2-studio-build-15s.png / -60s.png | After "Build a game", 60 s of "Listening" with no build. Identical frames. |
-| real4-studio-tap-friend-5s.png | Friend introduction card ("Mishti · World artist"): charming. |
-| real4-studio-explore-menu.png | Companion menu: tidy, but a second Talk button and formal "বন্ধ করুন". |
-| real4-studio-mic-denied.png | Wrong, account-permission error for a denied mic. P0. |
-| real4-studio-gateway-down-12s.png | "Reconnecting" forever, child still invited to talk. |
-| real4-world-open-ipad.png | Painted Bengali pond backdrop (strong), but bare collider rectangles and a small canvas. |
-| real4-world-open-reduced-motion.png | Renders correctly with reduced motion. |
-| real2-gallery-opened-world-phone.png | World view on phone is legible and stacks well. |
-| real-gallery-ipad.png / real6-gallery-en.png | CSS blob tiles, no thumbnails, Times-font titles. |
-| real-learn-ipad.png / real5-learn-en.png | Learn map is the most "Disney" screen: 3D-cartoon hosts on islands. Top row slightly cut by the header. |
-| real-learn-pack-ipad.png | Superb painted observatory with the Sun host. Low-contrast chapter subtitle. |
-| real2-learn-chapter-2.png | The Sun's fact bubble over a blurred scene: friendly, readable. |
-| real6-learn-activity.png | Cluttered activity: stacked headers, repeated instruction, tiny slider. |
-| real-learn-pack-phone.png / real-learn-phone.png | Phone layouts hold together. |
-| real-stories-ipad.png / real-stories-ipad-full.png | Katha's story room: lovely owl, forest backdrop, painted book cover. |
-| real6-story-open.png | Illustrated story page with "Katha, read with me": strong. Dense 75-word paragraph, Helvetica text. |
-| real5-pets-shelf.png | Pets modal: 8 locked silhouettes, nothing earned yet. |
-| real5-companion-menu-learn.png | Companion list menu over the Learn map: a sixth navigation pattern. |
-| real5-studio-en-idle.png | English Studio idle. Subtitle cut off. |
-| real5-build-9.0s.png / -28.0s.png | GenerationShow: small, mostly CSS, unreadable role line, stuck on "Getting ready". |
-| real5-build-40.0s.png | Real build failure toast; no fallback offered. |
-| real5-offline-talk-6s.png | Stale failure toast still showing after the session stopped. |
-| real6-offline-start-12s.png | Offline: "Reconnecting" with no guidance. |
-| real-studio-offline-reload.png | Offline reload: blank white page. |
-| real4-child-to-parent.png | Child tap lands in the parent dashboard with no gate (dashboard still loading). |
+
+| Screenshot                                         | Verdict                                                                                                                                  |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| real-landing-ipad.png                              | Calm, competent parent-facing landing with an interactive gravity toy. English text renders in Helvetica and Times, not the brand fonts. |
+| real-signin-ipad.png                               | Clean parent sign-in. It is a wall before any child delight, and the consent checkbox appears on sign-in too.                            |
+| real-play-picker-ipad.png                          | Cute puppy avatar card with a 64 px target. "Ari" renders in Times. Lots of empty space with a single child.                             |
+| real-studio-idle-laptop.png                        | Bangla Studio idle: clear call to action and a big friend portrait. Sixth friend label clipped ("জাদু কা").                              |
+| real-studio-idle-ipad-sm.png                       | At 1024x768 the subtitle is hidden behind the card edge.                                                                                 |
+| real-studio-idle-phone.png                         | On phone, the dock overflows and Talk overlaps the friend row. Not the target device.                                                    |
+| real2-studio-talk-5s.png                           | Listening state reads well: dot-orb, mic badge, "Listening" pill.                                                                        |
+| real2-studio-build-15s.png / -60s.png              | After "Build a game", 60 s of "Listening" with no build. Identical frames.                                                               |
+| real4-studio-tap-friend-5s.png                     | Friend introduction card ("Mishti · World artist"): charming.                                                                            |
+| real4-studio-explore-menu.png                      | Companion menu: tidy, but a second Talk button and formal "বন্ধ করুন".                                                                   |
+| real4-studio-mic-denied.png                        | Wrong, account-permission error for a denied mic. P0.                                                                                    |
+| real4-studio-gateway-down-12s.png                  | "Reconnecting" forever, child still invited to talk.                                                                                     |
+| real4-world-open-ipad.png                          | Painted Bengali pond backdrop (strong), but bare collider rectangles and a small canvas.                                                 |
+| real4-world-open-reduced-motion.png                | Renders correctly with reduced motion.                                                                                                   |
+| real2-gallery-opened-world-phone.png               | World view on phone is legible and stacks well.                                                                                          |
+| real-gallery-ipad.png / real6-gallery-en.png       | CSS blob tiles, no thumbnails, Times-font titles.                                                                                        |
+| real-learn-ipad.png / real5-learn-en.png           | Learn map is the most "Disney" screen: 3D-cartoon hosts on islands. Top row slightly cut by the header.                                  |
+| real-learn-pack-ipad.png                           | Superb painted observatory with the Sun host. Low-contrast chapter subtitle.                                                             |
+| real2-learn-chapter-2.png                          | The Sun's fact bubble over a blurred scene: friendly, readable.                                                                          |
+| real6-learn-activity.png                           | Cluttered activity: stacked headers, repeated instruction, tiny slider.                                                                  |
+| real-learn-pack-phone.png / real-learn-phone.png   | Phone layouts hold together.                                                                                                             |
+| real-stories-ipad.png / real-stories-ipad-full.png | Katha's story room: lovely owl, forest backdrop, painted book cover.                                                                     |
+| real6-story-open.png                               | Illustrated story page with "Katha, read with me": strong. Dense 75-word paragraph, Helvetica text.                                      |
+| real5-pets-shelf.png                               | Pets modal: 8 locked silhouettes, nothing earned yet.                                                                                    |
+| real5-companion-menu-learn.png                     | Companion list menu over the Learn map: a sixth navigation pattern.                                                                      |
+| real5-studio-en-idle.png                           | English Studio idle. Subtitle cut off.                                                                                                   |
+| real5-build-9.0s.png / -28.0s.png                  | GenerationShow: small, mostly CSS, unreadable role line, stuck on "Getting ready".                                                       |
+| real5-build-40.0s.png                              | Real build failure toast; no fallback offered.                                                                                           |
+| real5-offline-talk-6s.png                          | Stale failure toast still showing after the session stopped.                                                                             |
+| real6-offline-start-12s.png                        | Offline: "Reconnecting" with no guidance.                                                                                                |
+| real-studio-offline-reload.png                     | Offline reload: blank white page.                                                                                                        |
+| real4-child-to-parent.png                          | Child tap lands in the parent dashboard with no gate (dashboard still loading).                                                          |
 
 Not reviewed: admin, parent, theme and `fake-*` screenshots (other researchers' scope), and `real-studio-focus-after-tabs.png`.
 
 #### Genuinely strong
+
 - **Character and scene art**: the Learn hosts, the Sun, Katha and Neel, the Studio friend portraits and the generated pond-village backdrop meet the "realistic-cartoon, Disney-inspired, cute" bar (screenshots above).
 - **Bangla as a first-class language**: Baloo Da 2 and Noto Sans Bengali self-hosted with unicode-range subsets, correct conjunct shaping, and Bengali numerals ("৩টির মধ্যে ১টি শেষ"). The whole child UI, including Learn content and the companion menu, was translated in the screenshots.
 - **Touch targets**: a 64 px child minimum, with the Talk button at 112 px. Every visible control is named.
@@ -305,9 +335,11 @@ Not reviewed: admin, parent, theme and `fake-*` screenshots (other researchers' 
 - **The story room** (painted page, read-along and question buttons) is the most complete, demo-ready child experience.
 
 #### Verdict (one paragraph)
+
 As a hostile-but-fair UX judge and the parent of a 7-year-old, I would score the art direction near the top of the field. Pip, the Sun and Katha are the kind of characters a child points at, and the Bangla localisation is a real differentiator. I would not yet give the child frontend "Best UI/UX". The central promise (say an idea, watch a friend paint it, play with real physics) is the least polished part. Its waiting screen is a small CSS card. In my one real attempt it failed after 33 s with a system-style toast and no friend-led recovery. The "Build a game" tile wipes the world, and the opened world shows bare collider rectangles in an undersized canvas. Around that core, a judge meets Times New Roman on English cards, an account-permission error when the mic is blocked, endless "Reconnecting" offline, and five different navigation systems across Studio, Learn, Stories, Companion and Pets. It reads as several beautiful apps rather than one confident product.
 
 **The three upgrades that would most change a judge's score:**
+
 1. **Make the core loop unbreakable and theatrical.**
    - Wire the late and failed fallback in real mode, with the friend voicing "my paint spilled, let's play this one" and opening a saved or library world.
    - Make GenerationShow full-stage, using the friend's painted acting sheet and the real backdrop fading in as the builder emits `building`, `placeholders` and `hero`.
@@ -325,7 +357,9 @@ As a hostile-but-fair UX judge and the parent of a 7-year-old, I would score the
    - Fold Studio, Learn, Stories and Pets into one consistent dock and header pattern, so the child learns one way to move around.
 
 ### Inferences
+
 - If the team has time for only one item, upgrade 1 gives the most for the judged demo: it turns the riskiest live moment into the most memorable one.
 
 ### Gaps
+
 - One real build attempt is too few to estimate build success rate or latency. Device testing (iPad Safari, Android Chrome) and screen-reader testing were not done.
