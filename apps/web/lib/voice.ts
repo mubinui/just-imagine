@@ -3,18 +3,31 @@ import type { CharacterId, ChildResponse } from '@just-imagine/protocol';
 import { VoiceClient } from '@just-imagine/characters';
 import { env } from './env';
 import { currentIdToken } from './firebase';
+import { getMixer } from './sound';
 let voice: VoiceClient | undefined;
 let voiceGeneration = 0;
+let stopQuieting: (() => void) | undefined;
 export function getVoice() {
-  return (voice ??= new VoiceClient({
+  if (voice) return voice;
+  voice = new VoiceClient({
     url: env.gatewayUrl,
     capture: !env.fake,
     getToken: env.fake ? async () => 'fixture-token' : currentIdToken,
-  }));
+  });
+  // Game music and effects step aside while the child talks with a character.
+  stopQuieting = voice.subscribeStatus((status) =>
+    getMixer().setConversation(
+      status === 'connecting' || status === 'connected' || status === 'reconnecting',
+    ),
+  );
+  return voice;
 }
 export function releaseVoice() {
   voiceGeneration++;
   opening = undefined;
+  stopQuieting?.();
+  stopQuieting = undefined;
+  if (voice) getMixer().setConversation(false);
   voice?.dispose();
   voice = undefined;
 }

@@ -43,7 +43,11 @@ export class PcmPlayback {
   private last = 0;
   private fade = 0;
   private readonly rampSamples: number;
-  private readonly prebuffer: number;
+  private readonly capacity: number;
+  /** Milliseconds of speech gathered before a reply starts; grows on a busy device. */
+  private cushion = 150;
+  /** Output samples played since the queue last ran dry while speaking, or undefined. */
+  private sinceDry: number | undefined = undefined;
   constructor(
     private outputRate: number,
     capacity = 24000 * 30,
@@ -57,21 +61,37 @@ export class PcmPlayback {
       throw new RangeError('Invalid playback configuration');
     this.data = new Float32Array(capacity);
     this.rampSamples = Math.max(1, Math.round(outputRate * 0.005));
-    this.prebuffer = Math.min(capacity, 2400);
+    this.capacity = capacity;
   }
   get queuedSamples() {
     return this.length;
   }
+  get cushionMs() {
+    return this.cushion;
+  }
+  /** Input samples ever queued and ever played: a mark at `pushed` is heard once `played` reaches it. */
+  pushed = 0;
+  played = 0;
+  private get prebuffer() {
+    return Math.min(this.capacity, Math.round(this.cushion * 24));
+  }
   /** A false return requests explicit recovery instead of dropping earlier speech. */
   push(samples: Int16Array): boolean {
     if (samples.length > this.data.length - this.length) return false;
+    // Audio arriving soon after the queue ran dry was a hiccup, not the end of a reply:
+    // gather a larger cushion from now on (up to 400 ms) so a busy device stops cutting out.
+    if (this.sinceDry !== undefined && this.sinceDry < this.outputRate * 0.6)
+      this.cushion = Math.min(400, this.cushion + 100);
+    this.sinceDry = undefined;
     for (const sample of samples) {
       this.data[(this.start + this.length) % this.data.length] = sample / 32768;
       this.length++;
     }
+    this.pushed += samples.length;
     return true;
   }
   clear() {
+    this.played = this.pushed;
     this.start = 0;
     this.length = 0;
     this.phase = 0;
@@ -88,6 +108,7 @@ export class PcmPlayback {
   /** Called on the audio thread: reuse the browser's output array. */
   readInto(output: Float32Array): void {
     output.fill(0);
+    if (this.sinceDry !== undefined) this.sinceDry += output.length;
     for (let i = 0; i < output.length; i++) {
       // Fade residual output over5ms on interruption or starvation, never a hard cut.
       if (this.fade > 0) {
@@ -98,8 +119,9 @@ export class PcmPlayback {
       if (!this.playing) {
         if (!this.length) continue;
         this.waiting++;
-        // Short replies must also start: a maximum150ms wait needs no turn-end event.
-        if (this.length < this.prebuffer && this.waiting < this.outputRate * 0.15) continue;
+        // Short replies must also start: waiting at most the cushion needs no turn-end event.
+        if (this.length < this.prebuffer && this.waiting < (this.outputRate * this.cushion) / 1000)
+          continue;
         this.playing = true;
         this.waiting = 0;
         this.gain = 0;
@@ -108,6 +130,7 @@ export class PcmPlayback {
         this.playing = false;
         this.phase = 0;
         this.fade = this.rampSamples;
+        this.sinceDry = output.length - i;
         output[i] = this.last;
         continue;
       }
@@ -120,6 +143,7 @@ export class PcmPlayback {
       while (this.phase >= 1 && this.length > 0) {
         this.start = (this.start + 1) % this.data.length;
         this.length--;
+        this.played++;
         this.phase--;
       }
     }

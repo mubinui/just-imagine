@@ -23,6 +23,7 @@ vi.mock('@just-imagine/characters', () => ({
       mocks.session = undefined;
     };
     unlockAudio = mocks.unlock;
+    subscribeStatus = () => () => {};
     dispose = () => {};
   },
 }));

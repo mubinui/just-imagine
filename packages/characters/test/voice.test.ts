@@ -523,3 +523,45 @@ it('queues the latest connecting guest after gallery world and companion acknowl
   expect(client.speakerId).toBe('tooth');
   client.end();
 });
+
+it('lets the friend finish, then a short beat, before a guest takes over the voice', async () => {
+  const { client, audio, sockets } = harness();
+  let playedThrough!: (finished: boolean) => void;
+  const marks = vi.fn(
+    () =>
+      new Promise<boolean>((resolve) => {
+        playedThrough = resolve;
+      }),
+  );
+  (audio as unknown as { whenPlayedThrough: typeof marks }).whenPlayedThrough = marks;
+  await client.connect(hello);
+  const send = (data: unknown) => sockets[0]!.onmessage?.({ data: JSON.stringify(data) });
+  send({ type: 'worldCharacter', entityId: 'talking_fox', name: 'Fox' });
+  // The friend's queued words are still playing: no flush, and the friend still owns the voice.
+  expect(audio.flush).not.toHaveBeenCalled();
+  expect(marks).toHaveBeenCalledOnce();
+  expect(client.speakerId).toBe('bhombol');
+  // A silent beat separates the two voices.
+  const beat = audio.play.mock.calls.at(-1)?.[0] as ArrayBuffer;
+  expect(beat.byteLength / 2 / 24000).toBeCloseTo(0.4, 2);
+  expect(new Int16Array(beat).every((sample) => sample === 0)).toBe(true);
+  playedThrough(true);
+  await Promise.resolve();
+  expect(client.speakerId).toBe('talking_fox');
+});
+
+it('hands the voice over at once when queued speech is interrupted', async () => {
+  const { client, audio, sockets } = harness();
+  let playedThrough!: (finished: boolean) => void;
+  (audio as unknown as { whenPlayedThrough: () => Promise<boolean> }).whenPlayedThrough = () =>
+    new Promise<boolean>((resolve) => {
+      playedThrough = resolve;
+    });
+  await client.connect(hello);
+  const send = (data: unknown) => sockets[0]!.onmessage?.({ data: JSON.stringify(data) });
+  send({ type: 'persona', packId: 'space', characterId: 'saturn', name: 'Saturn' });
+  expect(client.speakerId).toBe('bhombol');
+  playedThrough(false);
+  await Promise.resolve();
+  expect(client.speakerId).toBe('saturn');
+});

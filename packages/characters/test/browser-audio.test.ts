@@ -195,7 +195,7 @@ it('versions actual worklet frames, energy, overflow and idle acknowledgements a
   const deliver = () => {
     for (const data of replies.splice(0)) mainPort.onmessage?.({ data });
   };
-  audio.play(new Int16Array(2400).fill(12000).buffer);
+  audio.play(new Int16Array(3600).fill(12000).buffer);
   render(14);
   expect(replies.some((data) => (data as { rms?: number }).rms! > 0)).toBe(true);
   // Overflow belongs to the same old playback epoch, even if its notification is delayed.

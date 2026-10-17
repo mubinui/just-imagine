@@ -91,3 +91,60 @@ it('plays a short reply within150ms and smooths starvation rather than clicking 
   for (let i = 1; i < out.length; i++) maxJump = Math.max(maxJump, Math.abs(out[i]! - out[i - 1]!));
   expect(maxJump).toBeLessThan(0.01);
 });
+
+it('grows its cushion when speech resumes soon after running dry, up to 400 ms', () => {
+  const playback = new PcmPlayback(48000);
+  expect(playback.cushionMs).toBe(150);
+  // Speech runs dry mid-reply on a busy device and resumes a moment later, three times.
+  // Each reply part plays out and runs dry within the second; the next part follows quickly.
+  for (let gap = 0; gap < 4; gap++) {
+    playback.push(new Int16Array(24000 / 4).fill(12000));
+    playback.read(48000 * 0.8);
+  }
+  playback.push(new Int16Array(240).fill(12000));
+  expect(playback.cushionMs).toBe(400);
+});
+
+it('waits for the grown cushion before starting a reply that arrives in small packets', () => {
+  const playback = new PcmPlayback(48000);
+  for (let gap = 0; gap < 4; gap++) {
+    playback.push(new Int16Array(24000 / 4).fill(12000));
+    playback.read(48000 * 0.8);
+  }
+  playback.read(48000 * 2);
+  expect(playback.cushionMs).toBe(400);
+  playback.push(new Int16Array(2400).fill(12000));
+  const out = playback.read(48000);
+  const first = out.findIndex((value) => value > 0);
+  expect(first).toBeGreaterThanOrEqual(48000 * 0.39);
+  expect(first).toBeLessThanOrEqual(48000 * 0.41);
+});
+
+it('does not grow at the natural end of a reply, and keeps the cushion across interruptions', () => {
+  const playback = new PcmPlayback(48000);
+  playback.push(new Int16Array(24000 / 4).fill(12000));
+  playback.read(48000 * 2);
+  // A new reply well over half a second later is a new turn, not a hiccup.
+  playback.push(new Int16Array(240).fill(12000));
+  expect(playback.cushionMs).toBe(150);
+  playback.read(48000 * 2);
+  playback.push(new Int16Array(24000 / 4).fill(12000));
+  playback.read(48000 / 2);
+  playback.push(new Int16Array(240).fill(12000));
+  expect(playback.cushionMs).toBe(250);
+  playback.clear();
+  expect(playback.cushionMs).toBe(250);
+});
+
+it('counts queued and heard speech so a handoff mark knows when earlier words have played', () => {
+  const playback = new PcmPlayback(48000);
+  playback.push(new Int16Array(4800).fill(12000));
+  const mark = playback.pushed;
+  playback.push(new Int16Array(4800).fill(12000));
+  expect(playback.played).toBe(0);
+  playback.read(48000 * 0.21);
+  expect(playback.played).toBeGreaterThanOrEqual(mark);
+  expect(playback.played).toBeLessThan(playback.pushed);
+  playback.clear();
+  expect(playback.played).toBe(playback.pushed);
+});

@@ -33,6 +33,22 @@ export class BrowserAudio {
       this.playback!.port.postMessage({ barrier: id, generation: this.playbackGeneration });
     });
   }
+  /**
+   * Resolves once every sample queued before this call has been heard (true), or when a flush
+   * discards them (false). Later audio does not delay it, unlike `whenPlaybackIdle`.
+   */
+  whenPlayedThrough(): Promise<boolean> {
+    if (!this.playback || !this.unlocked) return Promise.resolve(false);
+    const id = ++this.drainId;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.drains.delete(id);
+        resolve(false);
+      }, 60000);
+      this.drains.set(id, { resolve, timer });
+      this.playback!.port.postMessage({ mark: id, generation: this.playbackGeneration });
+    });
+  }
   private finishDrain(id: number, finished: boolean) {
     const pending = this.drains.get(id);
     if (!pending) return;
@@ -73,8 +89,8 @@ export class BrowserAudio {
         process(inputs){const channel=inputs[0]?.[0];if(channel)for(const frame of this.capture.push(channel))this.port.postMessage(frame.buffer,[frame.buffer]);return true;}
       }
       class ImaginePlayback extends AudioWorkletProcessor {
-        constructor(){super();this.buffer=new PcmPlayback(sampleRate);this.elapsed=0;this.generation=0;this.barriers=[];this.port.onmessage=e=>{const data=e.data;if(data.clear){this.generation=data.generation;this.buffer.clear();this.barriers=[];}else if(data.generation===this.generation){if(data.barrier)this.barriers.push(data.barrier);else if(!this.buffer.push(new Int16Array(data.frame))){this.buffer.clear();this.port.postMessage({overflow:true,generation:this.generation});}}};}
-        process(_inputs,outputs){const out=outputs[0]?.[0];if(out){this.buffer.readInto(out);if(this.buffer.queuedSamples===0&&this.barriers.length){for(const id of this.barriers)this.port.postMessage({idle:id,generation:this.generation});this.barriers=[];}this.elapsed+=out.length;if(this.elapsed>=sampleRate/30){this.elapsed=0;let sum=0;for(const x of out)sum+=x*x;this.port.postMessage({rms:Math.sqrt(sum/out.length),generation:this.generation});}}return true;}
+        constructor(){super();this.buffer=new PcmPlayback(sampleRate);this.elapsed=0;this.generation=0;this.barriers=[];this.marks=[];this.port.onmessage=e=>{const data=e.data;if(data.clear){this.generation=data.generation;this.buffer.clear();this.barriers=[];this.marks=[];}else if(data.generation===this.generation){if(data.barrier)this.barriers.push(data.barrier);else if(data.mark)this.marks.push({id:data.mark,at:this.buffer.pushed});else if(!this.buffer.push(new Int16Array(data.frame))){this.buffer.clear();this.port.postMessage({overflow:true,generation:this.generation});}}};}
+        process(_inputs,outputs){const out=outputs[0]?.[0];if(out){this.buffer.readInto(out);if(this.marks.length){const heard=this.marks.filter(m=>this.buffer.played>=m.at);if(heard.length){this.marks=this.marks.filter(m=>this.buffer.played<m.at);for(const m of heard)this.port.postMessage({played:m.id,generation:this.generation});}}if(this.buffer.queuedSamples===0&&this.barriers.length){for(const id of this.barriers)this.port.postMessage({idle:id,generation:this.generation});this.barriers=[];}this.elapsed+=out.length;if(this.elapsed>=sampleRate/30){this.elapsed=0;let sum=0;for(const x of out)sum+=x*x;this.port.postMessage({rms:Math.sqrt(sum/out.length),generation:this.generation});}}return true;}
       }
       registerProcessor('imagine-capture',ImagineCapture);registerProcessor('imagine-playback',ImaginePlayback);`;
     const url = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
@@ -87,12 +103,15 @@ export class BrowserAudio {
     this.playback = new AudioWorkletNode(context, 'imagine-playback', { outputChannelCount: [1] });
     this.playback.port.onmessage = (
       event: MessageEvent<
-        { generation: number } & ({ rms: number } | { overflow: true } | { idle: number })
+        { generation: number } & (
+          { rms: number } | { overflow: true } | { idle: number } | { played: number }
+        )
       >,
     ) => {
       if (this.disposed || event.data.generation !== this.playbackGeneration) return;
       if ('overflow' in event.data) this.onPlaybackError();
       else if ('idle' in event.data) this.finishDrain(event.data.idle, true);
+      else if ('played' in event.data) this.finishDrain(event.data.played, true);
       else this.emitMouth(mouthOpen(event.data.rms));
     };
     this.playback.port.postMessage({ clear: true, generation: this.playbackGeneration });

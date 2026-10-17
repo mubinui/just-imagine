@@ -21,6 +21,9 @@ export interface VoiceOptions {
   socket?: (url: string) => WebSocket;
   getToken?: () => Promise<string>;
 }
+/** 400 ms of silence at 24 kHz between two speakers. */
+const HANDOFF_BEAT_SAMPLES = 9600;
+
 export class VoiceClient {
   readonly audio: BrowserAudio;
   private socket?: WebSocket;
@@ -40,9 +43,27 @@ export class VoiceClient {
   private listeners = new Set<(message: ServerMessage) => void>();
   private statusListeners = new Set<(status: VoiceStatus) => void>();
   status: VoiceStatus = 'idle';
+  /** The speaker still audible while a handoff lets their last words play out. */
+  private heard?: { id: string | undefined };
   /** Who owns the current playback; a guest persona keeps the companion quiet. */
   get speakerId() {
-    return this.session ? (this.personaId ?? this.hello?.characterId) : undefined;
+    if (!this.session) return undefined;
+    if (this.heard) return this.heard.id ?? this.hello?.characterId;
+    return this.personaId ?? this.hello?.characterId;
+  }
+  /**
+   * A new voice takes over: the previous speaker finishes the words already queued, a short
+   * silent beat follows, and only then does the new speaker own the portrait and the mouth.
+   */
+  private handOff(previous: string | undefined) {
+    const playedThrough = this.audio.whenPlayedThrough?.();
+    if (!playedThrough) return;
+    const token = this.heard ?? { id: previous };
+    this.heard = token;
+    void playedThrough.then(() => {
+      if (this.heard === token) this.heard = undefined;
+    });
+    this.audio.play(new Int16Array(HANDOFF_BEAT_SAMPLES).buffer);
   }
   get session() {
     if (this.ended || !this.hello) return undefined;
@@ -194,6 +215,7 @@ export class VoiceClient {
         }
         try {
           const message = parseServerMessage(String(event.data));
+          const before = this.personaId ?? this.hello?.characterId;
           if (message.type === 'storyVoice' || message.type === 'storyCue') {
             this.currentPersona = undefined;
             this.personaId = message.type === 'storyCue' || message.active ? 'katha' : undefined;
@@ -219,6 +241,14 @@ export class VoiceClient {
             this.currentPersona = undefined;
             this.personaId = undefined;
           }
+          if (
+            (message.type === 'persona' ||
+              message.type === 'worldCharacter' ||
+              message.type === 'storyVoice' ||
+              message.type === 'storyCue') &&
+            (this.personaId ?? this.hello?.characterId) !== before
+          )
+            this.handOff(before);
           if (message.type === 'error' && this.selecting) {
             const rejected = this.selecting;
             if (rejected.type === 'character' && this.wantedCharacter === rejected.characterId)

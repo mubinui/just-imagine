@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createMixer, DUCK_GAIN, DUCK_IN_SECONDS, DUCK_OUT_SECONDS } from '../lib/sound/mixer';
+import {
+  createMixer,
+  CONVERSATION_IN_SECONDS,
+  CONVERSATION_OUT_SECONDS,
+  DUCK_GAIN,
+  DUCK_IN_SECONDS,
+  DUCK_OUT_SECONDS,
+} from '../lib/sound/mixer';
 import { MUSIC_LOOP_SECONDS, type CueName } from '../lib/sound/manifest';
 import { FakeAudioContext, fakeLoader, flush, gainsBetween, reaches } from './fake-audio';
 
@@ -430,6 +437,71 @@ describe('ducking under speech (Review Focus 6)', () => {
     mixer.setSpeaking(true);
     const after = gainsBetween(music!, ctx.destination).map((g) => g.gain.events.length);
     expect(after).toEqual(before);
+  });
+});
+
+describe('quiet while the child talks with a character', () => {
+  const silent = (
+    source: Parameters<typeof gainsBetween>[0],
+    to: Parameters<typeof gainsBetween>[1],
+  ) =>
+    gainsBetween(source, to)
+      .map((g) => g.gain.lastRamp())
+      .some((r) => r !== undefined && r.value === 0);
+
+  it('fades game music and game cues to silence quickly when a conversation starts', async () => {
+    const { ctx, mixer } = await unlocked();
+    mixer.playMusic('meadow');
+    mixer.playCue('tap');
+    await flush();
+    ctx.advance(2);
+    mixer.setConversation(true);
+    const [music, cue] = ctx.playingSources;
+    for (const source of [music!, cue!]) {
+      const fade = gainsBetween(source, ctx.destination)
+        .map((g) => g.gain.lastRamp())
+        .find((r) => r !== undefined && r.value === 0);
+      expect(fade).toBeDefined();
+      expect(fade!.time - ctx.currentTime).toBeCloseTo(CONVERSATION_IN_SECONDS, 6);
+    }
+    expect(CONVERSATION_IN_SECONDS).toBeLessThanOrEqual(0.15);
+  });
+
+  it('keeps character clips audible during a conversation', async () => {
+    const { ctx, mixer } = await unlocked();
+    mixer.setConversation(true);
+    void mixer.playClip('/learn/sounds/lion');
+    await flush();
+    const [clip] = ctx.playingSources;
+    expect(silent(clip!, ctx.destination)).toBe(false);
+    expect(gainsBetween(clip!, ctx.destination).every((g) => g.gain.value > 0)).toBe(true);
+  });
+
+  it('brings the game back after the conversation ends', async () => {
+    const { ctx, mixer } = await unlocked();
+    mixer.playMusic('meadow');
+    await flush();
+    mixer.setConversation(true);
+    ctx.advance(5);
+    mixer.setConversation(false);
+    const [music] = ctx.playingSources;
+    const restore = gainsBetween(music!, ctx.destination)
+      .map((g) => g.gain.lastRamp())
+      .find((r) => r?.value === 1 && r.time > ctx.currentTime);
+    expect(restore).toBeDefined();
+    expect(restore!.time - ctx.currentTime).toBeCloseTo(CONVERSATION_OUT_SECONDS, 6);
+  });
+
+  it('starts new game sound silent while a conversation is live', async () => {
+    const { ctx, mixer } = await unlocked();
+    mixer.setConversation(true);
+    mixer.playMusic('lab');
+    mixer.playCue('tap');
+    await flush();
+    for (const source of ctx.playingSources) {
+      const quiet = gainsBetween(source, ctx.destination).some((g) => g.gain.value === 0);
+      expect(quiet).toBe(true);
+    }
   });
 });
 

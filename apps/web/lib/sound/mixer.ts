@@ -14,13 +14,16 @@ import {
 /**
  * The Web Audio mixer behind every sound in the Studio.
  *
- * Graph: cue sources -> gain [-> panner] -> cueBus -> master -> destination
- *        music source -> fade gain -> duck -> musicBus -> master -> destination
+ * Graph: cue sources -> gain [-> panner] -> game -> cueBus -> master -> destination
+ *        clip sources -> gain [-> panner] -> cueBus -> master -> destination
+ *        music source -> fade gain -> duck -> gameMusic -> musicBus -> master -> destination
  *
  * - Nothing plays before `unlock()`, which must follow a pointer gesture.
  * - Buffers decode lazily on first use and are cached per cue and theme.
  * - `setSpeaking(true)` ducks the music bus to -12 dB within 100 ms and
  *   `setSpeaking(false)` brings it back over 600 ms (Review Focus 6).
+ * - `setConversation(true)` fades game cues and music to silence while the child talks with a
+ *   character, and `setConversation(false)` brings them back; character clips stay audible.
  * - `setMuted(true)` is a hard, immediate mute of everything; cues requested
  *   while muted are dropped. `setReducedMotion(true)` silences only the bed.
  * - At most `maxVoices` cues sound at once; the oldest is stopped to make room.
@@ -47,6 +50,8 @@ export interface Mixer {
   playMusic(theme: MusicTheme): void;
   stopMusic(): void;
   setSpeaking(speaking: boolean): void;
+  /** Silences game cues and music (not character clips) while a live conversation is open. */
+  setConversation(active: boolean): void;
   setMuted(muted: boolean): void;
   setReducedMotion(reduced: boolean): void;
   dispose(): void;
@@ -66,6 +71,8 @@ export interface MixerOptions {
 export const DUCK_GAIN = Math.pow(10, -12 / 20);
 export const DUCK_IN_SECONDS = 0.1;
 export const DUCK_OUT_SECONDS = 0.6;
+export const CONVERSATION_IN_SECONDS = 0.12;
+export const CONVERSATION_OUT_SECONDS = 0.6;
 export const MAX_VOICES = 6;
 const MUSIC_FADE_IN = 0.8;
 const MUSIC_FADE_OUT = 0.5;
@@ -115,10 +122,20 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
   let canPlay = options.canPlay;
   let ctx = context;
   let ownsContext = false;
-  let graph: { master: GainNode; cueBus: GainNode; musicBus: GainNode; duck: GainNode } | undefined;
+  let graph:
+    | {
+        master: GainNode;
+        cueBus: GainNode;
+        musicBus: GainNode;
+        duck: GainNode;
+        game: GainNode;
+        gameMusic: GainNode;
+      }
+    | undefined;
   let unlocked = false;
   let disposed = false;
   let speaking = false;
+  let conversation = false;
   let muted = false;
   let reducedMotion = false;
   let pendingTheme: MusicTheme | undefined;
@@ -136,14 +153,19 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
     const cueBus = ctx.createGain();
     const musicBus = ctx.createGain();
     const duck = ctx.createGain();
+    const game = ctx.createGain();
+    const gameMusic = ctx.createGain();
+    game.connect(cueBus);
     cueBus.connect(master);
-    duck.connect(musicBus);
+    duck.connect(gameMusic);
+    gameMusic.connect(musicBus);
     musicBus.connect(master);
     master.connect(ctx.destination);
-    graph = { master, cueBus, musicBus, duck };
+    graph = { master, cueBus, musicBus, duck, game, gameMusic };
     applyMute();
     applyReducedMotion();
     applyDuck();
+    applyConversation();
     return graph;
   }
 
@@ -193,7 +215,12 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
     }
   }
 
-  function startCue(audio: AudioBuffer, opts: CueOptions, signal?: AbortSignal) {
+  function startCue(
+    audio: AudioBuffer,
+    opts: CueOptions,
+    signal?: AbortSignal,
+    bus: 'game' | 'cueBus' = 'game',
+  ) {
     if (!ready() || muted || signal?.aborted) return;
     while (voices.length >= maxVoices) stopVoice(voices.shift()!, CUE_STEAL_FADE);
     const source = ctx!.createBufferSource();
@@ -210,7 +237,7 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
       gain.connect(panner);
       tail = panner;
     }
-    tail.connect(graph!.cueBus);
+    tail.connect(graph![bus]);
     const cleanup = () => {
       if (!liveVoices.delete(voice)) return;
       signal?.removeEventListener('abort', abort);
@@ -290,6 +317,19 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
     );
   }
 
+  function applyConversation() {
+    if (!graph || !ctx) return;
+    const now = ctx.currentTime;
+    for (const param of [graph.game.gain, graph.gameMusic.gain]) {
+      param.cancelScheduledValues(now);
+      param.setValueAtTime(param.value, now);
+      param.linearRampToValueAtTime(
+        conversation ? 0 : 1,
+        now + (conversation ? CONVERSATION_IN_SECONDS : CONVERSATION_OUT_SECONDS),
+      );
+    }
+  }
+
   function applyMute() {
     if (!graph || !ctx) return;
     const now = ctx.currentTime;
@@ -344,7 +384,7 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
         return 0;
       const audio = await buffer(`clip:${path}`, (formats) => formats.map((f) => `${path}.${f}`));
       if (!audio || opts.signal?.aborted) return 0;
-      return startCue(audio, opts, opts.signal)
+      return startCue(audio, opts, opts.signal, 'cueBus')
         ? audio.duration / clamp(opts.rate ?? 1, 0.25, 4, 1)
         : 0;
     },
@@ -365,6 +405,11 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
       if (value === speaking) return;
       speaking = value;
       applyDuck();
+    },
+    setConversation(value) {
+      if (value === conversation) return;
+      conversation = value;
+      applyConversation();
     },
     setMuted(value) {
       if (value === muted) return;
