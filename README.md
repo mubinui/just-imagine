@@ -15,17 +15,53 @@ This is a working local prototype with test and browser evidence, **not a produc
 
 ## Project screenshots
 
-| Welcome                                               | Learn                                                 | Studio                                                            |
-| ----------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------- |
-| ![Just Imagine welcome page](docs/images/landing.png) | ![Illustrated learning worlds](docs/images/learn.png) | ![Studio characters with one control row](docs/images/studio.png) |
+All images are captures of the running app; see [capture details](docs/images/PROVENANCE.md).
 
-Open the full Studio views: [laptop, 1440 × 900](docs/images/laptop.png) · [tablet, 1024 × 768](docs/images/tablet.png). These are actual app captures; [capture details](docs/images/PROVENANCE.md).
+### Children
 
-| Learn on tablet                                            | Dark theme choices                                           |
-| ---------------------------------------------------------- | ------------------------------------------------------------ |
-| ![Learning worlds on tablet](docs/images/learn-tablet.png) | ![Theme choices on a dark background](docs/images/theme.png) |
+| Welcome                                               | Learn                                                     | Studio                                                  |
+| ----------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------- |
+| ![Just Imagine welcome page](docs/images/landing.png) | ![Illustrated learning island map](docs/images/learn.png) | ![Studio with a playable world](docs/images/studio.png) |
 
-Studio keeps its characters, voice and play controls together, with one Exit Studio action. Learn uses larger character-led worlds, readable progress and a compact points badge. Theme choices follow the surrounding light or dark surface.
+Open the full Studio views: [laptop, 1440 × 900](docs/images/laptop.png) · [tablet, 1024 × 768](docs/images/tablet.png).
+
+| Learn on tablet                                         | Theme choices                                            |
+| ------------------------------------------------------- | -------------------------------------------------------- |
+| ![Learning map on tablet](docs/images/learn-tablet.png) | ![Theme choices on the Learn map](docs/images/theme.png) |
+
+The Studio keeps the friend, voice and the world's own controls together with one Exit Studio action. Learn is an island map with a featured story harbour; theme choices follow the surrounding light or dark surface.
+
+### Worlds
+
+| Moon gravity                                           | Sink or float                                             |
+| ------------------------------------------------------ | --------------------------------------------------------- |
+| ![Bouncy Ball on the Moon](docs/images/world-moon.png) | ![Duck and Stone at the Pond](docs/images/world-pond.png) |
+| **Projectile**                                         | **Probability**                                           |
+| ![Cannon and Cup](docs/images/world-cannon.png)        | ![Peg Garden Probability](docs/images/world-pegs.png)     |
+
+### Schools
+
+| Teacher overview                                            | Lesson editor                                                               |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------- |
+| ![Teacher console overview](docs/images/school-teacher.png) | ![Bilingual lesson editor](docs/images/school-editor.png)                   |
+| **Student home**                                            | **Lesson simulation**                                                       |
+| ![Student lessons home](docs/images/student.png)            | ![Motion graphs simulation in a lesson](docs/images/student-simulation.png) |
+| **Chemistry lab**                                           | **Leaderboard**                                                             |
+| ![Virtual chemistry bench](docs/images/student-lab.png)     | ![Class leaderboard](docs/images/student-leaderboard.png)                   |
+
+Teachers also see per-student results: [results](docs/images/school-results.png).
+
+### Simulation library
+
+| Pendulum energy                                             | Titration (Bangla)                                               | Area under a curve                                      |
+| ----------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
+| ![Pendulum energy simulation](docs/images/sim-pendulum.png) | ![Titration simulation in Bangla](docs/images/sim-titration.png) | ![Riemann sums simulation](docs/images/sim-riemann.png) |
+
+Twenty-two simulations across physics, chemistry and mathematics, each with adjustable parameters, units, graphs and gradable tasks.
+
+### Operators
+
+![Operator console overview](docs/images/admin.png)
 
 ## Run locally
 
