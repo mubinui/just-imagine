@@ -3523,6 +3523,12 @@
   flex: 1 1 220px;
   min-width: 0;
 }
+/* Stacked on phones and short screens: the 220px basis would become height, so size to content. */
+@media (max-width: 760px), (max-height: 520px) {
+  .studio-stage .play-invitation {
+    flex: none;
+  }
+}
 .studio-stage .play-invitation h2 {
   font-size: clamp(18px, 2.2vmin, 22px);
 }
@@ -4444,5 +4450,36 @@
   .show-scene .props.is-painted .prop {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* The discovery toast sits in the world's top-right corner, never over the world's controls. */
+.stage-world > .discovery-toast {
+  top: 14px;
+  right: 14px;
+  bottom: auto;
+  width: min(340px, calc(100% - 28px));
+  max-height: calc(100% - 28px);
+  overflow-y: auto;
+}
+@media (max-width: 760px) {
+  .stage-world > .discovery-toast {
+    top: 8px;
+    right: 8px;
+    left: auto;
+    width: min(300px, calc(100% - 16px));
+    grid-template-columns: minmax(0, 1fr) 40px;
+    padding: 6px 6px 6px 14px;
+  }
+  .stage-world > .discovery-toast .badge {
+    display: none;
+  }
+  .stage-world > .discovery-toast summary {
+    font-size: 17px;
+    min-height: 40px;
+  }
+  .stage-world > .discovery-toast .close {
+    min-width: 40px;
+    min-height: 40px;
   }
 }

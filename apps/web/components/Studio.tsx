@@ -824,6 +824,10 @@ export function Studio() {
         <div className="world-frame">
           <div className="stage-world">
             <div className="engine-host" ref={host} />
+            {/* In the sky corner of the world, clear of the world's controls below it. */}
+            {discovery && (
+              <DiscoveryToast discovery={discovery} onClose={() => setDiscovery(undefined)} />
+            )}
             {world && (
               <PetFollower
                 engine={engine}
@@ -942,9 +946,6 @@ export function Studio() {
             <CloseIcon />
           </button>
         </p>
-      )}
-      {discovery && (
-        <DiscoveryToast discovery={discovery} onClose={() => setDiscovery(undefined)} />
       )}
       <Dock
         cast={cast}
