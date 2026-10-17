@@ -11,55 +11,26 @@ import {
   draggedParameter,
   simulationPoint,
 } from '../../lib/school/simulation-geometry';
-import { formatNumber, linearEquation, snapToStep, simName, isTimedSim } from './sim-format';
+import {
+  formatNumber,
+  linearEquation,
+  snapToStep,
+  simName,
+  isTimedSim,
+  simClock,
+} from './sim-format';
+import {
+  LIMITS,
+  PARAMS,
+  SIM_DEFAULTS,
+  unitText,
+  type ChoiceParam,
+  type SliderParam,
+} from '../../lib/stem/sim-params';
+import { localUnit, stemReadingState } from '../../lib/stem/readings';
+import { HIDE_WHEN_NULL, READOUTS, RENDERERS, usePrefersReducedMotion } from './renderers';
 import '../../app/stem.css';
-export const SIM_DEFAULTS: Record<SimId, Record<string, unknown>> = {
-  'motion-graphs': { u: 5, a: 1, duration: 10 },
-  'newton-cart': { mass: 2, force: 12, muS: 0.4, muK: 0.2 },
-  'ohms-circuit': { emf: 6, topology: 'series', resistors: [10, 20] },
-  'linear-graph': { m: 1, c: 0 },
-  'unit-circle': { angleDeg: 45 },
-};
-export const PARAMS: Record<
-  SimId,
-  { id: string; label: [string, string]; min: number; max: number; step: number; unit: string }[]
-> = {
-  'motion-graphs': [
-    { id: 'u', label: ['Initial velocity', 'আদি বেগ'], min: 0, max: 20, step: 0.5, unit: 'm/s' },
-    { id: 'a', label: ['Acceleration', 'ত্বরণ'], min: -5, max: 5, step: 0.1, unit: 'm/s²' },
-    { id: 'duration', label: ['Duration', 'সময়কাল'], min: 2, max: 20, step: 0.5, unit: 's' },
-  ],
-  'newton-cart': [
-    { id: 'mass', label: ['Mass', 'ভর'], min: 0.5, max: 10, step: 0.1, unit: 'kg' },
-    { id: 'force', label: ['Applied force', 'প্রযুক্ত বল'], min: 0, max: 60, step: 0.1, unit: 'N' },
-    {
-      id: 'muS',
-      label: ['Static friction coefficient', 'স্থিত ঘর্ষণ গুণাঙ্ক'],
-      min: 0,
-      max: 0.8,
-      step: 0.01,
-      unit: '',
-    },
-    {
-      id: 'muK',
-      label: ['Kinetic friction coefficient', 'গতীয় ঘর্ষণ গুণাঙ্ক'],
-      min: 0,
-      max: 0.8,
-      step: 0.01,
-      unit: '',
-    },
-  ],
-  'ohms-circuit': [
-    { id: 'emf', label: ['Voltage', 'বিভব পার্থক্য'], min: 1.5, max: 12, step: 0.1, unit: 'V' },
-  ],
-  'linear-graph': [
-    { id: 'm', label: ['Slope', 'ঢাল'], min: -10, max: 10, step: 0.1, unit: '' },
-    { id: 'c', label: ['Intercept', 'অক্ষছেদ'], min: -10, max: 10, step: 0.1, unit: '' },
-  ],
-  'unit-circle': [
-    { id: 'angleDeg', label: ['Angle', 'কোণ'], min: 0, max: 360, step: 1, unit: '°' },
-  ],
-};
+export { SIM_DEFAULTS, PARAMS };
 export function scientificNumber(value: unknown, language: 'en' | 'bn' = 'en'): string {
   return formatNumber(value, language);
 }
@@ -80,28 +51,6 @@ function labelCorner(m: number, c: number, width: number, height: number) {
   });
   return { ...(clear ?? corners[0]!), width, height };
 }
-const LIMITS: Record<SimId, [string, string]> = {
-  'motion-graphs': [
-    'Forward motion with constant acceleration while moving. Braking stops at rest, without reversing. Each graph has its own labeled scale.',
-    'চলার সময় ধ্রুব ত্বরণে সামনের দিকে গতি। ব্রেক করলে বস্তু থেমে যায়, উল্টো দিকে চলে না। প্রতিটি লেখচিত্রের স্কেল আলাদা করে দেখানো আছে।',
-  ],
-  'newton-cart': [
-    'Starts from rest with a constant horizontal push for 5 seconds. Ideal static/kinetic friction; g = 9.8 m/s². Track marks are 5 m apart; the camera follows the cart.',
-    'স্থির অবস্থা থেকে ৫ সেকেন্ড ধ্রুব অনুভূমিক বল প্রয়োগ করা হয়। আদর্শ স্থিত ও গতীয় ঘর্ষণ; g = 9.8 m/s²। পথের দাগের ব্যবধান ৫ মিটার; ক্যামেরা গাড়িকে অনুসরণ করে।',
-  ],
-  'ohms-circuit': [
-    'Ideal DC source with no internal resistance. Resistor values stay constant; heating and real bulb behaviour are not modeled.',
-    'অভ্যন্তরীণ রোধবিহীন আদর্শ একমুখী তড়িৎ উৎস। রোধের মান ধ্রুব; উত্তাপ ও বাস্তব বাল্বের আচরণ এই মডেলে নেই।',
-  ],
-  'linear-graph': [
-    'Graphs of y = mx + c. Both axes show their numeric scale; vertical lines are outside this model.',
-    'y = mx + c-এর লেখচিত্র। দুই অক্ষেই সংখ্যার স্কেল দেখানো আছে; উল্লম্ব সরলরেখা এই মডেলের বাইরে।',
-  ],
-  'unit-circle': [
-    'Angles are in degrees on a circle of radius 1. Tangent is undefined at 90° and 270°.',
-    'ব্যাসার্ধ ১-এর বৃত্তে কোণ ডিগ্রিতে দেখানো হয়। ৯০° ও ২৭০° কোণে ট্যানজেন্ট অসংজ্ঞায়িত।',
-  ],
-};
 export function SimView({
   id,
   value,
@@ -121,7 +70,8 @@ export function SimView({
     [running, setRunning] = useState(false),
     [time, setTime] = useState(0);
   const vectorId = useId().replaceAll(':', '');
-  const num = (v: unknown) => formatNumber(v, language);
+  const num = (v: unknown, digits = 3) => formatNumber(v, language, digits);
+  const reducedMotion = usePrefersReducedMotion();
   const workspace = useRef<HTMLDivElement>(null);
   const [textScale, setTextScale] = useState(1);
   useEffect(() => {
@@ -139,8 +89,12 @@ export function SimView({
   const parsed = model.params.safeParse(value);
   const valid = parsed.success;
   const params = parsed.success ? parsed.data : null;
-  const horizon = valid && typeof value.duration === 'number' ? value.duration : 5;
+  const clock = valid ? simClock(id, params) : { horizon: 5, scale: 1 };
+  const horizon = clock.horizon,
+    timeScale = clock.scale;
   const o: Observable = valid ? model.at(params, time) : {};
+  const Renderer = RENDERERS[id];
+  const solved: Observable = valid && Renderer ? model.solve(params) : {};
   const resistors = Array.isArray(value.resistors)
     ? value.resistors.map((r: unknown) =>
         typeof r === 'number' && Number.isFinite(r) ? r : undefined,
@@ -172,7 +126,7 @@ export function SimView({
     const tick = (now: number) => {
       const dt = (now - previous) / 1000;
       previous = now;
-      elapsed = Math.min(horizon, elapsed + dt);
+      elapsed = Math.min(horizon, elapsed + dt * timeScale);
       setTime(elapsed);
       if (elapsed >= horizon) {
         setRunning(false);
@@ -182,12 +136,16 @@ export function SimView({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [running, horizon, valid]);
-  function set(key: string, n: unknown) {
-    if (locked.includes(key)) return;
-    onChange({ ...value, [key]: n });
+  }, [running, horizon, timeScale, valid]);
+  function update(changes: Record<string, unknown>) {
+    const allowed = Object.entries(changes).filter(([key]) => !locked.includes(key));
+    if (!allowed.length) return;
+    onChange({ ...value, ...Object.fromEntries(allowed) });
     setTime(0);
     setRunning(false);
+  }
+  function set(key: string, n: unknown) {
+    update({ [key]: n });
   }
   const graph = id === 'linear-graph',
     circle = id === 'unit-circle';
@@ -198,7 +156,9 @@ export function SimView({
       event.currentTarget.getScreenCTM(),
     );
     const change = draggedParameter(id, value, point, locked);
-    const range = PARAMS[id].find((p) => p.id === change?.key);
+    const range = PARAMS[id].find(
+      (p): p is SliderParam => p.id === change?.key && p.kind !== 'choice',
+    );
     if (change) set(change.key, range ? snapToStep(change.value, range) : change.value);
   }
   const svgFont = Math.min(24, Math.max(16, 11.5 * textScale));
@@ -226,7 +186,25 @@ export function SimView({
               : 'The diagram and readings are paused until the values are valid.'}
           </p>
         )}
-        {valid && (
+        {valid && Renderer && (
+          <Renderer
+            params={params as Record<string, unknown>}
+            o={o}
+            solved={solved}
+            time={time}
+            horizon={horizon}
+            running={running}
+            language={language}
+            num={num}
+            font={svgFont}
+            name={simName(id, language)}
+            set={set}
+            update={update}
+            locked={locked}
+            reducedMotion={reducedMotion}
+          />
+        )}
+        {valid && !Renderer && (
           <svg
             className="stem-canvas"
             viewBox="0 0 640 400"
@@ -567,8 +545,35 @@ export function SimView({
               <UiIcon name="restart" width={20} height={20} />
               {s('reset')}
             </button>
+            <input
+              type="range"
+              className="stem-scrub"
+              aria-label={language === 'bn' ? 'সময় বেছে নাও' : 'Scrub through time'}
+              min={0}
+              max={horizon}
+              step={horizon / 400}
+              value={Math.min(time, horizon)}
+              disabled={!valid}
+              onChange={(e) => {
+                setRunning(false);
+                setTime(Number(e.target.value));
+              }}
+            />
             <output>
-              {s('time')}: {valid ? num(time) : '—'} s
+              {s('time')}: {valid ? num(time, 2) : '—'} s
+              {valid && id === 'orbit' && (
+                <span className="stem-run-note">
+                  {' · '}
+                  {language === 'bn' ? 'কক্ষপথে ' : 'in orbit '}
+                  {num(
+                    ((time / 12) * (2 * Math.PI * Number(value.radius) * 1e6)) /
+                      (Number(solved.circularSpeed) * 1000) /
+                      3600,
+                    2,
+                  )}{' '}
+                  h
+                </span>
+              )}
             </output>
           </div>
         )}
@@ -586,45 +591,31 @@ export function SimView({
                 : ' Kinetic friction must not exceed static friction.')}
           </p>
         )}
-        {PARAMS[id].map((p) => (
-          <Field
-            key={p.id}
-            label={`${p.label[language === 'bn' ? 1 : 0]}${p.unit ? ` (${p.unit})` : ''}`}
-          >
-            <div className={'stem-param ' + (highlight === p.id ? 'is-highlighted' : '')}>
-              <input
-                aria-label={p.label[language === 'bn' ? 1 : 0]}
-                type="range"
-                min={p.min}
-                max={p.max}
-                step={p.step}
-                value={
-                  typeof value[p.id] === 'number' && Number.isFinite(value[p.id])
-                    ? (value[p.id] as number)
-                    : p.min
-                }
+        {PARAMS[id]
+          .filter((p) => !p.when || p.when(value))
+          .map((p) =>
+            p.kind === 'choice' ? (
+              <ChoiceControl
+                key={p.id}
+                spec={p}
+                value={value[p.id]}
+                language={language}
                 disabled={locked.includes(p.id)}
-                onChange={(e) => set(p.id, Number(e.target.value))}
+                highlighted={highlight === p.id}
+                onChange={(v) => set(p.id, v)}
               />
-              <input
-                aria-label={p.label[language === 'bn' ? 1 : 0] + ' value'}
-                type="number"
-                min={p.min}
-                max={p.max}
-                step={p.step}
-                value={
-                  typeof value[p.id] === 'number' && Number.isFinite(value[p.id])
-                    ? (value[p.id] as number)
-                    : ''
-                }
+            ) : (
+              <SliderControl
+                key={p.id}
+                spec={p}
+                value={value[p.id]}
+                language={language}
                 disabled={locked.includes(p.id)}
-                onChange={(e) =>
-                  set(p.id, e.target.value === '' ? undefined : Number(e.target.value))
-                }
+                highlighted={highlight === p.id}
+                onChange={(v) => set(p.id, v)}
               />
-            </div>
-          </Field>
-        ))}
+            ),
+          )}
         {id === 'ohms-circuit' && (
           <>
             <Field label={language === 'bn' ? 'সংযোগ' : 'Connection'}>
@@ -674,20 +665,28 @@ export function SimView({
       <section className="stem-details">
         {valid && (
           <dl className="stem-readings">
-            {Object.entries(o)
+            {(READOUTS[id]
+              ? READOUTS[id].map((key) => [key, key in o ? o[key] : solved[key]] as const)
+              : Object.entries(o)
+            )
               .filter(
                 ([key, v]) =>
-                  readingLabel(id, key, language) && !(id === 'ohms-circuit' && v === null),
+                  v !== undefined &&
+                  readingLabel(id, key, language) &&
+                  !(id === 'ohms-circuit' && v === null) &&
+                  !(v === null && HIDE_WHEN_NULL.has(key)),
               )
               .map(([key, v]) => (
                 <div key={key}>
                   <dt>{readingLabel(id, key, language)!.label}</dt>
                   <dd>
-                    {readingState(id, key, v, language) ?? num(v)}
-                    {v !== null && readingLabel(id, key, language)!.unit && (
+                    {(Renderer ? stemReadingState(id, key, v ?? null, language, value) : null) ??
+                      readingState(id, key, v ?? null, language) ??
+                      num(v)}
+                    {typeof v === 'number' && readingLabel(id, key, language)!.unit && (
                       <>
                         {' '}
-                        <span>{readingLabel(id, key, language)!.unit}</span>
+                        <span>{localUnit(readingLabel(id, key, language)!.unit, language)}</span>
                       </>
                     )}
                   </dd>
@@ -698,5 +697,134 @@ export function SimView({
         <p className="stem-limits">{LIMITS[id][language === 'bn' ? 1 : 0]}</p>
       </section>
     </div>
+  );
+}
+
+function SliderControl({
+  spec: p,
+  value,
+  language,
+  disabled,
+  highlighted,
+  onChange,
+}: {
+  spec: SliderParam;
+  value: unknown;
+  language: 'en' | 'bn';
+  disabled: boolean;
+  highlighted: boolean;
+  onChange: (v: number | undefined) => void;
+}) {
+  const label = p.label[language === 'bn' ? 1 : 0];
+  const unit = unitText(p.unit, language);
+  const current = typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+  const log = p.scale === 'log';
+  const toSlider = (v: number) => (log ? Math.log10(v) : v);
+  const fromSlider = (v: number) => {
+    if (!log) return v;
+    const raw = 10 ** v;
+    const power = 10 ** (Math.floor(Math.log10(raw)) - 1);
+    return snapToStep(Math.round(raw / power) * power, p);
+  };
+  return (
+    <Field label={`${label}${unit ? ` (${unit})` : ''}`}>
+      <div
+        className={[
+          'stem-param',
+          highlighted ? 'is-highlighted' : '',
+          p.entry === 'number' ? 'is-number-only' : '',
+        ].join(' ')}
+      >
+        {p.entry !== 'number' && (
+          <input
+            aria-label={label}
+            type="range"
+            min={toSlider(p.min)}
+            max={toSlider(p.max)}
+            step={log ? 0.01 : p.step}
+            value={current === undefined ? toSlider(p.min) : toSlider(current)}
+            disabled={disabled}
+            onChange={(e) => onChange(fromSlider(Number(e.target.value)))}
+          />
+        )}
+        <input
+          aria-label={label + ' value'}
+          type="number"
+          min={p.min}
+          max={p.max}
+          step={p.step}
+          value={current ?? ''}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+        />
+      </div>
+    </Field>
+  );
+}
+
+/** Up to four short options as a segmented radio group; longer lists as a select. */
+function ChoiceControl({
+  spec: p,
+  value,
+  language,
+  disabled,
+  highlighted,
+  onChange,
+}: {
+  spec: ChoiceParam;
+  value: unknown;
+  language: 'en' | 'bn';
+  disabled: boolean;
+  highlighted: boolean;
+  onChange: (v: string | boolean) => void;
+}) {
+  const group = useId();
+  const i = language === 'bn' ? 1 : 0;
+  const label = p.label[i];
+  const segmented =
+    p.options.length <= 7 &&
+    p.options.every((o) => o.label[i].length <= (p.options.length > 4 ? 5 : 14));
+  if (!segmented)
+    return (
+      <Field label={label}>
+        <select
+          className={highlighted ? 'is-highlighted' : ''}
+          value={String(value)}
+          disabled={disabled}
+          onChange={(e) =>
+            onChange(
+              p.options.find((o) => String(o.value) === e.target.value)?.value ?? e.target.value,
+            )
+          }
+        >
+          {p.options.map((o) => (
+            <option key={String(o.value)} value={String(o.value)}>
+              {o.label[i]}
+            </option>
+          ))}
+        </select>
+      </Field>
+    );
+  return (
+    <fieldset
+      className={'stem-choice' + (highlighted ? ' is-highlighted' : '')}
+      disabled={disabled}
+    >
+      <legend>{label}</legend>
+      <div className="stem-segments">
+        {p.options.map((o) => (
+          <label key={String(o.value)} className={o.value === value ? 'is-selected' : ''}>
+            <input
+              type="radio"
+              name={group}
+              value={String(o.value)}
+              checked={o.value === value}
+              onChange={() => onChange(o.value)}
+            />
+            <span>{o.label[i]}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }

@@ -841,3 +841,598 @@
   height: 20px;
   flex-shrink: 0;
 }
+
+/* ---------- Simulation library: shared meaning of colour ----------
+   Velocity is blue, forces are brick red, the net force or resultant is plum, momentum is teal.
+   Energy: kinetic amber, potential green, thermal raspberry. Each tone has a darker ink for text. */
+.stem-workspace {
+  --sim-velocity: #2b6cb0;
+  --sim-velocity-ink: #1f4f86;
+  --sim-force: #c2452d;
+  --sim-force-ink: #973320;
+  --sim-net: #7b3f98;
+  --sim-net-ink: #5e2d76;
+  --sim-momentum: #18837e;
+  --sim-momentum-ink: #0f625e;
+  --sim-kinetic: #e08a1e;
+  --sim-kinetic-ink: #8f5508;
+  --sim-potential: #2f8f5b;
+  --sim-potential-ink: #216a42;
+  --sim-thermal: #c23b7a;
+  --sim-thermal-ink: #93275b;
+  --sim-vector-a: #18837e;
+  --sim-vector-a-ink: #0f625e;
+  --sim-vector-b: #b8741a;
+  --sim-vector-b-ink: #7f4f0e;
+  --sim-tangent: var(--focus);
+  --sim-tangent-ink: color-mix(in srgb, var(--focus) 72%, var(--ink));
+}
+.sim-tone-velocity {
+  --tone: var(--sim-velocity);
+  --tone-ink: var(--sim-velocity-ink);
+}
+.sim-tone-force {
+  --tone: var(--sim-force);
+  --tone-ink: var(--sim-force-ink);
+}
+.sim-tone-net {
+  --tone: var(--sim-net);
+  --tone-ink: var(--sim-net-ink);
+}
+.sim-tone-momentum {
+  --tone: var(--sim-momentum);
+  --tone-ink: var(--sim-momentum-ink);
+}
+.sim-tone-kinetic {
+  --tone: var(--sim-kinetic);
+  --tone-ink: var(--sim-kinetic-ink);
+}
+.sim-tone-potential {
+  --tone: var(--sim-potential);
+  --tone-ink: var(--sim-potential-ink);
+}
+.sim-tone-thermal {
+  --tone: var(--sim-thermal);
+  --tone-ink: var(--sim-thermal-ink);
+}
+.sim-tone-vector-a {
+  --tone: var(--sim-vector-a);
+  --tone-ink: var(--sim-vector-a-ink);
+}
+.sim-tone-vector-b {
+  --tone: var(--sim-vector-b);
+  --tone-ink: var(--sim-vector-b-ink);
+}
+.sim-tone-tangent {
+  --tone: var(--sim-tangent);
+  --tone-ink: var(--sim-tangent-ink);
+}
+.sim-tone-ink {
+  --tone: var(--ink);
+  --tone-ink: var(--ink);
+}
+.sim-tone-soft {
+  --tone: var(--soft);
+  --tone-ink: var(--soft);
+}
+.sim-arrow line {
+  stroke: var(--tone);
+  stroke-linecap: round;
+}
+.sim-arrow polygon {
+  fill: var(--tone);
+}
+.stem-canvas text[class*='sim-tone-'],
+.stem-traces text[class*='sim-tone-'],
+.stem-canvas [class*='sim-tone-'] text,
+.stem-traces [class*='sim-tone-'] text {
+  fill: var(--tone-ink);
+}
+.stem-canvas .sim-halo,
+.stem-traces .sim-halo {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+.stem-canvas text.sim-small,
+.stem-traces text.sim-small,
+.stem-canvas .sim-small text {
+  font-size: calc(var(--stem-font, 16px) * 0.86);
+}
+.stem-canvas text.sim-bold,
+.stem-traces text.sim-bold {
+  font-weight: 800;
+}
+.stem-canvas text.sim-axis-label,
+.stem-traces text.sim-axis-label {
+  fill: var(--soft);
+  font-weight: 800;
+}
+.sim-grid {
+  stroke: color-mix(in srgb, var(--line) 70%, transparent);
+  stroke-width: 1;
+}
+.sim-path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 35%, transparent);
+  stroke-width: 2.5;
+  stroke-dasharray: 2 6;
+  stroke-linecap: round;
+}
+.sim-path.is-solid {
+  stroke: var(--accent);
+  stroke-dasharray: none;
+}
+.sim-guide {
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+}
+.sim-component {
+  fill: none;
+  stroke: var(--sim-net);
+  stroke-width: 2;
+  stroke-dasharray: 4 5;
+}
+.sim-angle,
+.sim-rise-run {
+  fill: none;
+  stroke: var(--sim-tangent);
+  stroke-width: 2.5;
+}
+.sim-marker {
+  fill: var(--surface);
+  stroke: var(--tone, var(--ink));
+  stroke-width: 3;
+}
+.sim-dot {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.sim-dot.is-past {
+  fill: var(--accent);
+}
+.sim-ball,
+.sim-satellite {
+  fill: var(--ink);
+  stroke: var(--surface);
+  stroke-width: 3;
+}
+.sim-ghost {
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+.sim-ground {
+  fill: color-mix(in srgb, var(--mint) 70%, var(--surface));
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.sim-launcher,
+.sim-burner,
+.sim-piston {
+  fill: var(--ink);
+}
+.sim-flag {
+  stroke: var(--sim-tangent);
+  stroke-width: 3;
+}
+.sim-grip {
+  fill: transparent;
+  stroke: var(--soft);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  cursor: grab;
+}
+.sim-inset {
+  fill: color-mix(in srgb, var(--ground) 80%, var(--surface));
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+.sim-swatch {
+  fill: var(--tone);
+}
+.sim-ceiling {
+  stroke: var(--ink);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.sim-ceiling-fill {
+  fill: color-mix(in srgb, var(--soft) 30%, var(--surface));
+}
+.sim-rod {
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.sim-pivot {
+  fill: var(--ink);
+}
+.sim-spring {
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.stem-body.sim-cart-1 {
+  fill: color-mix(in srgb, var(--sim-velocity) 22%, var(--surface));
+}
+.stem-body.sim-cart-2 {
+  fill: color-mix(in srgb, var(--sim-kinetic) 25%, var(--surface));
+}
+.sim-dim {
+  opacity: 0.5;
+  transition: opacity var(--duration) ease-out;
+}
+.sim-planet {
+  fill: color-mix(in srgb, var(--sim-velocity) 30%, var(--mint));
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.sim-scale-bar {
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: square;
+}
+/* Glassware and the chemistry bench */
+.sim-glass {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.sim-glass-fill {
+  fill: color-mix(in srgb, var(--surface) 85%, var(--mint));
+}
+.sim-glass-mark {
+  stroke: var(--soft);
+  stroke-width: 1.5;
+}
+.sim-air {
+  fill: var(--surface);
+}
+.sim-liquid {
+  stroke: none;
+  transition: fill 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sim-liquid.sim-base {
+  fill: color-mix(in srgb, var(--sim-velocity) 14%, var(--surface));
+}
+.sim-tap {
+  fill: var(--soft);
+}
+.sim-probe {
+  stroke: var(--ink);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.sim-cable {
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 2.5;
+}
+.sim-meter {
+  fill: var(--ink);
+}
+.sim-meter-screen {
+  fill: color-mix(in srgb, var(--mint) 60%, var(--surface));
+}
+.stem-canvas text.sim-meter-value {
+  font-family: Baloo, sans-serif;
+  font-size: calc(var(--stem-font, 16px) * 2);
+  font-weight: 800;
+}
+.stem-canvas text.sim-meter-caption {
+  fill: var(--ground);
+}
+.sim-strip-frame {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.sim-pointer {
+  fill: var(--ink);
+}
+.sim-band {
+  fill: color-mix(in srgb, var(--yellow) 35%, transparent);
+}
+.sim-flame-core {
+  fill: #3d6fd1;
+  opacity: 0.75;
+}
+.sim-flicker {
+  transform-origin: 150px 282px;
+  animation: sim-flicker 1.6s ease-in-out infinite alternate;
+}
+@keyframes sim-flicker {
+  from {
+    transform: scale(1, 1);
+  }
+  to {
+    transform: scale(0.95, 1.05);
+  }
+}
+.sim-wire {
+  stroke: var(--soft);
+  stroke-width: 3;
+}
+.sim-wire-loop {
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 3;
+}
+.sim-swatch-ring {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.sim-spectroscope {
+  fill: #1b2420;
+}
+.sim-solution {
+  fill: color-mix(in srgb, var(--sim-velocity) 9%, var(--surface));
+}
+.sim-marble {
+  fill: color-mix(in srgb, var(--soft) 25%, var(--surface));
+  stroke: var(--soft);
+  stroke-width: 1.5;
+}
+.sim-catalyst {
+  fill: var(--soft);
+}
+.sim-particle {
+  fill: var(--accent);
+}
+.sim-bubble {
+  fill: var(--surface);
+  stroke: var(--sim-velocity);
+  stroke-width: 2;
+}
+.sim-reference {
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 2;
+  stroke-dasharray: 8 6;
+}
+.sim-gas {
+  fill: color-mix(in srgb, var(--yellow) 12%, var(--surface));
+}
+.sim-gauge-tick {
+  stroke: var(--ground);
+  stroke-width: 2;
+}
+.sim-needle {
+  stroke: var(--yellow);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.sim-pipe {
+  stroke: var(--ink);
+  stroke-width: 6;
+}
+.sim-mercury {
+  fill: var(--sim-force);
+}
+/* Maths */
+.sim-derivative {
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 2.5;
+  stroke-dasharray: 9 6;
+}
+.sim-tangent {
+  stroke: var(--sim-tangent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+.sim-strip {
+  fill: color-mix(in srgb, var(--mint) 85%, transparent);
+  stroke: var(--accent);
+  stroke-width: 0.8;
+}
+.sim-strip.is-negative {
+  fill: color-mix(in srgb, var(--peach) 85%, transparent);
+  stroke: var(--focus);
+}
+.sim-coin {
+  fill: var(--yellow);
+  stroke: color-mix(in srgb, var(--focus) 70%, var(--ink));
+  stroke-width: 3;
+}
+.sim-coin-rim {
+  fill: none;
+  stroke: color-mix(in srgb, var(--focus) 60%, transparent);
+  stroke-width: 2;
+}
+.stem-canvas text.sim-coin-face {
+  font-family: Baloo, sans-serif;
+  font-size: calc(var(--stem-font, 16px) * 2.6);
+  font-weight: 800;
+}
+.sim-die {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.sim-pip {
+  fill: var(--ink);
+}
+.sim-sector {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.sim-sector-a {
+  fill: var(--mint);
+}
+.sim-sector-b {
+  fill: var(--peach);
+}
+.sim-sector-c {
+  fill: var(--yellow);
+}
+.sim-sector-d {
+  fill: color-mix(in srgb, var(--sim-velocity) 25%, var(--surface));
+}
+.sim-sector.is-hit {
+  stroke: var(--ink);
+  stroke-width: 4;
+}
+.sim-spinner-arrow {
+  fill: var(--ink);
+}
+.sim-bar-exp {
+  fill: var(--accent);
+}
+.sim-theory {
+  stroke: var(--sim-tangent);
+  stroke-width: 3.5;
+  stroke-dasharray: 7 4;
+}
+.sim-bracket {
+  fill: none;
+  stroke: var(--tone);
+  stroke-width: 3;
+}
+/* Energy bars */
+.sim-bar-track {
+  fill: color-mix(in srgb, var(--line) 45%, transparent);
+}
+.sim-bar {
+  fill: var(--tone);
+}
+.sim-bar-outline {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.stem-traces text.sim-bar-label,
+.stem-traces text.sim-bar-value {
+  fill: var(--tone-ink);
+  font-weight: 800;
+}
+.stem-traces text.sim-bar-value {
+  font-variant-numeric: tabular-nums;
+}
+.stem-traces.sim-panel text {
+  font-size: var(--stem-font, 16px);
+}
+
+/* Controls the library adds to the workspace */
+.sim-view-toggle,
+.stem-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sim-view-toggle {
+  margin: 0 0 10px;
+}
+.sim-view-toggle button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.stem-choice {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.stem-choice legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.stem-segments label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap, 44px);
+  min-width: 44px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ground);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+.stem-segments label.is-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.stem-segments input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.stem-segments label:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.stem-choice:disabled .stem-segments label {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.stem-choice.is-highlighted,
+.stem-params select.is-highlighted {
+  outline: 3px solid var(--focus);
+  outline-offset: 5px;
+  border-radius: 10px;
+}
+.stem-param.is-number-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+.stem-scrub {
+  flex: 1 1 160px;
+  min-width: 120px;
+  min-height: 44px;
+  padding: 0;
+  accent-color: var(--accent);
+}
+.stem-run-note {
+  font-weight: 600;
+  opacity: 0.85;
+}
+.sim-actions {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0 0;
+}
+.study-stage .sim-actions button,
+.study-stage .sim-view-toggle button:not([aria-pressed='true']) {
+  background: var(--ground);
+  color: var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sim-flicker {
+    animation: none;
+  }
+  .sim-liquid,
+  .sim-dim {
+    transition: none;
+  }
+}
+.sim-liquid.is-colourless {
+  fill: color-mix(in srgb, var(--sim-velocity) 7%, var(--surface)) !important;
+  stroke: color-mix(in srgb, var(--line) 80%, var(--soft));
+  stroke-width: 1;
+}
+.sim-sample {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.stem-canvas text.sim-tiny {
+  font-size: calc(var(--stem-font, 16px) * 0.68);
+}
+.stem-canvas text.sim-gauge-unit {
+  fill: var(--ground);
+}

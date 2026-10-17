@@ -2,6 +2,13 @@
  * Teacher-facing names for simulation registry codes. The lesson document keeps the codes; the
  * editor shows these words. Unknown codes (a simulation added later) fall back to a readable form.
  */
+import {
+  STEM_ARG_LABELS,
+  STEM_PARAM_LABELS,
+  STEM_PREDICATE_LABELS,
+  stemSimLabel,
+} from '../stem/authoring-labels';
+
 type Lang = 'en' | 'bn';
 type Pair = readonly [en: string, bn: string];
 
@@ -23,7 +30,7 @@ const SIMS: Record<string, Pair> = {
   'linear-graph': ['Straight-line graph', 'সরলরেখার লেখচিত্র'],
   'unit-circle': ['Unit circle', 'একক বৃত্ত'],
 };
-export const simLabel = (id: string, lang: Lang) => pick(SIMS[id], id, lang);
+export const simLabel = (id: string, lang: Lang) => pick(SIMS[id] ?? stemSimLabel(id), id, lang);
 
 const PARAMS: Record<string, Record<string, Pair>> = {
   'motion-graphs': {
@@ -49,7 +56,7 @@ const PARAMS: Record<string, Record<string, Pair>> = {
   'unit-circle': { angleDeg: ['Angle θ (°)', 'কোণ θ (°)'] },
 };
 export const paramLabel = (simId: string, key: string, lang: Lang) =>
-  pick(PARAMS[simId]?.[key], key, lang);
+  pick(PARAMS[simId]?.[key] ?? STEM_PARAM_LABELS[simId]?.[key], key, lang);
 
 const PREDICATES: Record<string, Pair> = {
   stopsAt: ['Comes to rest at a distance', 'নির্দিষ্ট দূরত্বে থামে'],
@@ -76,7 +83,8 @@ export const LAB_PREDICATES = [
   'producedGas',
   'formedPrecipitate',
 ] as const;
-export const predicateLabel = (name: string, lang: Lang) => pick(PREDICATES[name], name, lang);
+export const predicateLabel = (name: string, lang: Lang) =>
+  pick(PREDICATES[name] ?? STEM_PREDICATE_LABELS[name], name, lang);
 
 const TOLERANCE: Pair = ['Allowed difference (±)', 'গ্রহণযোগ্য ব্যবধান (±)'];
 const ARGS: Record<string, Record<string, Pair>> = {
@@ -118,7 +126,10 @@ const EXAMPLE_LAB: Record<string, Pair> = {
 };
 export const argLabel = (predicate: string, arg: string, lang: Lang) =>
   pick(
-    ARGS[predicate]?.[arg] ?? EXAMPLE_LAB[arg] ?? (arg === 'tol' ? TOLERANCE : undefined),
+    ARGS[predicate]?.[arg] ??
+      STEM_ARG_LABELS[predicate]?.[arg] ??
+      EXAMPLE_LAB[arg] ??
+      (arg === 'tol' ? TOLERANCE : undefined),
     arg,
     lang,
   );

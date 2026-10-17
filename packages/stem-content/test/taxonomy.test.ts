@@ -30,11 +30,45 @@ describe('NCTB class 9-10 taxonomy', () => {
   it('places every demo sim and the lab in their chapters', () => {
     const placed = new Set(CHAPTERS.flatMap((c) => c.sims));
     for (const id of SIM_IDS) expect(placed.has(id)).toBe(true);
-    expect(chapterById('physics-2')?.sims).toEqual(['motion-graphs']);
-    expect(chapterById('physics-3')?.sims).toEqual(['newton-cart']);
+    expect(chapterById('physics-2')?.sims).toEqual([
+      'motion-graphs',
+      'projectile',
+      'vector-addition',
+    ]);
+    expect(chapterById('physics-3')?.sims).toEqual([
+      'newton-cart',
+      'vector-addition',
+      'incline',
+      'collision',
+      'orbit',
+    ]);
     expect(chapterById('physics-11')?.sims).toEqual(['ohms-circuit']);
     expect(chapterById('chemistry-7')?.lab).toBe(true);
     expect(chapterById('chemistry-9')?.lab).toBe(true);
     expect(chapterById('nope')).toBeUndefined();
+  });
+
+  it('offers each library preset in the chapters that teach it', () => {
+    const where = (id: string) =>
+      CHAPTERS.filter((c) => c.sims.includes(id as never)).map((c) => c.id);
+    expect(where('pendulum')).toEqual(['physics-4', 'physics-7']);
+    expect(where('spring')).toEqual(['physics-4', 'physics-7']);
+    expect(where('gas-law')).toEqual(['physics-5', 'chemistry-2']);
+    expect(where('flame-test')).toEqual(['chemistry-3', 'chemistry-10']);
+    expect(where('reaction-rate')).toEqual(['chemistry-7']);
+    expect(where('titration')).toEqual(['chemistry-6', 'chemistry-9']);
+    expect(where('ph-indicator')).toEqual(['chemistry-9']);
+    expect(where('function-grapher')).toEqual([
+      'math-gm-2',
+      'math-gm-4',
+      'math-hm-1',
+      'math-hm-9',
+      'math-hm-11',
+    ]);
+    expect(where('trig-waves')).toEqual(['math-gm-9', 'math-hm-8']);
+    expect(where('derivative')).toEqual(['math-hm-11']);
+    expect(where('riemann-area')).toEqual(['math-gm-16', 'math-hm-11']);
+    expect(where('vector-addition')).toEqual(['physics-2', 'physics-3', 'math-hm-12']);
+    expect(where('probability')).toEqual(['math-hm-14']);
   });
 });

@@ -47,12 +47,12 @@ function book(
 
 const PHYSICS: Row[] = [
   ['Physical quantities and their measurement', 'ভৌত রাশি এবং পরিমাপ'],
-  ['Motion', 'গতি', ['motion-graphs']],
-  ['Force', 'বল', ['newton-cart']],
-  ['Work, power and energy', 'কাজ, ক্ষমতা ও শক্তি'],
-  ['State of matter and pressure', 'পদার্থের অবস্থা ও চাপ'],
+  ['Motion', 'গতি', ['motion-graphs', 'projectile', 'vector-addition']],
+  ['Force', 'বল', ['newton-cart', 'vector-addition', 'incline', 'collision', 'orbit']],
+  ['Work, power and energy', 'কাজ, ক্ষমতা ও শক্তি', ['pendulum', 'spring']],
+  ['State of matter and pressure', 'পদার্থের অবস্থা ও চাপ', ['gas-law']],
   ['Effect of heat on substances', 'বস্তুর উপর তাপের প্রভাব'],
-  ['Waves and sound', 'তরঙ্গ ও শব্দ'],
+  ['Waves and sound', 'তরঙ্গ ও শব্দ', ['pendulum', 'spring']],
   ['Reflection of light', 'আলোর প্রতিফলন'],
   ['Refraction of light', 'আলোর প্রতিসরণ'],
   ['Static electricity', 'স্থির বিদ্যুৎ'],
@@ -63,29 +63,29 @@ const PHYSICS: Row[] = [
 
 const CHEMISTRY: Row[] = [
   ['Concepts of chemistry', 'রসায়নের ধারণা'],
-  ['States of matter', 'পদার্থের অবস্থা'],
-  ['Structure of matter', 'পদার্থের গঠন'],
+  ['States of matter', 'পদার্থের অবস্থা', ['gas-law']],
+  ['Structure of matter', 'পদার্থের গঠন', ['flame-test']],
   ['Periodic table', 'পর্যায় সারণি'],
   ['Chemical bonds', 'রাসায়নিক বন্ধন'],
-  ['Concept of mole and chemical counting', 'মোলের ধারণা ও রাসায়নিক গণনা'],
-  ['Chemical reactions', 'রাসায়নিক বিক্রিয়া', [], true],
+  ['Concept of mole and chemical counting', 'মোলের ধারণা ও রাসায়নিক গণনা', ['titration']],
+  ['Chemical reactions', 'রাসায়নিক বিক্রিয়া', ['reaction-rate'], true],
   ['Chemistry and energy', 'রসায়ন ও শক্তি'],
-  ['Acid-base balance', 'এসিড-ক্ষারক সমতা', [], true],
-  ['Mineral resources: metals and non-metals', 'খনিজ সম্পদ: ধাতু-অধাতু'],
+  ['Acid-base balance', 'এসিড-ক্ষারক সমতা', ['ph-indicator', 'titration'], true],
+  ['Mineral resources: metals and non-metals', 'খনিজ সম্পদ: ধাতু-অধাতু', ['flame-test']],
   ['Mineral resources: fossils', 'খনিজ সম্পদ: জীবাশ্ম'],
   ['Chemistry in our lives', 'আমাদের জীবনে রসায়ন'],
 ];
 
 const GENERAL_MATH: Row[] = [
   ['Real numbers', 'বাস্তব সংখ্যা'],
-  ['Sets and functions', 'সেট ও ফাংশন'],
+  ['Sets and functions', 'সেট ও ফাংশন', ['function-grapher']],
   ['Algebraic expressions', 'বীজগাণিতিক রাশি'],
-  ['Exponents and logarithms', 'সূচক ও লগারিদম'],
+  ['Exponents and logarithms', 'সূচক ও লগারিদম', ['function-grapher']],
   ['Equations in one variable', 'এক চলকবিশিষ্ট সমীকরণ'],
   ['Lines, angles and triangles', 'রেখা, কোণ ও ত্রিভুজ'],
   ['Practical geometry', 'ব্যবহারিক জ্যামিতি'],
   ['Circles', 'বৃত্ত'],
-  ['Trigonometric ratios', 'ত্রিকোণমিতিক অনুপাত', ['unit-circle']],
+  ['Trigonometric ratios', 'ত্রিকোণমিতিক অনুপাত', ['unit-circle', 'trig-waves']],
   ['Distance and height', 'দূরত্ব ও উচ্চতা'],
   ['Algebraic ratio and proportion', 'বীজগাণিতিক অনুপাত ও সমানুপাত'],
   [
@@ -96,25 +96,29 @@ const GENERAL_MATH: Row[] = [
   ['Finite series', 'সসীম ধারা'],
   ['Ratio, similarity and symmetry', 'অনুপাত, সদৃশতা ও প্রতিসমতা'],
   ['Area-related theorems and constructions', 'ক্ষেত্রফল সম্পর্কিত উপপাদ্য ও সম্পাদ্য'],
-  ['Mensuration', 'পরিমিতি'],
+  ['Mensuration', 'পরিমিতি', ['riemann-area']],
   ['Statistics', 'পরিসংখ্যান'],
 ];
 
 const HIGHER_MATH: Row[] = [
-  ['Sets and functions', 'সেট ও ফাংশন'],
+  ['Sets and functions', 'সেট ও ফাংশন', ['function-grapher']],
   ['Algebraic expressions', 'বীজগাণিতিক রাশি'],
   ['Geometry', 'জ্যামিতি'],
   ['Geometric constructions', 'জ্যামিতিক অঙ্কন'],
   ['Equations', 'সমীকরণ'],
   ['Inequalities', 'অসমতা'],
   ['Infinite series', 'অসীম ধারা'],
-  ['Trigonometry', 'ত্রিকোণমিতি', ['unit-circle']],
-  ['Exponential and logarithmic functions', 'সূচকীয় ও লগারিদমীয় ফাংশন'],
+  ['Trigonometry', 'ত্রিকোণমিতি', ['unit-circle', 'trig-waves']],
+  ['Exponential and logarithmic functions', 'সূচকীয় ও লগারিদমীয় ফাংশন', ['function-grapher']],
   ['Binomial expansion', 'দ্বিপদী বিস্তৃতি'],
-  ['Coordinate geometry', 'স্থানাঙ্ক জ্যামিতি', ['linear-graph']],
-  ['Plane vectors', 'সমতলীয় ভেক্টর'],
+  [
+    'Coordinate geometry',
+    'স্থানাঙ্ক জ্যামিতি',
+    ['linear-graph', 'function-grapher', 'derivative', 'riemann-area'],
+  ],
+  ['Plane vectors', 'সমতলীয় ভেক্টর', ['vector-addition']],
   ['Solid geometry', 'ঘন জ্যামিতি'],
-  ['Probability', 'সম্ভাবনা'],
+  ['Probability', 'সম্ভাবনা', ['probability']],
 ];
 
 export const CHAPTERS: readonly Chapter[] = [

@@ -4,18 +4,60 @@ import {
   checkSimTask,
   describeSim,
   SIM_IDS,
+  SIMS,
   SimIdSchema,
   type LockedSimItem,
   type SimTask,
 } from '../src/registry';
 
 describe('sim registry', () => {
-  it('registers exactly the five demo sims', () => {
-    expect([...SIM_IDS].sort()).toEqual(
-      ['linear-graph', 'motion-graphs', 'newton-cart', 'ohms-circuit', 'unit-circle'].sort(),
-    );
+  const LIBRARY = [
+    'motion-graphs',
+    'newton-cart',
+    'ohms-circuit',
+    'linear-graph',
+    'unit-circle',
+    'projectile',
+    'vector-addition',
+    'incline',
+    'pendulum',
+    'spring',
+    'collision',
+    'orbit',
+    'ph-indicator',
+    'titration',
+    'flame-test',
+    'reaction-rate',
+    'gas-law',
+    'function-grapher',
+    'derivative',
+    'riemann-area',
+    'probability',
+    'trig-waves',
+  ];
+
+  it('registers the five original sims and the seventeen library presets', () => {
+    expect([...SIM_IDS].sort()).toEqual([...LIBRARY].sort());
+    expect([...SimIdSchema.options].sort()).toEqual([...LIBRARY].sort());
     expect(SimIdSchema.safeParse('chem-lab').success).toBe(false);
     expect(describeSim('newton-cart').predicates).toEqual(['justMoves', 'accelerationEquals']);
+  });
+
+  it('keys every model by its own id', () => {
+    for (const id of SIM_IDS) expect(SIMS[id].id).toBe(id);
+  });
+
+  it('grades a library preset from params alone', () => {
+    expect(
+      checkSimTask(
+        'projectile',
+        { speed: 20, angle: 45, height: 0, gravity: 9.8 },
+        { predicate: 'rangeEquals', args: { range: 40.8, tol: 0.1 } },
+      ),
+    ).toEqual({ ok: true, met: true });
+    expect(
+      checkSimTask('flame-test', { ion: 'na' }, { predicate: 'ionIs', args: { ion: 'k' } }),
+    ).toEqual({ ok: true, met: false });
   });
 
   it('grades from params alone', () => {

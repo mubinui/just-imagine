@@ -1,4 +1,5 @@
 import type { SimId, ObservableValue } from '@just-imagine/stem-sims';
+import { STEM_READING_LABELS } from '../stem/readings';
 
 type ReadingLabel = { en: string; bn: string; unit: string };
 const motion: Record<string, ReadingLabel> = {
@@ -6,7 +7,8 @@ const motion: Record<string, ReadingLabel> = {
   x: { en: 'Displacement', bn: 'সরণ', unit: 'm' },
   v: { en: 'Velocity', bn: 'বেগ', unit: 'm/s' },
 };
-const labels: Record<SimId, Record<string, ReadingLabel>> = {
+const labels: Partial<Record<SimId, Record<string, ReadingLabel>>> = {
+  ...STEM_READING_LABELS,
   'motion-graphs': motion,
   'newton-cart': {
     ...motion,
@@ -67,7 +69,7 @@ export function readingLabel(
   key: string,
   language: 'en' | 'bn',
 ): { label: string; unit: string } | null {
-  const entry = labels[id][key];
+  const entry = labels[id]?.[key];
   return entry ? { label: entry[language], unit: entry.unit } : null;
 }
 

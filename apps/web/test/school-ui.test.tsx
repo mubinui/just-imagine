@@ -79,7 +79,8 @@ describe('model-backed simulation rendering', () => {
         <SimView id={id} value={SIM_DEFAULTS[id]} onChange={() => {}} />,
       );
       expect(html).toContain('role="img"');
-      expect(html).toContain('type="number"');
+      // Numbers get a slider plus number entry; a choice-only sim (the flame test) gets radios.
+      expect(html).toMatch(/type="number"|type="radio"|<select/);
       expect(html).not.toMatch(/(?:cx|cy|r|d|points|value)="[^"]*(?:NaN|undefined)[^"]*"/);
     });
 });

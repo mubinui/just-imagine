@@ -5,6 +5,23 @@ import { linearGraph } from './linear';
 import { motionGraphs } from './motion';
 import type { SimModel } from './types';
 import { unitCircle } from './unit-circle';
+import { projectile } from './physics/projectile';
+import { vectorAddition } from './physics/vectors';
+import { incline } from './physics/incline';
+import { pendulum } from './physics/pendulum';
+import { spring } from './physics/spring';
+import { collision } from './physics/collision';
+import { orbit } from './physics/orbit';
+import { phIndicator } from './chem/ph';
+import { titration } from './chem/titration';
+import { flameTest } from './chem/flame';
+import { reactionRate } from './chem/rate';
+import { gasLaw } from './chem/gas';
+import { functionGrapher } from './maths/grapher';
+import { derivative } from './maths/derivative';
+import { riemannArea } from './maths/riemann';
+import { probability } from './maths/probability';
+import { trigWaves } from './maths/waves';
 
 export const SIMS = {
   'motion-graphs': motionGraphs,
@@ -12,6 +29,23 @@ export const SIMS = {
   'ohms-circuit': ohmsCircuit,
   'linear-graph': linearGraph,
   'unit-circle': unitCircle,
+  projectile,
+  'vector-addition': vectorAddition,
+  incline,
+  pendulum,
+  spring,
+  collision,
+  orbit,
+  'ph-indicator': phIndicator,
+  titration,
+  'flame-test': flameTest,
+  'reaction-rate': reactionRate,
+  'gas-law': gasLaw,
+  'function-grapher': functionGrapher,
+  derivative,
+  'riemann-area': riemannArea,
+  probability,
+  'trig-waves': trigWaves,
 } as const;
 export type SimId = keyof typeof SIMS;
 export const SIM_IDS = Object.keys(SIMS) as readonly SimId[];
@@ -21,6 +55,23 @@ export const SimIdSchema = z.enum([
   'ohms-circuit',
   'linear-graph',
   'unit-circle',
+  'projectile',
+  'vector-addition',
+  'incline',
+  'pendulum',
+  'spring',
+  'collision',
+  'orbit',
+  'ph-indicator',
+  'titration',
+  'flame-test',
+  'reaction-rate',
+  'gas-law',
+  'function-grapher',
+  'derivative',
+  'riemann-area',
+  'probability',
+  'trig-waves',
 ]);
 
 export const SimTaskSchema = z.strictObject({
