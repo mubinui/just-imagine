@@ -43,7 +43,9 @@ export class GameScriptModel {
           ...(this.config.model.startsWith('gemini-4-')
             ? {
                 thinkingConfig: {
-                  thinkingLevel: purpose === 'plan' ? ThinkingLevel.MEDIUM : ThinkingLevel.HIGH,
+                  // The programmer receives an independently validated acceptance plan.
+                  // Bound reasoning latency; full static/physics/causality gates still decide publication.
+                  thinkingLevel: ThinkingLevel.MEDIUM,
                 },
               }
             : {}),

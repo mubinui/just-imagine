@@ -8,7 +8,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('sends bounded purpose-specific server deadlines through the real SDK without changing model, thinking or output caps', async () => {
+it('sends explicit bounded MEDIUM reasoning and purpose-specific deadlines through the real SDK while preserving model and output caps', async () => {
   const requests: { headers: Headers; body: Record<string, unknown>; path: string }[] = [];
   vi.stubGlobal(
     'fetch',
@@ -54,7 +54,7 @@ it('sends bounded purpose-specific server deadlines through the real SDK without
   const scriptConfig = requests[0]!.body['generationConfig'] as Record<string, unknown>;
   const planConfig = requests[1]!.body['generationConfig'] as Record<string, unknown>;
   expect(scriptConfig['maxOutputTokens']).toBe(24000);
-  expect(scriptConfig['thinkingConfig']).toEqual({ thinkingLevel: 'HIGH' });
+  expect(scriptConfig['thinkingConfig']).toEqual({ thinkingLevel: 'MEDIUM' });
   expect(planConfig['maxOutputTokens']).toBe(12288);
   expect(planConfig['thinkingConfig']).toEqual({ thinkingLevel: 'MEDIUM' });
 });

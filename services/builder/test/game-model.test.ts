@@ -55,7 +55,7 @@ it('asks the scene model for structured {kind, source} JSON with safety settings
   expect(request.config.responseJsonSchema.properties.kind.enum).toEqual(['game', 'playground']);
   expect(JSON.stringify(request.config.responseJsonSchema)).not.toContain('additionalProperties');
   expect(request.config.safetySettings).toHaveLength(4);
-  expect(request.config.thinkingConfig).toEqual({ thinkingLevel: 'HIGH' });
+  expect(request.config.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
   expect(request.config.httpOptions.retryOptions.attempts).toBe(1);
   expect(request.config.abortSignal).toBeInstanceOf(AbortSignal);
   expect(request.config.httpOptions.timeout).toBe(180000);
