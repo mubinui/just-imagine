@@ -3,7 +3,7 @@ import { orbit } from '../src/physics/orbit';
 import { phIndicator } from '../src/chem/ph';
 import { titration } from '../src/chem/titration';
 import { flameTest, FLAMES } from '../src/chem/flame';
-import { reactionRate } from '../src/chem/rate';
+import { reactionRate, type RateParams } from '../src/chem/rate';
 import { gasLaw } from '../src/chem/gas';
 
 describe('orbit', () => {
@@ -129,8 +129,13 @@ describe('flame test', () => {
 
 describe('reaction rate', () => {
   it('speeds up with temperature, concentration, a catalyst and a powder', () => {
-    const base = { temperature: 25, concentration: 1, catalyst: false, surface: 'lumps' as const };
-    const r = (p: typeof base) => reactionRate.solve(p)['relativeRate'] as number;
+    const base: RateParams = {
+      temperature: 25,
+      concentration: 1,
+      catalyst: false,
+      surface: 'lumps',
+    };
+    const r = (p: RateParams) => reactionRate.solve(p)['relativeRate'] as number;
     expect(r(base)).toBeCloseTo(1, 9);
     expect(r({ ...base, temperature: 35 })).toBeGreaterThan(1.8);
     expect(r({ ...base, concentration: 2 })).toBeCloseTo(2, 9);
