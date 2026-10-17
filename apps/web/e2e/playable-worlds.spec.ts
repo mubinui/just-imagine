@@ -1,37 +1,59 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
-test('each preview world has a repeatable action backed by the real simulation', async ({
-  page,
-}) => {
-  test.setTimeout(60_000);
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+// One test per preview world: each world runs a live simulation, so on a small CI runner a single
+// walk through all five worlds sat right at the time limit. Separate tests keep each world's budget
+// and name the world that breaks.
+const errors = new WeakMap<Page, string[]>();
+
+test.beforeEach(async ({ page }) => {
+  const seen: string[] = [];
+  errors.set(page, seen);
+  page.on('pageerror', (error) => seen.push(error.message));
   await page.goto('/play');
   await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
   await page.getByRole('button', { name: 'bounce', exact: true }).click();
   await page.getByRole('button', { name: 'Bounce dragon', exact: true }).click();
-  // Other worlds live in the Studio's More menu.
-  const choose = async (name: string) => {
-    await page.getByRole('button', { name: 'More', exact: true }).click();
-    await page.getByRole('button', { name, exact: true }).click();
-    await page.locator('.prediction-card .actions button').first().click();
-  };
-  await choose('Bouncy Ball on the Moon');
+});
+
+test.afterEach(({ page }) => {
+  expect(errors.get(page)).toEqual([]);
+});
+
+// Other worlds live in the Studio's More menu.
+async function choose(page: Page, name: string) {
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('button', { name, exact: true }).click();
+  await page.locator('.prediction-card .actions button').first().click();
+}
+
+test('the moon world drops both balls under the chosen gravity and keeps it on retry', async ({
+  page,
+}) => {
+  await choose(page, 'Bouncy Ball on the Moon');
   await page.getByLabel('gravity', { exact: true }).selectOption('earth');
   await page.getByRole('button', { name: 'Drop them together', exact: true }).click();
   await expect(page.locator('.play-reading')).toHaveText('Gravity 9.81 m/s²');
   await page.getByRole('button', { name: 'Try again', exact: true }).click();
   await expect(page.getByLabel('gravity', { exact: true })).toHaveValue('earth');
-  await choose('Duck and Stone at the Pond');
+});
+
+test('the pond world keeps the chosen material through a drop', async ({ page }) => {
+  await choose(page, 'Duck and Stone at the Pond');
   await page.getByLabel('heroMaterial', { exact: true }).selectOption('stone');
   await page.getByRole('button', { name: 'Drop into the pond', exact: true }).click();
   await expect(page.getByLabel('heroMaterial', { exact: true })).toHaveValue('stone');
-  await choose('Cannon and Cup');
+});
+
+test('the cannon world launches a ball that travels', async ({ page }) => {
+  await choose(page, 'Cannon and Cup');
   await page.getByRole('button', { name: 'Launch ball', exact: true }).click();
   await expect
     .poll(async () => Number.parseFloat((await page.locator('.play-reading').textContent())!))
     .toBeGreaterThan(0.2);
-  await choose('Peg Garden Probability');
+});
+
+test('the peg garden counts balls as they land', async ({ page }) => {
+  await choose(page, 'Peg Garden Probability');
   for (let i = 0; i < 6; i++)
     await page.getByRole('button', { name: 'Drop a ball', exact: true }).click();
   await expect
@@ -39,7 +61,10 @@ test('each preview world has a repeatable action backed by the real simulation',
       timeout: 15_000,
     })
     .toBeGreaterThanOrEqual(2);
-  await choose('Share and Recombine');
+});
+
+test('the fractions world splits and rejoins repeatedly', async ({ page }) => {
+  await choose(page, 'Share and Recombine');
   for (let i = 0; i < 2; i++) {
     await page.getByRole('button', { name: 'Split into halves', exact: true }).click();
     await expect(page.locator('.play-reading')).toHaveText('2 equal halves');
@@ -49,5 +74,4 @@ test('each preview world has a repeatable action backed by the real simulation',
     await page.getByRole('button', { name: 'Join the halves', exact: true }).click();
     await expect(page.locator('.play-reading')).toHaveText('1 whole');
   }
-  expect(errors).toEqual([]);
 });
