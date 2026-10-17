@@ -4,6 +4,9 @@
   font-display: swap;
   font-weight: 800;
 }
+/* nunito.ttf is a static Regular. lib/i18n/fonts.css also maps Nunito to the Noto Sans files, which
+   have a true bold but stop at 700, so only a weight of 800 reaches this file and it renders lighter
+   than 700. Use 700 for bold body text; Baloo carries the 800 headings. */
 @font-face {
   font-family: Nunito;
   src: url('/fonts/nunito.ttf') format('truetype');

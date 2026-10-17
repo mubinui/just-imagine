@@ -49,7 +49,7 @@
   stroke-width: 1.5;
 }
 .stem-chip text {
-  font-weight: 800;
+  font-weight: 700;
   fill: var(--ink);
 }
 .stem-axis {
@@ -184,7 +184,7 @@
 }
 .stem-readings dd {
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 700;
   margin: 3px 0;
   font-variant-numeric: tabular-nums;
 }
@@ -293,7 +293,7 @@
   background-color: var(--ground);
   color: var(--ink);
   border-color: var(--ground);
-  font-weight: 800;
+  font-weight: 700;
 }
 .sch .study-stage .study-step-tabs > button:not([aria-current='step']):hover {
   background-color: var(--mint);
@@ -376,7 +376,7 @@
   margin: 0 0 8px;
   font-family: Nunito, sans-serif;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--soft);
 }
 .stem-lab-result h3 {
@@ -425,7 +425,7 @@
 .stem-reagent-text strong.stem-reagent-name {
   font-family: Nunito, sans-serif;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.25;
 }
 .stem-reagent-text > span {
@@ -501,7 +501,7 @@
 .sch .study-stage .stem-ph-readout,
 .stem-ph-readout span {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--soft);
 }
 .stem-ph-readout strong {
@@ -570,7 +570,7 @@
   flex-direction: column;
   gap: 4px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--soft);
 }
 .stem-unit-input {
@@ -676,7 +676,7 @@
 }
 .stem-result-facts dt {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--soft);
 }
 .stem-result-facts dd {
@@ -942,12 +942,12 @@
 }
 .stem-canvas text.sim-bold,
 .stem-traces text.sim-bold {
-  font-weight: 800;
+  font-weight: 700;
 }
 .stem-canvas text.sim-axis-label,
 .stem-traces text.sim-axis-label {
   fill: var(--soft);
-  font-weight: 800;
+  font-weight: 700;
 }
 .sim-grid {
   stroke: color-mix(in srgb, var(--line) 70%, transparent);
@@ -1311,7 +1311,7 @@
 .stem-traces text.sim-bar-label,
 .stem-traces text.sim-bar-value {
   fill: var(--tone-ink);
-  font-weight: 800;
+  font-weight: 700;
 }
 .stem-traces text.sim-bar-value {
   font-variant-numeric: tabular-nums;
