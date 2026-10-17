@@ -50,7 +50,7 @@
 .table caption {
   padding: 16px 20px 4px;
   text-align: start;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
 }
 .table thead th {
@@ -74,7 +74,7 @@
 .table :global(.sch-rank) {
   width: 76px;
   text-align: center;
-  font-weight: 800;
+  font-weight: 700;
 }
 /* Medal discs for the top three, drawn behind the rank number. */
 .table tr[data-medal] :global(.sch-rank) {
@@ -92,7 +92,7 @@
   background-image: radial-gradient(circle, #f2c7a4 0 17px, #c48a5f 17px 18px, transparent 18.5px);
 }
 .table :global(.sch-number) {
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .table :global(.sch-board-own) > * {
@@ -109,7 +109,7 @@
   background: var(--accent);
   color: var(--accent-ink, var(--ground));
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.5;
   vertical-align: middle;
 }

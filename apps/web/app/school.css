@@ -274,7 +274,7 @@
   vertical-align: middle;
 }
 .sch th {
-  font-weight: 800;
+  font-weight: 700;
   color: var(--soft);
   font-size: 14px;
 }
@@ -287,7 +287,7 @@
 .sch caption {
   padding: 0 0 16px;
   text-align: start;
-  font-weight: 800;
+  font-weight: 700;
 }
 .sch .sch-number {
   text-align: end;
@@ -412,6 +412,11 @@
   min-height: 48px;
   padding: 8px 16px;
   border-radius: 10px;
+}
+/* Toggles and tabs read the same weight everywhere: the lesson tabs, filters and board scopes. */
+.sch-segments button,
+.sch-tabs button {
+  font-weight: 700;
 }
 .sch-segments button[aria-pressed='true'] {
   background: var(--accent);

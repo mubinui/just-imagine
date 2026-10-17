@@ -136,7 +136,7 @@
 .adm-figures dd {
   margin: 4px 0 0;
   font-size: 27px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.15;
   color: var(--ink);
 }
@@ -658,7 +658,7 @@
   background: var(--yellow);
   color: var(--ink);
   border-radius: 14px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .adm-preview-paper {
   padding: 24px;
