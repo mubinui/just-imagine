@@ -187,37 +187,45 @@ function itemsOf(steps: readonly LessonStep[]): QuizItem[] {
   return steps.flatMap((s) => (s.kind === 'quiz' ? s.items : s.kind === 'check' ? [s.item] : []));
 }
 
-export const LessonDocSchema = z
-  .object({
-    scope: z.enum(['global', 'school', 'class']),
-    schoolId: DocumentIdSchema.nullable(),
-    classIds: z.array(DocumentIdSchema).max(20),
-    subject: SchoolSubjectSchema,
-    grade: SchoolGradeSchema,
-    chapterId: ChapterIdSchema,
-    title: BilingualTextSchema,
-    steps: z.array(LessonStepSchema).min(1).max(20),
-    status: z.enum(['draft', 'published', 'archived']),
-    sourceLanguage: LanguageSchema,
-    approved: z.object({ en: z.boolean(), bn: z.boolean() }),
-    authorUid: z.string(),
-    revision: z.number().int().nonnegative(),
-    updatedAt: EpochMsSchema,
-  })
-  .superRefine((l, ctx) => {
-    const issue = (message: string, path: string) =>
-      ctx.addIssue({ code: 'custom', message, path: [path] });
-    if (l.scope === 'global' && l.schoolId !== null)
-      issue('A global lesson belongs to no school.', 'schoolId');
-    if (l.scope !== 'global' && l.schoolId === null)
-      issue('A school or class lesson needs its school.', 'schoolId');
-    if (l.scope === 'class' && l.classIds.length === 0)
-      issue('A class lesson needs at least one class.', 'classIds');
-    if (l.scope !== 'class' && l.classIds.length > 0)
-      issue('Only class lessons list classes.', 'classIds');
-    const ids = itemsOf(l.steps).map((i) => i.id);
-    if (new Set(ids).size !== ids.length) issue('Quiz item ids must be unique.', 'steps');
-  });
+/** Lesson fields without cross-field checks, so `.omit()`/`.partial()` work for request bodies. */
+export const LessonFieldsSchema = z.object({
+  scope: z.enum(['global', 'school', 'class']),
+  schoolId: DocumentIdSchema.nullable(),
+  classIds: z.array(DocumentIdSchema).max(20),
+  subject: SchoolSubjectSchema,
+  grade: SchoolGradeSchema,
+  chapterId: ChapterIdSchema,
+  title: BilingualTextSchema,
+  steps: z.array(LessonStepSchema).min(1).max(20),
+  status: z.enum(['draft', 'published', 'archived']),
+  sourceLanguage: LanguageSchema,
+  approved: z.object({ en: z.boolean(), bn: z.boolean() }),
+  authorUid: z.string(),
+  revision: z.number().int().nonnegative(),
+  updatedAt: EpochMsSchema,
+});
+export type LessonFields = z.infer<typeof LessonFieldsSchema>;
+
+/** Cross-field lesson checks; apply with `.superRefine(refineLesson)` to bodies derived above. */
+export function refineLesson(
+  l: Pick<LessonFields, 'scope' | 'schoolId' | 'classIds' | 'steps'>,
+  ctx: z.RefinementCtx,
+): void {
+  const issue = (message: string, path: string) =>
+    ctx.addIssue({ code: 'custom', message, path: [path] });
+  if (l.scope === 'global' && l.schoolId !== null)
+    issue('A global lesson belongs to no school.', 'schoolId');
+  if (l.scope !== 'global' && l.schoolId === null)
+    issue('A school or class lesson needs its school.', 'schoolId');
+  if (l.scope === 'class' && l.classIds.length === 0)
+    issue('A class lesson needs at least one class.', 'classIds');
+  if (l.scope !== 'class' && l.classIds.length > 0)
+    issue('Only class lessons list classes.', 'classIds');
+  const ids = itemsOf(l.steps).map((i) => i.id);
+  if (new Set(ids).size !== ids.length) issue('Quiz item ids must be unique.', 'steps');
+}
+
+export const LessonDocSchema = LessonFieldsSchema.superRefine(refineLesson);
 export type LessonDoc = z.infer<typeof LessonDocSchema>;
 
 function lessonTexts(l: LessonDoc): BilingualText[] {

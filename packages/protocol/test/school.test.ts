@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   boardId,
   LessonDocSchema,
+  LessonFieldsSchema,
   missingLanguages,
+  refineLesson,
   SchoolCodeSchema,
   schoolClaimsOf,
   schoolPaths,
@@ -123,5 +125,16 @@ describe('lesson contract', () => {
     if (quiz.kind !== 'quiz') throw new Error('fixture');
     const dup = lesson({ steps: [...doc.steps, { kind: 'check', item: quiz.items[0]! }] });
     expect(LessonDocSchema.safeParse(dup).success).toBe(false);
+  });
+
+  it('exposes refinement-free fields so create and patch bodies can be derived', () => {
+    const Body = LessonFieldsSchema.omit({ authorUid: true, revision: true, updatedAt: true });
+    const { authorUid: _a, revision: _r, updatedAt: _u, ...body } = lesson();
+    expect(Body.parse(body)).toEqual(body);
+    expect(Body.safeParse({ ...body, revision: 3 }).success).toBe(true);
+    expect(() => LessonFieldsSchema.partial()).not.toThrow();
+    const Checked = Body.superRefine(refineLesson);
+    expect(Checked.safeParse({ ...body, scope: 'class', classIds: [] }).success).toBe(false);
+    expect(Checked.safeParse(body).success).toBe(true);
   });
 });
