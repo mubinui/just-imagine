@@ -12,7 +12,10 @@ async function idToken(uid: string, claims: Record<string, unknown>) {
       body: JSON.stringify({ token: custom, returnSecureToken: true }),
     },
   );
-  return ((await res.json()) as { idToken: string }).idToken;
+  const minted = ((await res.json()) as { idToken?: string }).idToken;
+  if (typeof minted !== 'string' || minted === '')
+    throw new Error(`Could not mint an id token for ${uid} (status ${res.status}).`);
+  return minted;
 }
 
 const base = () =>
@@ -20,6 +23,16 @@ const base = () =>
 async function status(path: string, token: string | null) {
   const headers: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {};
   return (await fetch(base() + path, { headers })).status;
+}
+/** Runs a structured query against a parent document path ('' for the database root). */
+async function queryStatus(parent: string, query: Record<string, unknown>, token: string) {
+  const url = base().slice(0, -1) + (parent ? `/${parent}` : '') + ':runQuery';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ structuredQuery: query }),
+  });
+  return res.status;
 }
 
 const tokens: Record<string, string> = {};
@@ -61,6 +74,29 @@ beforeAll(async () => {
     classId: 'c2',
     avatar: 'owl',
     language: 'en',
+    createdAt: 1,
+  });
+  // A class whose teacher hid its boards (spec §13 boardsVisible), with its own board.
+  await db()
+    .doc('schools/rs1/classes/c3')
+    .set({ grade: 10, section: 'C', name: '10-C', boardsVisible: false, createdAt: 1 });
+  await db().doc('schools/rs1/boards/class_c3_all').set({
+    scope: 'class',
+    classId: 'c3',
+    period: 'all',
+    weekKey: null,
+    entries: [],
+    updatedAt: 1,
+  });
+  await db()
+    .doc('schools/rs2/classes/k1')
+    .set({ grade: 9, section: 'A', name: '9-A', createdAt: 1 });
+  await db().doc('schools/rs2/students/q1').set({
+    firstName: 'Nadia',
+    username: 'nadia',
+    classId: 'k1',
+    avatar: 'cat',
+    language: 'bn',
     createdAt: 1,
   });
   await db()
@@ -140,6 +176,12 @@ beforeAll(async () => {
     studentId: 'q1',
     classId: 'k1',
   });
+  tokens['hiddenClassStudent'] = await idToken('st_rs1_p3', {
+    role: 'student',
+    schoolId: 'rs1',
+    studentId: 'p3',
+    classId: 'c3',
+  });
   tokens['admin'] = await idToken('rops', { admin: true });
   tokens['parent'] = await idToken('rparent', {});
 });
@@ -208,4 +250,46 @@ it('denies every client write', async () => {
     body: JSON.stringify({ fields: { firstName: { stringValue: 'X' } } }),
   });
   expect(res.status).toBe(403);
+});
+
+it('reads missing boards and attempts as not found so next week listeners survive', async () => {
+  const s = tokens['student']!;
+  expect(await status('schools/rs1/boards/class_c1_week_20261018', s)).toBe(404);
+  expect(await status('schools/rs1/boards/school_week_20261018', s)).toBe(404);
+  expect(await status('schools/rs1/attempts/p1_lmissing', s)).toBe(404);
+  expect(await status('schools/rs1/boards/class_c1_week_20261018', tokens['teacher']!)).toBe(404);
+  // Existing docs outside the student's reach stay denied.
+  expect(await status('schools/rs1/boards/class_c2_all', s)).toBe(403);
+  expect(await status('schools/rs1/attempts/p2_l1', s)).toBe(403);
+});
+
+it('hides a class board from students when the teacher turns boards off', async () => {
+  const h = tokens['hiddenClassStudent']!;
+  expect(await status('schools/rs1/boards/class_c3_all', h)).toBe(403);
+  expect(await status('schools/rs1/boards/school_all', h)).toBe(200);
+  expect(await status('schools/rs1/boards/class_c3_all', tokens['teacher']!)).toBe(200);
+  expect(await status('schools/rs1/boards/class_c1_all', tokens['student']!)).toBe(200);
+});
+
+it('gives the super admin and anonymous callers no school or lesson access', async () => {
+  expect(await status('schools/rs1', tokens['admin']!)).toBe(403);
+  expect(await status('lessons/lg_pub', tokens['admin']!)).toBe(403);
+  expect(await status('lessons/lg_pub', null)).toBe(403);
+});
+
+it('keeps a teacher out of another school subtree', async () => {
+  const t = tokens['teacher']!;
+  expect(await status('schools/rs2/students/q1', t)).toBe(403);
+  expect(await status('schools/rs2/classes/k1', t)).toBe(403);
+});
+
+it('allows the natural teacher lesson query and refuses an unfiltered student board list', async () => {
+  const lessonsOfRs1 = {
+    from: [{ collectionId: 'lessons' }],
+    where: {
+      fieldFilter: { field: { fieldPath: 'schoolId' }, op: 'EQUAL', value: { stringValue: 'rs1' } },
+    },
+  };
+  expect(await queryStatus('', lessonsOfRs1, tokens['teacher']!)).toBe(200);
+  expect(await status('schools/rs1/boards', tokens['student']!)).toBe(403);
 });

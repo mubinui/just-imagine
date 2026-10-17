@@ -43,21 +43,36 @@ service cloud.firestore {
       match /students/{studentId} {
         allow read: if teacherOf(schoolId) || (studentOf(schoolId) && claim('studentId') == studentId);
       }
+      // get and list are split: a missing doc (resource == null) must read as not found, so a
+      // live listener on an attempt or next week's board survives until the doc is written.
+      // list keeps the strict condition because rules are not filters.
+      function ownAttempt() { return resource.data.studentId == claim('studentId'); }
       match /attempts/{attemptId} {
-        allow read: if teacherOf(schoolId)
-          || (studentOf(schoolId) && resource.data.studentId == claim('studentId'));
+        allow get: if teacherOf(schoolId)
+          || (studentOf(schoolId) && (resource == null || ownAttempt()));
+        allow list: if teacherOf(schoolId) || (studentOf(schoolId) && ownAttempt());
+      }
+      // A class board is visible to its own students unless the teacher turned boardsVisible
+      // off on the class (spec §13); school boards are always visible. Same get/list split.
+      function boardsShownTo(classId) {
+        return get(/databases/$(database)/documents/schools/$(schoolId)/classes/$(classId))
+          .data.get('boardsVisible', true) == true;
+      }
+      function boardVisible() {
+        return resource.data.scope == 'school'
+          || (resource.data.classId == claim('classId') && boardsShownTo(claim('classId')));
       }
       match /boards/{boardId} {
-        allow read: if teacherOf(schoolId)
-          || (studentOf(schoolId)
-              && (resource.data.scope == 'school' || resource.data.classId == claim('classId')));
+        allow get: if teacherOf(schoolId)
+          || (studentOf(schoolId) && (resource == null || boardVisible()));
+        allow list: if teacherOf(schoolId) || (studentOf(schoolId) && boardVisible());
       }
     }
     function lessonReadable(lesson) {
       return request.auth != null && (
         (claim('role') == 'schoolAdmin'
           && ((lesson.scope == 'global' && lesson.status == 'published')
-              || (lesson.scope != 'global' && lesson.schoolId == claim('schoolId'))))
+              || lesson.schoolId == claim('schoolId')))
         || (claim('role') == 'student' && lesson.status == 'published'
           && (lesson.scope == 'global'
               || (lesson.scope == 'school' && lesson.schoolId == claim('schoolId'))
@@ -65,7 +80,6 @@ service cloud.firestore {
                   && claim('classId') in lesson.classIds))));
     }
     match /lessons/{lessonId} { allow read: if lessonReadable(resource.data); }
-
     match /{document=**} { allow write: if false; }
   }
 }
