@@ -14,8 +14,9 @@ import { firebase } from '../lib/firebase';
 import { env } from '../lib/env';
 import { s } from '../lib/strings/en';
 import { Brand, Preview } from './Shell';
+import { AuthCompanion } from './AuthCompanion';
 export function AuthForm({ signup = false }: { signup?: boolean }) {
-  useLanguage();
+  const { language } = useLanguage();
   const router = useRouter();
   const [consent, setConsent] = useState(false),
     [error, setError] = useState(''),
@@ -64,51 +65,61 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
     }
   }
   return (
-    <main className="auth-page">
-      <Brand />
-      <Preview />
-      <section className="auth-panel">
-        <h1>{signup ? s.signUp : s.signIn}</h1>
-        <form action={(f) => void submit(f)}>
-          <label>
-            {s.email}
-            <input name="email" type="email" autoComplete="email" required />
-          </label>
-          <label>
-            {s.password}
-            <input
-              name="password"
-              type="password"
-              autoComplete={signup ? 'new-password' : 'current-password'}
-              minLength={8}
-              required
-            />
-          </label>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-            />
-            <span>
-              {s.consent} <Link href="/privacy">{s.privacy}</Link>
-            </span>
-          </label>
-          <button className="button primary" disabled={busy}>
-            {s.submit}
+    <main className="auth-page auth-character-page">
+      <header className="auth-character-header">
+        <Brand />
+        <Preview />
+      </header>
+      <div className="auth-character-layout">
+        <AuthCompanion role="family" language={language} />
+        <section className="auth-panel">
+          <h1>{signup ? s.signUp : s.signIn}</h1>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submit(new FormData(event.currentTarget));
+            }}
+          >
+            <label>
+              {s.email}
+              <input name="email" type="email" autoComplete="email" required />
+            </label>
+            <label>
+              {s.password}
+              <input
+                name="password"
+                type="password"
+                autoComplete={signup ? 'new-password' : 'current-password'}
+                minLength={8}
+                required
+              />
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+              />
+              <span>
+                {s.consent} <Link href="/privacy">{s.privacy}</Link>
+              </span>
+            </label>
+            <button className="button primary" disabled={busy}>
+              {s.submit}
+            </button>
+          </form>
+          <button className="button secondary" disabled={busy} onClick={() => void submit(null)}>
+            {s.google}
           </button>
-        </form>
-        <button className="button secondary" disabled={busy} onClick={() => void submit(null)}>
-          {s.google}
-        </button>
-        {error && (
-          <p role="alert" className="error">
-            {uiText(error)}
-          </p>
-        )}
-        <Link href={signup ? '/sign-in' : '/sign-up'}>{signup ? s.signIn : s.signUp}</Link>
-        {env.fake && <Link href="/play">{s.previewSignIn}</Link>}
-      </section>
+          {error && (
+            <p role="alert" className="error">
+              {uiText(error)}
+            </p>
+          )}
+          <Link href={signup ? '/sign-in' : '/sign-up'}>{signup ? s.signIn : s.signUp}</Link>
+          {env.fake && <Link href="/play">{s.previewSignIn}</Link>}
+        </section>
+      </div>
     </main>
   );
 }

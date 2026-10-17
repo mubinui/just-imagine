@@ -18,6 +18,7 @@
     "@just-imagine/protocol": "workspace:*",
     "@just-imagine/scene-schema": "workspace:*",
     "@just-imagine/server-core": "workspace:*",
+    "@just-imagine/stem-sims": "workspace:*",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/sdk-node": "^0.223.0",
     "fastify": "^5.6.0",

@@ -24,6 +24,10 @@ import type { ApiStore } from './store';
 import { registerAdminRoutes, suspensionCheckFor, type AdminRouteOptions } from './admin';
 import { FirestoreLearnStore, learnRoutes, type LearnStore } from './learn';
 import { registerSchoolRoutes, type SchoolRouteOptions } from './school/routes';
+import { registerAdminSchoolRoutes } from './admin-schools';
+import { registerAdminCatalogRoutes } from './admin-catalog';
+import { registerAdminLessonRoutes } from './admin-lessons';
+import { catalogRoutes } from './catalog';
 
 export interface Billing {
   checkout(uid: string): Promise<{ url: string }>;
@@ -96,6 +100,9 @@ export function createApi(options: ApiOptions) {
     options.admin,
   );
   registerSchoolRoutes(app, options.school);
+  registerAdminSchoolRoutes(app);
+  registerAdminCatalogRoutes(app);
+  registerAdminLessonRoutes(app);
   const isSuspended = options.isSuspended ?? suspensionCheckFor(options.store);
   app.register(async (routes) => {
     routes.decorateRequest('parentUid', '');
@@ -294,6 +301,7 @@ export function createApi(options: ApiOptions) {
     });
     routes.get('/v1/usage/today', (req) => options.store.usageToday(req.parentUid));
     learnRoutes(routes, options.learn ?? new FirestoreLearnStore());
+    catalogRoutes(routes);
     storyRoutes(routes, options.stories ?? new FirestoreStoryStore(), options.editions);
     routes.post('/v1/me/delete', async (req, reply) => {
       const me = await options.store.me(req.parentUid);

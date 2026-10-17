@@ -1,4 +1,4 @@
-import { PACKS, PLAY_COPY } from '@just-imagine/learning-content';
+import { PLAY_COPY } from '@just-imagine/learning-content';
 import { ZodError } from 'zod';
 import type { ByeReason } from './contracts';
 import { WebSocketServer, WebSocket, type RawData } from 'ws';
@@ -23,9 +23,12 @@ import {
   personaChallenge,
   personaName,
   resolvePersona,
+  learningPack,
   storyPlayContext,
 } from './learn';
 import { liveErrorDetails } from './live-errors';
+import { TutorSession } from './tutor/session';
+import type { TutorOptions } from './tutor/contracts';
 interface Active {
   record: SessionRecord;
   socket?: WebSocket;
@@ -65,11 +68,11 @@ interface Active {
   drawingLook: boolean;
   learningLooks: Map<string, { image: string; description: string }>;
 }
-function callableCharacter(args: unknown): boolean {
+function callableCharacter(args: unknown, record: SessionRecord): boolean {
   const parsed = toolSchemas.summon_pack_character.safeParse(args);
   if (!parsed.success) return false;
   try {
-    resolvePersona(parsed.data.packId, parsed.data.characterId);
+    resolvePersona(parsed.data.packId, parsed.data.characterId, record);
     return true;
   } catch {
     return false;
@@ -82,8 +85,10 @@ export function startGateway(options: {
   host?: string;
   meterIntervalMs?: number;
   origins: string[];
+  tutor?: TutorOptions;
 }) {
   const sessions = new Map<string, Active>();
+  const tutors = new Set<TutorSession>();
   const rememberChildRequest = (session: Active, text: string) => {
     session.creationBlocked = false;
     if (session.childRequests.at(-1) !== text) session.childRequests.push(text);
@@ -297,7 +302,7 @@ export function startGateway(options: {
                       'talk_to_character',
                       'end_session',
                     ].includes(name) ||
-                    (name === 'summon_pack_character' && callableCharacter(args));
+                    (name === 'summon_pack_character' && callableCharacter(args, session.record));
                   if (terminal) connection?.toolResult(id, name, { accepted: true });
                   const result = await execute(session, name, args);
                   if (!terminal) connection?.toolResult(id, name, result);
@@ -395,7 +400,7 @@ export function startGateway(options: {
   // Hands the voice session to a Learning World character (spec 6b). The friend stays the
   // record's characterId, so `ready` keeps naming the friend and hanging up returns to them.
   async function summonPersona(session: Active, packId: string, characterId: string) {
-    const { character } = resolvePersona(packId, characterId);
+    const { character } = resolvePersona(packId, characterId, session.record);
     send(session, { type: 'interrupted' });
     session.live?.close();
     session.handle = undefined;
@@ -921,6 +926,12 @@ export function startGateway(options: {
     }
   }
   async function input(session: Active, message: ClientMessage) {
+    if (
+      message.type === 'tutorHello' ||
+      message.type === 'tutorState' ||
+      message.type === 'tutorEvent'
+    )
+      throw new Error('Tutor messages require a separate student session.');
     if (message.type === 'storyPause') {
       if (session.record.story) delete session.record.story.reading;
       send(session, { type: 'interrupted' });
@@ -1061,7 +1072,7 @@ export function startGateway(options: {
     if (message.type === 'summonPersona') {
       delete session.record.story;
       try {
-        resolvePersona(message.packId, message.characterId);
+        resolvePersona(message.packId, message.characterId, session.record);
       } catch {
         send(session, {
           type: 'error',
@@ -1087,7 +1098,7 @@ export function startGateway(options: {
         return;
       }
       if (message.observation) {
-        const pack = Object.hasOwn(PACKS, message.packId) ? PACKS[message.packId] : undefined;
+        const pack = learningPack(message.packId, session.record);
         const expected: Record<string, string> = {
           brush: 'hygiene',
           oxygen: 'body',
@@ -1108,7 +1119,8 @@ export function startGateway(options: {
         )
           return;
         const current = session.record.persona;
-        if (current && PACKS[current.packId]?.section !== pack.section) return;
+        if (current && learningPack(current.packId, session.record)?.section !== pack.section)
+          return;
         session.live?.text(
           `Trusted learning-game observation ${message.observation}: ${JSON.stringify(fact[languageOf(session.record.identity.child) === 'bn' ? 1 : 0])}. Explain the consequence in character in one short playful sentence, then let the child keep playing. No forced quiz or claimed real-world diagnosis.`,
         );
@@ -1121,7 +1133,7 @@ export function startGateway(options: {
         persona.characterId !== message.characterId
       )
         return;
-      const { pack } = resolvePersona(persona.packId, persona.characterId);
+      const { pack } = resolvePersona(persona.packId, persona.characterId, session.record);
       if (message.kind === 'activity') {
         const activity = pack.activities.find((a) => a.characterId === persona.characterId);
         if (activity)
@@ -1207,6 +1219,7 @@ export function startGateway(options: {
     );
   }
   wss.on('connection', (socket) => {
+    let tutor: TutorSession | undefined;
     let active: Active | undefined,
       authenticating = false;
     let controls = Promise.resolve();
@@ -1222,6 +1235,10 @@ export function startGateway(options: {
       }
       if (binary ? ++audioCount > 80 : ++controlCount > 30) {
         socket.close(1008, 'Message rate exceeded');
+        return;
+      }
+      if (tutor) {
+        tutor.input(raw, binary);
         return;
       }
       if (binary) {
@@ -1244,6 +1261,14 @@ export function startGateway(options: {
           return;
         }
         serial(active, () => input(active!, message));
+        return;
+      }
+      if (message.type === 'tutorHello' && !authenticating && options.tutor) {
+        authenticating = true;
+        clearTimeout(helloDeadline);
+        tutor = new TutorSession(socket, options.tutor);
+        tutors.add(tutor);
+        void tutor.start(message);
         return;
       }
       if (message.type !== 'hello' || authenticating) {
@@ -1289,6 +1314,11 @@ export function startGateway(options: {
               completedLoops: 0,
               ...(message.worldId ? { worldId: message.worldId } : {}),
             };
+            if (options.store.learningPacks) {
+              const packs = await options.store.learningPacks(identity);
+              if (packs.length)
+                record.catalogPacks = Object.fromEntries(packs.map((pack) => [pack.id, pack]));
+            }
             if (record.worldId) {
               const world = await options.store.world(record, record.worldId);
               record.learningMode = world.doc.learning.mode ?? 'guided';
@@ -1399,6 +1429,10 @@ export function startGateway(options: {
     });
     socket.on('close', () => {
       clearTimeout(helloDeadline);
+      if (tutor) {
+        tutors.delete(tutor);
+        void tutor.close('ended');
+      }
       if (active && !active.ended && active.socket === socket) {
         active.socket = undefined;
         active.grace = setTimeout(() => {
@@ -1411,6 +1445,7 @@ export function startGateway(options: {
   return {
     server: wss,
     async close() {
+      await Promise.allSettled([...tutors].map((tutor) => tutor.close('ended')));
       await Promise.allSettled([...sessions.values()].map((s) => end(s, 'ended')));
       for (const client of wss.clients) client.terminate();
       await new Promise<void>((resolve) => wss.close(() => resolve()));

@@ -2411,7 +2411,10 @@ button.pet-card:hover {
   font-size: 26px;
 }
 .story-adventure.is-playing {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(min-content, 1fr) auto;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-color: #a2baa1 var(--ink);
 }
 .story-adventure.is-playing::before {
   background: linear-gradient(
@@ -2443,12 +2446,19 @@ button.pet-card:hover {
 .story-playfield {
   position: relative;
   isolation: isolate;
+  min-height: min-content;
 }
 .adventure-board {
-  grid-template-rows: minmax(0, 1fr) auto auto auto;
+  grid-template-rows: 280px auto auto auto;
+  min-height: min-content;
 }
 .adventure-canvas {
   overflow: hidden;
+}
+.story-playfield .adventure-canvas {
+  height: 280px;
+  min-height: 280px;
+  max-height: 280px;
 }
 .game-set {
   pointer-events: none;
@@ -2608,6 +2618,11 @@ button.pet-card:hover {
   }
   .story-playfield .adventure-board {
     grid-template-rows: 340px auto auto auto;
+  }
+  .story-playfield .adventure-canvas {
+    height: 340px;
+    min-height: 340px;
+    max-height: 340px;
   }
   .game-discovery {
     margin-inline: 12px;

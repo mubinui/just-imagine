@@ -272,6 +272,9 @@ export async function smokeRun(
     requireGoal: options.requireGoal,
     seed: doc.environment.seed,
     worker: nodeWorkerFactory,
+    initialVariables: Object.fromEntries(
+      Object.entries(doc.variables ?? {}).map(([id, v]) => [id, v.value]),
+    ),
     ...(options.budgets ? { budgets: options.budgets } : {}),
   });
   if (!result.ok) return result;

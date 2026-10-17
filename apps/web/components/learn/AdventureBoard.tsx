@@ -6,7 +6,7 @@ import { useLanguage, formatNumber } from '../../lib/i18n';
 import { getMixer } from '../../lib/sound';
 import { GameProp, GameSet, type GamePropId } from './GameSet';
 import { LearnArt } from './LearnArt';
-import { LocomotionArt, Rover } from './LocomotionArt';
+import { LocomotionArt, Rover, TravelPosition } from './LocomotionArt';
 import { useTravel } from './useTravel';
 import {
   adventureReducer,
@@ -165,7 +165,7 @@ export function AdventureBoard({
         notify.current.onProgress();
     }
     previous.current = progress;
-  }, [s.complete, progress, total, game.kind, memoryHorse, horseX, travel.frame.x]);
+  }, [s.complete, progress, total, game.kind, memoryHorse, horseX, travel.arrival, travel.frame]);
   useEffect(() => {
     if (game.kind !== 'hold' || s.complete) return;
     let last = performance.now();
@@ -549,7 +549,10 @@ export function AdventureBoard({
                 </text>
               </g>
             ))}
-            <g
+            <TravelPosition
+              motion={travel.frame}
+              subscribe={travel.subscribe}
+              at={drag}
               role="button"
               tabIndex={0}
               aria-label={
@@ -562,22 +565,16 @@ export function AdventureBoard({
                     : uiText('Pick up parcel')
               }
               className={`adventure-piece ${selected === 0 ? 'is-selected' : ''}`}
-              onPointerDown={(e) => start(e, 0, travel.frame)}
+              onPointerDown={(e) => start(e, 0, travel.getFrame())}
               onClick={() => setSelected(0)}
               onKeyDown={(e) => activate(e, () => setSelected(0))}
             >
               {isSwimmer ? (
-                <circle
-                  cx={travel.frame.x}
-                  cy={travel.frame.y}
-                  r="50"
-                  fill="transparent"
-                  pointerEvents="all"
-                />
+                <circle cx={0} cy={0} r="50" fill="transparent" pointerEvents="all" />
               ) : (
                 <circle
-                  cx={drag?.x ?? travel.frame.x}
-                  cy={drag?.y ?? travel.frame.y}
+                  cx={0}
+                  cy={0}
                   r="25"
                   fill={
                     game.parcel === 'water'
@@ -595,16 +592,17 @@ export function AdventureBoard({
                   id={
                     game.parcel === 'water' ? 'water' : game.parcel === 'food' ? 'parcel' : 'oxygen'
                   }
-                  x={drag?.x ?? travel.frame.x}
-                  y={drag?.y ?? travel.frame.y}
+                  x={0}
+                  y={0}
                   size={65}
                 />
               )}
-            </g>
+            </TravelPosition>
             {isSwimmer && (
               <LocomotionArt
                 id={character.id}
                 motion={travel.frame}
+                subscribe={travel.subscribe}
                 size={120}
                 image={looks?.[`${pack.id}:${character.id}`]?.image}
               />
@@ -696,11 +694,12 @@ export function AdventureBoard({
               );
             })}
             {game.theme === 'rover' ? (
-              <Rover motion={travel.frame} />
+              <Rover motion={travel.frame} subscribe={travel.subscribe} />
             ) : (
               <LocomotionArt
                 id={character.id}
                 motion={travel.frame}
+                subscribe={travel.subscribe}
                 size={isSwimmer ? 85 : 82}
                 image={looks?.[`${pack.id}:${character.id}`]?.image}
               />
@@ -876,6 +875,7 @@ export function AdventureBoard({
               <LocomotionArt
                 id="horse"
                 motion={travel.frame}
+                subscribe={travel.subscribe}
                 size={145}
                 image={looks?.[`${pack.id}:horse`]?.image}
               />

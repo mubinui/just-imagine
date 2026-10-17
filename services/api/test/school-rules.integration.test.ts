@@ -1,5 +1,6 @@
 import { it, expect, beforeAll } from 'vitest';
 import { adminAuth, db } from '@just-imagine/server-core';
+import { DEMO_LESSONS } from '../src/school/demo-lessons';
 process.env['GOOGLE_CLOUD_PROJECT'] = 'demo-just-imagine';
 
 async function idToken(uid: string, claims: Record<string, unknown>) {
@@ -80,6 +81,14 @@ beforeAll(async () => {
   await db()
     .doc('schools/rs1/classes/c3')
     .set({ grade: 10, section: 'C', name: '10-C', boardsVisible: false, createdAt: 1 });
+  await db().doc('schools/rs1/students/p3').set({
+    firstName: 'Mita',
+    username: 'mita',
+    classId: 'c3',
+    avatar: 'fox',
+    language: 'bn',
+    createdAt: 1,
+  });
   await db().doc('schools/rs1/boards/class_c3_all').set({
     scope: 'class',
     classId: 'c3',
@@ -138,6 +147,7 @@ beforeAll(async () => {
     updatedAt: 1,
   });
   const lesson = (scope: string, schoolId: string | null, classIds: string[], status: string) => ({
+    ...DEMO_LESSONS[0]!.lesson,
     scope,
     schoolId,
     classIds,
@@ -292,4 +302,56 @@ it('allows the natural teacher lesson query and refuses an unfiltered student bo
   };
   expect(await queryStatus('', lessonsOfRs1, tokens['teacher']!)).toBe(200);
   expect(await status('schools/rs1/boards', tokens['student']!)).toBe(403);
+});
+
+it('denies stale class claims immediately after a roster transfer', async () => {
+  const token = await idToken('st_rs1_transferred', {
+    role: 'student',
+    schoolId: 'rs1',
+    studentId: 'transferred',
+    classId: 'c1',
+  });
+  await db().doc('schools/rs1/students/transferred').set({ classId: 'c1' });
+  expect(await status('lessons/lc1_pub', token)).toBe(200);
+  await db().doc('schools/rs1/students/transferred').update({ classId: 'c2' });
+  expect(await status('lessons/lc1_pub', token)).toBe(403);
+  expect(await status('schools/rs1/boards/class_c1_all', token)).toBe(403);
+  expect(await status('lessons/lg_pub', token)).toBe(403);
+});
+
+it('does not let school identities read a family record even with a matching uid', async () => {
+  await db().doc('users/st_rs1_p1').set({ displayName: 'Must stay private' });
+  await db().doc('users/rt1').set({ displayName: 'Must stay private' });
+  expect(await status('users/st_rs1_p1', tokens['student']!)).toBe(403);
+  expect(await status('users/rt1', tokens['teacher']!)).toBe(403);
+});
+
+it('blocks suspended schools and removed teacher memberships from direct reads', async () => {
+  await db().doc('schools/suspended_rules').set({ status: 'suspended' });
+  await db().doc('schools/suspended_rules/students/p').set({ classId: 'c' });
+  await db().doc('schools/suspended_rules/classes/c').set({ grade: 9 });
+  const paused = await idToken('st_suspended_rules_p', {
+    role: 'student',
+    schoolId: 'suspended_rules',
+    studentId: 'p',
+    classId: 'c',
+  });
+  expect(await status('lessons/lg_pub', paused)).toBe(403);
+  const removed = await idToken('removed_rules_teacher', { role: 'schoolAdmin', schoolId: 'rs1' });
+  expect(await status('schools/rs1', removed)).toBe(403);
+});
+
+it('invalidates an issued student token immediately when the PIN version changes', async () => {
+  await db().doc('schools/rs1/students/pin_reset').set({ classId: 'c1', authVersion: 0 });
+  const old = await idToken('st_rs1_pin_reset', {
+    role: 'student',
+    schoolId: 'rs1',
+    studentId: 'pin_reset',
+    classId: 'c1',
+    authVersion: 0,
+  });
+  expect(await status('lessons/lg_pub', old)).toBe(200);
+  await db().doc('schools/rs1/students/pin_reset').update({ authVersion: 1 });
+  expect(await status('lessons/lg_pub', old)).toBe(403);
+  expect(await status('schools/rs1/boards/school_all', old)).toBe(403);
 });

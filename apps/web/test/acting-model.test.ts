@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { actingFrame } from '../components/acting/model';
+import { actingFrame, advanceSpeech, restingSpeech } from '../components/acting/model';
 import { ACTING } from '../components/acting/catalog';
 import { PACKS } from '@just-imagine/learning-content';
 
@@ -29,4 +29,15 @@ it('covers every predefined learning character except the preserved eight-pose T
       expect(character.id === 'tooth' || !!ACTING[character.id], character.id).toBe(true);
     }
   expect(Object.keys(ACTING)).toHaveLength(54);
+});
+it('responds promptly to syllables without chattering at a mouth threshold, and closes after silence', () => {
+  let speech = advanceSpeech(restingSpeech(), 0.8, 1000 / 30);
+  expect(speech.frame).toBe(4);
+  for (let frame = 0; frame < 20; frame++) {
+    speech = advanceSpeech(speech, frame % 2 ? 0.355 : 0.365, 1000 / 30);
+    expect(speech.frame).toBe(4);
+  }
+  for (let frame = 0; frame < 3; frame++) speech = advanceSpeech(speech, 0, 1000 / 30);
+  expect(speech.frame).toBe(0);
+  expect(speech.energy).toBe(0);
 });

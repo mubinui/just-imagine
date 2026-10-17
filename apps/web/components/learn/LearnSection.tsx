@@ -2,7 +2,7 @@
 import { copy as uiText } from '../../lib/i18n/ui';
 import '../../app/studio.css';
 import '../../app/learn.css';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '../../lib/i18n';
 import { getMixer } from '../../lib/sound';
@@ -27,6 +27,8 @@ import {
 } from './progress';
 import { useLearnVoice } from './useLearnVoice';
 import type { PublicPack } from './types';
+import { useFamilyCatalog } from '../../lib/catalog';
+import { CatalogAdventure, packPortrait } from './CatalogAdventure';
 
 function remainingClipMs(until: number) {
   return Math.max(0, until - Date.now());
@@ -36,9 +38,21 @@ const TOAST_MS = 2600;
 
 type Quiz = { challengeId: string; question: string; options?: string[] };
 
-export function LearnSection({ packs }: { packs: PublicPack[] }) {
+export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
   const { language, t } = useLanguage();
   const child = useChild();
+  const catalog = useFamilyCatalog(child);
+  const packs = useMemo(
+    () => [
+      ...authored,
+      ...catalog.packs.filter(
+        (pack) =>
+          pack.section === authored[0]?.section &&
+          !authored.some((original) => original.id === pack.id),
+      ),
+    ],
+    [authored, catalog.packs],
+  );
   const { state, setState, failed } = useLearnState(child);
   const [packId, setPackId] = useState(packs[0]!.id);
   const pack = packs.find((p) => p.id === packId) ?? packs[0]!;
@@ -203,43 +217,46 @@ export function LearnSection({ packs }: { packs: PublicPack[] }) {
       <div className="stage-scene learn-scene">
         <div className="world-frame learning-game-frame">
           <div className="stage-world learn-world">
-            {child && (
-              <StoryAdventure
-                key={`${child.id}:${pack.id}`}
-                pack={pack}
-                childId={child.id}
-                looks={voice.looks}
-                motion={voice.motion}
-                onMeet={(id) => comeCloser(id)}
-                live={Boolean(persona) && !close}
-                onObservation={(event) =>
-                  voice.observe(pack.id, persona?.characterId ?? pack.characters[0]!.id, event)
-                }
-                onChapter={(id) => {
-                  if (persona && persona.characterId !== id) voice.hangUp();
-                  pinnedStory.current = id;
-                }}
-                onStory={(chapter, phase) =>
-                  voice.story(pack.id, chapter.characterId, chapter.id, phase)
-                }
-                onGuide={(chapter, phase) => {
-                  pinnedStory.current = chapter.characterId;
-                  setClose(undefined);
-                  voice.story(pack.id, chapter.characterId, chapter.id, phase, true);
-                }}
-                onChallenge={(who) => {
-                  pinnedStory.current = who;
-                  voice.play(
-                    pack.id,
-                    who,
-                    'challenge',
-                    pack.challenges.find(
-                      (c) => c.characterId === who && !state?.progress[pack.id]?.includes(c.id),
-                    )?.id,
-                  );
-                }}
-              />
-            )}
+            {child &&
+              (pack.id.startsWith('catalog_') ? (
+                <CatalogAdventure pack={pack} onMeet={(id) => comeCloser(id)} />
+              ) : (
+                <StoryAdventure
+                  key={`${child.id}:${pack.id}`}
+                  pack={pack}
+                  childId={child.id}
+                  looks={voice.looks}
+                  motion={voice.motion}
+                  onMeet={(id) => comeCloser(id)}
+                  live={Boolean(persona) && !close}
+                  onObservation={(event) =>
+                    voice.observe(pack.id, persona?.characterId ?? pack.characters[0]!.id, event)
+                  }
+                  onChapter={(id) => {
+                    if (persona && persona.characterId !== id) voice.hangUp();
+                    pinnedStory.current = id;
+                  }}
+                  onStory={(chapter, phase) =>
+                    voice.story(pack.id, chapter.characterId, chapter.id, phase)
+                  }
+                  onGuide={(chapter, phase) => {
+                    pinnedStory.current = chapter.characterId;
+                    setClose(undefined);
+                    voice.story(pack.id, chapter.characterId, chapter.id, phase, true);
+                  }}
+                  onChallenge={(who) => {
+                    pinnedStory.current = who;
+                    voice.play(
+                      pack.id,
+                      who,
+                      'challenge',
+                      pack.challenges.find(
+                        (c) => c.characterId === who && !state?.progress[pack.id]?.includes(c.id),
+                      )?.id,
+                    );
+                  }}
+                />
+              ))}
           </div>
           {character && close && (
             <ComesCloser
@@ -278,7 +295,16 @@ export function LearnSection({ packs }: { packs: PublicPack[] }) {
                   .filter((c) => c.characterId === character.id)
                   .every((c) => state?.progress[pack.id]?.includes(c.id))
               }
-              look={voice.looks[`${pack.id}:${character.id}`]}
+              look={
+                voice.looks[`${pack.id}:${character.id}`] ??
+                (pack.id.startsWith('catalog_') && packPortrait(pack, character.id)
+                  ? {
+                      status: 'ready',
+                      image: packPortrait(pack, character.id),
+                      description: character.look,
+                    }
+                  : undefined)
+              }
               motion={
                 voice.motion?.packId === pack.id && voice.motion.characterId === character.id
                   ? voice.motion
@@ -394,8 +420,22 @@ export function LearnSection({ packs }: { packs: PublicPack[] }) {
                   setPackId(p.id);
                 }}
               >
-                <LearnIcon name={p.section === 'space' ? 'space' : (p.id as 'animals_farm')} />
-                <span>{t(`learnWorlds.scenes.${p.id as 'animals_farm'}`)}</span>
+                <LearnIcon
+                  name={
+                    p.id.startsWith('catalog_')
+                      ? 'learn'
+                      : p.section === 'space'
+                        ? 'space'
+                        : (p.id as 'animals_farm')
+                  }
+                />
+                <span>
+                  {p.id.startsWith('catalog_')
+                    ? language === 'bn'
+                      ? p.titleBn
+                      : p.title
+                    : t(`learnWorlds.scenes.${p.id as 'animals_farm'}`)}
+                </span>
               </button>
             ))
           )}

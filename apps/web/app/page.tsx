@@ -40,6 +40,10 @@ export default function Home() {
                 </Link>
               )}
             </div>
+            <nav className="school-entry" aria-label={uiText('School sign in')}>
+              <Link href="/school/sign-in">{uiText('Teacher sign in')}</Link>
+              <Link href="/study/sign-in">{uiText('Student sign in')}</Link>
+            </nav>
             <p className="hero-invitation">
               {uiText('For curious minds, ages 6–13.')}
               <br />

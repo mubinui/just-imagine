@@ -8,6 +8,7 @@ const mock = vi.hoisted(() => ({
   create: vi.fn(),
   exists: false,
   locked: false,
+  school: false,
 }));
 vi.mock('@just-imagine/server-core', () => ({
   adminAuth: () => ({ verifyIdToken: mock.token, createSessionCookie: mock.cookie }),
@@ -24,6 +25,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mock.exists = false;
   mock.locked = false;
+  mock.school = false;
   mock.token.mockResolvedValue({
     uid: 'u_test',
     email: 'parent@example.test',
@@ -33,7 +35,11 @@ beforeEach(() => {
   mock.transaction.mockImplementation(async (fn) =>
     fn({
       get: async (ref: { path: string }) => ({
-        exists: ref.path.startsWith('deletionLocks') ? mock.locked : mock.exists,
+        exists: ref.path.startsWith('deletionLocks')
+          ? mock.locked
+          : ref.path.startsWith('schoolPrincipals')
+            ? mock.school
+            : mock.exists,
       }),
       create: mock.create,
     }),
@@ -62,6 +68,12 @@ it('does not recreate accounts under deletion', async () => {
   mock.locked = true;
   expect((await POST(request({ idToken: 'a', consent: true }))).status).toBe(403);
   expect(mock.create).not.toHaveBeenCalled();
+});
+it('rejects a stale roleless token after teacher membership has been accepted', async () => {
+  mock.school = true;
+  expect((await POST(request({ idToken: 'a', consent: true }))).status).toBe(403);
+  expect(mock.create).not.toHaveBeenCalled();
+  expect(mock.cookie).not.toHaveBeenCalled();
 });
 it('allows returning parents without another consent and expires cookies on logout', async () => {
   mock.exists = true;

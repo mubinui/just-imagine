@@ -11,6 +11,9 @@ import { firebase } from '../../lib/firebase';
 const PAGES = [
   ['/admin', 'Overview'],
   ['/admin/families', 'Families'],
+  ['/admin/schools', 'Schools'],
+  ['/admin/catalog', 'Catalog'],
+  ['/admin/lessons', 'Lessons'],
   ['/admin/safety', 'Safety'],
   ['/admin/content', 'Content'],
   ['/admin/appearance', 'Appearance'],

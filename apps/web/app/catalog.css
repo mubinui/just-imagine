@@ -1,0 +1,77 @@
+.published-worlds {
+  margin-top: 3rem;
+}
+.published-worlds h2 {
+  margin: 0 0 1.25rem;
+}
+.published-worlds .world-tile-copy {
+  padding: 18px 25px 25px;
+}
+.catalog-thumbnail {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+.catalog-world-icon {
+  width: 64px;
+  height: 64px;
+  margin: 30px auto;
+}
+.catalog-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+}
+.catalog-picker select {
+  width: min(15rem, 28vw);
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--ground);
+  color: var(--ink);
+  border: 1px solid currentColor;
+  font: inherit;
+}
+.catalog-picker [role='alert'] {
+  max-width: 12ch;
+  font-size: 12px;
+}
+.catalog-adventure {
+  width: 100%;
+  padding: 12px;
+}
+.catalog-scene {
+  width: 100%;
+  min-height: 220px;
+  aspect-ratio: 16 / 9;
+}
+.catalog-scene canvas {
+  display: block;
+  width: 100%;
+}
+.catalog-adventure > p {
+  color: var(--ink);
+  max-width: 65ch;
+  margin: 12px auto;
+}
+.catalog-adventure .learning-cast {
+  position: static;
+  flex-wrap: wrap;
+}
+.catalog-adventure .learning-cast img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+@media (max-width: 600px) {
+  .catalog-picker > svg {
+    display: none;
+  }
+  .catalog-picker select {
+    width: 28vw;
+    padding: 6px;
+    font-size: 12px;
+  }
+}

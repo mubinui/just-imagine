@@ -10,12 +10,14 @@ import { api } from '../lib/api';
 import { getVoice } from '../lib/voice';
 import { env } from '../lib/env';
 import { s } from '../lib/strings/en';
+import { PublishedWorlds } from './PublishedWorlds';
 export function Gallery() {
   const { language } = useLanguage();
   const [loading, setLoading] = useState(true),
     [retry, setRetry] = useState(0);
   const [worlds, setWorlds] = useState<WorldListResponse['worlds']>([]),
     [error, setError] = useState('');
+  const [childId, setChildId] = useState('');
   const router = useRouter();
   useEffect(() => {
     const child = JSON.parse(localStorage.getItem('ji-child') || 'null') as ChildResponse | null;
@@ -26,6 +28,7 @@ export function Gallery() {
     let active = true;
     queueMicrotask(() => {
       if (active) {
+        setChildId(child.id);
         setLoading(true);
         setError('');
         setWorlds([]);
@@ -49,6 +52,7 @@ export function Gallery() {
     const key = Object.entries(FIXTURE_WORLDS).find(([, doc]) => doc.worldId === id)?.[0];
     if (key) sessionStorage.setItem('ji-fixture', key);
     sessionStorage.setItem('ji-world', id);
+    sessionStorage.setItem('ji-open-world', id);
     if (getVoice().session && !env.fake) getVoice().send({ type: 'openWorld', worldId: id });
     void getVoice()
       .unlockAudio()
@@ -89,6 +93,7 @@ export function Gallery() {
         ))}
       </div>
       {!loading && !error && !worlds.length && <p>{s.empty}</p>}
+      {childId && <PublishedWorlds childId={childId} onOpen={open} />}
     </main>
   );
 }

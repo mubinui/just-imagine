@@ -4,6 +4,7 @@ import type { BuildWorldJob } from '@just-imagine/protocol';
 import { driveScript } from '@just-imagine/game-runtime';
 import { createEngineStage, nodeWorkerFactory } from '@just-imagine/game-runtime/node';
 import { describeScene } from './game-prompt';
+import type { GameFailureDiagnostic } from './game-diagnostics';
 
 const time = z.number().min(0.1).max(20);
 const id = z.string().regex(/^[a-z][a-z0-9_]{0,31}$/);
@@ -100,7 +101,83 @@ export const GameplayPlanSchema = z.object({
   unverified: z.array(z.string().min(1).max(300)).max(4),
 });
 export type GameplayPlan = z.infer<typeof GameplayPlanSchema>;
-export type PlanGame = (doc: SceneDoc, job: BuildWorldJob, previous?: string) => Promise<unknown>;
+export type PlanGame = (
+  doc: SceneDoc,
+  job: BuildWorldJob,
+  previous?: string,
+  validationFeedback?: string,
+) => Promise<unknown>;
+
+/** Only local rule names and schema paths; never return the rejected plan or message. */
+export function diagnoseGameplayPlanFailure(error: unknown): GameFailureDiagnostic {
+  if (error instanceof z.ZodError) {
+    const fields = new Set([
+      'externalOnly',
+      'intent',
+      'controls',
+      'requirements',
+      'scenarios',
+      'unverified',
+      'name',
+      'seconds',
+      'inputs',
+      'checks',
+      'at',
+      'from',
+      'after',
+      'type',
+      'target',
+      'x',
+      'y',
+      'vx',
+      'vy',
+      'choice',
+      'trigger',
+      'invariant',
+      'tolerance',
+      'max',
+      'min',
+      'value',
+      'command',
+      'a',
+      'b',
+      'margin',
+    ]);
+    return {
+      code: 'PLAN_INVALID',
+      planRule: 'SCHEMA',
+      planIssues: error.issues.slice(0, 8).map(({ code, path }) => ({
+        code,
+        path: path.map((p) =>
+          typeof p === 'number' ? p : fields.has(String(p)) ? String(p) : 'field',
+        ),
+      })),
+    };
+  }
+  const message = error instanceof Error ? error.message : '';
+  const rules: [string, NonNullable<GameFailureDiagnostic['planRule']>][] = [
+    ['Conversation-only plans', 'CONVERSATION_ONLY'],
+    ['Scripted play needs', 'SCENARIO_REQUIRED'],
+    ['Inputs must be', 'INPUT_ORDER'],
+    ['Input must precede', 'INPUT_AFTER_END'],
+    ['Unknown input target', 'UNKNOWN_ENTITY'],
+    ['Unknown check target', 'UNKNOWN_ENTITY'],
+    ['An empty-stage tap', 'TAP_COORDINATES'],
+    ['Check falls outside', 'CHECK_AFTER_END'],
+    ['Effect checks must follow', 'TRIGGER_ORDER'],
+    ['A held-body position', 'HELD_BODY_ECHO'],
+    ['Every positive effect check', 'TRIGGER_REQUIRED'],
+    ['Command checks need', 'COMMAND_BOUNDS'],
+    ['World-changing command checks', 'COMMAND_TARGET'],
+    ['Separation needs', 'SEPARATION_BOUNDS'],
+    ['Scenario needs a measurable', 'TRIVIAL_SCENARIO'],
+    ['A goal-based game needs', 'EXTERNAL_GOAL'],
+  ];
+  return {
+    code: 'PLAN_INVALID',
+    planRule: rules.find(([prefix]) => message.startsWith(prefix))?.[1] ?? 'UNKNOWN',
+  };
+}
 
 /** Reject invalid and trivially passing plans before asking the programmer to implement them. */
 export function validateGameplayPlan(value: unknown, doc: SceneDoc): GameplayPlan {
@@ -232,12 +309,19 @@ async function evaluateScenario(
   const commandCounts = new Map<(typeof scenario.checks)[number], number>();
   const pending = new Set(scenario.checks);
   const failures = new Map<(typeof scenario.checks)[number], string>();
+  const measurements = new Map<
+    (typeof scenario.checks)[number],
+    { expected: number[]; actual: number[] }
+  >();
   try {
     const result = await driveScript(source, stage, {
       seconds: scenario.seconds,
       requireGoal: false,
       seed: doc.environment.seed,
       worker: nodeWorkerFactory,
+      initialVariables: Object.fromEntries(
+        Object.entries(doc.variables ?? {}).map(([id, v]) => [id, v.value]),
+      ),
       playback: scenario.inputs,
       onFrame(time, state, commands) {
         for (const check of scenario.checks) {
@@ -261,6 +345,8 @@ async function evaluateScenario(
             'target' in check ? state.entities.find((e) => e.id === check.target) : undefined;
           let passed = false;
           let actual = '';
+          let expectedNumbers: number[] = [];
+          let actualNumbers: number[] = [];
           if (check.type === 'separated') {
             const a = state.entities.find((e) => e.id === check.a);
             const b = state.entities.find((e) => e.id === check.b);
@@ -281,31 +367,46 @@ async function evaluateScenario(
                 Math.abs(a.x - b.x) >= ah.x + bh.x + check.margin ||
                 Math.abs(a.y - b.y) >= ah.y + bh.y + check.margin;
               actual = `bounds=${a.x.toFixed(2)},${a.y.toFixed(2)} / ${b.x.toFixed(2)},${b.y.toFixed(2)}`;
+              expectedNumbers = [check.margin];
+              actualNumbers = [a.x, a.y, b.x, b.y, ah.x, ah.y, bh.x, bh.y];
             } else actual = 'separation body missing';
           } else if (check.type === 'command') {
             const count = commandCounts.get(check) ?? 0;
             passed = count >= check.min && count <= check.max;
             actual = `count=${count}`;
+            expectedNumbers = [check.min, check.max];
+            actualNumbers = [count];
           } else if (check.type === 'exists') {
             passed = Boolean(entity) === check.value;
             actual = `exists=${Boolean(entity)}`;
+            expectedNumbers = [check.value ? 1 : 0];
+            actualNumbers = [entity ? 1 : 0];
           } else if (entity) {
             if (check.type === 'near') {
               const distance = Math.hypot(entity.x - check.x, entity.y - check.y);
               passed = distance <= check.tolerance;
               actual = `position=${entity.x.toFixed(2)},${entity.y.toFixed(2)} distance=${distance.toFixed(2)}`;
+              expectedNumbers = [check.x, check.y, check.tolerance];
+              actualNumbers = [entity.x, entity.y, distance];
             } else if (check.type === 'speed') {
               const speed = Math.hypot(entity.vx, entity.vy);
               passed = speed <= check.max;
               actual = `speed=${speed.toFixed(2)}`;
+              expectedNumbers = [check.max];
+              actualNumbers = [speed, entity.vx, entity.vy];
             } else {
               const start = initial.get(check.target)!;
               const distance = Math.hypot(entity.x - start.x, entity.y - start.y);
               passed = distance >= check.min;
               actual = `displacement=${distance.toFixed(2)}`;
+              expectedNumbers = [check.min];
+              actualNumbers = [distance];
             }
           } else actual = 'entity missing';
-          if (!passed) failures.set(check, `${JSON.stringify(check)}: ${actual}`);
+          if (!passed) {
+            failures.set(check, `${JSON.stringify(check)}: ${actual}`);
+            measurements.set(check, { expected: expectedNumbers, actual: actualNumbers });
+          }
         }
       },
     });
@@ -313,6 +414,7 @@ async function evaluateScenario(
       return {
         error: `Runtime failure in ${scenario.name}: ${result.reason} ${JSON.stringify(result.detail)}`,
         failures,
+        measurements,
       };
     if (moderate)
       for (const text of result.stats.strings)
@@ -320,14 +422,16 @@ async function evaluateScenario(
           return {
             error: `Runtime failure in ${scenario.name}: unsuitable child-facing text`,
             failures,
+            measurements,
           };
     if (pending.size > 0)
-      return { error: `Not every check was reached in ${scenario.name}`, failures };
-    return { error: null, failures };
+      return { error: `Not every check was reached in ${scenario.name}`, failures, measurements };
+    return { error: null, failures, measurements };
   } catch (error) {
     return {
       error: `Runtime failure in ${scenario.name}: ${error instanceof Error ? error.message : String(error)}`,
       failures,
+      measurements,
     };
   }
 }
@@ -338,15 +442,41 @@ export async function runGameplayPlan(
   source: string,
   plan: GameplayPlan,
   moderate?: (text: string) => Promise<boolean>,
+  diagnose?: (diagnostic: GameFailureDiagnostic) => void,
 ): Promise<string | null> {
-  for (const scenario of plan.scenarios) {
+  for (const [scenarioIndex, scenario] of plan.scenarios.entries()) {
+    const reportCheck = (
+      code: 'PLAYTEST_CHECK' | 'PLAYTEST_CAUSAL',
+      check: (typeof scenario.checks)[number],
+      measured?: { expected: number[]; actual: number[] },
+    ) =>
+      diagnose?.({
+        code,
+        check: {
+          scenario: scenarioIndex,
+          index: scenario.checks.indexOf(check),
+          type: check.type,
+          at: check.at,
+          ...('trigger' in check && check.trigger !== undefined ? { trigger: check.trigger } : {}),
+          ...(measured ?? {}),
+        },
+      });
     const active = await evaluateScenario(doc, source, scenario, moderate);
-    if (active.error) return active.error;
-    if (active.failures.size)
+    if (active.error) {
+      diagnose?.({ code: 'PLAYTEST_RUNTIME' });
+      return active.error;
+    }
+    if (active.failures.size) {
+      const failed = active.failures.keys().next().value!;
+      reportCheck('PLAYTEST_CHECK', failed, active.measurements.get(failed));
       return `Playtest ${scenario.name}: ${[...active.failures.values()].slice(0, 4).join('; ')}`;
+    }
     if (scenario.inputs.length === 0) continue;
     const idle = await evaluateScenario(doc, source, { ...scenario, inputs: [] }, moderate);
-    if (idle.error) return `No-input control: ${idle.error}`;
+    if (idle.error) {
+      diagnose?.({ code: 'PLAYTEST_RUNTIME' });
+      return `No-input control: ${idle.error}`;
+    }
     const triggers = [
       ...new Set(
         scenario.checks.flatMap((check) =>
@@ -371,10 +501,15 @@ export async function runGameplayPlan(
               },
               moderate,
             );
-      if (control.error) return `Input-prefix control: ${control.error}`;
+      if (control.error) {
+        diagnose?.({ code: 'PLAYTEST_RUNTIME' });
+        return `Input-prefix control: ${control.error}`;
+      }
       for (const check of checks) {
-        if (!control.failures.has(check))
+        if (!control.failures.has(check)) {
+          reportCheck('PLAYTEST_CAUSAL', check);
           return `Playtest ${scenario.name}: effect ${JSON.stringify(check)} also passes without input ${trigger}; that control has no demonstrated effect`;
+        }
       }
     }
   }

@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebase } from '../../lib/firebase';
 import { Brand } from '../Shell';
+import { AuthCompanion } from '../AuthCompanion';
 
 export function AdminSignIn() {
-  useLanguage();
+  const { language } = useLanguage();
   const router = useRouter();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -50,34 +51,45 @@ export function AdminSignIn() {
   }
   return (
     <div data-world="parent" className="adm adm-signin-page">
-      <main className="auth-page adm-signin">
-        <Brand />
-        <section>
-          <h1>{uiText('Operator sign-in')}</h1>
-          <p>
-            {uiText(
-              'For Just Imagine operators only. Parent accounts sign in at the family area; this console needs an operator account with admin access.',
-            )}
-          </p>
-          <form action={(f) => void submit(f)} className="adm-signin-form">
-            <label>
-              {uiText('Email')}
-              <input name="email" type="email" autoComplete="username" required />
-            </label>
-            <label>
-              {uiText('Password')}
-              <input name="password" type="password" autoComplete="current-password" required />
-            </label>
-            {error && (
-              <p className="adm-alert" role="alert">
-                {uiText(error)}
-              </p>
-            )}
-            <button type="submit" className="adm-button adm-primary" disabled={busy}>
-              {busy ? uiText('Checking access…') : uiText('Sign in')}
-            </button>
-          </form>
-        </section>
+      <main className="auth-page adm-signin auth-character-page">
+        <header className="auth-character-header">
+          <Brand />
+        </header>
+        <div className="auth-character-layout">
+          <AuthCompanion role="operator" language={language} />
+          <section>
+            <h1>{uiText('Operator sign-in')}</h1>
+            <p>
+              {uiText(
+                'For Just Imagine operators only. Parent accounts sign in at the family area; this console needs an operator account with admin access.',
+              )}
+            </p>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submit(new FormData(event.currentTarget));
+              }}
+              className="adm-signin-form"
+            >
+              <label>
+                {uiText('Email')}
+                <input name="email" type="email" autoComplete="username" required />
+              </label>
+              <label>
+                {uiText('Password')}
+                <input name="password" type="password" autoComplete="current-password" required />
+              </label>
+              {error && (
+                <p className="adm-alert" role="alert">
+                  {uiText(error)}
+                </p>
+              )}
+              <button type="submit" className="adm-button adm-primary" disabled={busy}>
+                {busy ? uiText('Checking access…') : uiText('Sign in')}
+              </button>
+            </form>
+          </section>
+        </div>
       </main>
     </div>
   );

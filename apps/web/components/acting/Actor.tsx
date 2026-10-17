@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { SPECIALISTS, type CharacterId } from '@just-imagine/protocol';
 import { ACTING } from './catalog';
-import { actorOffset, actingFrame } from './model';
+import { actorOffset, actingFrame, advanceSpeech, restingSpeech } from './model';
 import { watchActor } from './clock';
 
 /** One opaque pose at a time, registered to the same optical frame. */
@@ -17,7 +17,9 @@ export function Actor({ id, action }: { id: string; action?: string }) {
     let previousAsset = '',
       previous = -1,
       previousAction = '',
-      actionStart = 0;
+      actionStart = 0,
+      previousTick = 0,
+      speech = restingSpeech();
     return watchActor(node, (now, reduced) => {
       const requested = node.closest('[data-action]')?.getAttribute('data-action');
       const chosen =
@@ -34,10 +36,13 @@ export function Actor({ id, action }: { id: string; action?: string }) {
         actionStart = now;
       }
       const voiceOwner = node.closest('[data-voice-character]');
-      const mouth =
+      const energy =
         voiceOwner?.getAttribute('data-voice-character') === id
           ? Number(getComputedStyle(node).getPropertyValue('--mouth-open')) || 0
           : 0;
+      speech = advanceSpeech(speech, energy, previousTick ? now - previousTick : 1000 / 30);
+      previousTick = now;
+      const mouth = speech.frame === 4 ? 0.8 : speech.frame === 3 ? 0.2 : 0;
       const swimmingRow = ['dolphin', 'whale', 'seal', 'penguin'].indexOf(id);
       const swimming =
         chosen === 'swim' && swimmingRow >= 0 && now - actionStart < 2400 && !reduced;

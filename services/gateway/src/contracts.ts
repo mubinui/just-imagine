@@ -10,6 +10,7 @@ import type {
   StoryDoc,
 } from '@just-imagine/protocol';
 import type { SceneCharacter } from '@just-imagine/scene-schema';
+import type { WorldPack } from '@just-imagine/learning-content';
 export interface Identity {
   uid: string;
   childId: string;
@@ -34,6 +35,8 @@ export interface SessionRecord {
   // Set while a Learning World pack character holds the voice session; the companion stays
   // `characterId` so hanging up returns to the child's friend.
   persona?: { packId: string; characterId: string };
+  /** Validated age-appropriate catalog content, scoped to this authenticated session. */
+  catalogPacks?: Record<string, WorldPack>;
   worldCharacter?: { worldId: string; entityId: string; character: SceneCharacter };
 }
 export interface PointsAward {
@@ -44,6 +47,7 @@ export interface PointsAward {
 }
 export interface SessionStore {
   authorize(token: string, childId: string): Promise<Identity>;
+  learningPacks?(identity: Identity): Promise<WorldPack[]>;
   claim(record: SessionRecord): Promise<void>;
   /** Stores with a distributed lease release it after final metering, before slow summarization. */
   release?(record: SessionRecord): Promise<void>;

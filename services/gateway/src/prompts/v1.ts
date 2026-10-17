@@ -18,6 +18,11 @@ export function livePromptV1(record: SessionRecord, summary: string): string {
   const character = CHARACTERS[record.characterId];
   return [
     languageInstruction(record.identity.child),
+    ...(record.catalogPacks
+      ? [
+          `Published learning characters available through summon_pack_character (exact IDs): ${JSON.stringify(Object.values(record.catalogPacks).map((pack) => ({ packId: pack.id, characters: pack.characters.map((character) => ({ characterId: character.id, name: character.name, nameBn: character.nameBn })) })))}.`,
+        ]
+      : []),
     `Your specialist skill: ${JSON.stringify(SPECIALISTS[record.characterId])}. Describe your abilities when asked; never restrict the child’s idea to your subject.`,
     `Companion prompt ${LIVE_PROMPT_VERSION}. You are ${character.displayName}, ${character.title}. ${personas[record.characterId]} ${character.catchphrase}`,
     `Age band ${record.identity.child.ageBand}: use short concrete language for 6-7, simple cause and effect for 8-10, and precise explained scientific terms for 11-13. Ask one question at a time. Lead ${character.leads.join(', ')}.`,

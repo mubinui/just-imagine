@@ -1,0 +1,535 @@
+.stem-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 245px;
+  gap: 24px;
+  align-items: start;
+}
+.stem-visual {
+  min-width: 0;
+}
+.stem-canvas {
+  width: 100%;
+  aspect-ratio: 1.6;
+  background: var(--surface);
+  border-radius: 16px;
+  overflow: hidden;
+  color: var(--ink);
+  touch-action: none;
+}
+.stem-canvas text {
+  font:
+    16px Nunito,
+    sans-serif;
+  fill: var(--ink);
+}
+.stem-axis {
+  stroke: var(--soft);
+  stroke-width: 1.5;
+  fill: none;
+}
+.stem-line {
+  stroke: var(--accent);
+  stroke-width: 4;
+  fill: none;
+}
+.stem-projection {
+  stroke: var(--focus, #ad6524);
+  stroke-width: 3;
+  fill: none;
+  stroke-dasharray: 6 5;
+}
+.stem-circle {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 2;
+}
+.stem-handle {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 3;
+}
+.stem-body {
+  fill: var(--mint);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.stem-wheel {
+  fill: var(--ink);
+}
+.stem-wire {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.stem-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+}
+.stem-run output {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.stem-params {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 16px;
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+.stem-params h2 {
+  font-size: 23px;
+  margin: 0;
+}
+.stem-param {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 78px;
+  align-items: center;
+  gap: 8px;
+}
+.stem-param input {
+  min-width: 0;
+  max-width: 100%;
+}
+.stem-param input[type='range'] {
+  padding: 0;
+  min-height: 44px;
+}
+.stem-param input[type='number'] {
+  padding: 8px;
+}
+.stem-readings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 8px 0;
+}
+.stem-readings div {
+  min-width: 55px;
+}
+.stem-readings dt {
+  font-size: 13px;
+  opacity: 0.8;
+}
+.stem-readings dd {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 3px 0;
+  font-variant-numeric: tabular-nums;
+}
+.stem-param.is-highlighted {
+  outline: 3px solid var(--focus);
+  outline-offset: 5px;
+  border-radius: 10px;
+}
+.study-stage {
+  background: var(--ink);
+  color: var(--ground);
+  border-radius: 20px;
+  padding: 24px;
+  margin: 20px 0;
+}
+.study-stage h1,
+.study-stage h2 {
+  color: inherit;
+}
+.study-stage .sch-error {
+  color: var(--ink);
+}
+.study-stage > .sch-toolbar {
+  margin-top: 0;
+}
+.study-stage .stem-run button,
+.study-stage .sch-primary {
+  background: var(--ground);
+  color: var(--ink);
+}
+.study-stage .stem-params h2 {
+  color: var(--ink);
+}
+.study-step-copy {
+  font-size: 21px;
+  white-space: pre-wrap;
+  max-width: 65ch;
+  line-height: 1.7;
+}
+.study-question {
+  background: var(--ground);
+  color: var(--ink);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 20px 0;
+}
+.study-question h2 {
+  color: var(--ink);
+  font-size: 24px;
+}
+.study-question .stem-workspace {
+  margin-top: 20px;
+}
+.study-step-nav {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 24px 0;
+}
+.study-step-nav button {
+  background: var(--ground);
+  color: var(--ink);
+}
+.study-step-progress {
+  font-variant-numeric: tabular-nums;
+}
+.stem-bench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.7fr);
+  gap: 24px;
+}
+.stem-reagents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.stem-reagent {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 12px;
+  min-height: 125px;
+  border-radius: 12px;
+  cursor: grab;
+  text-align: left;
+}
+.stem-reagent[aria-pressed='true'] {
+  background: var(--mint);
+  outline: 2px solid var(--accent);
+}
+.stem-reagent strong {
+  display: block;
+  font-family: Baloo, sans-serif;
+  font-size: 20px;
+}
+.stem-reagent > span {
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 8px;
+}
+.stem-beaker {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 16px;
+  padding: 20px;
+}
+.stem-beaker svg {
+  width: 100%;
+  max-height: 250px;
+}
+.stem-lab-result {
+  padding: 20px;
+  background: var(--ground);
+  color: var(--ink);
+  border-radius: 16px;
+  margin-top: 24px;
+}
+.stem-equation {
+  font-size: 23px;
+  line-height: 1.8;
+  font-variant-numeric: tabular-nums;
+}
+.stem-quantity {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+.stem-quantity strong {
+  grid-column: 1/-1;
+}
+.tutor-dock {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 20px;
+  padding: 22px 0;
+  border-top: 1px solid var(--line);
+  margin-top: 26px;
+}
+.tutor-dock .char-art {
+  width: 110px;
+  height: 110px;
+}
+.tutor-dock form {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+}
+.tutor-dock input {
+  min-width: 0;
+  flex: 1;
+}
+.tutor-caption {
+  max-height: 180px;
+  overflow: auto;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.tutor-caption p {
+  padding: 10px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 12px;
+  margin: 8px 0;
+}
+.tutor-caption p[data-role='child'] {
+  background: var(--mint);
+}
+.tutor-dock button,
+.tutor-dock input {
+  background: var(--ground);
+  color: var(--ink);
+}
+.tutor-note {
+  font-size: 14px;
+  opacity: 0.85;
+}
+.tutor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sch .stem-params label {
+  font-size: 14px;
+}
+@media (max-width: 1000px) {
+  .stem-workspace {
+    grid-template-columns: minmax(0, 1fr) 210px;
+    gap: 16px;
+  }
+  .stem-bench {
+    grid-template-columns: 1fr;
+  }
+  .stem-beaker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .stem-reagents {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .study-stage {
+    padding: 16px;
+    margin-inline: -4px;
+  }
+  .stem-workspace {
+    grid-template-columns: 1fr;
+  }
+  .stem-params {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 16px;
+    gap: 16px;
+  }
+  .stem-params h2,
+  .stem-params > p {
+    grid-column: 1/-1;
+  }
+  .stem-param {
+    grid-template-columns: 1fr;
+  }
+  .stem-param input[type='number'] {
+    width: 100%;
+  }
+  .stem-canvas {
+    min-height: 230px;
+  }
+  .stem-readings {
+    gap: 12px;
+  }
+  .stem-reagents {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stem-beaker {
+    display: block;
+  }
+  .tutor-dock {
+    grid-template-columns: 70px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .tutor-dock .char-art {
+    width: 70px;
+    height: 85px;
+  }
+  .tutor-dock form {
+    flex-wrap: wrap;
+  }
+  .tutor-dock form input {
+    width: 100%;
+    flex-basis: 100%;
+  }
+  .study-step-copy {
+    font-size: 18px;
+  }
+  .study-question {
+    padding: 16px;
+  }
+  .stem-equation {
+    font-size: 19px;
+  }
+}
+.stem-traces {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 12px;
+  margin-top: 12px;
+}
+.stem-traces text {
+  fill: var(--ink);
+  font:
+    14px Nunito,
+    sans-serif;
+}
+
+/* Stage copy inherits the inverted room; light cards retain their own ink. */
+.sch .study-stage p {
+  color: inherit;
+}
+.sch .study-stage .sch-notice {
+  color: var(--ink);
+}
+.sch .study-stage .study-step-copy,
+.sch .study-stage .study-step-copy p,
+.sch .study-stage .tutor-note {
+  color: var(--ground);
+}
+.study-step-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.sch .study-stage .study-step-tabs > button {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--ink);
+  color: var(--ground);
+  border-color: color-mix(in srgb, var(--ground) 70%, transparent);
+  opacity: 1;
+  transition: none;
+}
+.sch .study-stage .study-step-tabs > button[aria-current='step'] {
+  background-color: var(--ground);
+  color: var(--ink);
+  border-color: var(--ground);
+}
+.sch .study-stage .study-step-tabs > button:not([aria-current='step']):hover {
+  background-color: var(--mint);
+  color: var(--ink);
+  border-color: var(--mint);
+}
+.sch .study-stage .study-step-label {
+  color: inherit;
+}
+.sch .study-stage .study-step-tabs > button:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 4px;
+}
+.sch .study-stage .study-step-tabs > button:disabled {
+  background-color: var(--ink);
+  color: var(--ground);
+  border-color: var(--line);
+  opacity: 0.75;
+}
+.sch .study-stage .stem-params,
+.sch .study-stage .study-question,
+.sch .study-stage .stem-beaker,
+.sch .study-stage .stem-lab-result,
+.sch .study-stage .sch-error {
+  color: var(--ink);
+}
+.sch .study-stage .tutor-caption p {
+  color: var(--ink);
+}
+.sch .study-player .sch-option,
+.sch .stem-beaker .sch-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 0;
+  text-align: start;
+}
+.sch .study-player .sch-option input[type='radio'],
+.sch .stem-beaker .sch-option input[type='checkbox'] {
+  flex: 0 0 24px;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.stem-reagent strong span,
+.stem-reagent strong sub {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+.stem-reagent strong sub {
+  font-size: 0.7em;
+  vertical-align: sub;
+}
+.stem-reagent .stem-reagent-state {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.stem-reagent[aria-pressed='true'] {
+  outline: 3px solid var(--ground);
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.stem-reagent[aria-pressed='true'] .stem-reagent-state {
+  color: var(--accent-ink);
+  background: var(--accent);
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.stem-reagents {
+  max-height: 22rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  scrollbar-color: var(--soft) var(--surface);
+  scrollbar-gutter: stable;
+}
+.stem-reagents:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+.stem-force-friction {
+  fill: none;
+  stroke: var(--focus);
+  stroke-width: 3;
+}
+.stem-readings > div {
+  flex: 1 1 130px;
+  max-width: 200px;
+}
+.stem-readings dt {
+  opacity: 1;
+  line-height: 1.45;
+}
+.stem-readings dd span {
+  white-space: nowrap;
+  font-size: 0.85em;
+}

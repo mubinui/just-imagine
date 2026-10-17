@@ -1,4 +1,12 @@
 import { z } from 'zod';
+import { parseEquation } from './formula';
+export const SolutionAmountSchema = z.strictObject({
+  volumeMl: z.number().min(1).max(1000),
+  concentrationM: z.number().min(0.001).max(5),
+});
+export const SolutionAmountsSchema = z.record(z.string(), SolutionAmountSchema);
+export type SolutionAmounts = z.infer<typeof SolutionAmountsSchema>;
+export const DEFAULT_SOLUTION_AMOUNT = { volumeMl: 50, concentrationM: 0.1 } as const;
 
 export const BilingualSchema = z.strictObject({
   en: z.string().trim().min(1).max(400),
@@ -90,6 +98,12 @@ export interface MixResult {
   reaction: Reaction | null;
   ph: number | null;
   indicator: { id: string; colour: string | null } | null;
+  quantities?: {
+    volumeMl: number;
+    limitingReagent: string | null;
+    productsMoles: Record<string, number>;
+    remainingMoles: Record<string, number>;
+  };
 }
 
 export function mixKey(reagentIds: readonly string[], heat: boolean): string {
@@ -103,16 +117,29 @@ function sameSet(a: readonly string[], b: readonly string[]): boolean {
 }
 
 export function mix(
-  input: { reagentIds: readonly string[]; heat: boolean },
+  input: { reagentIds: readonly string[]; heat: boolean; amounts?: SolutionAmounts },
   reagents: readonly Reagent[],
   reactions: readonly Reaction[],
 ): MixResult {
   const byId = new Map(reagents.map((r) => [r.id, r]));
+  const amounts = input.amounts ? SolutionAmountsSchema.parse(input.amounts) : undefined;
+  if (
+    amounts &&
+    Object.keys(amounts).some(
+      (id) =>
+        !input.reagentIds.includes(id) ||
+        byId.get(id)?.kind === 'indicator' ||
+        byId.get(id)?.state !== 'aq',
+    )
+  )
+    throw new MixError('Quantities must belong to selected solution reagents.');
   const chosen = [...new Set(input.reagentIds)].map((id) => {
     const reagent = byId.get(id);
     if (!reagent) throw new MixError(`Unknown reagent "${id}".`);
     return reagent;
   });
+  if (chosen.filter((r) => r.kind === 'indicator').length > 1)
+    throw new MixError('Choose one indicator at a time.');
   const indicatorReagent = chosen.find((r) => r.kind === 'indicator') ?? null;
   const contents = chosen
     .filter((r) => r.kind !== 'indicator')
@@ -124,9 +151,72 @@ export function mix(
   const solutionPhs = chosen
     .filter((r) => r.kind !== 'indicator' && r.ph !== undefined)
     .map((r) => r.ph!);
-  const ph = reaction?.phAfter ?? (solutionPhs.length === 1 ? solutionPhs[0]! : null);
+  let ph = reaction
+    ? (reaction.phAfter ?? null)
+    : solutionPhs.length === 1
+      ? solutionPhs[0]!
+      : null;
+  let quantities: MixResult['quantities'];
+  if (amounts) {
+    const solutions = chosen.filter((r) => r.kind !== 'indicator' && r.state === 'aq');
+    const volumeMl = solutions.reduce(
+      (sum, r) => sum + (amounts[r.id] ?? DEFAULT_SOLUTION_AMOUNT).volumeMl,
+      0,
+    );
+    const moles = Object.fromEntries(
+      solutions.map((r) => {
+        const a = amounts[r.id] ?? DEFAULT_SOLUTION_AMOUNT;
+        return [r.id, (a.volumeMl / 1000) * a.concentrationM];
+      }),
+    );
+    const remainingMoles = { ...moles },
+      productsMoles: Record<string, number> = {};
+    let limitingReagent: string | null = null;
+    if (reaction) {
+      const equation = parseEquation(reaction.equation);
+      const reactants = equation.reactants.map((term) => ({
+        term,
+        reagent: chosen.find((r) => r.formula === term.formula),
+      }));
+      if (reactants.every((r) => r.reagent && moles[r.reagent.id] !== undefined)) {
+        const limiting = reactants.reduce((a, b) =>
+          moles[a.reagent!.id]! / a.term.coefficient <= moles[b.reagent!.id]! / b.term.coefficient
+            ? a
+            : b,
+        );
+        const extent = moles[limiting.reagent!.id]! / limiting.term.coefficient;
+        limitingReagent = limiting.reagent!.id;
+        for (const r of reactants)
+          remainingMoles[r.reagent!.id] = Math.max(
+            0,
+            moles[r.reagent!.id]! - extent * r.term.coefficient,
+          );
+        for (const product of equation.products)
+          productsMoles[product.formula] = extent * product.coefficient;
+      }
+    }
+    // Ideal dilute strong-acid/base solutions at 25°C. Other mixtures keep curated pH or unknown.
+    const acidEq: Record<string, number> = { hcl: 1, h2so4: 2 };
+    const baseEq: Record<string, number> = { naoh: 1, koh: 1, limewater: 2 };
+    if (solutions.length && solutions.every((r) => acidEq[r.id] || baseEq[r.id]) && volumeMl > 0) {
+      const excess =
+        solutions.reduce(
+          (sum, r) => sum + moles[r.id]! * ((acidEq[r.id] ?? 0) - (baseEq[r.id] ?? 0)),
+          0,
+        ) /
+        (volumeMl / 1000);
+      const hydrogen = (excess + Math.sqrt(excess * excess + 4e-14)) / 2;
+      const hydroxide = (-excess + Math.sqrt(excess * excess + 4e-14)) / 2;
+      ph = Math.min(
+        14,
+        Math.max(0, excess >= 0 ? -Math.log10(hydrogen) : 14 + Math.log10(hydroxide)),
+      );
+    }
+    quantities = { volumeMl, limitingReagent, productsMoles, remainingMoles };
+  }
   return {
     key: mixKey(contents, input.heat),
+    ...(quantities ? { quantities } : {}),
     contents,
     reaction,
     ph,
@@ -172,7 +262,7 @@ export function checkLabTask(result: MixResult, task: LabTask): boolean {
  */
 export function gradeLabSubmission(
   item: { reagentIds: readonly string[] },
-  submitted: { reagentIds: readonly string[]; heat: boolean },
+  submitted: { reagentIds: readonly string[]; heat: boolean; amounts?: SolutionAmounts },
   task: LabTask,
   reagents: readonly Reagent[],
   reactions: readonly Reaction[],

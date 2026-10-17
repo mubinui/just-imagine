@@ -97,7 +97,6 @@ export async function mountEngine(
     wheelRigs.delete(id);
     locomotion.delete(id);
   };
-  let motionTime = 0;
   try {
     await app.init({
       preference: 'webgpu',
@@ -373,10 +372,15 @@ export async function mountEngine(
 
   const ticker = () => {
     if (disposed) return;
-    sim.advance(Math.min(0.1, app.ticker.deltaMS / 1000));
+    const displayDt = app.ticker.deltaMS / 1000;
+    // Pixi caps deltaMS, so use elapsedMS to recognize a genuinely suspended tab.
+    const paused =
+      globalThis.document?.hidden || (app.ticker.elapsedMS ?? app.ticker.deltaMS) > 150;
+    if (!paused) sim.advance(Math.min(0.1, displayDt));
     const state = sim.frame();
-    const motionDt = state.time - motionTime;
-    motionTime = state.time;
+    // Physics runs at 60Hz. Presentation must also advance on the display frames
+    // between physics ticks, including 120Hz displays and slow-motion worlds.
+    const motionDt = paused ? 1 : displayDt * state.timeScale;
     trail.clear();
     if (state.time < lastTrailTime) trailPoints.length = 0;
     const trailHero = state.entities.find((p) => p.id === current.learning.heroEntityId);
@@ -434,8 +438,13 @@ export async function mountEngine(
       if (c) {
         const old = state.previousEntities.find((e) => e.id === p.id) ?? p,
           alpha = state.interpolation;
-        c.position.set(old.x + (p.x - old.x) * alpha, old.y + (p.y - old.y) * alpha);
-        c.rotation = p.rotation;
+        const displayed = { x: old.x + (p.x - old.x) * alpha, y: old.y + (p.y - old.y) * alpha };
+        c.position.set(displayed.x, displayed.y);
+        const turn = Math.atan2(
+          Math.sin(p.rotation - old.rotation),
+          Math.cos(p.rotation - old.rotation),
+        );
+        c.rotation = old.rotation + turn * alpha;
         c.alpha = (highlights.get(p.id) ?? 0) > state.time ? 0.6 : 1;
         let mesh = meshes.get(p.id);
         if (p.nodes && !mesh && !atlases.has(p.id)) {
@@ -475,10 +484,18 @@ export async function mountEngine(
           c.scale.set(p.width / original.body.size.width, p.height / original.body.size.height);
         if (original?.locomotion && !mesh) {
           const definition = original.locomotion;
-          const prior = locomotion.get(p.id) ?? initialMotion(p);
-          const next = advanceMotion(prior, p, motionDt, definition);
-          if ((definition.kind === 'run' || definition.kind === 'walk') && p.grounded === false)
+          const prior = locomotion.get(p.id) ?? initialMotion(displayed);
+          const next = advanceMotion(
+            prior,
+            displayed,
+            displayDt > 0.15 ? displayDt : motionDt,
+            definition,
+          );
+          if ((definition.kind === 'run' || definition.kind === 'walk') && p.grounded === false) {
             next.moving = false;
+            next.phase = prior.phase;
+            next.distance = prior.distance;
+          }
           locomotion.set(p.id, next);
           if (definition.kind !== 'roll') {
             c.scale.x *= next.facing * (definition.facing === 'left' ? -1 : 1);
@@ -777,14 +794,12 @@ export async function mountEngine(
     reset() {
       sim.reset();
       locomotion.clear();
-      motionTime = 0;
       colliderApplied.clear();
       drawAssets();
     },
     load(next) {
       sim.load(next);
       locomotion.clear();
-      motionTime = 0;
       colliderApplied.clear();
       current = structuredClone(next);
       surface.destroy();

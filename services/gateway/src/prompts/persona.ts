@@ -13,7 +13,7 @@ export const PERSONA_PROMPT_VERSION = 'persona-v1';
 export function personaPromptV1(record: SessionRecord, summary: string): string {
   const persona = record.persona;
   if (!persona) throw new Error('No persona on this session');
-  const { pack, character } = resolvePersona(persona.packId, persona.characterId);
+  const { pack, character } = resolvePersona(persona.packId, persona.characterId, record);
   const language = languageOf(record.identity.child);
   return [
     languageInstruction(record.identity.child),
@@ -39,5 +39,5 @@ export function personaPromptV1(record: SessionRecord, summary: string): string 
 
 export function personaVoice(record: SessionRecord): string {
   if (!record.persona) throw new Error('No persona on this session');
-  return resolvePersona(record.persona.packId, record.persona.characterId).character.voice;
+  return resolvePersona(record.persona.packId, record.persona.characterId, record).character.voice;
 }

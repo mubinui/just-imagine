@@ -37,21 +37,21 @@ export class FirestoreStoryStore {
     });
   }
   private async family(tx: FirebaseFirestore.Transaction, uid: string, childId: string) {
-    const [user, child, lock, childLock] = await Promise.all([
-      tx.get(db().doc(paths.user(uid))),
-      tx.get(db().doc(paths.child(uid, childId))),
-      tx.get(db().doc(`deletionLocks/${uid}`)),
-      tx.get(db().doc(`users/${uid}/deletionLocks/${childId}`)),
-    ]);
+    const [user, child, lock, childLock] = await tx.getAll(
+      db().doc(paths.user(uid)),
+      db().doc(paths.child(uid, childId)),
+      db().doc(`deletionLocks/${uid}`),
+      db().doc(`users/${uid}/deletionLocks/${childId}`),
+    );
     if (
-      !user.exists ||
-      !UserDocSchema.parse(user.data()).consentAt ||
-      lock.exists ||
-      childLock.exists ||
-      !child.exists
+      !user!.exists ||
+      !UserDocSchema.parse(user!.data()).consentAt ||
+      lock!.exists ||
+      childLock!.exists ||
+      !child!.exists
     )
       throw missing();
-    return { user: UserDocSchema.parse(user.data()), child: ChildDocSchema.parse(child.data()) };
+    return { user: UserDocSchema.parse(user!.data()), child: ChildDocSchema.parse(child!.data()) };
   }
   private task(job: StoryBuildJob) {
     return {
@@ -76,23 +76,20 @@ export class FirestoreStoryStore {
     const value = await db().runTransaction(async (tx) => {
       const { user, child } = await this.family(tx, uid, childId);
       const ref = db().doc(`stories/${id}`);
-      const [old, deleted] = await Promise.all([
-        tx.get(ref),
-        tx.get(db().doc(`storyDeletionLocks/${id}`)),
-      ]);
-      if (deleted.exists) throw missing();
-      if (old.exists) {
-        const previous = StoryDocSchema.parse(old.data());
+      const [old, deleted] = await tx.getAll(ref, db().doc(`storyDeletionLocks/${id}`));
+      if (deleted!.exists) throw missing();
+      if (old!.exists) {
+        const previous = StoryDocSchema.parse(old!.data());
         if (previous.topic !== body.topic)
           throw new ApiFault(400, 'INVALID_ARGUMENT', 'Use a new request for a different topic.');
         return previous;
       }
       const date = yyyymmdd(new Date()),
         usageRef = db().doc(paths.usageDaily(uid, date));
-      const [usage, books] = await Promise.all([
-        tx.get(usageRef),
-        tx.get(db().collection('stories').where('ownerUid', '==', uid)),
-      ]);
+      // Keep the query after the document read: a contended transaction must
+      // surface its original abort before another RPC tries its closed ID.
+      const usage = await tx.get(usageRef);
+      const books = await tx.get(db().collection('stories').where('ownerUid', '==', uid));
       const used = UsageDailyDocSchema.parse(
         usage.exists ? usage.data() : { uid, date, voiceSeconds: 0, worlds: 0, images: 0 },
       );

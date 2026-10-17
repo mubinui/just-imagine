@@ -8,6 +8,7 @@ import {
   ChildDestinationSchema,
 } from './characters';
 import { DocumentIdSchema } from './primitives';
+import { TutorHelloSchema, TutorStateSchema, TutorEventSchema, TutorActionSchema } from './tutor';
 import {
   HangUpMessageSchema,
   LearningPlayMessageSchema,
@@ -55,6 +56,9 @@ export const ErrorCodeSchema = z.enum([
 export const ByeReasonSchema = z.enum(['ended', 'quota', 'target_reached', 'moderation', 'error']);
 
 export const ClientMessageSchema = z.discriminatedUnion('type', [
+  TutorHelloSchema,
+  TutorStateSchema,
+  TutorEventSchema,
   z.strictObject({ type: z.literal('storySetup'), storyId: DocumentIdSchema.optional() }),
   z.strictObject({
     type: z.literal('storyRead'),
@@ -120,6 +124,7 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 export const ServerMessageSchema = z.discriminatedUnion('type', [
+  TutorActionSchema,
   z.strictObject({ type: z.literal('storyVoice'), active: z.boolean() }),
   z.strictObject({ type: z.literal('storyTopic'), topic: z.string().min(3).max(600) }),
   z.strictObject({

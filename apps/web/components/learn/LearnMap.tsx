@@ -25,6 +25,7 @@ import {
   type LearnState,
 } from './progress';
 import type { LearnIsland, Section } from './types';
+import { useFamilyCatalog } from '../../lib/catalog';
 
 const ISLAND_ART: Record<Section, string> = {
   space: 'saturn',
@@ -120,6 +121,7 @@ function IslandBase({ section }: { section: Section }) {
 export function LearnMap({ islands }: { islands: LearnIsland[] }) {
   const { language, t } = useLanguage();
   const child = useChild();
+  const catalog = useFamilyCatalog(child);
   const { state, setState } = useLearnState(child);
   const [shelf, setShelf] = useState(false);
   const learn = state ?? DEMO_LEARN;
@@ -129,8 +131,14 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
       <StageHeader title={t('learnWorlds.mapTitle')} status={getVoice().status} />
       <section className="islands" aria-label={t('learnWorlds.mapHint')}>
         {islands.map((island, index) => {
-          const total = island.challengeIds.length;
-          const done = state ? doneIn(state, island.challengeIds) : 0;
+          const challenges = [
+            ...island.challengeIds,
+            ...catalog.packs
+              .filter((pack) => pack.section === island.section)
+              .flatMap((pack) => pack.challenges.map((challenge) => challenge.id)),
+          ];
+          const total = challenges.length;
+          const done = state ? doneIn(state, challenges) : 0;
           const name = t(`learnWorlds.sections.${island.section}`);
           const body = (
             <>

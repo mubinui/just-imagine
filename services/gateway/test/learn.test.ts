@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { once } from 'node:events';
 import { WebSocket } from 'ws';
-import { loadPack } from '@just-imagine/learning-content';
+import { loadPack, type WorldPack } from '@just-imagine/learning-content';
 import { startGateway } from '../src/gateway';
 import { petsUnlocked, blockedLearningInput } from '../src/learn';
 import { systemInstruction, voiceFor } from '../src/prompts';
@@ -17,7 +17,7 @@ import type {
 
 const saturn = loadPack('space').challenges.find((c) => c.id === 'ch_saturn_bath')!;
 
-function harness(language: 'en' | 'bn' = 'en', startingPoints = 6) {
+function harness(language: 'en' | 'bn' = 'en', startingPoints = 6, catalog: WorldPack[] = []) {
   let callbacks: LiveCallbacks | undefined;
   const opened: SessionRecord[] = [];
   const identity: Identity = {
@@ -51,6 +51,7 @@ function harness(language: 'en' | 'bn' = 'en', startingPoints = 6) {
   });
   const store = {
     authorize: async () => identity,
+    learningPacks: async () => catalog,
     claim: async () => {},
     meter: async () => 900,
     finish: async () => {},
@@ -95,6 +96,58 @@ const lastResult = (live: { toolResult: ReturnType<typeof vi.fn> }, id: string) 
     Record<string, unknown> | undefined;
 
 describe('Learning Worlds conversation through the gateway', () => {
+  it('calls a published pack in the authenticated session, keeps quiz keys private and rejects unavailable packs', async () => {
+    const pack = loadPack('space');
+    pack.id = 'catalog_planets';
+    for (const challenge of pack.challenges)
+      challenge.id = `${pack.id}_${challenge.id.slice(3, 15)}`;
+    const h = harness('bn', 0, [pack]);
+    const { socket, messages } = await connect(h.gateway);
+    try {
+      socket.send(
+        JSON.stringify({ type: 'summonPersona', packId: pack.id, characterId: 'saturn' }),
+      );
+      await vi.waitFor(() =>
+        expect(messages).toContainEqual({
+          type: 'persona',
+          packId: pack.id,
+          characterId: 'saturn',
+          name: 'শনি',
+        }),
+      );
+      expect(systemInstruction(h.opened.at(-1)!, '')).toContain('OUTPUT LANGUAGE: bn-BD');
+      const challenge = pack.challenges.find((item) => item.characterId === 'saturn')!;
+      h.callbacks().tool('published-question', 'ask_quiz', { challengeId: challenge.id });
+      await vi.waitFor(() =>
+        expect(messages).toContainEqual({
+          type: 'quiz',
+          challengeId: challenge.id,
+          question: challenge.questionBn,
+        }),
+      );
+      expect(lastResult(h.live, 'published-question')).toMatchObject({
+        answerKey: challenge.answerKey,
+      });
+      expect(JSON.stringify(messages)).not.toContain('"answerKey"');
+      socket.send(
+        JSON.stringify({
+          type: 'summonPersona',
+          packId: 'catalog_unpublished',
+          characterId: 'saturn',
+        }),
+      );
+      await vi.waitFor(() =>
+        expect(messages).toContainEqual({
+          type: 'error',
+          code: 'FORBIDDEN',
+          message: 'That character is not in this world.',
+        }),
+      );
+    } finally {
+      socket.close();
+      await h.gateway.close();
+    }
+  });
   it('summons Saturn in Bangla, judges a quiz, awards points once, unlocks a pet and hangs up', async () => {
     const h = harness('bn', 6);
     const { socket, messages } = await connect(h.gateway);

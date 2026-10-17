@@ -1,0 +1,112 @@
+.auth-page.auth-character-page,
+.sch-auth.auth-character-page {
+  width: 100%;
+  max-width: 1240px;
+  margin: auto;
+  padding: 36px clamp(24px, 5vw, 64px) 56px;
+}
+.auth-character-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.auth-character-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+  align-items: center;
+  gap: clamp(40px, 6vw, 90px);
+  margin-top: 40px;
+}
+.auth-companion {
+  min-width: 0;
+  padding: 28px 32px 36px;
+  background: var(--mint);
+  border-radius: 16px;
+  color: var(--ink);
+}
+.auth-companion[data-companion='family'] {
+  background: var(--peach);
+}
+.auth-companion[data-companion='operator'] {
+  background: var(--sky, var(--mint));
+}
+.auth-companion-art {
+  width: min(100%, 350px);
+  margin: 0 auto 16px;
+}
+.auth-companion-art .char-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.auth-companion-copy h2 {
+  font-size: clamp(28px, 3.2vw, 40px);
+  line-height: 1.15;
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+.auth-companion-copy p {
+  max-width: 40ch;
+  margin: 0;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.auth-character-layout > .auth-panel,
+.sch-auth.auth-character-page .auth-character-layout > section {
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.auth-character-layout h1 {
+  font-size: clamp(30px, 3.3vw, 42px);
+  line-height: 1.2;
+  margin: 0 0 24px;
+}
+.sch-auth.auth-character-page > .sch-language {
+  position: static;
+}
+.auth-character-help {
+  font-size: 15px;
+  color: var(--soft);
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+@media (max-width: 700px) {
+  .auth-page.auth-character-page,
+  .sch-auth.auth-character-page {
+    padding: 24px 6% 40px;
+  }
+  .auth-character-header .brand {
+    font-size: 23px;
+  }
+  .auth-character-header .sch-language select {
+    min-width: 100px;
+  }
+  .auth-character-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    margin-top: 28px;
+  }
+  .auth-companion {
+    display: grid;
+    grid-template-columns: 106px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 16px 12px;
+  }
+  .auth-companion-art {
+    width: 106px;
+    margin: 0;
+  }
+  .auth-companion-copy h2 {
+    font-size: 25px;
+    margin-bottom: 8px;
+  }
+  .auth-companion-copy p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}

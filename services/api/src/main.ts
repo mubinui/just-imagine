@@ -2,7 +2,7 @@ import { geminiEditions } from './editions';
 import { startTelemetry, logEvent, localDevelopment } from '@just-imagine/server-core';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
-import { verifyIdToken } from '@just-imagine/server-core';
+import { requireParent } from '@just-imagine/server-core';
 import { FirestoreCompanionService, GeminiCompanionGenerator } from './companion';
 import { createApi } from './app';
 import { FirestoreApiStore } from './store';
@@ -58,7 +58,7 @@ const app = createApi({
   store: new FirestoreApiStore(
     queue ?? { enqueue: (id) => processDeletion(id, billing?.cancel.bind(billing)) },
   ),
-  verifyToken: verifyIdToken,
+  verifyToken: requireParent,
   editions:
     env.GEMINI_API_KEY || (env.COMPANION_VERTEX === '1' && env.GOOGLE_CLOUD_PROJECT)
       ? geminiEditions({

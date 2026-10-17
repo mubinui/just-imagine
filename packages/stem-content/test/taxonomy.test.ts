@@ -6,10 +6,17 @@ const BENGALI = /[ঀ-৿]/;
 
 describe('NCTB class 9-10 taxonomy', () => {
   it('has the full SSC chapter lists', () => {
-    expect(chaptersFor('physics')).toHaveLength(14);
+    expect(chaptersFor('physics')).toHaveLength(13);
     expect(chaptersFor('chemistry')).toHaveLength(12);
     expect(CHAPTERS.filter((c) => c.book === 'general-math')).toHaveLength(17);
     expect(CHAPTERS.filter((c) => c.book === 'higher-math')).toHaveLength(14);
+  });
+  it('uses the chapter order in the official 2026 Physics editions', () => {
+    expect(chapterById('physics-13')?.title).toEqual({
+      en: 'Radioactivity and electronics',
+      bn: 'তেজস্ক্রিয়তা ও ইলেকট্রনিক্স',
+    });
+    expect(chapterById('physics-14')).toBeUndefined();
   });
 
   it('has unique ids, valid entries and real Bangla titles', () => {

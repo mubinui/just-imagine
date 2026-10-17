@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { startGateway } from './gateway';
 import { FirestoreSessionStore } from './store';
 import { VertexLiveProvider } from './live';
+import { FirestoreTutorStore } from './tutor/store';
+import { VertexTutorProvider } from './tutor/provider';
 const stopTelemetry = startTelemetry('gateway');
 const env = z
   .object({
@@ -26,6 +28,15 @@ const gateway = startGateway({
   port: env.PORT,
   host: '0.0.0.0',
   origins: [env.WEB_URL],
+  tutor: {
+    store: new FirestoreTutorStore(),
+    provider: new VertexTutorProvider({
+      project: env.GOOGLE_CLOUD_PROJECT,
+      liveModel: env.LIVE_MODEL,
+      fastModel: env.FAST_MODEL,
+      apiKey: process.env['LOCAL_DEV'] === '1' ? env.GEMINI_API_KEY : undefined,
+    }),
+  },
   store: new FirestoreSessionStore({
     project: env.GOOGLE_CLOUD_PROJECT,
     queue: env.BUILDER_QUEUE,

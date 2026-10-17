@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { advanceMotion, initialMotion, motionFrame, wheelAngle, followRoute } from '../src/motion';
+import {
+  advanceMotion,
+  advanceTravel,
+  initialMotion,
+  motionFrame,
+  wheelAngle,
+  followRoute,
+} from '../src/motion';
 describe('action-based locomotion', () => {
   const options = { kind: 'run' as const, stride: 1 };
   it('advances the same gait by the same travel at different frame rates', () => {
@@ -67,5 +74,72 @@ describe('action-based locomotion', () => {
     expect(followRoute({ x: 0, y: 0 }, route, 8)).toEqual({ point: { x: 1, y: 1 }, pending: [] });
     expect(route).toHaveLength(2);
     expect(followRoute({ x: 1, y: 0 }, [{ x: 1.0000001, y: 0 }], 0).pending).toEqual([]);
+  });
+  it('eases swimming pitch at the same rate across display refresh rates and settles at rest', () => {
+    const move = (hz: number) => {
+      let motion = initialMotion({ x: 0, y: 0 });
+      for (let i = 1; i <= hz; i++)
+        motion = advanceMotion(motion, { x: i / hz, y: -i / hz }, 1 / hz, {
+          kind: 'swim',
+          stride: 1,
+        });
+      return motion;
+    };
+    const moving = move(60);
+    expect(moving.tilt).toBeCloseTo(move(120).tilt, 8);
+    const stopped = advanceMotion(moving, moving, 1 / 60, { kind: 'swim', stride: 1 });
+    expect(Math.abs(stopped.tilt)).toBeLessThan(Math.abs(moving.tilt));
+    expect(stopped.tilt).not.toBe(0);
+    expect(stopped.phase).toBe(moving.phase);
+  });
+  it('keeps momentum through an aligned queue, brakes at corners and arrives at every legal destination', () => {
+    let at = { x: 0, y: 0 },
+      route = [
+        { x: 66, y: 0 },
+        { x: 132, y: 0 },
+        { x: 132, y: 76 },
+      ],
+      velocity = 0;
+    let straightSpeed = 0,
+      cornerSpeed = -1;
+    for (let frame = 0; route.length && frame < 500; frame++) {
+      const next = advanceTravel(at, route, velocity, 1 / 60, 185);
+      expect(next.point.x).toBeLessThanOrEqual(132);
+      if (next.point.x < 132) expect(next.point.y).toBe(0);
+      if (route.length === 3 && next.pending.length === 2) straightSpeed = next.velocity;
+      if (route.length === 2 && next.pending.length === 1) {
+        expect(next.point).toEqual({ x: 132, y: 0 });
+        cornerSpeed = next.velocity;
+      }
+      at = next.point;
+      route = next.pending;
+      velocity = next.velocity;
+    }
+    expect(straightSpeed).toBeGreaterThan(150);
+    expect(cornerSpeed).toBe(0);
+    expect(at).toEqual({ x: 132, y: 76 });
+    expect(route).toHaveLength(0);
+    expect(velocity).toBe(0);
+  });
+  it('travels consistently at60/120Hz without a small-distance snap or a resumed-tab jump', () => {
+    const move = (hz: number) => {
+      let at = { x: 0, y: 0 },
+        route = [{ x: 200, y: 0 }],
+        velocity = 0;
+      for (let i = 0; i < hz / 2; i++) {
+        const next = advanceTravel(at, route, velocity, 1 / hz, 185);
+        at = next.point;
+        route = next.pending;
+        velocity = next.velocity;
+      }
+      return at.x;
+    };
+    expect(Math.abs(move(60) - move(120))).toBeLessThan(0.1);
+    const tiny = advanceTravel({ x: 0, y: 0 }, [{ x: 0.3, y: 0 }], 0, 1 / 120, 185);
+    expect(tiny.point.x).toBeGreaterThan(0);
+    expect(tiny.point.x).toBeLessThan(0.1);
+    const paused = advanceTravel({ x: 0, y: 0 }, [{ x: 200, y: 0 }], 185, 20, 185);
+    expect(paused.point).toEqual({ x: 0, y: 0 });
+    expect(paused.velocity).toBe(0);
   });
 });

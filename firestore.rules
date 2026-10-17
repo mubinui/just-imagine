@@ -1,7 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function parent(uid) { return request.auth != null && request.auth.uid == uid; }
+    function parent(uid) {
+      return request.auth != null && !('role' in request.auth.token) && request.auth.uid == uid
+        && !exists(/databases/$(database)/documents/schoolPrincipals/$(uid));
+    }
     match /users/{uid} {
       allow read: if parent(uid);
       match /children/{childId} {
@@ -29,10 +32,16 @@ service cloud.firestore {
     // so every client read is denied; all writes stay server-only.
     function claim(key) { return request.auth.token.get(key, ''); }
     function teacherOf(schoolId) {
-      return request.auth != null && claim('role') == 'schoolAdmin' && claim('schoolId') == schoolId;
+      return request.auth != null && claim('role') == 'schoolAdmin' && claim('schoolId') == schoolId
+        && exists(/databases/$(database)/documents/schools/$(schoolId)/members/$(request.auth.uid));
     }
     function studentOf(schoolId) {
-      return request.auth != null && claim('role') == 'student' && claim('schoolId') == schoolId;
+      return request.auth != null && claim('role') == 'student' && claim('schoolId') == schoolId
+        && request.auth.uid == 'st_' + schoolId + '_' + claim('studentId')
+        && get(/databases/$(database)/documents/schools/$(schoolId)).data.status == 'active'
+        && get(/databases/$(database)/documents/schools/$(schoolId)/students/$(claim('studentId'))).data.classId == claim('classId')
+        && get(/databases/$(database)/documents/schools/$(schoolId)/students/$(claim('studentId'))).data.get('authVersion', 0) == request.auth.token.get('authVersion', 0)
+        && exists(/databases/$(database)/documents/schools/$(schoolId)/classes/$(claim('classId')));
     }
     match /schools/{schoolId} {
       allow read: if teacherOf(schoolId) || studentOf(schoolId);
@@ -70,10 +79,10 @@ service cloud.firestore {
     }
     function lessonReadable(lesson) {
       return request.auth != null && (
-        (claim('role') == 'schoolAdmin'
+        (teacherOf(claim('schoolId'))
           && ((lesson.scope == 'global' && lesson.status == 'published')
               || lesson.schoolId == claim('schoolId')))
-        || (claim('role') == 'student' && lesson.status == 'published'
+        || (studentOf(claim('schoolId')) && lesson.status == 'published'
           && (lesson.scope == 'global'
               || (lesson.scope == 'school' && lesson.schoolId == claim('schoolId'))
               || (lesson.scope == 'class' && lesson.schoolId == claim('schoolId')

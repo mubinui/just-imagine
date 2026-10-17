@@ -271,3 +271,17 @@
     margin-bottom: 44px;
   }
 }
+.school-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  margin-top: 20px;
+  font-size: 15px;
+}
+.school-entry a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-underline-offset: 4px;
+}

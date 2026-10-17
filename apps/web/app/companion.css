@@ -16,6 +16,9 @@
 .companion-art > img {
   border-radius: 24%;
 }
+.companion-art[data-companion-kind='chibi'] > img {
+  transform-origin: 50% 100%;
+}
 /* Speech changes the registered facial pose; the entire friend does not rock. */
 .companion-dock {
   position: fixed;
@@ -322,6 +325,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .companion-art[data-companion-kind='chibi'] > img {
+    transform: none !important;
+  }
   .companion-art.is-speaking {
     animation: none;
   }

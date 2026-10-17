@@ -19,7 +19,12 @@ import { db, isKillSwitchOn, addImages, logEvent, traced } from '@just-imagine/s
 import { buildScene, patchScene, STYLE_BIBLE } from './pipeline';
 import { assetKey, processSprite, processMotionAtlas, MotionRegistrationError } from './assets';
 import type { VertexModels } from './vertex';
-import { guardPatchedGame, imagineGame, type ImagineGameDeps } from './imagine-game';
+import {
+  GameGenerationError,
+  guardPatchedGame,
+  imagineGame,
+  type ImagineGameDeps,
+} from './imagine-game';
 import { initialCreation, reviseCreation } from './revisions';
 import { applyPaintedFloor } from './presentation';
 import { layerArtPrompt, processLayerArt } from './layer-art';
@@ -295,6 +300,17 @@ export class BuilderWorker {
       });
       return { status: 'complete' };
     } catch (error) {
+      if (error instanceof GameGenerationError)
+        logEvent(
+          'game_generation_failed',
+          {
+            jobId: job.jobId,
+            worldId: job.worldId,
+            milestone: error.diagnostic.code,
+            ...(error.diagnostic.attempt !== undefined ? { count: error.diagnostic.attempt } : {}),
+          },
+          'ERROR',
+        );
       logEvent(
         'builder_result',
         { jobId: job.jobId, worldId: job.worldId, success: false },
@@ -310,7 +326,11 @@ export class BuilderWorker {
         ]);
         if (lock.data()?.['lease'] !== lease) return;
         if (!parentDelete.exists && !childDelete.exists && !worldDelete.exists)
-          tx.update(jobRef, { status: 'failed', finishedAt: Date.now() });
+          tx.update(jobRef, {
+            status: 'failed',
+            finishedAt: Date.now(),
+            ...(error instanceof GameGenerationError ? { failure: error.diagnostic } : {}),
+          });
         if (
           job.kind === 'build' &&
           world.exists &&

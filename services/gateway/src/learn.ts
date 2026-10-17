@@ -29,17 +29,26 @@ export function petsUnlocked(owned: readonly string[], total: number, reward?: s
 export function resolvePersona(
   packId: string,
   characterId: string,
+  record?: Pick<SessionRecord, 'catalogPacks'>,
 ): { pack: WorldPack; character: PackCharacter } {
-  const pack = Object.hasOwn(PACKS, packId) ? PACKS[packId] : undefined;
+  const pack = learningPack(packId, record);
   const character = pack?.characters.find((c) => c.id === characterId);
   if (!pack || !character) throw new Error('Unknown learning character');
   return { pack, character };
 }
 
+export function learningPack(packId: string, record?: Pick<SessionRecord, 'catalogPacks'>) {
+  return Object.hasOwn(PACKS, packId)
+    ? PACKS[packId]
+    : record?.catalogPacks && Object.hasOwn(record.catalogPacks, packId)
+      ? record.catalogPacks[packId]
+      : undefined;
+}
+
 /** The challenge a persona may ask: it must belong to the character holding the session. */
 export function personaChallenge(record: SessionRecord, challengeId: string): PackChallenge {
   if (!record.persona) throw new ToolRefusal('Only a learning character can ask challenges.');
-  const { pack } = resolvePersona(record.persona.packId, record.persona.characterId);
+  const { pack } = resolvePersona(record.persona.packId, record.persona.characterId, record);
   const challenge = pack.challenges.find((c) => c.id === challengeId);
   if (!challenge || challenge.characterId !== record.persona.characterId)
     throw new ToolRefusal('That challenge is not one of yours.');
@@ -58,18 +67,19 @@ export const PACK_DIRECTORY = Object.values(PACKS)
 /** The shared art backstop treats blood as gore. Authored body lessons need the biological term;
  * the primary model still classifies the ORIGINAL text, and every other blocked term stays blocked. */
 export function blockedLearningInput(
-  record: Pick<SessionRecord, 'persona'>,
+  record: Pick<SessionRecord, 'persona' | 'catalogPacks'>,
   text: string,
 ): string | null {
   const isBody =
     record.persona &&
-    resolvePersona(record.persona.packId, record.persona.characterId).pack.section === 'body';
+    resolvePersona(record.persona.packId, record.persona.characterId, record).pack.section ===
+      'body';
   return findBlockedTerm(isBody ? text.replace(/\bblood\b/gi, 'circulation') : text);
 }
 
 /** Only authored story text may reach Live as trusted context. Browser prose is never accepted. */
 export function storyPlayContext(
-  record: Pick<SessionRecord, 'persona' | 'identity'>,
+  record: Pick<SessionRecord, 'persona' | 'identity' | 'catalogPacks'>,
   message: {
     packId: string;
     characterId: string;
@@ -89,7 +99,7 @@ export function storyPlayContext(
   )
     return;
   const lang = languageOf(record.identity.child) === 'bn' ? 1 : 0;
-  const { character } = resolvePersona(persona.packId, persona.characterId);
+  const { character } = resolvePersona(persona.packId, persona.characterId, record);
   const fact = (lang ? character.factsBn : character.facts)[chapter.fact];
   return `Trusted authored story-game context. Adventure: ${JSON.stringify(ADVENTURES[message.packId]!.title[lang])}. Chapter: ${JSON.stringify(chapter.title[lang])}. Phase: ${message.storyPhase}. Situation: ${JSON.stringify(chapter.setup[lang])}. Child's goal: ${JSON.stringify(chapter.goal[lang])}. Educational idea: ${JSON.stringify(fact)}. ${message.storyPhase === 'complete' ? `The child completed the game. Story consequence: ${JSON.stringify(chapter.ending[lang])}. Celebrate the specific action and explain its meaning briefly.` : 'The child is playing this chapter. Give one brief in-character hint or explanation about this action, then let them play.'} Keep the current character identity. Never claim to see the real child or diagnose them. Do not award points or start a quiz from game completion; quizzes happen only when requested.`;
 }

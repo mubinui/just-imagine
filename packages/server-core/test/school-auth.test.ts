@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { idTokenFor } from './emulator';
 import { db } from '../src/firebase';
 import {
@@ -12,6 +12,11 @@ import {
 const student = { role: 'student', schoolId: 'sa1', studentId: 'p1', classId: 'c1' };
 const teacher = { role: 'schoolAdmin', schoolId: 'sa1' };
 
+beforeAll(async () => {
+  await db().doc('schools/sa1/members/t_sa1').set({ role: 'schoolAdmin' });
+  await db().doc('schools/sa1/classes/c1').set({ grade: 9 });
+  await db().doc('schools/sa1/students/p1').set({ classId: 'c1', authVersion: 0 });
+});
 describe('requireSchoolAdmin', () => {
   it('accepts a teacher for their own school and refuses other schools', async () => {
     const token = await idTokenFor('t_sa1', teacher);

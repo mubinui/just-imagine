@@ -4,8 +4,10 @@ import {
   GameplayPlanSchema,
   runGameplayPlan,
   validateGameplayPlan,
+  diagnoseGameplayPlanFailure,
   type GameplayPlan,
 } from '../src/game-playtest';
+import type { GameFailureDiagnostic } from '../src/game-diagnostics';
 
 function scene() {
   const doc = structuredClone(FIXTURE_WORLDS.moonBounce);
@@ -60,12 +62,55 @@ describe('real-engine acceptance journeys', () => {
       await runGameplayPlan(scene(), responsive, validateGameplayPlan(plan(), scene())),
     ).toBeNull();
   });
+  it('initializes scene variables once for every fresh active/idle/input-prefix replay, like the browser', async () => {
+    const doc = scene();
+    doc.variables = {
+      destination: {
+        label: 'Destination',
+        min: 2,
+        max: 14,
+        step: 1,
+        value: 12,
+        unit: 'm',
+        binds: { kind: 'game' },
+      },
+    };
+    const source = `let destination; let initialized = 0;
+      game.on('variable', e => { if (e.id === 'destination') { destination = e.value; initialized++; } });
+      game.on('tick', () => { if (initialized !== 1) throw 'wrong variable initialization'; });
+      game.on('tap', e => { if (!e.target) game.move('ball', { x: e.x > 8 ? destination : 4, y: 3 }); });`;
+    expect(await runGameplayPlan(doc, source, validateGameplayPlan(plan(), doc))).toBeNull();
+  });
   it('rejects a no-op and a caption pretending to implement the requested interaction', async () => {
     for (const source of [
       'game.on("tap", () => {});',
       'game.on("tap", () => game.say("I arrived!"));',
     ])
       expect(await runGameplayPlan(scene(), source, plan())).toMatch(/position=.*distance=/);
+  });
+  it('reports numeric physics evidence and check indices without names, source or prose', async () => {
+    const diagnostics: GameFailureDiagnostic[] = [];
+    const p = plan();
+    p.scenarios[0]!.name = 'private scenario text';
+    expect(
+      await runGameplayPlan(scene(), 'game.on("tap", () => {});', p, undefined, (d) =>
+        diagnostics.push(d),
+      ),
+    ).toMatch(/position=/);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({
+      code: 'PLAYTEST_CHECK',
+      check: {
+        scenario: 0,
+        index: 0,
+        type: 'near',
+        at: 1,
+        trigger: 0,
+        expected: [12, 3, 0.3],
+        actual: expect.arrayContaining([expect.any(Number)]),
+      },
+    });
+    expect(JSON.stringify(diagnostics)).not.toMatch(/private|ball|game\.on|position=/);
   });
   it('rejects scripted animation which passes all checks without the child control', async () => {
     const source =
@@ -199,6 +244,31 @@ describe('real-engine acceptance journeys', () => {
 });
 
 describe('bounded data-only plans', () => {
+  it('classifies invalid planner rules and bounded schema paths without leaking the candidate or message', () => {
+    expect.assertions(4);
+    const candidate = plan();
+    candidate.scenarios[0]!.inputs[0] = { at: 0.5, type: 'tap', target: 'private_actor' };
+    try {
+      validateGameplayPlan(candidate, scene());
+    } catch (error) {
+      expect(diagnoseGameplayPlanFailure(error)).toEqual({
+        code: 'PLAN_INVALID',
+        planRule: 'UNKNOWN_ENTITY',
+      });
+      expect(JSON.stringify(diagnoseGameplayPlanFailure(error))).not.toContain('private_actor');
+    }
+    candidate.scenarios[0]!.seconds = 100;
+    try {
+      validateGameplayPlan(candidate, scene());
+    } catch (error) {
+      expect(diagnoseGameplayPlanFailure(error)).toMatchObject({
+        code: 'PLAN_INVALID',
+        planRule: 'SCHEMA',
+        planIssues: [{ code: 'too_big', path: ['scenarios', 0, 'seconds'] }],
+      });
+      expect(JSON.stringify(diagnoseGameplayPlanFailure(error))).not.toContain('private_actor');
+    }
+  });
   it('allows genuine Live-only conversation without inventing a movement game', () => {
     const doc = scene();
     doc.entities.find((e) => e.id === 'ball')!.character = {

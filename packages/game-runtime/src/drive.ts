@@ -48,6 +48,8 @@ export interface DriveOptions {
   rate?: number;
   /** Exact child input playback. Even an empty array disables synthetic input. */
   playback?: TimedInput[];
+  /** Browser parity: dispatch each scene default once after start and before the first tick. */
+  initialVariables?: Record<string, number>;
   /** Trusted host observer; never supplied as executable model output. */
   onFrame?: (time: number, state: GameState, commands: readonly Command[]) => void;
 }
@@ -228,6 +230,8 @@ export async function driveScript(
   };
 
   try {
+    for (const [id, value] of Object.entries(options.initialVariables ?? {}))
+      handle.pushEvent({ type: 'variable', id, value });
     for (let i = 1; i <= total; i++) {
       if (handle.status === 'failed' || handle.status === 'stopped') break;
       stage.step(dt);

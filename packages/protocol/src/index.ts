@@ -11,6 +11,7 @@ export * from './primitives';
 export * from './learn';
 export * from './admin';
 export * from './school';
+export * from './tutor';
 
 export * from './stories';
 export * from './specialists';

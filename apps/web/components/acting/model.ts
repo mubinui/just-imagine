@@ -32,3 +32,30 @@ export function actingFrame({
 }
 export const actorOffset = (id: string) =>
   [...id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 5000, 0);
+
+export type SpeechPose = { energy: number; frame: 0 | 3 | 4; silentFor: number };
+export const restingSpeech = (): SpeechPose => ({ energy: 0, frame: 0, silentFor: 0 });
+/** Fast syllable attack, short release and hysteresis keep a single face from chattering. */
+export function advanceSpeech(state: SpeechPose, input: number, milliseconds: number): SpeechPose {
+  const target = Number.isFinite(input) ? Math.max(0, Math.min(1, input)) : 0;
+  const dt = Math.max(0, Math.min(100, milliseconds));
+  const silentFor = target < 0.015 ? state.silentFor + dt : 0;
+  const energy =
+    silentFor >= 80
+      ? 0
+      : state.energy +
+        (target - state.energy) * (1 - Math.exp(-dt / (target > state.energy ? 20 : 55)));
+  const frame =
+    state.frame === 4
+      ? energy > 0.28
+        ? 4
+        : energy > 0.035
+          ? 3
+          : 0
+      : energy > 0.4
+        ? 4
+        : energy > (state.frame === 3 ? 0.035 : 0.065)
+          ? 3
+          : 0;
+  return { energy, frame, silentFor };
+}

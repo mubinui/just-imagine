@@ -6,11 +6,17 @@ import { ADMIN_COST_PER_UNIT_USD, type AdminOverviewResponse } from '@just-imagi
 import { adminApi, useAdminResource } from './adminApi';
 import { formatCount, formatDateKey, formatPercent, formatUsd, formatWhen } from './format';
 import { LoadError, PageHeading, Skeleton } from './parts';
+import { useSchoolResource } from '../../lib/school/api';
+import type { School } from '../../lib/school/types';
+import { en as schoolEnglish } from '../../lib/i18n/study/en';
+import { bn as schoolBangla } from '../../lib/i18n/study/bn';
 
 const loadOverview = () => adminApi<AdminOverviewResponse>('overview');
 
 export function OverviewPanel() {
-  useLanguage();
+  const { language } = useLanguage();
+  const schoolCopy = language === 'bn' ? schoolBangla : schoolEnglish;
+  const schools = useSchoolResource<{ schools: School[] }>('admin/schools');
   const { data, error, loading, reload } = useAdminResource(loadOverview);
   return (
     <>
@@ -21,7 +27,10 @@ export function OverviewPanel() {
             ? uiText('Figures as of {v0}', { v0: String(formatWhen(data.generatedAt)) })
             : uiText('Loading live figures')
         }
-        onRefresh={() => void reload()}
+        onRefresh={() => {
+          void reload();
+          schools.reload();
+        }}
         busy={loading}
       />
       <LoadError message={error} />
@@ -58,6 +67,59 @@ export function OverviewPanel() {
                 <dd>{formatCount(data.subscriptions.free)}</dd>
               </div>
             </dl>
+          </section>
+
+          <section className="adm-section" aria-labelledby="school-fleet">
+            <h2 id="school-fleet">{schoolCopy.schools}</h2>
+            <LoadError message={schools.error} />
+            {schools.loading ? (
+              <Skeleton rows={2} />
+            ) : (
+              schools.data && (
+                <dl className="adm-figures">
+                  <div>
+                    <dt>{schoolCopy.schools}</dt>
+                    <dd>{formatCount(schools.data.schools.length)}</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      {schoolCopy.students} / {schoolCopy.capacity}
+                    </dt>
+                    <dd>
+                      {formatCount(
+                        schools.data.schools.reduce((n, s) => n + (s.studentCount ?? 0), 0),
+                      )}{' '}
+                      / {formatCount(schools.data.schools.reduce((n, s) => n + s.seats, 0))}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{schoolCopy.teacher}</dt>
+                    <dd>
+                      {formatCount(
+                        schools.data.schools.reduce((n, s) => n + (s.teacherCount ?? 0), 0),
+                      )}
+                    </dd>
+                  </div>
+                  {schools.data.schools.every((s) => s.voiceSecondsToday !== undefined) && (
+                    <div>
+                      <dt>
+                        {uiText('Voice minutes')} · {uiText('Today')}
+                      </dt>
+                      <dd>
+                        {formatCount(
+                          Math.round(
+                            schools.data.schools.reduce(
+                              (n, s) => n + (s.voiceSecondsToday ?? 0),
+                              0,
+                            ) / 60,
+                          ),
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              )
+            )}
           </section>
 
           <section className="adm-section" aria-labelledby="activity">

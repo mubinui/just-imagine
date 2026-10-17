@@ -1,0 +1,60 @@
+# Family, schools and motion integration
+
+Date: 2026-10-17. Branch: `feat/family-schools-integration`. Worktree: `../just-imagine-integrated`. Local app: <http://localhost:3300>.
+
+The upgraded family work was preserved in snapshot commit `0cc083e`, then the user-confirmed `feat/schools-stem` commit `55dd48f` was merged at `8408275`. The user approved parallel implementation of the combined system. That approval supersedes the earlier Claude-only implementation assignment recorded in historical handoff notes. The original `feat/creative-experience-upgrades` worktree is unchanged. Nothing has been pushed or deployed to the cloud.
+
+## Resulting system
+
+- The forest/cream Studio, story mode, authored adventures and existing volumetric raster identities remain the visual baseline. Character images were not regenerated or replaced.
+- Operators can manage schools, seats, suspensions, teacher invitations, global lessons, published worlds and story packs. The existing family, content, safety, appearance, system and audit console remains available.
+- Teachers can manage classes and rosters, preview/import CSV, issue one-time PIN/QR cards, author and review bilingual lessons, publish them to classes or the school, and view results and leaderboards.
+- Students use their school code, username and PIN, then see only authorized published lessons, five model-backed simulations, quantitative chemistry, server-graded practice/quizzes, progress and boards. Pori and Onko Mama can explain the current experiment through typed or explicitly enabled voice conversation.
+- Published catalog worlds can be copied into a child's own world collection; published story packs enter Learn without replacing the built-in adventures. Private source ownership and answer keys remain on the server.
+- Each sign-in has its own existing character: Katha for families, Pori for students, Onko Mama for teachers and Jadu Kaka for operators. English/Bangla welcomes and compact phone compositions accompany the original authentication flows. Failed sign-ins retain entered fields for retry.
+- Teacher first-try results preserve the attempt on which an answer first became correct, including concurrent submissions and retakes. The denominator contains quiz items only. Legacy answers without recoverable history show an explicit unavailable state; existing records are not rewritten.
+
+## Fresh UI findings and fixes
+
+These findings came from the actual combined app in native Safari and Chrome, including a 390 × 844 Safari responsive viewport. They do not reuse the withdrawn critique of the wrong UI.
+
+| Priority | Observed issue                                                                                                | Bounded fix                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| High     | Lion trail SVG collapsed to a tiny sliver after the heading, controls and feedback consumed the stage height. | Fix the canvas track and SVG to 280 px desktop / 340 px phone; let the story scroll when needed.               |
+| High     | Dark lesson stage inherited dark prompt/help/status text; Safari painted selected step labels blank.          | Scoped foregrounds plus independent step navigation with native appearance and background transitions removed. |
+| High     | Generic radio/label rules stacked assessment choices and the lab heat control into oversized vertical rows.   | Scoped horizontal choice rows with a full clickable label and explicit radio/checkbox dimensions.              |
+| High     | Chemistry formula fragments and subscripts stacked onto separate lines.                                       | Inline scientific notation within reagent controls.                                                            |
+| Medium   | The school main column shrank and centered inside its grid track.                                             | Give it full track width and reset inherited main margins/max-width.                                           |
+| Medium   | A phone user had to scroll all 26 reagents before reaching the beaker.                                        | Bound the labelled, keyboard-focusable reagent picker; keep experiment controls reachable.                     |
+| Medium   | Simulation readings exposed raw machine keys and booleans.                                                    | Model-specific English/Bangla names, units and categorical state labels.                                       |
+| Medium   | Cart force vectors appeared as detached dash fragments.                                                       | Shared bounded vector scaling, visible arrowheads and exact force labels.                                      |
+| Medium   | Bangla school pages displayed the English school name.                                                        | Resolve the current language's school name.                                                                    |
+| Medium   | Sign-in pages lacked the product's character identity.                                                        | Role-specific companions using the preserved acting artwork and shared animation clock.                        |
+
+Further native teacher review found a stacked Leaderboard checkbox caused by inherited label direction and checkbox flex sizing. Shared school choice rows now explicitly reset those properties while preserving expanding author text inputs. The same review found the first-try metric incorrectly counted only answers with one total submission; first-correct history now survives retakes, and older unavailable history is labelled honestly. The archive action also uses an action label rather than the past-tense status.
+
+## Architecture and motion
+
+School principals are isolated from family sessions by both verified claims and a persistent principal marker. School/class membership, suspension, current student authorization version and published lesson visibility are checked server-side. Student grading and first-correct points are transactional; private keys and raw catalog collections are denied to browser clients. PINs use asynchronous scrypt, persistent attempt limiting and authorization-version invalidation. Teacher invite tokens are hashed, expire and bind to the invited email. Operator mutations require audit reasons.
+
+Tutor sessions have per-student distributed leases, atomic quota reservations, independent periodic metering, bounded provider setup and security checks, and validated suggestion tools. Suggestions require an explicit student action. Tutor prompts use public lesson content; audio and transcripts are not persisted.
+
+Locomotion uses the displayed interpolated position, fixing alternating rest frames on 120 Hz displays. Travel accelerates, brakes and follows legal corners. Portraits share a visibility-aware 30 Hz clock; mouth attack/release and hysteresis reduce chatter. Personal chibi avatars retain their original single image, with subtle grounded breathing and smoothed speech presence. Reduced motion restores their neutral pose. Rotation follows the shortest arc, and suspension gaps pause catch-up. See [motion handoff](family-schools-motion.md).
+
+## Verification
+
+- Fresh complete web suite: **283 tests passed** across 34 files, including personal avatar presence and teacher first-try history.
+- All 15 package typechecks and lints passed, including the first-try history change. All 12 non-emulator package suites passed freshly; server core passed 50 tests. The final API run passed 105 of 106 tests, including all 11 school integration tests; an unchanged family-profile concurrency test hit an emulator transaction error, then all four store tests passed in isolation with unchanged assertions. Gateway coverage passed except a contended test's timeout, which passed with its unchanged assertions and an appropriate 30-second limit. Logs retain these distinctions rather than presenting either rerun as a single clean full-suite run.
+- Six optimized Docker/Next builds passed. The final image (manifest prefix `3a95ee7ec693`) runs API, builder and web; gateway remains on its accepted school/tutor image, and the persistent emulators were not restarted. Builder passed 124 unit tests and four isolated worker integration tests after the final parity change; game-runtime passed 207 and protocol passed 102.
+- Native Safari confirmation covered desktop and 390 × 844 phone layouts, role-specific sign-in artwork, readable lesson prompts/tutor controls, compact assessments, formula notation, reagent/beaker access, localized readings and force arrows. Final desktop step labels and selected state paint correctly. Final desktop and phone Lion canvases show the full playfield; controls remain reachable through the story's internal scroll, and a single Right action moves the lion one legal cell. No chapter was completed during that check.
+- Native Chrome in an isolated incognito window confirmed teacher sign-in, classes, roster, lesson editor/approval controls, results and leaderboard. A CSV preview with an unknown class displayed the row error and disabled import without writing records. Results displayed the actual completed QA quiz and 11 points. Operator sign-in, overview, schools, catalog and all seven global lessons were also inspected. Safari phone checks confirmed the preserved Studio entry and an existing illustrated story reader without advancing its bookmark. Mutation acceptance remains the separately documented API workflow; these browser checks did not reset PINs, create schools, publish lessons or advance existing stories.
+- Final-image Chrome confirmation showed the corrected horizontal class checkbox and the existing QA result as Completed / 11 points / first-try history Unavailable. The stored legacy attempt was not amended.
+- Real running-stack teacher/student publication, grading, idempotency, boards and quantitative chemistry: **21 checks passed**. A real typed Gemini Live request returned Bangla captions and 21,120 audio bytes. See [runtime acceptance](school-runtime-acceptance.md) for exact scope and subsequent authoring checks.
+- Official 2026 NCTB contents were checked; physics taxonomy was corrected to 13 chapters. See [content verification](school-content-verification.md).
+- Read-only preservation checks passed: original **1,043 source files**, integrated **51 character files**, **71 Learn cinematic files** and **24 captured family records** unchanged. The live API acceptance additionally fingerprinted 298 preexisting family-tree records unchanged.
+
+## Practical limits
+
+The characters are authored raster pose sheets, including six-pose locomotion and eight-pose acting. These timing improvements do not turn them into continuous skeletal 3D rigs. Chemistry models ideal dilute strong acid/base behavior and curated reactions. AI drafts and translations require a teacher's review and both language approvals before publication. Automated and local acceptance do not replace classroom evaluation, independent teacher sign-off or production cloud/identity configuration.
+
+Fresh end-to-end generated-world acceptance is pending at this document checkpoint. Two genuine requests using one marked QA identity failed before artwork generation without publishing a world: the first exposed the missing script repair opportunity after a provider failure; the second failed local plan validation. Bounded repairs preserve both locally validated script candidates and permit one plan-validation repair while retaining every gate. Sanitized terminal diagnostics identify the rejected local rule. See [generated-world acceptance](generated-world-runtime-acceptance.md) for final retry status; do not mark that journey complete until its evidence is recorded.

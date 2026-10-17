@@ -30,7 +30,8 @@ export function advanceMotion(
   )
     return { ...state, ...at, moving: false, tilt: 0 };
   const moving = travel > Math.max(0.00001, seconds * 0.015);
-  if (!moving) return { ...state, ...at, moving: false, tilt: 0 };
+  const turnBlend = 1 - Math.exp(-seconds / 0.09);
+  if (!moving) return { ...state, ...at, moving: false, tilt: state.tilt * (1 - turnBlend) };
   const facing = Math.abs(dx) > 0.0001 ? (dx < 0 ? -1 : 1) : state.facing;
   // Runners retain contact during falls/jumps: vertical displacement isn't a footstep.
   const cycleTravel =
@@ -44,7 +45,10 @@ export function advanceMotion(
     facing,
     moving: cycleTravel > 0.00001,
     tilt: swimming
-      ? Math.max(-0.55, Math.min(0.55, Math.atan2(dy, Math.abs(dx) || 0.0001))) * facing
+      ? state.tilt +
+        (Math.max(-0.55, Math.min(0.55, Math.atan2(dy, Math.abs(dx) || 0.0001))) * facing -
+          state.tilt) *
+          turnBlend
       : 0,
   };
 }
@@ -78,4 +82,54 @@ export function followRoute(at: MotionPoint, route: MotionPoint[], distance: num
     }
   }
   return { point, pending };
+}
+
+/** Accelerate along legal route legs, braking for a stop or a sharp corner. */
+export function advanceTravel(
+  at: MotionPoint,
+  route: MotionPoint[],
+  velocity: number,
+  seconds: number,
+  speed: number,
+) {
+  const unchanged = {
+    point: { ...at },
+    pending: route.map((point) => ({ ...point })),
+    velocity: 0,
+  };
+  if (
+    !Number.isFinite(seconds) ||
+    seconds <= 0 ||
+    seconds > 0.15 ||
+    !Number.isFinite(speed) ||
+    speed <= 0
+  )
+    return unchanged;
+  // An aligned queue is one continuous journey. A sharp corner is a real stop,
+  // rather than a diagonal shortcut or an instantaneous full-speed direction change.
+  let stopDistance = 0,
+    previous = at,
+    heading: MotionPoint | undefined;
+  for (const target of route) {
+    const dx = target.x - previous.x,
+      dy = target.y - previous.y,
+      length = Math.hypot(dx, dy);
+    if (length > 0.00001) {
+      const direction = { x: dx / length, y: dy / length };
+      if (heading && heading.x * direction.x + heading.y * direction.y < 0.98) break;
+      heading = direction;
+      stopDistance += length;
+    }
+    previous = target;
+  }
+  const acceleration = speed * 5,
+    before = Math.max(0, Math.min(speed, Number.isFinite(velocity) ? velocity : 0)),
+    nextVelocity = Math.min(
+      speed,
+      before + acceleration * seconds,
+      Math.sqrt(2 * acceleration * stopDistance),
+    ),
+    distance = Math.min(stopDistance, (before + nextVelocity) * 0.5 * seconds),
+    next = followRoute(at, route, distance);
+  return { ...next, velocity: distance >= stopDistance - 0.00001 ? 0 : nextVelocity };
 }

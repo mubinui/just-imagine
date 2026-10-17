@@ -2,11 +2,12 @@ import { z } from 'zod';
 import { SimIdSchema, type SimId } from '@just-imagine/stem-sims';
 
 /**
- * NCTB secondary (classes 9-10) books used for the 2026 SSC science group. Titles were
- * checked against secondary sources (spec §10.2); confirm against the official NCTB PDFs
- * before release and record the check in CHECKPOINT.md.
+ * NCTB secondary (classes 9-10), 2026 books. Chapter order checked against the
+ * official English contents pages and the Bangla Physics contents on 2026-10-17.
+ * Primary links and edition notes: docs/handoff/school-content-verification.md.
  */
-export const TAXONOMY_SOURCE_NOTE = 'NCTB 2012-curriculum SSC books, as used for SSC 2026.';
+export const TAXONOMY_SOURCE_NOTE =
+  'NCTB 2026 class 9–10 books; official chapter order verified 2026-10-17.';
 
 export const SubjectIdSchema = z.enum(['physics', 'chemistry', 'math']);
 export type SubjectId = z.infer<typeof SubjectIdSchema>;
@@ -57,8 +58,7 @@ const PHYSICS: Row[] = [
   ['Static electricity', 'স্থির বিদ্যুৎ'],
   ['Current electricity', 'চল বিদ্যুৎ', ['ohms-circuit']],
   ['Magnetic effects of current', 'বিদ্যুতের চৌম্বক ক্রিয়া'],
-  ['Modern physics and electronics', 'আধুনিক পদার্থবিজ্ঞান ও ইলেকট্রনিক্স'],
-  ['Physics to save life', 'জীবন বাঁচাতে পদার্থবিজ্ঞান'],
+  ['Radioactivity and electronics', 'তেজস্ক্রিয়তা ও ইলেকট্রনিক্স'],
 ];
 
 const CHEMISTRY: Row[] = [

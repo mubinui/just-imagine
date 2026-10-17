@@ -3,6 +3,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { useLanguage, strings, setRenderLanguage } from '../lib/i18n';
 import { setActiveStrings } from '../lib/strings/en';
+import { useSchoolLanguage } from '../lib/i18n/study';
 
 /**
  * Applies the chosen explorer's language to everything inside it. The server and the first client
@@ -10,7 +11,11 @@ import { setActiveStrings } from '../lib/strings/en';
  */
 export function LanguageRoot({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { language, lang } = useLanguage();
+  const familyLanguage = useLanguage();
+  const schoolLanguage = useSchoolLanguage();
+  const isSchool = pathname.startsWith('/school') || pathname.startsWith('/study');
+  const language = isSchool ? schoolLanguage.language : familyLanguage.language;
+  const lang = language === 'bn' ? 'bn-BD' : 'en';
   // Set during render so the subtree below reads the right table on this very render.
   setActiveStrings(strings(language));
   setRenderLanguage(language);
@@ -18,13 +23,17 @@ export function LanguageRoot({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = lang;
   }, [lang]);
   useEffect(() => {
-    const title = pathname.startsWith('/admin')
+    const title = isSchool
       ? language === 'bn'
-        ? 'পরিচালনা প্যানেল · জাস্ট ইমাজিন'
-        : 'Operator console · Just Imagine'
-      : language === 'bn'
-        ? 'জাস্ট ইমাজিন — ছোট্ট বিস্ময়, বড় আবিষ্কার'
-        : 'Just Imagine — little wonders, big discoveries';
+        ? 'বিদ্যালয় · জাস্ট ইমাজিন'
+        : 'Schools · Just Imagine'
+      : pathname.startsWith('/admin')
+        ? language === 'bn'
+          ? 'পরিচালনা প্যানেল · জাস্ট ইমাজিন'
+          : 'Operator console · Just Imagine'
+        : language === 'bn'
+          ? 'জাস্ট ইমাজিন — ছোট্ট বিস্ময়, বড় আবিষ্কার'
+          : 'Just Imagine — little wonders, big discoveries';
     // Next installs route metadata after navigation; keep explicit browser metadata in step too.
     const syncMetadata = () => {
       if (document.title !== title) document.title = title;
@@ -53,6 +62,6 @@ export function LanguageRoot({ children }: { children: React.ReactNode }) {
       attributeFilter: ['href'],
     });
     return () => observer.disconnect();
-  }, [language, pathname]);
+  }, [language, pathname, isSchool]);
   return <div lang={lang}>{children}</div>;
 }

@@ -87,7 +87,7 @@ describe('answer keys stay on the server', () => {
       const text = readFileSync(file, 'utf8');
       return (
         /^['"]use client['"]/.test(text) &&
-        /@just-imagine\/learning-content(?!\/play)|learn\/content['"]/.test(text)
+        /@just-imagine\/learning-content(?!\/(?:play|schema)\b)|learn\/content['"]/.test(text)
       );
     });
     expect(offenders).toEqual([]);

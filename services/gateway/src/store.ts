@@ -2,8 +2,10 @@ import type { ByeReason } from './contracts';
 import { createHash, randomUUID } from 'node:crypto';
 import { CloudTasksClient } from '@google-cloud/tasks';
 import { z } from 'zod';
+import { PACKS, WorldPackSchema } from '@just-imagine/learning-content';
 import {
   ChildDocSchema,
+  CatalogEntryDocSchema,
   StoryDocSchema,
   UserDocSchema,
   WorldDocSchema,
@@ -29,7 +31,7 @@ import {
   db,
   ContentEditions,
   localDevelopment,
-  verifyIdToken,
+  requireParent,
   readDoc,
   voiceSecondsLeft,
   reserveWorld,
@@ -43,6 +45,28 @@ export class FirestoreSessionStore implements SessionStore {
   constructor(
     private queue: { project: string; queue: string; builderUrl: string; serviceAccount: string },
   ) {}
+  async learningPacks(identity: Identity) {
+    const published = await db()
+      .collection('catalog')
+      .where('status', '==', 'published')
+      .limit(100)
+      .get();
+    return published.docs.flatMap((snapshot) => {
+      const entry = CatalogEntryDocSchema.safeParse(snapshot.data());
+      if (
+        !entry.success ||
+        entry.data.kind !== 'storyPack' ||
+        !entry.data.ageBands.includes(identity.child.ageBand)
+      )
+        return [];
+      const pack = WorldPackSchema.safeParse(entry.data.pack);
+      return pack.success &&
+        /^catalog_[a-z0-9_]+$/.test(pack.data.id) &&
+        !Object.hasOwn(PACKS, pack.data.id)
+        ? [pack.data]
+        : [];
+    });
+  }
   private lock(record: SessionRecord) {
     return db().doc(
       `sessionLocks/${createHash('sha256')
@@ -51,7 +75,7 @@ export class FirestoreSessionStore implements SessionStore {
     );
   }
   async authorize(token: string, childId: string): Promise<Identity> {
-    const { uid } = await verifyIdToken(token);
+    const { uid } = await requireParent(token);
     const [user, child, deleting, childDeleting] = await Promise.all([
       readDoc(paths.user(uid), UserDocSchema),
       readDoc(paths.child(uid, childId), ChildDocSchema),

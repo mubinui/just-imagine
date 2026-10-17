@@ -19,6 +19,7 @@ export const ApiErrorCodeSchema = z.enum([
   'FORBIDDEN',
   'NOT_FOUND',
   'INVALID_ARGUMENT',
+  'CONFLICT',
   'QUOTA_EXHAUSTED',
   'PLAN_LIMIT',
   'INTERNAL',

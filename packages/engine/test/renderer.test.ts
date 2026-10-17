@@ -221,6 +221,62 @@ it('preserves generated pose proportions and pins its ground anchor to the body 
   expect(sprite.position.set).toHaveBeenLastCalledWith(0, 0.6);
   engine.dispose();
 });
+
+it.each([1, 0.25])(
+  'keeps propulsion continuous between physics ticks at 120Hz, time scale %s',
+  async (timeScale) => {
+    const doc = structuredClone(FIXTURE_WORLDS.moonBounce),
+      hero = doc.entities.find((e) => e.id === doc.learning.heroEntityId)!;
+    doc.environment.gravity = { x: 0, y: 0 };
+    for (const material of Object.values(doc.materials)) material.softness = 0;
+    hero.behaviors = [];
+    hero.locomotion = { kind: 'fly', stride: 1, facing: 'right' };
+    hero.asset = {
+      url: '/fly.webp',
+      width: 768,
+      height: 512,
+      status: 'ready',
+      animation: { columns: 3, rows: 2, frames: 6 },
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, blob: async () => new Blob() })),
+    );
+    vi.stubGlobal('createImageBitmap', async () => ({ close: vi.fn() }));
+    const engine = await mountEngine(setup(), doc),
+      app = state.apps[0],
+      tick = app.ticker.add.mock.calls[0][0],
+      view = app.stage.children[0].children[1].children[doc.entities.indexOf(hero)];
+    await vi.waitFor(() => expect(view.children[0].texture?.frame).toBeDefined());
+    app.ticker.deltaMS = 1000 / 120;
+    if (timeScale !== 1) engine.castSpell('slowMotion');
+    engine.impulse(hero.id, { x: 0.5, y: 0 });
+    let betweenTicks = 0,
+      previousTime = -1,
+      previousIndex = 0;
+    for (let frame = 0; frame < 240; frame++) {
+      tick();
+      const texture = view.children[0].texture.frame,
+        index = (texture.y / 256) * 3 + texture.x / 256,
+        time = engine.frame().time;
+      // An in-between display frame can advance one pose, but must never flash
+      // the rest pose in the middle of a stride simply because physics did not tick.
+      if (time === previousTime && previousIndex >= 1 && previousIndex <= 3) {
+        expect(index).toBeGreaterThanOrEqual(previousIndex);
+        expect(index).toBeLessThanOrEqual(previousIndex + 1);
+        betweenTicks++;
+      }
+      previousTime = time;
+      previousIndex = index;
+    }
+    expect(betweenTicks).toBeGreaterThan(5);
+    const beforeGap = engine.frame().time;
+    app.ticker.elapsedMS = 2000;
+    tick();
+    expect(engine.frame().time).toBe(beforeGap);
+    engine.dispose();
+  },
+);
 import { mountEngine } from '../src/renderer';
 afterEach(() => {
   vi.unstubAllGlobals();

@@ -25,6 +25,21 @@ export async function verifyIdToken(idToken: string): Promise<{ uid: string }> {
   }
 }
 
+/** Family principals are roleless; school tokens can never create or enter family data. */
+export async function requireParent(idToken: string): Promise<{ uid: string }> {
+  const decoded = await decodeChecked(idToken);
+  if (
+    Object.hasOwn(decoded, 'role') ||
+    (
+      await db()
+        .doc('schoolPrincipals/' + decoded.uid)
+        .get()
+    ).exists
+  )
+    throw new AuthError('A family account is required.');
+  return { uid: decoded.uid };
+}
+
 /** The caller's token is valid but does not carry the admin custom claim. */
 export class AdminRequiredError extends Error {
   readonly code = 'FORBIDDEN' as const;
@@ -114,6 +129,8 @@ export async function requireSchoolAdmin(
   const claims = schoolClaimsOf(decoded);
   if (claims?.role !== 'schoolAdmin' || (schoolId !== undefined && schoolId !== claims.schoolId))
     throw new SchoolRoleRequiredError();
+  const member = await db().doc(schoolPaths.member(claims.schoolId, decoded.uid)).get();
+  if (!member.exists || member.get('role') !== 'schoolAdmin') throw new SchoolRoleRequiredError();
   return { uid: decoded.uid, email, schoolId: claims.schoolId, superAdmin: false };
 }
 
@@ -122,6 +139,17 @@ export async function requireStudent(idToken: string): Promise<StudentActor> {
   const decoded = await decodeChecked(idToken);
   const claims = schoolClaimsOf(decoded);
   if (claims?.role !== 'student' || decoded.uid !== studentUid(claims.schoolId, claims.studentId))
+    throw new SchoolRoleRequiredError();
+  const [profile, schoolClass] = await Promise.all([
+    db().doc(schoolPaths.student(claims.schoolId, claims.studentId)).get(),
+    db().doc(schoolPaths.schoolClass(claims.schoolId, claims.classId)).get(),
+  ]);
+  if (
+    !profile.exists ||
+    !schoolClass.exists ||
+    profile.get('classId') !== claims.classId ||
+    (profile.get('authVersion') ?? 0) !== claims.authVersion
+  )
     throw new SchoolRoleRequiredError();
   return {
     uid: decoded.uid,

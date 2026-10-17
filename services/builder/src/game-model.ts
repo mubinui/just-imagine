@@ -56,8 +56,13 @@ export class GameScriptModel {
   }
   generate: GenerateScript = async (prompt) => this.request(prompt, OUTPUT_JSON_SCHEMA);
 
-  plan: PlanGame = async (doc, job, previous) => {
-    const prompt = gameplayPlanPrompt(doc, job, previous);
+  plan: PlanGame = async (doc, job, previous, validationFeedback) => {
+    const prompt =
+      gameplayPlanPrompt(doc, job, previous) +
+      (validationFeedback
+        ? '\nCorrect the previous plan using the local validation feedback below. Preserve the complete wish and all causality/physics checks. Return a complete replacement plan, never a weaker test.\n' +
+          validationFeedback
+        : '');
     const schema = toGeminiJsonSchema(
       z.toJSONSchema(GameplayPlanSchema, { target: 'draft-7' }) as Record<string, unknown>,
     );

@@ -14,12 +14,20 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     if (typeof body.idToken !== 'string') throw new Error('Missing token');
     const token = await adminAuth().verifyIdToken(body.idToken, true);
+    if (Object.hasOwn(token, 'role'))
+      return NextResponse.json(
+        { error: 'Use the school sign-in for this account.' },
+        { status: 403 },
+      );
     if (Date.now() / 1000 - token.auth_time > 300)
       throw new Error('Please sign in again to continue');
     await db().runTransaction(async (tx) => {
       const ref = db().doc(paths.user(token.uid));
       const lock = await tx.get(db().doc(`deletionLocks/${token.uid}`));
       if (lock.exists) throw new Error('Account deletion is in progress');
+      const schoolPrincipal = await tx.get(db().doc(`schoolPrincipals/${token.uid}`));
+      if (schoolPrincipal.exists)
+        throw new Error('A school account cannot become a family account');
       const existing = await tx.get(ref);
       if (!existing.exists) {
         if (body.consent !== true)
@@ -54,7 +62,11 @@ export async function POST(req: NextRequest) {
       { error: error instanceof Error ? error.message : 'Authentication failed' },
       {
         status:
-          error instanceof Error && error.message === 'Account deletion is in progress' ? 403 : 401,
+          error instanceof Error &&
+          (error.message === 'Account deletion is in progress' ||
+            error.message === 'A school account cannot become a family account')
+            ? 403
+            : 401,
       },
     );
   }

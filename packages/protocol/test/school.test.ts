@@ -54,8 +54,14 @@ describe('school claims', () => {
       schoolId: 's1',
     });
     expect(
-      schoolClaimsOf({ role: 'student', schoolId: 's1', studentId: 'p1', classId: 'c1' }),
-    ).toEqual({ role: 'student', schoolId: 's1', studentId: 'p1', classId: 'c1' });
+      schoolClaimsOf({
+        role: 'student',
+        authVersion: 0,
+        schoolId: 's1',
+        studentId: 'p1',
+        classId: 'c1',
+      }),
+    ).toEqual({ role: 'student', authVersion: 0, schoolId: 's1', studentId: 'p1', classId: 'c1' });
     expect(schoolClaimsOf({ role: 'student', schoolId: 's1', studentId: 'p1' })).toBeNull();
     expect(schoolClaimsOf({ admin: true })).toBeNull();
     expect(schoolClaimsOf(null)).toBeNull();

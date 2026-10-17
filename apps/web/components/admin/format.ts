@@ -116,6 +116,8 @@ const ACTIONS: Record<AdminAuditAction, string> = {
   'catalog.publish': 'Catalog item published',
   'catalog.retire': 'Catalog item retired',
   'lesson.publish': 'Lesson published',
+  'lesson.save': 'Lesson saved',
+  'lesson.approve': 'Lesson language approved',
   'lesson.archive': 'Lesson archived',
 };
 export const actionLabel = (action: AdminAuditAction) => uiText(ACTIONS[action]);

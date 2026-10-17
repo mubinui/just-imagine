@@ -47,3 +47,7 @@ A bounded read-only Claude Code CLI review completed: [Claude review](../reviews
 ## Confirmed collaboration update — 2026-10-17
 
 The user answered the pending ownership question: “Claude: implementation; Codex: review and integration”. Codex’s current game-quality work is confined to the existing builder/runtime/renderer and its tests/configuration; it does not claim school implementation paths. Use the preflight packet when school contracts land, then review actual source, role boundaries and integration evidence before family catalog/story-pack wiring.
+
+# Current integration update — 2026-10-17
+
+The user subsequently approved full parallel implementation and integration on `feat/family-schools-integration`. Current source, runtime evidence and remaining limits are recorded in [family-schools-integration.md](family-schools-integration.md). The ownership notes below describe the earlier handoff and do not override that later authorization.

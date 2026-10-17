@@ -1,4 +1,5 @@
 'use client';
+import { PublishedWorlds } from './PublishedWorlds';
 import { useLanguage } from '../lib/i18n';
 import { uiNumber } from '../lib/i18n/ui';
 import { copy as uiText, uiError } from '../lib/i18n/ui';
@@ -205,7 +206,9 @@ export function Studio() {
       startWorld = FIXTURE_WORLDS[selected].worldId;
       selectWorldId(startWorld);
     } else {
-      const id = getVoice().session?.worldId ?? sessionStorage.getItem('ji-world');
+      const requested = sessionStorage.getItem('ji-open-world');
+      sessionStorage.removeItem('ji-open-world');
+      const id = requested ?? getVoice().session?.worldId ?? sessionStorage.getItem('ji-world');
       if (id) {
         startWorld = id;
         selectWorldId(id);
@@ -736,6 +739,17 @@ export function Studio() {
         center={
           env.fake ? (
             <Storybook worlds={FIXTURE_WORLDS} selected={fixture} onSelect={switchWorld} />
+          ) : child ? (
+            <PublishedWorlds
+              childId={child.id}
+              compact
+              onOpen={(id) => {
+                sessionStorage.setItem('ji-world', id);
+                selectWorldId(id);
+                if (hello.current) hello.current.worldId = id;
+                if (getVoice().session) getVoice().send({ type: 'openWorld', worldId: id });
+              }}
+            />
           ) : undefined
         }
       />

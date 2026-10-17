@@ -15,6 +15,8 @@ import {
 import { CharacterArt } from '../studio/CharacterArt';
 import { getVoice, releaseVoice, ensureChildVoice } from '../../lib/voice';
 import { env } from '../../lib/env';
+import { watchActor } from '../acting/clock';
+import { avatarPresence } from './presence';
 import '../../app/companion.css';
 
 const CompanionContext = createContext<{
@@ -33,6 +35,8 @@ export function CompanionArt({
   speaking?: boolean;
 }) {
   const art = useRef<HTMLSpanElement>(null);
+  const avatar = useRef<HTMLImageElement>(null);
+  const chibiImage = companion.kind === 'chibi' ? companion.image : undefined;
   useEffect(() => {
     const node = art.current;
     if (!speaking) {
@@ -47,15 +51,36 @@ export function CompanionArt({
       node?.style.setProperty('--mouth-open', '0');
     };
   }, [speaking]);
+  useEffect(() => {
+    const node = art.current,
+      bitmap = avatar.current;
+    if (!node || !bitmap || !chibiImage) return;
+    let energy = 0,
+      previous = 0;
+    const stop = watchActor(bitmap, (elapsed, reduced) => {
+      const input = Number(getComputedStyle(node).getPropertyValue('--mouth-open')) || 0;
+      const pose = avatarPresence(energy, input, elapsed, elapsed - previous, reduced);
+      previous = elapsed;
+      energy = pose.energy;
+      bitmap.style.transform = reduced
+        ? 'none'
+        : `translateY(-${pose.lift.toFixed(4)}%) scale(${pose.scaleX.toFixed(5)}, ${pose.scaleY.toFixed(5)})`;
+    });
+    return () => {
+      stop();
+      bitmap.style.removeProperty('transform');
+    };
+  }, [chibiImage]);
   return (
     <span
       ref={art}
       data-voice-character={companion.kind === 'preset' ? companion.characterId : undefined}
+      data-companion-kind={companion.kind}
       className={`companion-art${speaking ? ' is-speaking' : ''}`}
       aria-hidden="true"
     >
       {companion.kind === 'chibi' ? (
-        <img src={companion.image} alt="" width={160} height={160} />
+        <img ref={avatar} src={companion.image} alt="" width={160} height={160} />
       ) : (
         <CharacterArt id={companion.characterId} />
       )}

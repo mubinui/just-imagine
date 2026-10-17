@@ -129,6 +129,31 @@ describe('smokeRun on the red-team scripts', () => {
 describe('smokeRun goal and moderation checks', () => {
   const doc = EXAMPLE_SCENES['catch-the-flies'];
 
+  it('delivers browser scene defaults exactly once after start and before the first tick', async () => {
+    const scene = structuredClone(doc);
+    scene.variables = {
+      tap_points: {
+        label: 'Tap points',
+        min: 1,
+        max: 10,
+        step: 1,
+        value: 7,
+        unit: '',
+        binds: { kind: 'game' },
+      },
+    };
+    const result = await smokeRun(
+      scene,
+      `let initialized = 0;
+      game.on('variable', e => { if (e.id === 'tap_points') { initialized++; game.score(e.value); } });
+      game.on('tick', () => { if (initialized !== 1) throw 'scene defaults must initialize exactly once before ticks'; });`,
+      { seconds: 2, language: 'en' },
+    );
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    expect(result.stats.score).toBe(7);
+    expect(result.stats.commands.score).toBe(1);
+  });
+
   it('allows scoreless interactive play while retaining sandbox and runtime checks', async () => {
     const result = await smokeRun(doc, `game.on('tap', () => game.sound('pop'));`, {
       seconds: 3,

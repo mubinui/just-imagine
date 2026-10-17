@@ -14,7 +14,12 @@ export interface EquationTerm {
 }
 
 function addInto(target: AtomCounts, source: AtomCounts, times: number): void {
-  for (const [element, n] of source) target.set(element, (target.get(element) ?? 0) + n * times);
+  for (const [element, n] of source) {
+    const total = (target.get(element) ?? 0) + n * times;
+    if (!Number.isSafeInteger(total))
+      throw new FormulaError('Atom count exceeds safe integer limits.');
+    target.set(element, total);
+  }
 }
 
 /** Parses a digit string as a positive safe integer, so zero and huge counts cannot slip through. */

@@ -40,6 +40,7 @@ export const SchoolAdminClaimsSchema = z.object({
 });
 export const StudentClaimsSchema = z.object({
   role: z.literal('student'),
+  authVersion: z.number().int().nonnegative().default(0),
   schoolId: DocumentIdSchema,
   studentId: DocumentIdSchema,
   classId: DocumentIdSchema,
@@ -98,6 +99,7 @@ export const SchoolClassDocSchema = z.object({
   createdAt: EpochMsSchema,
 });
 export const StudentDocSchema = z.object({
+  authVersion: z.number().int().nonnegative().default(0),
   firstName: z.string().trim().min(1).max(40),
   username: StudentUsernameSchema,
   classId: DocumentIdSchema,
@@ -253,6 +255,9 @@ export const QuizKeySchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('numeric'),
     value: z.number(),
+    computedFrom: z
+      .object({ simId: SimRefSchema, params: ParamsSchema, observable: z.string().max(64) })
+      .optional(),
     tolerance: z.strictObject({ mode: z.enum(['abs', 'rel']), amount: z.number().nonnegative() }),
   }),
   z.strictObject({
@@ -283,8 +288,11 @@ export const AttemptDocSchema = z.object({
     ItemIdSchema,
     z.object({
       correct: z.boolean(),
+      answer: z.unknown().optional(),
       tries: z.number().int().nonnegative(),
       firstCorrectAt: EpochMsSchema.nullable(),
+      // Absent on legacy records: the historical attempt cannot be reconstructed.
+      firstCorrectTry: z.number().int().positive().optional(),
     }),
   ),
   pointsAwarded: z.number().int().nonnegative(),
@@ -389,9 +397,24 @@ export const schoolPaths = {
 
 export const SCHOOL_ROUTES = {
   me: { method: 'GET', path: '/v1/school/me' },
+  classes: { method: 'GET', path: '/v1/school/classes' },
+  students: { method: 'GET', path: '/v1/school/students' },
+  importStudents: { method: 'POST', path: '/v1/school/students/import' },
+  lessons: { method: 'GET', path: '/v1/school/lessons' },
+  results: { method: 'GET', path: '/v1/school/results' },
+  boards: { method: 'GET', path: '/v1/school/boards' },
+  acceptInvite: { method: 'POST', path: '/v1/school/invites/accept' },
 } as const;
 export const STUDY_ROUTES = {
   me: { method: 'GET', path: '/v1/study/me' },
+  login: { method: 'POST', path: '/v1/study/login' },
+  preferences: { method: 'PATCH', path: '/v1/study/me' },
+  lessons: { method: 'GET', path: '/v1/study/lessons' },
+  check: { method: 'POST', path: '/v1/study/lessons/:id/check' },
+  quiz: { method: 'POST', path: '/v1/study/lessons/:id/quiz' },
+  hint: { method: 'POST', path: '/v1/study/lessons/:id/hint' },
+  react: { method: 'POST', path: '/v1/study/react' },
+  boards: { method: 'GET', path: '/v1/study/boards' },
 } as const;
 export const SchoolMeResponseSchema = z.object({
   uid: z.string(),
@@ -404,3 +427,10 @@ export const StudyMeResponseSchema = z.object({
   studentId: DocumentIdSchema,
   classId: DocumentIdSchema,
 });
+
+export const ADMIN_SCHOOL_ROUTES = {
+  schools: { method: 'GET', path: '/v1/admin/schools' },
+  createSchool: { method: 'POST', path: '/v1/admin/schools' },
+  catalog: { method: 'GET', path: '/v1/admin/catalog' },
+  lessons: { method: 'GET', path: '/v1/admin/lessons' },
+} as const;

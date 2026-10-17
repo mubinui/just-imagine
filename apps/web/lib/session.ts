@@ -5,7 +5,8 @@ export async function getParentSession() {
   const cookie = (await cookies()).get('__session')?.value;
   if (!cookie) return null;
   try {
-    return await adminAuth().verifySessionCookie(cookie, true);
+    const session = await adminAuth().verifySessionCookie(cookie, true);
+    return Object.hasOwn(session, 'role') ? null : session;
   } catch {
     return null;
   }

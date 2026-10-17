@@ -4,6 +4,7 @@ import { UserDocSchema, ChildDocSchema, paths, type BuildWorldJob } from '@just-
 import { FIXTURE_WORLDS } from '@just-imagine/fixtures/browser';
 import { BuilderWorker } from '../src/worker';
 import type { VertexModels } from '../src/vertex';
+import { toGenerated } from '../src/prompts/v1';
 process.env['GOOGLE_CLOUD_PROJECT'] = 'demo-just-imagine';
 it('publishes placeholders through ready, replays idempotently and refuses a deleted child', async () => {
   if (!process.env['FIRESTORE_EMULATOR_HOST']) throw new Error('Emulator required');
@@ -176,4 +177,71 @@ it('does not recreate retained job data for a missing or deleted profile', async
   await expect(worker.run(job)).rejects.toThrow('unavailable');
   expect((await db().doc('builderJobs/j_admission_failure').get()).exists).toBe(false);
   expect((await db().doc('worlds/w_admission_failure').get()).exists).toBe(false);
+});
+
+it('persists only safe terminal game diagnostics and never paints or publishes rejected behavior', async () => {
+  const uid = 'diagnostic_parent',
+    childId = 'c_diagnostic';
+  await writeDoc(paths.user(uid), UserDocSchema, {
+    email: 'qa@example.test',
+    displayName: 'QA',
+    consentAt: 1,
+    plan: 'free',
+    stripeCustomerId: null,
+    createdAt: 1,
+  });
+  await writeDoc(paths.child(uid, childId), ChildDocSchema, {
+    firstName: 'Private child',
+    avatar: 'owl',
+    ageBand: '8-10',
+    tier: 'playground',
+    labsUnlocked: false,
+    captions: true,
+    sessionTargetMinutes: 8,
+    loopsCompleted: 0,
+    createdAt: 1,
+  });
+  const models = {
+    generate: vi.fn(async () => toGenerated(FIXTURE_WORLDS.jellyDragon)),
+    image: vi.fn(),
+  } as unknown as VertexModels;
+  const worker = new BuilderWorker(
+    models,
+    { bucket: 'unused', assetBaseUrl: 'https://assets.invalid' },
+    {
+      generateScript: async () => ({ kind: 'game', source: 'fetch("private-source");' }),
+    },
+  );
+  const job: BuildWorldJob = {
+    kind: 'build',
+    jobId: 'j_safe_diagnostic',
+    worldId: 'w_safe_diagnostic',
+    uid,
+    childId,
+    sessionId: 's_diagnostic',
+    plan: 'free',
+    description: 'private wish',
+    experience: 'freeplay',
+    concepts: ['bounce'],
+    ageBand: '8-10',
+    tier: 'playground',
+    styleVersion: 'v1',
+    promptVersion: 'v1',
+    conversationSummary: '',
+  };
+  await expect(worker.run(job)).rejects.toThrow('could not be validated');
+  const result = (
+    await db()
+      .doc('builderJobs/' + job.jobId)
+      .get()
+  ).data()!;
+  expect(result.status).toBe('failed');
+  expect(result.failure).toMatchObject({
+    code: 'SCRIPT_STATIC',
+    attempt: 2,
+    issues: [{ code: 'forbidden-identifier', line: 1 }],
+  });
+  expect(JSON.stringify(result.failure)).not.toMatch(/private|fetch|source|wish|child/i);
+  expect((await db().doc(paths.world(job.worldId)).get()).exists).toBe(false);
+  expect(models.image).not.toHaveBeenCalled();
 });
