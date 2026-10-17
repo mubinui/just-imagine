@@ -73,7 +73,7 @@ export function SafetyPanel() {
         onRefresh={() => void reload()}
         busy={loading}
       />
-      <LoadError message={error} />
+      <LoadError message={error} onRetry={() => void reload()} />
       {!data ? (
         loading && <Skeleton rows={8} />
       ) : (

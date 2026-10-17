@@ -11,6 +11,8 @@ export const UI_BN: Record<string, string> = {
   'School reinstated': 'স্কুল আবার চালু হয়েছে',
   'Teacher invited': 'শিক্ষককে আমন্ত্রণ জানানো হয়েছে',
   'Invite revoked': 'আমন্ত্রণ বাতিল করা হয়েছে',
+  'Catalog draft added': 'ক্যাটালগে খসড়া যোগ হয়েছে',
+  'Catalog item updated': 'ক্যাটালগের বিষয় হালনাগাদ হয়েছে',
   'Catalog item published': 'ক্যাটালগের বিষয় প্রকাশিত হয়েছে',
   'Catalog item retired': 'ক্যাটালগের বিষয় সরিয়ে রাখা হয়েছে',
   'Lesson published': 'পাঠ প্রকাশিত হয়েছে',
@@ -735,3 +737,200 @@ UI_BN['Voice minutes a day'] = 'দিনে কথার মিনিট';
 UI_BN['New worlds a day'] = 'দিনে নতুন জগৎ';
 UI_BN['Pictures in each world'] = 'প্রতিটি জগতে ছবি';
 UI_BN['Saved worlds'] = 'সংরক্ষিত জগৎ';
+
+// Operator console: navigation, schools, catalog, lessons and audit wording.
+Object.assign(UI_BN, {
+  Schools: 'বিদ্যালয়',
+  Catalog: 'ক্যাটালগ',
+  Lessons: 'পাঠ',
+  Menu: 'মেনু',
+  'Skip to content': 'মূল অংশে যান',
+  'Open System': 'সিস্টেম খুলুন',
+  'Generation is paused.': 'তৈরি করা এখন বন্ধ আছে।',
+  'Voice sessions and world builds refuse new work until it is resumed.':
+    'আবার চালু না করা পর্যন্ত কথোপকথন ও জগৎ তৈরির নতুন কোনো কাজ নেওয়া হবে না।',
+  'Back to Just Imagine': 'জাস্ট ইমাজিনে ফিরে যান',
+  'The account you are signed in with is not an operator account, so the console stayed closed. Sign in below with an operator account.':
+    'আপনি যে অ্যাকাউন্টে প্রবেশ করেছেন সেটি পরিচালক অ্যাকাউন্ট নয়, তাই প্যানেলটি খোলেনি। নিচে একটি পরিচালক অ্যাকাউন্ট দিয়ে প্রবেশ করুন।',
+  'The console cannot reach the api right now. Check the connection, then retry.':
+    'এই মুহূর্তে প্যানেল সার্ভারের সঙ্গে যোগাযোগ করতে পারছে না। সংযোগ দেখে আবার চেষ্টা করুন।',
+  Retry: 'আবার চেষ্টা করুন',
+  Copy: 'কপি করুন',
+  Copied: 'কপি হয়েছে',
+  'Copy id {v0}': '{v0} আইডি কপি করুন',
+  'Changes saved. Recorded in the audit log.':
+    'পরিবর্তন সংরক্ষিত হয়েছে। পরিবর্তনের রেকর্ডে লেখা হয়েছে।',
+  Status: 'অবস্থা',
+  Paused: 'সাময়িক বন্ধ',
+  Draft: 'খসড়া',
+  Published: 'প্রকাশিত',
+  Retired: 'সরিয়ে রাখা',
+  Archived: 'আর্কাইভ করা',
+  Title: 'শিরোনাম',
+  'Title in English': 'ইংরেজিতে শিরোনাম',
+  'Title in Bangla': 'বাংলায় শিরোনাম',
+  Name: 'নাম',
+  'Name in English': 'ইংরেজিতে নাম',
+  'Name in Bangla': 'বাংলায় নাম',
+  'Age bands': 'বয়সের ধাপ',
+  'Ages {v0}': '{v0} বছর',
+  Details: 'বিস্তারিত',
+  Created: 'তৈরি',
+  Expires: 'মেয়াদ শেষ',
+  'Expires {v0}': 'মেয়াদ শেষ {v0}',
+  worlds: 'জগৎ',
+  '{v0} min': '{v0} মিনিট',
+  '{v0} of {v1} {v2}': '{v0} / {v1} {v2} ব্যবহৃত',
+  'Page {v0}': 'পাতা {v0}',
+  '{v0} aged 6–7 · {v1} aged 8–10 · {v2} aged 11–13':
+    '৬–৭ বছর: {v0} · ৮–১০ বছর: {v1} · ১১–১৩ বছর: {v2}',
+  'Last 7 days: {v0} voice min, {v1} worlds, {v2} images.':
+    'গত ৭ দিন: {v0} মিনিট কথা, {v1}টি জগৎ, {v2}টি ছবি।',
+  'Removes the parent account, explorer profiles, worlds, sessions and usage, and cancels billing. This cannot be undone.':
+    'অভিভাবকের অ্যাকাউন্ট, খুদে অভিযাত্রীদের প্রোফাইল, জগৎ, সেশন ও ব্যবহারের তথ্য মুছে যাবে এবং বিল বন্ধ হবে। এটি আর ফেরানো যাবে না।',
+  'Type this phrase to confirm:': 'নিশ্চিত করতে এই বাক্যটি লিখুন:',
+  'The reason above is recorded with the request.': 'ওপরের কারণটি অনুরোধের সঙ্গে লেখা থাকবে।',
+  'Students / seats': 'শিক্ষার্থী / আসন',
+  'Voice minutes today': 'আজকের কথার মিনিট',
+  'No world builds in the last 30 days.': 'গত ৩০ দিনে কোনো জগৎ তৈরি হয়নি।',
+  'World builds in the last 30 days: {v0} finished, {v1} failed ({v2}).':
+    'গত ৩০ দিনে জগৎ তৈরি: {v0}টি শেষ, {v1}টি ব্যর্থ ({v2})।',
+  'Cost is an estimate from usage counters at {v0} per voice minute, {v1} per world build and {v2} per image. Compare it with the Cloud Billing export before acting on it.':
+    'খরচ ব্যবহারের হিসাব থেকে আনুমানিক: প্রতি মিনিট কথায় {v0}, প্রতিটি জগৎ তৈরিতে {v1} এবং প্রতিটি ছবিতে {v2}। কোনো সিদ্ধান্তের আগে ক্লাউড বিলিংয়ের হিসাবের সঙ্গে মিলিয়ে নিন।',
+  // Schools
+  School: 'বিদ্যালয়',
+  'School code': 'বিদ্যালয়ের কোড',
+  Seats: 'আসন',
+  'All schools': 'সব বিদ্যালয়',
+  'Add a school': 'বিদ্যালয় যোগ করুন',
+  'New school': 'নতুন বিদ্যালয়',
+  'School details': 'বিদ্যালয়ের তথ্য',
+  'Create school': 'বিদ্যালয় তৈরি করুন',
+  'No schools yet.': 'এখনো কোনো বিদ্যালয় নেই।',
+  'Add a school to give it a sign-in code and invite its first teacher.':
+    'বিদ্যালয় যোগ করলে এটি প্রবেশের একটি কোড পাবে, তারপর প্রথম শিক্ষককে আমন্ত্রণ জানাতে পারবেন।',
+  'School accounts, seats, daily voice time and teacher invitations. Every change is recorded in the audit log.':
+    'বিদ্যালয়ের অ্যাকাউন্ট, আসন, দৈনিক কথার সময় ও শিক্ষকদের আমন্ত্রণ। প্রতিটি পরিবর্তন রেকর্ডে লেখা থাকে।',
+  'School created with code {v0}. Invite its first teacher below.':
+    '{v0} কোড দিয়ে বিদ্যালয় তৈরি হয়েছে। নিচে প্রথম শিক্ষককে আমন্ত্রণ জানান।',
+  'Daily voice': 'দৈনিক কথা',
+  'Daily voice minutes': 'দৈনিক কথার মিনিট',
+  'Shared by every student in the school.': 'বিদ্যালয়ের সব শিক্ষার্থী মিলে ব্যবহার করে।',
+  'Student accounts this school can hold.': 'এই বিদ্যালয়ে কতজন শিক্ষার্থীর অ্যাকাউন্ট থাকতে পারে।',
+  'Teacher invitations': 'শিক্ষকদের আমন্ত্রণ',
+  'Teacher email': 'শিক্ষকের ইমেইল',
+  'Send invitation': 'আমন্ত্রণ পাঠান',
+  'Invitation link': 'আমন্ত্রণের লিংক',
+  'Copy invitation link': 'আমন্ত্রণের লিংক কপি করুন',
+  'Copy this link now and send it to the teacher. It is shown only once and works for 7 days.':
+    'লিংকটি এখনই কপি করে শিক্ষককে পাঠান। এটি একবারই দেখানো হয় এবং ৭ দিন কাজ করে।',
+  'Invitation created. Recorded in the audit log.':
+    'আমন্ত্রণ তৈরি হয়েছে। পরিবর্তনের রেকর্ডে লেখা হয়েছে।',
+  'Invitation revoked. Recorded in the audit log.':
+    'আমন্ত্রণ বাতিল হয়েছে। পরিবর্তনের রেকর্ডে লেখা হয়েছে।',
+  'Waiting to be accepted': 'গ্রহণের অপেক্ষায়',
+  'No open invitations.': 'খোলা কোনো আমন্ত্রণ নেই।',
+  Revoke: 'বাতিল করুন',
+  'Revoke invitation': 'আমন্ত্রণ বাতিল করুন',
+  // Catalog
+  'Catalog items': 'ক্যাটালগের বিষয়গুলো',
+  'Catalog item': 'ক্যাটালগের বিষয়',
+  'Story packs': 'গল্পের প্যাক',
+  'Story pack': 'গল্পের প্যাক',
+  'Add a world': 'জগৎ যোগ করুন',
+  'Upload a story pack': 'গল্পের প্যাক তুলুন',
+  'No catalog worlds yet.': 'ক্যাটালগে এখনো কোনো জগৎ নেই।',
+  'No story packs yet.': 'এখনো কোনো গল্পের প্যাক নেই।',
+  'Add a ready world by its id to offer it to every family. It stays a draft until you publish it.':
+    'প্রস্তুত একটি জগতের আইডি দিয়ে সেটি যোগ করুন, যাতে সব পরিবার পায়। প্রকাশ না করা পর্যন্ত এটি খসড়া থাকবে।',
+  'Upload a story pack file or start from a built-in pack. It stays a draft until you publish it.':
+    'গল্পের প্যাকের ফাইল তুলুন অথবা তৈরি একটি প্যাক থেকে শুরু করুন। প্রকাশ না করা পর্যন্ত এটি খসড়া থাকবে।',
+  'Worlds and story packs offered to every family. New items start as drafts; publishing needs a title in both languages.':
+    'সব পরিবারের জন্য দেওয়া জগৎ ও গল্পের প্যাক। নতুন বিষয় খসড়া হিসেবে শুরু হয়; প্রকাশ করতে দুই ভাষাতেই শিরোনাম লাগে।',
+  'World id': 'জগতের আইডি',
+  'Pack id': 'প্যাকের আইডি',
+  'The id of a ready, visible world. It cannot change later.':
+    'প্রস্তুত ও দৃশ্যমান একটি জগতের আইডি। পরে এটি বদলানো যাবে না।',
+  'No saved world has that id. Check the id and try again.':
+    'এই আইডির কোনো সংরক্ষিত জগৎ নেই। আইডিটি দেখে আবার চেষ্টা করুন।',
+  'Story pack file': 'গল্পের প্যাকের ফাইল',
+  'A .json story pack.': 'জেসন ফাইলে লেখা একটি গল্পের প্যাক।',
+  'Or start from a built-in pack': 'অথবা তৈরি একটি প্যাক থেকে শুরু করুন',
+  'Choose a template…': 'একটি নমুনা বেছে নিন…',
+  'Pack editor': 'প্যাক সম্পাদক',
+  Form: 'ফর্ম',
+  JSON: 'জেসন কোড',
+  'Story pack JSON': 'গল্পের প্যাকের জেসন কোড',
+  'That file is not valid JSON.': 'ফাইলটি সঠিক জেসন ফাইল নয়।',
+  'Choose a file or a built-in pack to start editing.':
+    'সম্পাদনা শুরু করতে একটি ফাইল বা তৈরি প্যাক বেছে নিন।',
+  'Choose at least one age band.': 'অন্তত একটি বয়সের ধাপ বেছে নিন।',
+  Remove: 'সরান',
+  'Add another': 'আরেকটি যোগ করুন',
+  'New draft': 'নতুন খসড়া',
+  'Add as draft': 'খসড়া হিসেবে যোগ করুন',
+  'Added as a draft. Publish it below when it is ready.':
+    'খসড়া হিসেবে যোগ হয়েছে। প্রস্তুত হলে নিচ থেকে প্রকাশ করুন।',
+  Availability: 'কারা দেখতে পাবে',
+  'Families can find this item in the catalog now.': 'পরিবারগুলো এখন ক্যাটালগে এটি খুঁজে পাবে।',
+  'Retired items are hidden from families. Publish again to restore it.':
+    'সরিয়ে রাখা বিষয় পরিবারগুলো দেখতে পায় না। ফিরিয়ে আনতে আবার প্রকাশ করুন।',
+  'Drafts are visible only here until you publish them.':
+    'প্রকাশ না করা পর্যন্ত খসড়া শুধু এখানেই দেখা যায়।',
+  'Publish world': 'জগৎ প্রকাশ করুন',
+  'Publish story pack': 'গল্পের প্যাক প্রকাশ করুন',
+  Retire: 'সরিয়ে রাখুন',
+  'Published to every family. Recorded in the audit log.':
+    'সব পরিবারের জন্য প্রকাশিত হয়েছে। পরিবর্তনের রেকর্ডে লেখা হয়েছে।',
+  'Retired from the catalog. Recorded in the audit log.':
+    'ক্যাটালগ থেকে সরিয়ে রাখা হয়েছে। পরিবর্তনের রেকর্ডে লেখা হয়েছে।',
+  'Moved back to draft. Recorded in the audit log.':
+    'আবার খসড়ায় ফেরানো হয়েছে। পরিবর্তনের রেকর্ডে লেখা হয়েছে।',
+  // Lessons
+  Lesson: 'পাঠ',
+  'All lessons': 'সব পাঠ',
+  'Create lesson': 'পাঠ তৈরি করুন',
+  'Lessons every school can use. Both languages must be approved before a lesson is published.':
+    'সব বিদ্যালয় ব্যবহার করতে পারে এমন পাঠ। প্রকাশের আগে দুই ভাষাই অনুমোদন করতে হয়।',
+  Subject: 'বিষয়',
+  'All subjects': 'সব বিষয়',
+  Grade: 'শ্রেণি',
+  'Grade {v0}': 'শ্রেণি {v0}',
+  'All grades': 'সব শ্রেণি',
+  Chapter: 'অধ্যায়',
+  Physics: 'পদার্থবিজ্ঞান',
+  Chemistry: 'রসায়ন',
+  Mathematics: 'গণিত',
+  'No lessons yet.': 'এখনো কোনো পাঠ নেই।',
+  'No lessons match these filters.': 'এই বাছাইয়ে কোনো পাঠ মেলেনি।',
+  'Choose all subjects or all grades to see more.': 'আরও দেখতে সব বিষয় বা সব শ্রেণি বেছে নিন।',
+  'Create a lesson to offer it to every school.': 'সব বিদ্যালয়কে দিতে একটি পাঠ তৈরি করুন।',
+  // Appearance and content
+  'Make {v0} the app default for everyone?': '{v0} কি সবার জন্য অ্যাপের নির্ধারিত রং হবে?',
+  'Every device that follows the app default changes within 30 seconds. Devices with their own colour choice keep it.':
+    'অ্যাপের নির্ধারিত রং অনুসরণ করা প্রতিটি ডিভাইস ৩০ সেকেন্ডের মধ্যে বদলে যাবে। যেসব ডিভাইসে নিজস্ব রং বেছে নেওয়া আছে, সেগুলো আগের মতোই থাকবে।',
+  'Publish to all devices': 'সব ডিভাইসে প্রকাশ করুন',
+  'Generated-game checks': 'তৈরি খেলার যাচাই',
+  'No game checks recorded yet.': 'এখনো কোনো খেলার যাচাই লেখা হয়নি।',
+  'Every generated game is played automatically in a sandboxed script runtime before a child sees it. No generated code runs outside that sandbox. Results appear here once the builder records them.':
+    'শিশু দেখার আগে প্রতিটি তৈরি খেলা একটি সুরক্ষিত, আলাদা স্ক্রিপ্ট পরিবেশে নিজে থেকে খেলে দেখা হয়। তৈরি করা কোনো কোড এই পরিবেশের বাইরে চলে না। নির্মাতা সেবা ফল লিখে রাখলে তা এখানে দেখা যাবে।',
+  'Pack versions are not available here yet.': 'প্যাকের সংস্করণ এখনো এখানে দেখা যাচ্ছে না।',
+  'Learning World packs are bundled with each release. Their titles and versions will be listed here once this console can read them.':
+    'শেখার জগতের প্যাকগুলো প্রতিটি সংস্করণের সঙ্গে আসে। এই প্যানেল সেগুলো পড়তে পারলে শিরোনাম ও সংস্করণ এখানে দেখা যাবে।',
+  '{v0} passed ({v1} of {v2} recent runs).': '{v0} সফল (সাম্প্রতিক {v2}টির মধ্যে {v1}টি)।',
+  // Audit log wording
+  'Catalog draft added': 'ক্যাটালগে খসড়া যোগ হয়েছে',
+  'Catalog item updated': 'ক্যাটালগের বিষয় হালনাগাদ হয়েছে',
+  'School paused': 'বিদ্যালয় সাময়িক বন্ধ',
+  'Invite removed': 'আমন্ত্রণ সরানো হয়েছে',
+  "Today's counters were already at zero.": 'আজকের হিসাব আগেই শূন্য ছিল।',
+  'Comped plan': 'বিশেষ সুবিধার প্ল্যান',
+  'Voice seconds': 'কথার সেকেন্ড',
+  'Daily voice seconds': 'দৈনিক কথার সেকেন্ড',
+  Theme: 'রঙের ধরন',
+  Revision: 'সংস্করণ নম্বর',
+  'Published on': 'প্রকাশের তারিখ',
+  Invite: 'আমন্ত্রণ',
+  Kind: 'ধরন',
+  World: 'জগৎ',
+});

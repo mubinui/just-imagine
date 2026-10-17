@@ -6,6 +6,6 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
   if (process.env.NEXT_PUBLIC_FAKE === '1') redirect('/');
   const gate = await adminGate();
   if (gate.kind === 'signed-out') redirect('/admin/sign-in');
-  if (gate.kind === 'not-admin') redirect('/');
+  if (gate.kind === 'not-admin') redirect('/admin/sign-in?reason=not-operator');
   return <AdminShell email={gate.email}>{children}</AdminShell>;
 }

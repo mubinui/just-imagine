@@ -10,6 +10,17 @@ import {
 import { WorldPackSchema, PACKS } from '@just-imagine/learning-content';
 import { adminActor } from './admin-schools';
 import { db, newId, read, fail, reasonSchema } from './school/common';
+import { ApiFault } from './errors';
+/** The audited view of an entry: scalar fields only, so the log can show what changed. */
+function audited(entry: z.infer<typeof CatalogEntryDocSchema>) {
+  return {
+    status: entry.status,
+    kind: entry.kind,
+    titleEn: entry.title.en,
+    titleBn: entry.title.bn,
+    ageBands: entry.ageBands.join(', '),
+  };
+}
 function catalogPack(input: unknown) {
   const pack = WorldPackSchema.parse(input);
   if (!/^catalog_[a-z0-9_]{1,24}$/.test(pack.id))
@@ -43,7 +54,11 @@ export function registerAdminCatalogRoutes(app: FastifyInstance) {
             reason: reasonSchema,
           })
           .parse(req.body),
-        world = await read('worlds/' + body.worldId, WorldDocSchema);
+        world = await read('worlds/' + body.worldId, WorldDocSchema).catch((e: unknown) => {
+          if (e instanceof ApiFault && e.status === 404)
+            return fail(404, 'No saved world has that id. Check the id and try again.');
+          throw e;
+        });
       if (world.status !== 'ready') return fail(400, 'Choose a ready, visible world.');
       const id = newId('j'),
         actor = await adminActor(req),
@@ -63,10 +78,10 @@ export function registerAdminCatalogRoutes(app: FastifyInstance) {
       batch.create(db().doc('adminAudit/' + newId('j')), {
         actorUid: actor.uid,
         actorEmail: actor.email,
-        action: 'catalog.publish',
+        action: 'catalog.create',
         target: { kind: 'catalog', id },
         before: null,
-        after: { status: 'draft', kind: 'world' },
+        after: { ...audited(entry), worldId: body.worldId },
         reason: body.reason,
         at: Date.now(),
       });
@@ -104,10 +119,10 @@ export function registerAdminCatalogRoutes(app: FastifyInstance) {
         tx.create(db().doc('adminAudit/' + newId('j')), {
           actorUid: actor.uid,
           actorEmail: actor.email,
-          action: 'catalog.publish',
+          action: 'catalog.create',
           target: { kind: 'catalog', id },
           before: null,
-          after: { status: 'draft', kind: 'storyPack' },
+          after: { ...audited(entry), packId: pack.id },
           reason: body.reason,
           at: Date.now(),
         });
@@ -150,10 +165,15 @@ export function registerAdminCatalogRoutes(app: FastifyInstance) {
         tx.create(db().doc('adminAudit/' + newId('j')), {
           actorUid: actor.uid,
           actorEmail: actor.email,
-          action: body.status === 'retired' ? 'catalog.retire' : 'catalog.publish',
+          action:
+            body.status === 'retired'
+              ? 'catalog.retire'
+              : body.status === 'published'
+                ? 'catalog.publish'
+                : 'catalog.update',
           target: { kind: 'catalog', id },
-          before: { status: before.status },
-          after: { status: entry.status },
+          before: audited(before),
+          after: audited(entry),
           reason: body.reason,
           at: Date.now(),
         });

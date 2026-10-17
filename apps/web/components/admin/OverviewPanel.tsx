@@ -1,22 +1,25 @@
 'use client';
 import { useLanguage } from '../../lib/i18n';
-import { uiNumber } from '../../lib/i18n/ui';
 import { copy as uiText } from '../../lib/i18n/ui';
 import { ADMIN_COST_PER_UNIT_USD, type AdminOverviewResponse } from '@just-imagine/protocol';
-import { adminApi, useAdminResource } from './adminApi';
-import { formatCount, formatDateKey, formatPercent, formatUsd, formatWhen } from './format';
+import { adminApi, adminRequest, useAdminResource } from './adminApi';
+import {
+  ageBandCounts,
+  formatCount,
+  formatDateKey,
+  formatPercent,
+  formatUsd,
+  formatWhen,
+} from './format';
 import { LoadError, PageHeading, Skeleton } from './parts';
-import { useSchoolResource } from '../../lib/school/api';
 import type { School } from '../../lib/school/types';
-import { en as schoolEnglish } from '../../lib/i18n/study/en';
-import { bn as schoolBangla } from '../../lib/i18n/study/bn';
 
 const loadOverview = () => adminApi<AdminOverviewResponse>('overview');
+const loadSchools = () => adminRequest<{ schools: School[] }>('schools');
 
 export function OverviewPanel() {
-  const { language } = useLanguage();
-  const schoolCopy = language === 'bn' ? schoolBangla : schoolEnglish;
-  const schools = useSchoolResource<{ schools: School[] }>('admin/schools');
+  useLanguage();
+  const schools = useAdminResource(loadSchools);
   const { data, error, loading, reload } = useAdminResource(loadOverview);
   return (
     <>
@@ -29,11 +32,11 @@ export function OverviewPanel() {
         }
         onRefresh={() => {
           void reload();
-          schools.reload();
+          void schools.reload();
         }}
         busy={loading}
       />
-      <LoadError message={error} />
+      <LoadError message={error} onRetry={() => void reload()} />
       {!data ? (
         loading && <Skeleton rows={6} />
       ) : (
@@ -48,11 +51,7 @@ export function OverviewPanel() {
               <div>
                 <dt>{uiText('Explorer profiles')}</dt>
                 <dd>{formatCount(data.children)}</dd>
-                <dd className="adm-figure-note">
-                  {uiNumber(data.childrenByAgeBand['6-7'])} {uiText('aged 6–7 ·')}
-                  {uiNumber(data.childrenByAgeBand['8-10'])} {uiText('aged 8–10 ·')}
-                  {uiNumber(data.childrenByAgeBand['11-13'])} {uiText('aged 11–13')}
-                </dd>
+                <dd className="adm-figure-note">{ageBandCounts(data.childrenByAgeBand)}</dd>
               </div>
               <div>
                 <dt>{uiText('Paying Family plans')}</dt>
@@ -70,21 +69,19 @@ export function OverviewPanel() {
           </section>
 
           <section className="adm-section" aria-labelledby="school-fleet">
-            <h2 id="school-fleet">{schoolCopy.schools}</h2>
-            <LoadError message={schools.error} />
-            {schools.loading ? (
+            <h2 id="school-fleet">{uiText('Schools')}</h2>
+            <LoadError message={schools.error} onRetry={() => void schools.reload()} />
+            {schools.loading && !schools.data ? (
               <Skeleton rows={2} />
             ) : (
               schools.data && (
                 <dl className="adm-figures">
                   <div>
-                    <dt>{schoolCopy.schools}</dt>
+                    <dt>{uiText('Schools')}</dt>
                     <dd>{formatCount(schools.data.schools.length)}</dd>
                   </div>
                   <div>
-                    <dt>
-                      {schoolCopy.students} / {schoolCopy.capacity}
-                    </dt>
+                    <dt>{uiText('Students / seats')}</dt>
                     <dd>
                       {formatCount(
                         schools.data.schools.reduce((n, s) => n + (s.studentCount ?? 0), 0),
@@ -93,7 +90,7 @@ export function OverviewPanel() {
                     </dd>
                   </div>
                   <div>
-                    <dt>{schoolCopy.teacher}</dt>
+                    <dt>{uiText('Teachers')}</dt>
                     <dd>
                       {formatCount(
                         schools.data.schools.reduce((n, s) => n + (s.teacherCount ?? 0), 0),
@@ -102,9 +99,7 @@ export function OverviewPanel() {
                   </div>
                   {schools.data.schools.every((s) => s.voiceSecondsToday !== undefined) && (
                     <div>
-                      <dt>
-                        {uiText('Voice minutes')} · {uiText('Today')}
-                      </dt>
+                      <dt>{uiText('Voice minutes today')}</dt>
                       <dd>
                         {formatCount(
                           Math.round(
@@ -167,12 +162,13 @@ export function OverviewPanel() {
               </table>
             </div>
             <p className="adm-note">
-              {uiText('World builds in the last 30 days:')}
-              {formatCount(data.builder.finished30)}
-              {uiText(' ')}
-              {uiText('finished,')} {formatCount(data.builder.failed30)} {uiText('failed (')}
-              {data.builder.finished30 ? formatPercent(data.builder.failureRate) : 'no builds yet'}
-              ).
+              {data.builder.finished30 || data.builder.failed30
+                ? uiText('World builds in the last 30 days: {v0} finished, {v1} failed ({v2}).', {
+                    v0: data.builder.finished30,
+                    v1: data.builder.failed30,
+                    v2: formatPercent(data.builder.failureRate),
+                  })
+                : uiText('No world builds in the last 30 days.')}
             </p>
           </section>
 
@@ -217,15 +213,14 @@ export function OverviewPanel() {
               </table>
             </div>
             <p className="adm-note">
-              {uiText('Cost is an estimate from usage counters at')}
-              {uiText(' ')}
-              {formatUsd(ADMIN_COST_PER_UNIT_USD.voiceMinute)} {uiText('per voice minute,')}
-              {uiText(' ')}
-              {formatUsd(ADMIN_COST_PER_UNIT_USD.worldBuild)} {uiText('per world build and')}
-              {uiText(' ')}
-              {formatUsd(ADMIN_COST_PER_UNIT_USD.image)}
-              {uiText(' ')}
-              {uiText('per image. Compare it with the Cloud Billing export before acting on it.')}
+              {uiText(
+                'Cost is an estimate from usage counters at {v0} per voice minute, {v1} per world build and {v2} per image. Compare it with the Cloud Billing export before acting on it.',
+                {
+                  v0: formatUsd(ADMIN_COST_PER_UNIT_USD.voiceMinute),
+                  v1: formatUsd(ADMIN_COST_PER_UNIT_USD.worldBuild),
+                  v2: formatUsd(ADMIN_COST_PER_UNIT_USD.image),
+                },
+              )}
             </p>
           </section>
         </>

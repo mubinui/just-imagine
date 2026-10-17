@@ -82,6 +82,8 @@ export const AdminAuditActionSchema = z.enum([
   'school.reinstate',
   'school.invite',
   'school.inviteRevoke',
+  'catalog.create',
+  'catalog.update',
   'catalog.publish',
   'catalog.retire',
   'lesson.publish',

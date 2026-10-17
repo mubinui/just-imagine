@@ -81,20 +81,86 @@ export function planLabel(row: Pick<AdminFamilyRow, 'plan' | 'compPlan' | 'subsc
   return base;
 }
 
-const show = (v: unknown) =>
+const FIELD_LABELS: Record<string, string> = {
+  plan: 'Plan',
+  compPlan: 'Comped plan',
+  voiceSeconds: 'Voice seconds',
+  worlds: 'Worlds',
+  images: 'Images',
+  suspended: 'Suspended',
+  hidden: 'Hidden',
+  on: 'Paused',
+  reason: 'Reason',
+  theme: 'Theme',
+  revision: 'Revision',
+  name: 'Name',
+  nameBn: 'Name in Bangla',
+  code: 'School code',
+  status: 'Status',
+  seats: 'Seats',
+  voiceSecondsPerDay: 'Daily voice seconds',
+  createdAt: 'Created',
+  updatedAt: 'Updated',
+  publishedAt: 'Published on',
+  expiresAt: 'Expires',
+  email: 'Email',
+  inviteId: 'Invite',
+  kind: 'Kind',
+  titleEn: 'Title in English',
+  titleBn: 'Title in Bangla',
+  ageBands: 'Age bands',
+  worldId: 'World',
+  packId: 'Pack',
+};
+const fieldLabel = (key: string) => uiText(FIELD_LABELS[key] ?? key);
+/** Stored enum values shown as words, for the fields whose values are a fixed vocabulary. */
+const ENUM_FIELDS = new Set(['status', 'plan', 'compPlan', 'kind', 'theme']);
+const VALUE_LABELS: Record<string, string> = {
+  draft: 'Draft',
+  published: 'Published',
+  retired: 'Retired',
+  archived: 'Archived',
+  active: 'Active',
+  suspended: 'Suspended',
+  free: 'Free',
+  family: 'Family',
+  storyPack: 'Story pack',
+  world: 'World',
+  forest: 'Forest',
+  ocean: 'Ocean',
+  terracotta: 'Terracotta',
+};
+
+const show = (key: string, v: unknown) =>
   v === null || v === undefined
     ? uiText('none')
-    : typeof v === 'boolean' && currentLanguage() === 'bn'
-      ? v
-        ? 'হ্যাঁ'
-        : 'না'
-      : uiText(String(v));
+    : typeof v === 'number' && key.endsWith('At')
+      ? formatWhen(v)
+      : typeof v === 'string' && ENUM_FIELDS.has(key) && VALUE_LABELS[v]
+        ? uiText(VALUE_LABELS[v])
+        : typeof v === 'boolean' && currentLanguage() === 'bn'
+          ? v
+            ? 'হ্যাঁ'
+            : 'না'
+          : uiText(String(v));
 export function describeChange(before: AdminAuditDoc['before'], after: AdminAuditDoc['after']) {
   const keys = [...new Set([...Object.keys(after ?? {}), ...Object.keys(before ?? {})])];
   const parts = keys
-    .filter((k) => show(before?.[k]) !== show(after?.[k]))
-    .map((k) => `${uiText(k)}: ${show(before?.[k])} → ${show(after?.[k])}`);
+    .filter((k) => show(k, before?.[k]) !== show(k, after?.[k]))
+    .map((k) => `${fieldLabel(k)}: ${show(k, before?.[k])} → ${show(k, after?.[k])}`);
   return parts.length ? parts.join('; ') : uiText('No change');
+}
+
+type AuditFacts = Pick<AdminAuditDoc, 'action' | 'before' | 'after'>;
+
+/** The change column: field by field, with plain sentences where a diff says nothing. */
+export function auditChange(entry: AuditFacts): string {
+  const described = describeChange(entry.before, entry.after);
+  if (entry.action === 'quota.reset' && described === uiText('No change'))
+    return uiText("Today's counters were already at zero.");
+  // Entries written before revocations recorded the invite itself.
+  if (entry.action === 'school.inviteRevoke' && !entry.before) return uiText('Invite removed');
+  return described;
 }
 
 const ACTIONS: Record<AdminAuditAction, string> = {
@@ -113,6 +179,8 @@ const ACTIONS: Record<AdminAuditAction, string> = {
   'school.reinstate': 'School reinstated',
   'school.invite': 'Teacher invited',
   'school.inviteRevoke': 'Invite revoked',
+  'catalog.create': 'Catalog draft added',
+  'catalog.update': 'Catalog item updated',
   'catalog.publish': 'Catalog item published',
   'catalog.retire': 'Catalog item retired',
   'lesson.publish': 'Lesson published',
@@ -121,6 +189,71 @@ const ACTIONS: Record<AdminAuditAction, string> = {
   'lesson.archive': 'Lesson archived',
 };
 export const actionLabel = (action: AdminAuditAction) => uiText(ACTIONS[action]);
+
+/** Names an entry by what it did; older entries logged drafts and edits under publish or reinstate. */
+export function auditActionLabel(entry: AuditFacts): string {
+  const was = entry.before?.['status'];
+  const now = entry.after?.['status'];
+  if (entry.action === 'catalog.publish') {
+    if (!entry.before) return uiText('Catalog draft added');
+    if (now !== 'published' || was === now) return uiText('Catalog item updated');
+  }
+  if ((entry.action === 'school.reinstate' || entry.action === 'school.suspend') && was === now)
+    return uiText('School updated');
+  return actionLabel(entry.action);
+}
+
+const KIND_LABELS: Record<AdminAuditDoc['target']['kind'], string> = {
+  family: 'Family',
+  world: 'World',
+  system: 'System',
+  school: 'School',
+  catalog: 'Catalog item',
+  lesson: 'Lesson',
+};
+const SYSTEM_TARGETS: Record<string, string> = {
+  runtime: 'Kill switch',
+  appearance: 'Interface palette',
+};
+export const kindLabel = (kind: AdminAuditDoc['target']['kind']) => uiText(KIND_LABELS[kind]);
+
+/** Long document ids, shortened for reading; the full id stays available to copy. */
+export function shortId(id: string): string {
+  return id.length > 14 ? `${id.slice(0, 6)}…${id.slice(-5)}` : id;
+}
+
+export type TargetNames = Partial<Record<AdminAuditDoc['target']['kind'], Map<string, string>>>;
+/** A readable name for an audited target, from what the console already knows. */
+export function targetLabel(target: AdminAuditDoc['target'], names: TargetNames): string {
+  const known = names[target.kind]?.get(target.id);
+  if (known) return known;
+  if (target.kind === 'system' && SYSTEM_TARGETS[target.id])
+    return uiText(SYSTEM_TARGETS[target.id]);
+  return `${kindLabel(target.kind)} ${shortId(target.id)}`;
+}
+
+/** Every label this module translates, so a test can hold Bangla coverage to it. */
+export const FORMAT_COPY = [
+  ...Object.values(FIELD_LABELS),
+  ...Object.values(VALUE_LABELS),
+  ...Object.values(ACTIONS),
+  ...Object.values(KIND_LABELS),
+  ...Object.values(SYSTEM_TARGETS),
+];
+
+export function ofLimit(used: number, limit: number, unit: string): string {
+  return uiText('{v0} of {v1} {v2}', { v0: used, v1: limit, v2: unit });
+}
+
+export function ageBandCounts(counts: Record<'6-7' | '8-10' | '11-13', number>): string {
+  return uiText('{v0} aged 6–7 · {v1} aged 8–10 · {v2} aged 11–13', {
+    v0: counts['6-7'],
+    v1: counts['8-10'],
+    v2: counts['11-13'],
+  });
+}
+
+export const pageLabel = (page: number) => uiText('Page {v0}', { v0: page });
 
 export function canConfirmDeletion(typed: string, email: string): boolean {
   return typed.trim().toLowerCase() === deletionConfirmationFor(email);

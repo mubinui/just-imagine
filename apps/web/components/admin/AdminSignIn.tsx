@@ -3,12 +3,13 @@ import { useLanguage } from '../../lib/i18n';
 import { copy as uiText, uiError } from '../../lib/i18n/ui';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebase } from '../../lib/firebase';
 import { Brand } from '../Shell';
 import { AuthCompanion } from '../AuthCompanion';
 
-export function AdminSignIn() {
+export function AdminSignIn({ notOperator = false }: { notOperator?: boolean }) {
   const { language } = useLanguage();
   const router = useRouter();
   const [error, setError] = useState('');
@@ -64,6 +65,18 @@ export function AdminSignIn() {
                 'For Just Imagine operators only. Parent accounts sign in at the family area; this console needs an operator account with admin access.',
               )}
             </p>
+            {notOperator && (
+              <div className="adm-alert" role="alert">
+                <p>
+                  {uiText(
+                    'The account you are signed in with is not an operator account, so the console stayed closed. Sign in below with an operator account.',
+                  )}
+                </p>
+                <Link className="adm-link" href="/">
+                  {uiText('Back to Just Imagine')}
+                </Link>
+              </div>
+            )}
             <form
               onSubmit={(event) => {
                 event.preventDefault();

@@ -133,12 +133,13 @@ export function registerAdminSchoolRoutes(app: FastifyInstance) {
         tx.create(db().doc(`adminAudit/${newId('j')}`), {
           actorUid: actor.uid,
           actorEmail: actor.email,
+          // Forms resend the current status with every edit; only a real change is a pause or a reinstatement.
           action:
-            body.status === 'suspended'
-              ? 'school.suspend'
-              : body.status === 'active'
-                ? 'school.reinstate'
-                : 'school.update',
+            before.status === after.status
+              ? 'school.update'
+              : after.status === 'suspended'
+                ? 'school.suspend'
+                : 'school.reinstate',
           target: { kind: 'school', id: schoolId },
           before,
           after,
@@ -188,19 +189,23 @@ export function registerAdminSchoolRoutes(app: FastifyInstance) {
           .parse(req.params),
         { reason } = z.object({ reason: reasonSchema }).parse(req.body),
         actor = await adminActor(req);
-      const batch = db().batch();
-      batch.delete(db().doc(schoolPaths.invite(schoolId, inviteId)));
-      batch.create(db().doc(`adminAudit/${newId('j')}`), {
-        actorUid: actor.uid,
-        actorEmail: actor.email,
-        action: 'school.inviteRevoke',
-        target: { kind: 'school', id: schoolId },
-        before: null,
-        after: { inviteId },
-        reason,
-        at: Date.now(),
+      await db().runTransaction(async (tx) => {
+        const ref = db().doc(schoolPaths.invite(schoolId, inviteId)),
+          snap = await tx.get(ref);
+        if (!snap.exists) return fail(404, 'That invite was already used or revoked.');
+        const invite = SchoolInviteDocSchema.parse(snap.data());
+        tx.delete(ref);
+        tx.create(db().doc(`adminAudit/${newId('j')}`), {
+          actorUid: actor.uid,
+          actorEmail: actor.email,
+          action: 'school.inviteRevoke',
+          target: { kind: 'school', id: schoolId },
+          before: { email: invite.email, expiresAt: invite.expiresAt },
+          after: null,
+          reason,
+          at: Date.now(),
+        });
       });
-      await batch.commit();
       return { ok: true };
     });
   });

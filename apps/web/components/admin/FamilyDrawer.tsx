@@ -9,7 +9,7 @@ import {
   type AdminWriteResponse,
 } from '@just-imagine/protocol';
 import { adminApi, useAdminResource } from './adminApi';
-import { ageBandSummary, canConfirmDeletion, formatWhen, planLabel } from './format';
+import { ageBandSummary, canConfirmDeletion, formatWhen, ofLimit, planLabel } from './format';
 import { LoadError, ReasonField, Skeleton, Status, reasonReady } from './parts';
 
 function Meter({
@@ -28,15 +28,12 @@ function Meter({
     <div className="adm-meter">
       <div>
         <span>{uiText(label)}</span>
-        <span className="num">
-          {uiNumber(used)} {uiText('of')}
-          {uiNumber(limit)} {uiText(unit)}
-        </span>
+        <span className="num">{ofLimit(used, limit, unit)}</span>
       </div>
       <progress
         max={limit || 1}
         value={Math.min(used, limit)}
-        aria-label={`${label}: ${used} of ${limit} ${unit}`}
+        aria-label={`${uiText(label)}: ${ofLimit(used, limit, unit)}`}
       />
     </div>
   );
@@ -102,12 +99,14 @@ export function FamilyDrawer({
       onCancel={onClose}
     >
       <div className="adm-drawer-head">
-        <h2 id="family-title">{uiText(data?.email ?? uiText('Family'))}</h2>
+        <h2 id="family-title" className="adm-email">
+          {data?.email ?? uiText('Family')}
+        </h2>
         <button type="button" className="adm-button" onClick={() => dialog.current?.close()}>
           {uiText('Close')}
         </button>
       </div>
-      <LoadError message={error} />
+      <LoadError message={error} onRetry={() => void reload()} />
       {!data ? (
         loading && <Skeleton rows={6} />
       ) : (
@@ -175,11 +174,11 @@ export function FamilyDrawer({
               unit="worlds"
             />
             <p className="adm-detail">
-              {uiText('Last 7 days:')}
-              {uiNumber(Math.round(data.usage7.voiceSeconds / 60))} {uiText('voice min,')}
-              {uiNumber(data.usage7.worlds)} {uiText('worlds,')}
-              {uiText(' ')}
-              {uiNumber(data.usage7.images)} {uiText('images.')}
+              {uiText('Last 7 days: {v0} voice min, {v1} worlds, {v2} images.', {
+                v0: Math.round(data.usage7.voiceSeconds / 60),
+                v1: data.usage7.worlds,
+                v2: data.usage7.images,
+              })}
             </p>
           </section>
 
@@ -253,13 +252,16 @@ export function FamilyDrawer({
             <h3 id="family-delete">{uiText('Delete this family')}</h3>
             <p>
               {uiText(
-                'Removes the parent account, explorer profiles, worlds, sessions and usage, and cancels billing. This cannot be undone. Type',
+                'Removes the parent account, explorer profiles, worlds, sessions and usage, and cancels billing. This cannot be undone.',
               )}
-              {uiText(' ')}
-              <strong className="adm-phrase">{uiText(deletionConfirmationFor(data.email))}</strong>
-              {uiText(' ')}
-              {uiText('to confirm. The reason above is recorded with the request.')}
             </p>
+            <p>
+              {uiText('Type this phrase to confirm:')}{' '}
+              <strong className="adm-phrase" translate="no">
+                {deletionConfirmationFor(data.email)}
+              </strong>
+            </p>
+            <p className="adm-detail">{uiText('The reason above is recorded with the request.')}</p>
             <label htmlFor="family-confirm" className="adm-reason">
               {uiText('Confirmation')}
               <input

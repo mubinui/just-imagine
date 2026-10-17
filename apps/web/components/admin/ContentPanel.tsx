@@ -22,7 +22,7 @@ export function ContentPanel() {
         onRefresh={() => void reload()}
         busy={loading}
       />
-      <LoadError message={error} />
+      <LoadError message={error} onRetry={() => void reload()} />
       {!data ? (
         loading && <Skeleton rows={6} />
       ) : (
@@ -50,9 +50,9 @@ export function ContentPanel() {
           <section className="adm-section" aria-labelledby="packs">
             <h2 id="packs">{uiText('Learning World packs')}</h2>
             {!data.packs.connected ? (
-              <Empty title={uiText('The pack catalogue is not connected to the api yet.')}>
+              <Empty title={uiText('Pack versions are not available here yet.')}>
                 {uiText(
-                  'Packs ship inside the web and gateway builds; once the api reads the content package, each pack and its version is listed here.',
+                  'Learning World packs are bundled with each release. Their titles and versions will be listed here once this console can read them.',
                 )}
               </Empty>
             ) : data.packs.items.length === 0 ? (
@@ -84,19 +84,21 @@ export function ContentPanel() {
           </section>
 
           <section className="adm-section" aria-labelledby="smoke">
-            <h2 id="smoke">{uiText('Generated-game smoke runs')}</h2>
+            <h2 id="smoke">{uiText('Generated-game checks')}</h2>
             {data.gameSmoke.runs === 0 ? (
-              <Empty title={uiText('No smoke runs recorded.')}>
+              <Empty title={uiText('No game checks recorded yet.')}>
                 {uiText(
-                  'Each generated game script runs headless before a child sees it; results appear here once the builder records them.',
+                  'Every generated game is played automatically in a sandboxed script runtime before a child sees it. No generated code runs outside that sandbox. Results appear here once the builder records them.',
                 )}
               </Empty>
             ) : (
               <>
                 <p className="adm-sentence">
-                  <strong>{formatPercent(data.gameSmoke.passRate)}</strong> {uiText('passed (')}
-                  {formatCount(data.gameSmoke.passed)} {uiText('of')}
-                  {formatCount(data.gameSmoke.runs)} {uiText('recent runs).')}
+                  {uiText('{v0} passed ({v1} of {v2} recent runs).', {
+                    v0: formatPercent(data.gameSmoke.passRate),
+                    v1: data.gameSmoke.passed,
+                    v2: data.gameSmoke.runs,
+                  })}
                 </p>
                 {data.gameSmoke.topFailures.length > 0 && (
                   <div className="adm-table-wrap">

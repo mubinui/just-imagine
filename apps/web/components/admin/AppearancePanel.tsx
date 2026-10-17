@@ -5,7 +5,7 @@ import { useState, type CSSProperties } from 'react';
 import { THEME_PALETTES, type Appearance, type ThemeId } from '@just-imagine/protocol';
 import { themeStyle, publishAppearance } from '../../lib/appearance';
 import { adminApi, useAdminResource } from './adminApi';
-import { LoadError, PageHeading, Skeleton } from './parts';
+import { LoadError, PageHeading, ReasonField, Skeleton, reasonReady } from './parts';
 import { Mark } from '../Mark';
 import { UiIcon } from '../UiIcon';
 
@@ -17,7 +17,9 @@ export function AppearancePanel() {
   const [draft, setDraft] = useState<ThemeId>(),
     [busy, setBusy] = useState(false),
     [failure, setFailure] = useState(''),
-    [notice, setNotice] = useState('');
+    [notice, setNotice] = useState(''),
+    [confirming, setConfirming] = useState(false),
+    [reason, setReason] = useState('');
   const selected = draft ?? data?.theme ?? 'forest';
   const palette = THEME_PALETTES[selected];
   async function save() {
@@ -30,10 +32,12 @@ export function AppearancePanel() {
         body: {
           theme: selected,
           revision: data.revision,
-          reason: `Published ${palette.name} interface palette from Appearance`,
+          reason: reason.trim(),
         },
       });
       publishAppearance({ theme: selected, revision: data.revision + 1 });
+      setConfirming(false);
+      setReason('');
       setNotice(
         bn
           ? `${uiText(palette.name)} এখন অ্যাপের নির্ধারিত রং। এটি অনুসরণ করা পাতা ৩০ সেকেন্ডের মধ্যে বা ফিরে এলে বদলাবে। ডিভাইসের নিজস্ব পছন্দ রাখা থাকবে।`
@@ -60,7 +64,7 @@ export function AppearancePanel() {
         onRefresh={() => void reload()}
         busy={loading || busy}
       />
-      <LoadError message={error} />
+      <LoadError message={error} onRetry={() => void reload()} />
       {!data ? (
         loading && <Skeleton rows={5} />
       ) : (
@@ -85,6 +89,7 @@ export function AppearancePanel() {
                       checked={selected === id}
                       onChange={() => {
                         setDraft(id);
+                        setConfirming(false);
                         setNotice('');
                         setFailure('');
                       }}
@@ -105,33 +110,66 @@ export function AppearancePanel() {
                 );
               })}
             </fieldset>
-            <div className="adm-toolbar">
-              <button
-                className="adm-button adm-primary"
-                type="button"
-                disabled={busy || loading || !!error || selected === data.theme}
-                onClick={() => void save()}
-              >
-                {busy
-                  ? uiText('Applying…')
-                  : bn
-                    ? `${uiText(palette.name)} অ্যাপের নির্ধারিত রং করুন`
-                    : `Use ${palette.name} as app default`}
-              </button>
-              {selected !== data.theme && (
+            {confirming && selected !== data.theme ? (
+              <div className="adm-confirm" role="group" aria-labelledby="palette-confirm">
+                <p id="palette-confirm" className="adm-confirm-title">
+                  {uiText('Make {v0} the app default for everyone?', { v0: palette.name })}
+                </p>
+                <p className="adm-detail">
+                  {uiText(
+                    'Every device that follows the app default changes within 30 seconds. Devices with their own colour choice keep it.',
+                  )}
+                </p>
+                <ReasonField id="palette-reason" value={reason} onChange={setReason} />
+                <div className="adm-toolbar">
+                  <button
+                    className="adm-button adm-primary"
+                    type="button"
+                    disabled={busy || !reasonReady(reason)}
+                    onClick={() => void save()}
+                  >
+                    {busy ? uiText('Applying…') : uiText('Publish to all devices')}
+                  </button>
+                  <button
+                    className="adm-button"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setConfirming(false)}
+                  >
+                    {uiText('Cancel')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="adm-toolbar">
                 <button
-                  className="adm-button"
+                  className="adm-button adm-primary"
                   type="button"
-                  disabled={busy}
+                  disabled={busy || loading || !!error || selected === data.theme}
                   onClick={() => {
-                    setDraft(data.theme);
-                    setFailure('');
+                    setNotice('');
+                    setConfirming(true);
                   }}
                 >
-                  {uiText('Reset preview')}
+                  {bn
+                    ? `${uiText(palette.name)} অ্যাপের নির্ধারিত রং করুন…`
+                    : `Use ${palette.name} as app default…`}
                 </button>
-              )}
-            </div>
+                {selected !== data.theme && (
+                  <button
+                    className="adm-button"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setDraft(data.theme);
+                      setFailure('');
+                    }}
+                  >
+                    {uiText('Reset preview')}
+                  </button>
+                )}
+              </div>
+            )}
             <p className="adm-live" role="status">
               {notice ||
                 (selected === data.theme
@@ -155,8 +193,8 @@ export function AppearancePanel() {
           >
             <div className="adm-preview-brand">
               <Mark size={42} />
-              <strong>
-                {uiText('Just Imagine')}
+              <strong lang="en" translate="no">
+                just imagine
                 <span>.</span>
               </strong>
             </div>

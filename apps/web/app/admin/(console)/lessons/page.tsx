@@ -1,4 +1,4 @@
-import { LessonLibrary } from '../../../../components/school/Lessons';
+import { LessonsPanel } from '../../../../components/admin/LessonsPanel';
 export default function Page() {
-  return <LessonLibrary admin={true} />;
+  return <LessonsPanel />;
 }

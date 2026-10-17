@@ -5,7 +5,7 @@ import { copy as uiText } from '../../lib/i18n/ui';
 import { useCallback, useState } from 'react';
 import type { AdminFamilyListResponse } from '@just-imagine/protocol';
 import { adminApi, useAdminResource } from './adminApi';
-import { formatWhen, planLabel } from './format';
+import { formatWhen, pageLabel, planLabel } from './format';
 import { FamilyDrawer } from './FamilyDrawer';
 import { Empty, LoadError, PageHeading, Skeleton, Status } from './parts';
 
@@ -36,9 +36,10 @@ export function FamiliesPanel() {
       <form
         className="adm-search"
         role="search"
-        action={(form) => {
+        onSubmit={(event) => {
+          event.preventDefault();
           setCursors([]);
-          setQuery(String(form.get('q') ?? '').trim());
+          setQuery(String(new FormData(event.currentTarget).get('q') ?? '').trim());
         }}
       >
         <label htmlFor="family-search">{uiText('Parent email starts with')}</label>
@@ -68,7 +69,7 @@ export function FamiliesPanel() {
           )}
         </div>
       </form>
-      <LoadError message={error} />
+      <LoadError message={error} onRetry={() => void reload()} />
       {!data && loading ? (
         <Skeleton rows={8} />
       ) : data && data.families.length === 0 ? (
@@ -114,7 +115,7 @@ export function FamiliesPanel() {
                           onClick={() => setOpen(family.uid)}
                           aria-haspopup="dialog"
                         >
-                          {uiText(family.email || family.uid)}
+                          <span className="adm-email">{family.email || family.uid}</span>
                         </button>
                       </th>
                       <td>{uiText(planLabel(family))}</td>
@@ -132,28 +133,27 @@ export function FamiliesPanel() {
                 </tbody>
               </table>
             </div>
-            <div className="adm-pager">
-              <button
-                type="button"
-                className="adm-button"
-                disabled={!cursors.length || loading}
-                onClick={() => setCursors((c) => c.slice(0, -1))}
-              >
-                {uiText('Previous page')}
-              </button>
-              <span className="adm-detail">
-                {uiText('Page')}
-                {uiNumber(cursors.length + 1)}
-              </span>
-              <button
-                type="button"
-                className="adm-button"
-                disabled={!data.nextCursor || loading}
-                onClick={() => data.nextCursor && setCursors((c) => [...c, data.nextCursor!])}
-              >
-                {uiText('Next page')}
-              </button>
-            </div>
+            {(cursors.length > 0 || data.nextCursor) && (
+              <div className="adm-pager">
+                <button
+                  type="button"
+                  className="adm-button"
+                  disabled={!cursors.length || loading}
+                  onClick={() => setCursors((c) => c.slice(0, -1))}
+                >
+                  {uiText('Previous page')}
+                </button>
+                <span className="adm-detail">{pageLabel(cursors.length + 1)}</span>
+                <button
+                  type="button"
+                  className="adm-button"
+                  disabled={!data.nextCursor || loading}
+                  onClick={() => data.nextCursor && setCursors((c) => [...c, data.nextCursor!])}
+                >
+                  {uiText('Next page')}
+                </button>
+              </div>
+            )}
           </>
         )
       )}

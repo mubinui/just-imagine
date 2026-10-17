@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { AdminSystemStatus } from '@just-imagine/protocol';
 import { adminApi, useAdminResource } from './adminApi';
 import { formatWhen } from './format';
+import { KILL_SWITCH_EVENT } from './nav';
 import { LoadError, PageHeading, ReasonField, Skeleton, Status, reasonReady } from './parts';
 
 const loadSystem = () => adminApi<AdminSystemStatus>('system');
@@ -29,6 +30,7 @@ export function SystemPanel() {
           : uiText('Generation is running again.'),
       );
       setReason('');
+      window.dispatchEvent(new Event(KILL_SWITCH_EVENT));
       await reload();
     } catch (e) {
       setFailure(
@@ -47,7 +49,7 @@ export function SystemPanel() {
         onRefresh={() => void reload()}
         busy={loading}
       />
-      <LoadError message={error} />
+      <LoadError message={error} onRetry={() => void reload()} />
       {!data ? (
         loading && <Skeleton rows={6} />
       ) : (
@@ -140,7 +142,7 @@ export function SystemPanel() {
               </table>
             </div>
             <p className="adm-note">
-              {uiText('The api probes the services listed in its')}
+              {uiText('The api probes the services listed in its')}{' '}
               <code>ADMIN_HEALTH_TARGETS</code> {uiText('setting.')}
             </p>
           </section>
