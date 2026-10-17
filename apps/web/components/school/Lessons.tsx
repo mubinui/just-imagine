@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CHAPTERS, REAGENTS } from '@just-imagine/stem-content';
 import { SIMS, SIM_IDS, type SimId } from '@just-imagine/stem-sims';
+import { defaultTaskArgs } from '../../lib/stem/task-args';
 import {
   lessonPublicationChecks,
   type LessonStep,
@@ -78,8 +79,9 @@ function newKey(item: Pick<QuizItem, 'kind'> & { simId?: string }): QuizKey {
   if (item.kind === 'numeric')
     return { kind: 'numeric', value: 0, tolerance: { mode: 'abs', amount: 0.1 } };
   if (item.kind === 'simTask') {
-    const predicate = firstPredicate(item.simId ?? 'newton-cart');
-    return { kind: 'simTask', predicate, args: defaultArgs(predicate) };
+    const simId = item.simId ?? 'newton-cart';
+    const predicate = firstPredicate(simId);
+    return { kind: 'simTask', predicate, args: defaultTaskArgs(simId, predicate) };
   }
   if (item.kind === 'labTask')
     return { kind: 'labTask', task: { predicate: 'pHBetween', min: 6, max: 8 } };
@@ -1601,7 +1603,7 @@ function QuestionEditor({
                     onKey({
                       ...itemKey,
                       predicate: e.target.value,
-                      args: defaultArgs(e.target.value),
+                      args: defaultTaskArgs(item.simId, e.target.value),
                     })
                   }
                 >
@@ -1716,29 +1718,4 @@ function QuestionEditor({
       </button>
     </section>
   );
-}
-
-function defaultArgs(predicate: string): Record<string, unknown> {
-  const args: Record<string, Record<string, unknown>> = {
-    lineThrough: {
-      points: [
-        { x: 0, y: 0 },
-        { x: 1, y: 1 },
-      ],
-      tol: 0.1,
-    },
-    stopsAt: { x: 10, tol: 0.1 },
-    reachesSpeed: { v: 5, tol: 0.1 },
-    displacementEquals: { x: 10, tol: 0.1 },
-    justMoves: {},
-    accelerationEquals: { a: 1, tol: 0.1 },
-    currentEquals: { i: 0.5, tol: 0.01 },
-    powerAtLeast: { index: 0, p: 1 },
-    slopeEquals: { m: 1, tol: 0.1 },
-    interceptEquals: { c: 0, tol: 0.1 },
-    angleWithin: { min: 30, max: 60 },
-    sinEquals: { v: 0.5, tol: 0.01 },
-    cosEquals: { v: 0.5, tol: 0.01 },
-  };
-  return args[predicate] ?? {};
 }
