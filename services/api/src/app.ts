@@ -14,6 +14,7 @@ import type { CompanionService } from './companion';
 import type { ApiStore } from './store';
 import { registerAdminRoutes, suspensionCheckFor, type AdminRouteOptions } from './admin';
 import { FirestoreLearnStore, learnRoutes, type LearnStore } from './learn';
+import { registerSchoolRoutes, type SchoolRouteOptions } from './school/routes';
 
 export interface Billing {
   checkout(uid: string): Promise<{ url: string }>;
@@ -32,6 +33,8 @@ export interface ApiOptions {
   isSuspended?: (uid: string) => Promise<boolean>;
   learn?: LearnStore;
   stories?: FirestoreStoryStore;
+  /** Teacher (`/v1/school/*`) and student (`/v1/study/*`) routes; defaults use Firebase. */
+  school?: SchoolRouteOptions;
   origins: string[];
 }
 export function createApi(options: ApiOptions) {
@@ -82,6 +85,7 @@ export function createApi(options: ApiOptions) {
     { store: options.store, billingConfigured: Boolean(options.billing) },
     options.admin,
   );
+  registerSchoolRoutes(app, options.school);
   const isSuspended = options.isSuspended ?? suspensionCheckFor(options.store);
   app.register(async (routes) => {
     routes.decorateRequest('parentUid', '');
