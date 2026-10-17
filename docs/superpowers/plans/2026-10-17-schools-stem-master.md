@@ -27,8 +27,8 @@
 
 | Phase | Plan file | Depends on | Status |
 |---|---|---|---|
-| S0 Foundations | `2026-10-17-schools-s0-foundations.md` | – | planned |
-| S3 Sims and chemistry models | `2026-10-17-schools-s3-sims.md` | – | planned |
+| S0 Foundations | `2026-10-17-schools-s0-foundations.md` | – | done (branch `feat/schools-stem`) |
+| S3 Sims and chemistry models | `2026-10-17-schools-s3-sims.md` | – | done (merged into `feat/schools-stem`) |
 | S1 Super admin | written when S0 lands | S0 | – |
 | S2 Teacher console and student login | written when S0 lands | S0 | – |
 | S4 Lessons, sim views, player | written when S0 and S3 land | S0, S3 | – |
@@ -50,3 +50,45 @@ S0 and S3 have no shared files and can run in parallel.
 3. **PIN guessing:** expect lockout after 5 failures and the per-school limit. S2.
 4. **Points farming:** expect each item to pay once across retakes. S5.
 5. **Bangla input:** Bengali digits in numeric answers, and Bangla names in CSV imports. Expect them normalised and accepted. S2 and S5.
+
+## Contract notes for later phases (from the S0 + S3 final review)
+
+Every later phase plan must start from these notes.
+
+**Routes and auth (S1, S2)**
+
+- **Two routes live outside the guarded scopes.**
+  - `POST /v1/school/invites/accept` is called by someone who does not have the teacher role yet. It needs its own scope that uses plain `verifyIdToken`.
+  - `POST /v1/study/login` is unauthenticated and rate-limited. The `/v1/school/*` and `/v1/study/*` preHandlers from S0 must not cover either route. Spec §6 lists accept under the teacher guard, which contradicts §4.3. Follow §4.3.
+- **Invite lookup.** Encode `schoolId` and `inviteId` in the invite token, so accepting needs no collection-group query on `invites.tokenHash`. Lowercase emails before comparing them.
+- **Suspension blocks teacher mutations** (spec §16). The S0 teacher hook only authenticates. S2 adds a suspension check for non-GET teacher routes.
+- **A super admin may name any `?schoolId`**, including one that does not exist. Handlers must handle a null `schoolId` and a missing school.
+
+**Ids**
+
+- Ids come only from `newId(prefix)` in server-core. Composite ids join parts with `_`: the attempt doc id `<studentId>_<lessonId>`, `studentUid`, board ids and the usage doc id. They are unambiguous only because every part has the fixed `prefix_ulid` form. Never accept client-chosen ids, and never split a composite id back into its parts.
+
+**Lessons (S4)**
+
+- **Firestore queries decide the indexes.** Rules are not filters.
+  - A student's lesson queries must include the scope: `scope == 'school'`, or `scope == 'class'` together with `classIds array-contains <own class>`, plus `status == 'published'`.
+  - Teachers can query `where schoolId == <own>`.
+  - Write the indexes from the actual S4 queries, including a `classIds` array-contains index. Do not patch the S0 indexes.
+- **Publish validates every answer key against its item.**
+  - MCQ answer within the option count.
+  - simTask predicate and args through `SIMS[simId].predicates[p].args` (`justMoves` takes `{}`).
+  - labTask through `LabTaskSchema`, with min ≤ max for `pHBetween` and `angleWithin`.
+  - `explore.params` through the sim's params schema.
+  - `simId` in `SIM_IDS`, and `editableParams` are real param keys.
+- **Derive bodies from `LessonFieldsSchema`, then apply the exported refinement.** `LessonDocSchema` carries a refinement, so it cannot be `.omit()`-ed or `.partial()`-ed.
+- **Check the NCTB chapter titles against the official books before S4 stores any lesson.** Chapter ids are positional (`physics-<n>`), so a correction would renumber ids under lessons already stored.
+
+**Grading, chemistry and leaderboards (S4, S5)**
+
+- **Grade only through the locked entry points.** Use `checkLockedSimTask(item, submitted, task)` and `gradeLabSubmission(item, submitted, task, REAGENTS, REACTIONS)`, never `checkSimTask` with raw submitted params.
+- **Chemistry display.**
+  - Bench pairs missing from the 20-reaction table return `reaction: null`. Before the S5 AI fallback exists, the lab must not present that as "no reaction".
+  - Give every reaction a `phAfter` in the chemistry teacher's review, and drop the lone-reagent pH fallback when a reaction matched.
+  - The AI fallback goes through `isBalanced` and caps coefficients at 20 or less.
+  - Views format `-0` and values below 1e-9 as `0`.
+- **Leaderboards.** Students get 404, not 403, for boards and attempts that do not exist yet. The rules split `get` from `list` for this, and class boards honour `boardsVisible`. Tell Codex why when handing over the rules.
