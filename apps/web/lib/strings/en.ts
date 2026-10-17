@@ -1,4 +1,30 @@
 export const english = {
+  landing: {
+    title: 'A world of “what if?”',
+    intro:
+      'Make worlds, explore lessons and discover together. A little imagination belongs at home and in the classroom.',
+    entryLabel: 'Choose your space',
+    parents: 'Parents',
+    parentBody: 'Stories, playful worlds and discoveries to share with your child.',
+    parentAction: 'Parent sign in',
+    students: 'Students',
+    studentBody: 'Explore your class lessons, try simulations and take on a challenge.',
+    studentAction: 'Student sign in',
+    teachers: 'Teachers',
+    teacherBody: 'Create lessons, guide your class and follow their discoveries.',
+    teacherAction: 'Teacher sign in',
+    newFamily: 'New here with your family?',
+    createAccount: 'Create a family account',
+    experimentLink: 'Try a little “what if?”',
+    experimentTitle: 'One small change. A new discovery.',
+    experimentIntro:
+      'What happens to the same ball on Earth and on the Moon? Change the gravity, drop it, and watch.',
+    togetherTitle: 'Room for every kind of curiosity.',
+    togetherBody:
+      'Imagine with a character. Explore a story. Work through an experiment. There is more than one way to learn something new.',
+    schoolHelp: 'Joining a class? Your teacher gives you the school code, username and PIN.',
+    operator: 'Operator sign in',
+  },
   creation: {
     invitation: 'What shall we make?',
     change: 'Change your world',

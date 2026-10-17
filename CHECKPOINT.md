@@ -1,3 +1,11 @@
+# Landing entry and controller checkpoint — 2026-10-17
+
+On **`feat/family-schools-integration`**, `../just-imagine-integrated`, at **http://localhost:3300**. [Source, verification and limits](docs/handoff/landing-entry-and-controller.md).
+
+Home now gives parents, students and teachers equal character-led sign-in entrances using the unchanged Katha, Pori and Onko Mama artwork. Family registration remains explicit; the working gravity experiment follows. Home has English/Bangla and existing theme controls, with a quiet operator footer link. The shared controller icon has cleaner rounded grips, a D-pad and round face buttons across Studio and Learn consumers. Nested actor clipping, runtime focus token and resting teacher tint were corrected during review.
+
+Web368/44 files and all30 type/lint tasks passed; final production build passed, all six runtime sources match the running web container, web/API health200. Native final Bangla/Ocean390×844 and1512×844 confirm readable equal entrances and single-pose clipping. Actual controller path was rendered at16/24/32/48px in Chrome. Fresh source review accepted its named corrections; substituted reviewer/documenter scope and missing saved screenshot archive are explicit in the handoff. Final English phone/language switching and keyboard traversal were not independently established through the native tool. No character asset/auth/provider changes or cloud push; only web recreated, persistent services/data retained.
+
 # Learning character call checkpoint — 2026-10-17
 
 Current work is on **`feat/family-schools-integration`**, `../just-imagine-integrated`, at **http://localhost:3300**. [Call ownership, animation and verification evidence](docs/handoff/learning-voice-call-quality.md).

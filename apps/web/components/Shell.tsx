@@ -1,5 +1,6 @@
 'use client';
-import { useLanguage } from '../lib/i18n';
+import { setLanguage, useLanguage } from '../lib/i18n';
+import { setSchoolLanguage } from '../lib/i18n/study';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { s } from '../lib/strings/en';
@@ -19,8 +20,9 @@ export function Brand() {
   );
 }
 export function Header() {
-  useLanguage();
+  const { language } = useLanguage();
   const path = usePathname();
+  const welcome = path === '/';
   if (
     ['/studio', '/learn', '/stories'].some(
       (route) => path === route || path.startsWith(route + '/'),
@@ -28,13 +30,46 @@ export function Header() {
   )
     return null;
   return (
-    <header className="header">
+    <header className={`header${welcome ? ' welcome-header' : ''}`}>
       <Brand />
-      <nav>
-        <Link href="/play">{s.play}</Link>
-        <Link href="/parent/dashboard">{s.parent}</Link>
-      </nav>
-      <ThemePicker compact />
+      {welcome ? (
+        <nav aria-label={s.landing.entryLabel}>
+          <Link href={env.fake ? '/play' : '/sign-in'}>{s.landing.parents}</Link>
+          <Link href="/study/sign-in">{s.landing.students}</Link>
+          <Link href="/school/sign-in">{s.landing.teachers}</Link>
+        </nav>
+      ) : (
+        <nav>
+          <Link href="/play">{s.play}</Link>
+          <Link href="/parent/dashboard">{s.parent}</Link>
+        </nav>
+      )}
+      {welcome ? (
+        <div className="welcome-preferences">
+          <label className="welcome-language">
+            <span className="sr-only">{s.languageLabel}</span>
+            <select
+              aria-label={s.languageLabel}
+              value={language}
+              onChange={(event) => {
+                const next = event.target.value === 'bn' ? 'bn' : 'en';
+                setLanguage(next);
+                setSchoolLanguage(next);
+              }}
+            >
+              <option lang="en" value="en">
+                English
+              </option>
+              <option lang="bn" value="bn">
+                বাংলা
+              </option>
+            </select>
+          </label>
+          <ThemePicker compact />
+        </div>
+      ) : (
+        <ThemePicker compact />
+      )}
     </header>
   );
 }
@@ -48,11 +83,13 @@ export function Preview() {
 }
 export function Footer() {
   useLanguage();
+  const welcome = usePathname() === '/';
   return (
     <footer>
       <Brand />
       <p>{s.footer}</p>
       <Link href="/privacy">{s.privacy}</Link>
+      {welcome && <Link href="/admin/sign-in">{s.landing.operator}</Link>}
     </footer>
   );
 }

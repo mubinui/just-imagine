@@ -1,80 +1,116 @@
 'use client';
-import { useLanguage } from '../lib/i18n';
-import { uiNumber } from '../lib/i18n/ui';
-import { copy as uiText } from '../lib/i18n/ui';
+import { langAttr, useLanguage } from '../lib/i18n';
 import Link from 'next/link';
 import { Header, Footer, Preview } from '../components/Shell';
 import { s } from '../lib/strings/en';
 import { env } from '../lib/env';
 import { GravityPlayground } from '../components/GravityPlayground';
+import { Actor } from '../components/acting/Actor';
+import { UiIcon } from '../components/UiIcon';
 import './welcome.css';
 export default function Home() {
-  useLanguage();
+  const { language } = useLanguage();
+  const copy = s.landing;
+  const entrances = [
+    {
+      role: 'parents',
+      actor: 'katha',
+      title: copy.parents,
+      body: copy.parentBody,
+      action: env.fake ? s.previewSignIn : copy.parentAction,
+      href: env.fake ? '/play' : '/sign-in',
+    },
+    {
+      role: 'students',
+      actor: 'pori',
+      title: copy.students,
+      body: copy.studentBody,
+      action: copy.studentAction,
+      href: '/study/sign-in',
+    },
+    {
+      role: 'teachers',
+      actor: 'onkomama',
+      title: copy.teachers,
+      body: copy.teacherBody,
+      action: copy.teacherAction,
+      href: '/school/sign-in',
+    },
+  ];
   return (
     <>
       <Header />
       <Preview />
-      <main className="welcome">
+      <main className="welcome" lang={langAttr(language)}>
         <section className="hero home-hero">
-          <div>
-            <h1>{s.hero}</h1>
-            <p className="lead">{s.intro}</p>
-            <div className="actions">
-              <Link className="button primary" href={env.fake ? '/play' : '/sign-up'}>
-                {s.cta}
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  aria-hidden="true"
-                >
-                  <path d="M4 12h15m-6-6 6 6-6 6" />
-                </svg>
-              </Link>
-              {!env.fake && (
-                <Link className="text-link" href="/sign-in">
-                  {s.signIn}
-                </Link>
-              )}
-            </div>
-            <nav className="school-entry" aria-label={uiText('School sign in')}>
-              <Link href="/school/sign-in">{uiText('Teacher sign in')}</Link>
-              <Link href="/study/sign-in">{uiText('Student sign in')}</Link>
+          <div className="home-invitation">
+            <h1>{copy.title}</h1>
+            <p className="lead">{copy.intro}</p>
+            <a className="home-experiment-link" href="#home-experiment">
+              {copy.experimentLink}
+              <UiIcon name="chevron" width="18" height="18" />
+            </a>
+          </div>
+          <div className="home-entrances">
+            <nav aria-label={copy.entryLabel}>
+              <ul className="role-entries">
+                {entrances.map((entry) => (
+                  <li key={entry.role}>
+                    <Link className="role-entry" id={entry.role} href={entry.href}>
+                      <span className="role-art" aria-hidden="true">
+                        <svg viewBox="0 0 100 100" focusable="false">
+                          <Actor id={entry.actor} />
+                        </svg>
+                      </span>
+                      <div className="role-copy">
+                        <h2>{entry.title}</h2>
+                        <p>{entry.body}</p>
+                        <span className="role-action">{entry.action}</span>
+                      </div>
+                      <UiIcon className="role-arrow" name="back" width="22" height="22" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </nav>
-            <p className="hero-invitation">
-              {uiText('For curious minds, ages 6–13.')}
-              <br />
-              {uiText('And the grown-ups who cheer them on.')}
-            </p>
+            {!env.fake && (
+              <p className="home-registration">
+                {copy.newFamily} <Link href="/sign-up">{copy.createAccount}</Link>
+              </p>
+            )}
+          </div>
+        </section>
+        <section
+          className="home-experiment"
+          id="home-experiment"
+          aria-labelledby="home-experiment-title"
+        >
+          <div className="home-experiment-copy">
+            <h2 id="home-experiment-title">{copy.experimentTitle}</h2>
+            <p className="lead">{copy.experimentIntro}</p>
+            <ul className="home-discoveries">
+              {[
+                [s.feature1, s.feature1Body],
+                [s.feature2, s.feature2Body],
+                [s.feature3, s.feature3Body],
+              ].map(([title, body]) => (
+                <li key={title}>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                </li>
+              ))}
+            </ul>
           </div>
           <GravityPlayground />
         </section>
-        <section className="discovery-story">
-          <h2>
-            {uiText('Little wonders.')}
-            <br />
-            <span>{uiText('Big discoveries.')}</span>
-          </h2>
-          <ol>
-            {[
-              [s.feature1, s.feature1Body],
-              [s.feature2, s.feature2Body],
-              [s.feature3, s.feature3Body],
-            ].map(([title, text], i) => (
-              <li key={title}>
-                <span className="story-step" aria-hidden="true">
-                  {uiNumber(i + 1)}
-                </span>
-                <div>
-                  <h2>{uiText(title)}</h2>
-                  <p>{uiText(text)}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+        <section className="home-together" aria-labelledby="home-together-title">
+          <div>
+            <h2 id="home-together-title">{copy.togetherTitle}</h2>
+            <p>{copy.togetherBody}</p>
+          </div>
+          <p>
+            {copy.schoolHelp} <Link href="/study/sign-in">{copy.studentAction}</Link>
+          </p>
         </section>
       </main>
       <Footer />
