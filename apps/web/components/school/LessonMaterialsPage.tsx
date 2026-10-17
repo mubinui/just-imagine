@@ -58,16 +58,23 @@ export function LessonMaterialsPage({
           {bn ? 'প্রিন্ট / পিডিএফ' : 'Print / save PDF'}
         </button>
       </div>
-      <p className={styles.savedOnly}>
-        {bn
-          ? 'সংরক্ষিত পাঠ থেকে তৈরি। সম্পাদকের অসংরক্ষিত পরিবর্তন এখানে নেই। উত্তর ও ইঙ্গিত এই নথিতে দেওয়া হয় না।'
-          : 'Uses the saved lesson. Unsaved editor changes are not included. Answer keys and hints are omitted.'}
-      </p>
+      {audience !== 'student' && (
+        <p className={styles.savedOnly}>
+          {bn
+            ? 'সংরক্ষিত পাঠ থেকে তৈরি। সম্পাদকের অসংরক্ষিত পরিবর্তন এখানে নেই। উত্তর ও ইঙ্গিত এই নথিতে দেওয়া হয় না।'
+            : 'Uses the saved lesson. Unsaved editor changes are not included. Answer keys and hints are omitted.'}
+        </p>
+      )}
       <ErrorNotice error={error} retry={reload} />
       {loading ? (
         <Loading />
       ) : !error && data ? (
-        <LessonMaterials lesson={data.lesson} language={documentLanguage} kind={kind} />
+        <LessonMaterials
+          lesson={data.lesson}
+          language={documentLanguage}
+          kind={kind}
+          audience={audience}
+        />
       ) : null}
     </div>
   );

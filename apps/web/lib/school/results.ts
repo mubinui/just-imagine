@@ -46,3 +46,36 @@ export function firstTryResult(
     total: quizItemIds.length,
   };
 }
+
+export type QuizProgress = {
+  status: 'notStarted' | 'inProgress' | 'submitted';
+  /** Current quiz score, only once every quiz question has been submitted. */
+  score: { correct: number; total: number } | null;
+};
+/** A quiz counts as submitted only when every current quiz question has an answer on record. */
+export function quizProgress(
+  quizItemIds: readonly string[],
+  attempt: Pick<AttemptDoc, 'items'> | null,
+): QuizProgress {
+  if (!attempt || !Object.keys(attempt.items).length) return { status: 'notStarted', score: null };
+  const submitted =
+    quizItemIds.length > 0 && quizItemIds.every((id) => (attempt.items[id]?.tries ?? 0) > 0);
+  return submitted
+    ? { status: 'submitted', score: quizCompletion(quizItemIds, attempt) }
+    : { status: 'inProgress', score: null };
+}
+
+const STATUS_ORDER = { published: 0, draft: 1, archived: 2 } as const;
+/** School and shared lessons in separate groups, by title, with live lessons before drafts. */
+export function groupResultLessons<
+  T extends Pick<Lesson, 'id' | 'scope' | 'status'> & { title: { en: string; bn: string } },
+>(schoolLessons: readonly T[], globalLessons: readonly T[], language: 'en' | 'bn' = 'en') {
+  const order = (a: T, b: T) =>
+    a.title[language].localeCompare(b.title[language], language === 'bn' ? 'bn' : 'en') ||
+    STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+  const all = resultLessonChoices(schoolLessons, globalLessons);
+  return {
+    school: all.filter((l) => l.scope !== 'global').sort(order),
+    shared: all.filter((l) => l.scope === 'global').sort(order),
+  };
+}

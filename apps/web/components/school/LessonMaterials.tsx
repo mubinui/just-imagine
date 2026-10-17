@@ -287,10 +287,13 @@ export function LessonMaterials({
   lesson,
   language,
   kind,
+  audience = 'teacher',
 }: {
   lesson: LessonDoc;
   language: MaterialLanguage;
   kind: MaterialKind;
+  /** Students see the document only, without authoring details such as the saved revision. */
+  audience?: 'teacher' | 'admin' | 'student';
 }) {
   const copy = COPY[language];
   const chapter = chapterById(lesson.chapterId);
@@ -307,8 +310,13 @@ export function LessonMaterials({
         <h1>{passage(lesson.title, language)}</h1>
         <h2>{copy[kind]}</h2>
         <p>
-          {copy.grade} {lesson.grade} · {chapter?.title[language] ?? lesson.chapterId} ·{' '}
-          {copy.revision} {lesson.revision}
+          {copy.grade} {lesson.grade} · {chapter?.title[language] ?? lesson.chapterId}
+          {audience !== 'student' && (
+            <>
+              {' '}
+              · {copy.revision} {lesson.revision}
+            </>
+          )}
         </p>
         {review && (
           <p className={styles.review} role="note">

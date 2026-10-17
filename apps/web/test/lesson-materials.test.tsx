@@ -208,3 +208,16 @@ describe('saved lesson materials', () => {
     expect(html).not.toContain('<script>');
   });
 });
+
+describe('student lesson materials', () => {
+  it('omits authoring details such as the saved revision for students', () => {
+    const teacher = renderToStaticMarkup(
+      <LessonMaterials lesson={lesson} language="en" kind="notes" />,
+    );
+    const student = renderToStaticMarkup(
+      <LessonMaterials lesson={lesson} language="en" kind="notes" audience="student" />,
+    );
+    expect(teacher).toContain('Saved revision');
+    expect(student).not.toContain('Saved revision');
+  });
+});

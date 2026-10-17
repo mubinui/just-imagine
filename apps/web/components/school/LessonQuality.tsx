@@ -88,6 +88,8 @@ export function LessonQuality({
   keys: z.infer<typeof LessonKeysDocSchema>;
 }) {
   const { language } = useSchoolLanguage();
+  const n = (value: number) =>
+    new Intl.NumberFormat(language === 'bn' ? 'bn-BD' : 'en').format(value);
   const report = lessonPublicationChecks(lesson, keys);
   const errors = report.issues.filter((issue) => issue.severity === 'error').length;
   return (
@@ -96,7 +98,7 @@ export function LessonQuality({
         {language === 'bn' ? 'প্রকাশের আগে যাচাই' : 'Publication checks'} ·{' '}
         {errors
           ? language === 'bn'
-            ? `${errors}টি সংশোধন বাকি`
+            ? `${n(errors)}টি সংশোধন বাকি`
             : `${errors} to resolve`
           : language === 'bn'
             ? 'স্বয়ংক্রিয় যাচাই সম্পূর্ণ'
@@ -123,13 +125,13 @@ export function LessonQuality({
               {issue.step && (
                 <>
                   {' '}
-                  · {language === 'bn' ? 'ধাপ' : 'Step'} {issue.step}
+                  · {language === 'bn' ? 'ধাপ' : 'Step'} {n(issue.step)}
                 </>
               )}
               {issue.item && (
                 <>
                   {' '}
-                  · {language === 'bn' ? 'প্রশ্ন' : 'Question'} {issue.item}
+                  · {language === 'bn' ? 'প্রশ্ন' : 'Question'} {n(issue.item)}
                 </>
               )}
               {issue.language && <> · {issue.language === 'bn' ? 'বাংলা' : 'English'}</>}

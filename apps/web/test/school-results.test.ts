@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { AttemptDoc } from '@just-imagine/protocol';
 import type { Lesson } from '../lib/school/types';
-import { firstTryResult, quizCompletion, resultLessonChoices } from '../lib/school/results';
+import {
+  firstTryResult,
+  groupResultLessons,
+  quizCompletion,
+  quizProgress,
+  resultLessonChoices,
+} from '../lib/school/results';
 
 const quizItemIds = ['q1', 'q2', 'q3'];
 const answered = (firstCorrectTry: number, tries: number) => ({
@@ -73,5 +79,46 @@ describe('teacher first-try results', () => {
         items: { q1: { correct: false, tries: 1, firstCorrectAt: null } },
       }),
     ).toEqual({ correct: 0, total: 3 });
+  });
+});
+
+describe('teacher results progress', () => {
+  it('separates not started, in progress and submitted from the score', () => {
+    expect(quizProgress(quizItemIds, null)).toEqual({ status: 'notStarted', score: null });
+    expect(quizProgress(quizItemIds, { items: {} })).toEqual({ status: 'notStarted', score: null });
+    expect(quizProgress(quizItemIds, { items: { practice: answered(1, 1) } })).toEqual({
+      status: 'inProgress',
+      score: null,
+    });
+    expect(
+      quizProgress(quizItemIds, { items: { q1: answered(1, 1), q2: answered(1, 1) } }),
+    ).toEqual({ status: 'inProgress', score: null });
+    const wrong = { correct: false, tries: 1, firstCorrectAt: null };
+    expect(
+      quizProgress(quizItemIds, { items: { q1: answered(1, 1), q2: wrong, q3: wrong } }),
+    ).toEqual({ status: 'submitted', score: { correct: 1, total: 3 } });
+  });
+
+  it('never reports a lesson without a quiz as submitted', () => {
+    expect(quizProgress([], { items: { practice: answered(1, 1) } })).toEqual({
+      status: 'inProgress',
+      score: null,
+    });
+  });
+});
+
+describe('results lesson picker', () => {
+  it('groups school and shared lessons and labels repeated titles with their status', () => {
+    const t = (en: string) => ({ en, bn: en });
+    const groups = groupResultLessons<Pick<Lesson, 'id' | 'scope' | 'status' | 'title'>>(
+      [
+        { id: 'a', scope: 'school', status: 'published', title: t('Motion') },
+        { id: 'b', scope: 'class', status: 'draft', title: t('Motion') },
+        { id: 'c', scope: 'school', status: 'archived', title: t('Circuits') },
+      ],
+      [{ id: 'g', scope: 'global', status: 'published', title: t('Motion') }],
+    );
+    expect(groups.school.map((l) => l.id)).toEqual(['c', 'a', 'b']);
+    expect(groups.shared.map((l) => l.id)).toEqual(['g']);
   });
 });

@@ -1,10 +1,25 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { UiIcon } from '../UiIcon';
 import { schoolRequest } from '../../lib/school/api';
-import { schoolError, schoolErrorMessage } from '../../lib/school/errors';
+import { schoolError, schoolErrorMessage, type SchoolAudience } from '../../lib/school/errors';
 import { useSchoolLanguage } from '../../lib/i18n/study';
+
+/** Teacher screens speak to adults (আপনি); student screens keep the friendly তুমি register. */
+const Audience = createContext<SchoolAudience>('student');
+export function SchoolAudienceProvider({
+  audience,
+  children,
+}: {
+  audience: SchoolAudience;
+  children: ReactNode;
+}) {
+  return <Audience.Provider value={audience}>{children}</Audience.Provider>;
+}
+export const useSchoolAudience = () => useContext(Audience);
 export function LanguageSwitch({ student = false }: { student?: boolean }) {
   const { language, setLanguage, s } = useSchoolLanguage();
+  const audience = useSchoolAudience();
   const [saving, setSaving] = useState(false),
     [error, setError] = useState('');
   return (
@@ -30,32 +45,76 @@ export function LanguageSwitch({ student = false }: { student?: boolean }) {
         <option value="en">English</option>
         <option value="bn">বাংলা</option>
       </select>
-      {error && <span role="alert">{schoolError(error, language)}</span>}
+      {error && <span role="alert">{schoolError(error, language, audience)}</span>}
     </label>
   );
 }
 export function ErrorNotice({ error, retry }: { error: unknown; retry?: () => void }) {
   const { s, language } = useSchoolLanguage();
+  const audience = useSchoolAudience();
   return error ? (
     <div className="sch-error" role="alert">
-      <p>{schoolError(error, language)}</p>
-      {retry && <button onClick={retry}>{s('retry')}</button>}
+      <p>{schoolError(error, language, audience)}</p>
+      {retry && (
+        <button type="button" onClick={retry}>
+          {s('retry')}
+        </button>
+      )}
     </div>
   ) : null;
 }
-export function Loading() {
+/** A quiet skeleton in the shape of the content it replaces; the label stays for screen readers. */
+export function Loading({ rows = 3 }: { rows?: number }) {
   const { s } = useSchoolLanguage();
   return (
-    <p className="sch-loading" role="status">
-      {s('loading')}
-    </p>
+    <div className="sch-loading" role="status" aria-live="polite">
+      <span className="sr-only">{s('loading')}</span>
+      {Array.from({ length: rows }, (_, i) => (
+        <span className="sch-skeleton" key={i} aria-hidden="true" />
+      ))}
+    </div>
   );
 }
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function EmptyState({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body?: string;
+  action?: ReactNode;
+}) {
   return (
-    <label className="sch-field">
+    <div className="sch-empty-state" role="status">
+      <p className="sch-empty-title">{title}</p>
+      {body && <p>{body}</p>}
+      {action}
+    </div>
+  );
+}
+export function Field({
+  label,
+  children,
+  hint,
+  error,
+  hintId,
+}: {
+  label: string;
+  children: ReactNode;
+  hint?: string;
+  error?: string;
+  /** Lets the control reference the hint or error with aria-describedby. */
+  hintId?: string;
+}) {
+  return (
+    <label className="sch-field" data-invalid={error ? 'true' : undefined}>
       <span>{label}</span>
       {children}
+      {(error || hint) && (
+        <small id={hintId} className={error ? 'sch-field-error' : 'sch-field-hint'}>
+          {error || hint}
+        </small>
+      )}
     </label>
   );
 }
@@ -81,21 +140,57 @@ export function useSchoolAction() {
       setBusy(false);
     }
   }
-  return { busy, error, errorDetail, notice, run, setError };
+  return { busy, error, errorDetail, notice, run, setError, setNotice };
 }
 export function ActionNotice({
   action,
+  toast = false,
 }: {
   action: { error: string; errorDetail?: unknown; notice: string };
+  /** Teacher console: float the result where the teacher is looking instead of the page top. */
+  toast?: boolean;
 }) {
+  const { s } = useSchoolLanguage();
+  const [dismissed, setDismissed] = useState<unknown>(null);
+  const current = action.errorDetail ?? (action.error || action.notice);
+  useEffect(() => {
+    if (!toast || !action.notice || action.error) return;
+    const timer = window.setTimeout(() => setDismissed(current), 6000);
+    return () => window.clearTimeout(timer);
+  }, [toast, action.notice, action.error, current]);
+  if (!toast)
+    return (
+      <>
+        <ErrorNotice error={action.errorDetail ?? action.error} />
+        {action.notice && (
+          <p role="status" className="sch-notice">
+            {action.notice}
+          </p>
+        )}
+      </>
+    );
+  const visible = current && dismissed !== current;
   return (
-    <>
-      <ErrorNotice error={action.errorDetail ?? action.error} />
-      {action.notice && (
-        <p role="status" className="sch-notice">
-          {action.notice}
-        </p>
+    <div className="sch-toast-region" aria-live="polite">
+      {visible && (
+        <div className="sch-toast" data-tone={action.error ? 'error' : 'success'}>
+          {action.error || action.errorDetail ? (
+            <ErrorNotice error={action.errorDetail ?? action.error} />
+          ) : (
+            <p role="status" className="sch-notice">
+              {action.notice}
+            </p>
+          )}
+          <button
+            type="button"
+            className="sch-toast-close"
+            aria-label={s('close')}
+            onClick={() => setDismissed(current)}
+          >
+            <UiIcon name="close" />
+          </button>
+        </div>
       )}
-    </>
+    </div>
   );
 }

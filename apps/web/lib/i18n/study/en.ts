@@ -53,7 +53,7 @@ export const en = {
   inviteOnce: 'Copy this invitation now. It is shown only once.',
   copy: 'Copy',
   copied: 'Copied',
-  schoolConsole: 'Your classroom, ready to explore.',
+  schoolConsole: 'Your classes, ready to explore.',
   newClass: 'Create class',
   newStudent: 'Add student',
   importCsv: 'Import CSV',

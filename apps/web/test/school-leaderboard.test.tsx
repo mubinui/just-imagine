@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({ resource: vi.fn(), session: vi.fn() }));
 vi.mock('../lib/school/api', () => ({
   useSchoolResource: mocks.resource,
   schoolRequest: vi.fn(),
+  schoolHref: (href: string) => href,
 }));
 vi.mock('../components/school/SchoolShell', () => ({ useSchoolSession: mocks.session }));
 
@@ -134,9 +135,13 @@ describe('result lifecycle', () => {
     expect(html).toContain('Try pushing the cart.');
     expect(html).toContain('Quiz question 3');
     expect(html).toContain('What force moves the cart?');
-    expect(html).toContain('Keep exploring · Attempts: 3');
-    expect(html).toContain('Correct · Attempts: 2');
-    expect((html.match(/>1\/3</g) ?? []).length).toBe(2);
+    // Teachers read neutral wording, not the student's encouragement.
+    expect(html).toContain('Not yet correct · 3 tries');
+    expect(html).toContain('Correct · 2 tries');
+    expect(html).not.toContain('Keep exploring');
+    // A partly answered quiz is in progress: no score yet, first-try history still shown.
+    expect(html).toContain('In progress');
+    expect((html.match(/>1\/3</g) ?? []).length).toBe(1);
     expect(html).not.toContain('check1');
     expect(html).not.toContain('q3');
   });
@@ -157,7 +162,7 @@ describe('result lifecycle', () => {
     );
     const html = renderToStaticMarkup(<ClassResults classId="class-9-a" lessonId="lesson-1" />);
     expect(html).toContain('Question 1');
-    expect(html).toContain('Correct · Attempts: 1');
+    expect(html).toContain('Correct · 1 try');
     expect(html).not.toContain('retired_internal_item');
   });
 
@@ -218,7 +223,7 @@ describe('result lifecycle', () => {
   it('renders a named results table or a specific empty-class state', () => {
     mocks.resource.mockReturnValue(loaded(results));
     const html = renderToStaticMarkup(<ClassResults classId="class-9-a" lessonId="lesson-1" />);
-    expect(html).toContain('<caption>Forces</caption>');
+    expect(html).toMatch(/<caption><strong>Forces<\/strong>/);
     expect(html).toContain('scope="row">Rafi');
     expect(html).toContain('Not started');
     mocks.resource.mockReturnValue(loaded({ ...results, students: [] }));

@@ -18,6 +18,19 @@ export type School = z.infer<typeof SchoolDocSchema> & {
 };
 export type SchoolClass = z.infer<typeof SchoolClassDocSchema> & { id: string };
 export type Student = z.infer<typeof StudentDocSchema> & { id: string };
+/** The teacher roster adds the sign-in lock state (never the PIN or its hash). */
+export type RosterStudent = Student & { signIn?: { failures: number; locked: boolean } };
+export type ActivityRow = {
+  studentId: string;
+  firstName: string;
+  classId: string;
+  lessonId: string;
+  lessonTitle: { en: string; bn: string };
+  status: 'inProgress' | 'submitted';
+  score: { correct: number; total: number } | null;
+  completedAt: number | null;
+  updatedAt: number;
+};
 export type Lesson = LessonDoc & { id: string };
 export type LessonKeys = z.infer<typeof LessonKeysDocSchema>;
 export type PinCard = { student: Student; pin: string };

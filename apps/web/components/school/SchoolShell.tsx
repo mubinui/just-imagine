@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { onIdTokenChanged, signOut } from 'firebase/auth';
@@ -8,8 +8,9 @@ import { schoolRequest, schoolHref, setOperatorSchoolContext } from '../../lib/s
 import type { SchoolMe, StudyMe } from '../../lib/school/types';
 import { useSchoolLanguage, setSchoolLanguage } from '../../lib/i18n/study';
 import { Brand } from '../Shell';
-import { LanguageSwitch, ErrorNotice, Loading } from './shared';
+import { LanguageSwitch, ErrorNotice, Loading, SchoolAudienceProvider } from './shared';
 import { ThemePicker } from '../ThemePicker';
+import { UiIcon, type UiIconName } from '../UiIcon';
 import '../../app/school.css';
 const Session = createContext<SchoolMe | StudyMe | null>(null);
 export function useSchoolSession() {
@@ -75,62 +76,102 @@ export function SchoolShell({
       unsubscribe();
     };
   }, [student, router]);
-  const nav = student
+  const nav: [
+    href: string,
+    key: 'home' | 'classes' | 'students' | 'lessons' | 'results' | 'leaderboard' | 'lab',
+    icon: UiIconName,
+  ][] = student
     ? [
-        ['/study', 'home'],
-        ['/study/leaderboard', 'leaderboard'],
-        ['/study/lab', 'lab'],
+        ['/study', 'home', 'home'],
+        ['/study/leaderboard', 'leaderboard', 'trophy'],
+        ['/study/lab', 'lab', 'flask'],
       ]
     : [
-        ['/school', 'home'],
-        ['/school/classes', 'classes'],
-        ['/school/students', 'students'],
-        ['/school/lessons', 'lessons'],
-        ['/school/results', 'results'],
-        ['/school/leaderboard', 'leaderboard'],
+        ['/school', 'home', 'home'],
+        ['/school/classes', 'classes', 'gallery'],
+        ['/school/students', 'students', 'learn'],
+        ['/school/lessons', 'lessons', 'book'],
+        ['/school/results', 'results', 'check'],
+        ['/school/leaderboard', 'leaderboard', 'trophy'],
       ];
+  const root = student ? '/study' : '/school';
+  // Lesson editors, materials and other sub-pages keep their section highlighted.
+  const current = (href: string) =>
+    href === root ? path === root : path === href || path.startsWith(href + '/');
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    // On phones the tabs scroll sideways; keep the current one in view without moving the page.
+    if (nav && active && nav.scrollWidth > nav.clientWidth)
+      nav.scrollTo({ left: active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2 });
+  }, [path, me]);
+  const bnStudent = student && language === 'bn';
+  const signOutLabel = bnStudent ? 'বের হও' : s('signOut');
+  const showNav = !error;
   return (
-    <div data-world="parent" className={'sch ' + (student ? 'study' : 'teacher')}>
-      <header className="header sch-header">
-        <Brand />
-        <div className="sch-header-end">
-          <span>{language === 'bn' ? me?.school?.nameBn : me?.school?.name}</span>
-          <LanguageSwitch student={student} />
-          <ThemePicker compact language={language} />
-        </div>
-      </header>
-      <div className="sch-shell">
-        <aside className="sch-nav">
-          <p>{student ? s('study') : s('teacher')}</p>
-          <nav aria-label={student ? s('study') : s('school')}>
-            {nav.map(([href, key]) => (
-              <Link
-                href={schoolHref(href!)}
-                key={href}
-                aria-current={path === href ? 'page' : undefined}
-              >
-                {s(key as 'home')}
-              </Link>
-            ))}
-          </nav>
-          <button onClick={() => void signOut(firebase().auth)}>{s('signOut')}</button>
-        </aside>
-        <main className="sch-content">
-          <ErrorNotice error={error} />
-          {error && (
-            <Link className="sch-action-link" href={student ? '/study/sign-in' : '/school/sign-in'}>
-              {s('signIn')}
-            </Link>
+    <SchoolAudienceProvider audience={student ? 'student' : 'teacher'}>
+      <div
+        data-world="parent"
+        lang={language === 'bn' ? 'bn' : 'en'}
+        className={'sch ' + (student ? 'study' : 'teacher')}
+      >
+        <header className="header sch-header">
+          <Brand />
+          <div className="sch-header-end">
+            <span className="sch-school-name">
+              {language === 'bn' ? me?.school?.nameBn : me?.school?.name}
+            </span>
+            <LanguageSwitch student={student} />
+            <ThemePicker compact language={language} />
+            <button
+              type="button"
+              className="sch-signout"
+              onClick={() => void signOut(firebase().auth)}
+            >
+              <UiIcon name="finish" />
+              <span>{signOutLabel}</span>
+            </button>
+          </div>
+        </header>
+        <div className={'sch-shell' + (showNav ? '' : ' sch-shell-bare')}>
+          {showNav && (
+            <aside className="sch-nav">
+              <p>{student ? s('study') : s('teacher')}</p>
+              <nav ref={navRef} aria-label={student ? s('study') : s('school')}>
+                {nav.map(([href, key, icon]) => (
+                  <Link
+                    href={schoolHref(href)}
+                    key={href}
+                    aria-current={current(href) ? 'page' : undefined}
+                  >
+                    <UiIcon name={icon} />
+                    <span>{s(key)}</span>
+                  </Link>
+                ))}
+              </nav>
+            </aside>
           )}
-          {!me && !error ? (
-            <Loading />
-          ) : !error && me ? (
-            <Session.Provider key={me.uid + me.schoolId} value={me}>
-              {children}
-            </Session.Provider>
-          ) : null}
-        </main>
+          <main className="sch-content">
+            <ErrorNotice error={error} />
+            {error && (
+              <Link
+                className="sch-action-link"
+                href={student ? '/study/sign-in' : '/school/sign-in'}
+              >
+                {bnStudent ? 'আবার প্রবেশ করো' : s('signIn')}
+              </Link>
+            )}
+            {!me && !error ? (
+              <Loading rows={4} />
+            ) : !error && me ? (
+              <Session.Provider key={me.uid + me.schoolId} value={me}>
+                {children}
+              </Session.Provider>
+            ) : null}
+          </main>
+        </div>
       </div>
-    </div>
+    </SchoolAudienceProvider>
   );
 }

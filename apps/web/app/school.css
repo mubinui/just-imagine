@@ -1,7 +1,20 @@
+/*
+ * School surfaces: the teacher console (/school) and the student study pages (/study).
+ * Shared `sch-*` primitives stay backward compatible for the study pages and admin embeds;
+ * teacher-only composition lives under `.sch.teacher` or teacher-only class names below.
+ *
+ * Console system (teacher): one control height (48px; 40px compact inside tables), 12px button
+ * radius, 16px card radius, 1px quiet dividers; headings 36 / 22 / 18; spacing 8-12-16-24-32-48.
+ */
 .sch {
   color: var(--ink);
   background: var(--ground);
   min-height: 100dvh;
+}
+/* An embedded school screen never adds a second page height or background. */
+.sch .sch {
+  min-height: 0;
+  background: transparent;
 }
 .sch-header {
   border-bottom: 1px solid var(--line);
@@ -9,8 +22,13 @@
 .sch-header-end {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
   font-size: 15px;
+}
+.sch-header-end > .sch-school-name {
+  margin-right: 12px;
+  font-weight: 700;
+  color: var(--soft);
 }
 .sch-language select {
   min-width: 115px;
@@ -23,14 +41,23 @@
   padding: 32px 5%;
   gap: 36px;
 }
+.sch-shell.sch-shell-bare {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 900px;
+}
 .sch-nav {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+  align-self: start;
+  position: sticky;
+  top: 24px;
 }
 .sch-nav > p {
-  font-family: Baloo, serif;
-  font-size: 23px;
+  font-family: Baloo, 'Baloo Da 2', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  padding-inline: 16px;
 }
 .sch-nav nav {
   display: flex;
@@ -38,18 +65,39 @@
   gap: 4px;
 }
 .sch-nav a {
-  padding: 12px 16px;
-  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 12px;
   text-decoration: none;
   min-height: 48px;
+  font-weight: 700;
+  color: var(--soft);
+  transition: background var(--duration);
+}
+.sch-nav a .ui-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+}
+.sch-nav a:hover {
+  background: color-mix(in srgb, var(--mint) 55%, transparent);
+  color: var(--ink);
 }
 .sch-nav a[aria-current] {
   background: var(--mint);
-  font-weight: 800;
+  color: var(--ink);
+  font-weight: 700;
 }
-.sch-nav > button {
-  margin-top: auto;
-  text-align: left;
+.sch-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.sch-signout .ui-icon {
+  width: 20px;
+  height: 20px;
 }
 .sch-content {
   width: 100%;
@@ -89,20 +137,48 @@
   flex-direction: column;
   gap: 8px;
 }
+.sch-field > span {
+  font-weight: 700;
+}
 .sch-field input,
 .sch-field select,
 .sch-field textarea {
   width: 100%;
 }
+.sch-field-hint,
+.sch-field-error {
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 400;
+}
+.sch .sch-field-hint {
+  color: var(--soft);
+}
+.sch .sch-field-error {
+  color: var(--danger, #8f3e2c);
+  font-weight: 700;
+}
+.sch-field[data-invalid] input,
+.sch-field[data-invalid] select,
+.sch-field[data-invalid] textarea,
+.sch [aria-invalid='true'] {
+  border-color: var(--danger, #8f3e2c);
+  box-shadow: 0 0 0 1px var(--danger, #8f3e2c);
+}
 .sch textarea {
   background: var(--surface);
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid #8d9f8c;
   border-radius: 10px;
   padding: 12px;
   font: inherit;
   resize: vertical;
   min-height: 90px;
+  field-sizing: content;
+}
+.sch textarea:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 .sch button,
 .sch select {
@@ -123,7 +199,7 @@
   color: var(--accent-ink);
   border-color: transparent;
 }
-.sch-primary:hover {
+.sch .sch-primary:hover {
   background: color-mix(in srgb, var(--accent) 88%, var(--ink));
 }
 .sch button:disabled {
@@ -137,14 +213,45 @@
 }
 .sch-error p {
   margin: 0 0 8px;
+  color: var(--ink);
 }
 .sch-notice {
   padding: 12px 16px;
   background: var(--mint);
   border-radius: 12px;
+  color: var(--ink);
 }
 .sch-loading {
-  padding: 40px 0;
+  display: grid;
+  gap: 12px;
+  padding: 24px 0;
+}
+.sch-skeleton {
+  display: block;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--line) 45%, transparent) 0%,
+    color-mix(in srgb, var(--line) 80%, transparent) 50%,
+    color-mix(in srgb, var(--line) 45%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: sch-shimmer 1.4s ease-in-out infinite;
+}
+.sch-skeleton:nth-child(3n) {
+  width: 72%;
+}
+.sch-skeleton-num {
+  display: inline-block;
+  width: 64px;
+  height: 40px;
+  vertical-align: middle;
+}
+@keyframes sch-shimmer {
+  to {
+    background-position: -200% 0;
+  }
 }
 .sch-section {
   padding: 24px 0;
@@ -189,11 +296,8 @@
   width: 72px;
   text-align: start;
 }
-.sch-results-table {
-  min-width: 640px;
-}
 .sch-result-items {
-  max-width: 32ch;
+  max-width: 36ch;
   overflow-wrap: anywhere;
 }
 .sch td > button {
@@ -203,17 +307,42 @@
 .sch-muted {
   color: var(--soft);
 }
+/* Chips: one shape for status, approval and lock badges. */
 .sch-status {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
   border-radius: 999px;
   background: var(--mint);
-  padding: 4px 10px;
+  color: var(--ink);
+  padding: 2px 10px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 .sch-status[data-state='suspended'],
-.sch-status[data-state='archived'] {
+.sch-status[data-state='archived'],
+.sch-status[data-state='locked'] {
   background: var(--peach);
+}
+.sch-status[data-state='draft'],
+.sch-status[data-state='notStarted'],
+.sch-status[data-state='inProgress'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--soft);
+}
+.sch-status[data-state='inProgress'] {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, var(--line));
+  color: var(--accent);
+}
+.sch-chip-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 .sch-list {
   display: flex;
@@ -246,6 +375,7 @@
 .sch-tabs button[aria-pressed='true'] {
   background: var(--accent);
   color: var(--accent-ink);
+  border-color: var(--accent);
 }
 .sch-filter-bar {
   display: flex;
@@ -301,17 +431,20 @@
 .sch-form {
   display: grid;
   gap: 20px;
-  max-width: 900px;
 }
 .sch-inline-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: end;
+  gap: 16px;
+  align-items: flex-start;
 }
 .sch-inline-form .sch-field {
   flex: 1;
   min-width: 160px;
+}
+/* Buttons line up with the input row even when a field shows a hint below it. */
+.sch-inline-form > button {
+  margin-top: 31px;
 }
 .sch-auth {
   max-width: 720px;
@@ -346,16 +479,33 @@
   font-size: 20px;
   max-width: 60ch;
 }
-.sch-action-link {
+.sch-action-link,
+.sch-button-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  gap: 8px;
+  min-height: 48px;
   padding: 8px 18px;
   border-radius: 12px;
   background: var(--accent);
   color: var(--accent-ink);
   text-decoration: none;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.sch-button-link {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.sch-button-link:hover {
+  background: color-mix(in srgb, var(--mint) 55%, var(--surface));
+}
+.sch-action-link .ui-icon,
+.sch-button-link .ui-icon {
+  width: 20px;
+  height: 20px;
 }
 .sch-drawer {
   background: var(--surface);
@@ -374,7 +524,7 @@
 .sch-checks {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px 16px;
 }
 .sch-checks > label {
   display: flex;
@@ -395,7 +545,7 @@
 .sch-pin-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  gap: 16px;
   margin: 24px 0;
 }
 .sch-pin {
@@ -403,6 +553,7 @@
   border: 1px solid var(--line);
   border-radius: 12px;
   break-inside: avoid;
+  background: var(--surface);
 }
 .sch-pin img {
   width: 100px;
@@ -410,11 +561,25 @@
   float: right;
 }
 .sch-pin strong {
-  font-size: 24px;
+  font-size: 22px;
   display: block;
+  margin-bottom: 8px;
 }
 .sch-pin p {
   margin: 8px 0;
+}
+.sch-pin dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+}
+.sch-pin dt {
+  color: var(--soft);
+}
+.sch-pin dd {
+  margin: 0;
+  font-weight: 700;
 }
 .sch-pin code {
   font:
@@ -485,7 +650,7 @@ label.sch-option {
   max-width: 100%;
 }
 .sch-json {
-  min-height: 130px !important;
+  min-height: 56px !important;
   font:
     14px/1.6 ui-monospace,
     monospace !important;
@@ -493,38 +658,989 @@ label.sch-option {
 .sch-danger {
   color: var(--danger, #8f3e2c);
 }
+.sch button.sch-danger {
+  border-color: color-mix(in srgb, var(--danger, #8f3e2c) 45%, var(--line));
+}
+.sch button.sch-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--peach) 45%, var(--surface));
+}
 .sch-result-good {
   color: var(--accent);
-  font-weight: 800;
+  font-weight: 700;
 }
 .sch-board-own {
   background: var(--mint);
 }
+
+/* ---------- teacher console ---------- */
+
+.sch.teacher .sch-content h1,
+.sch-lesson-editor h1,
+.sch.teacher .sch-panel h1 {
+  font-size: clamp(30px, 3vw, 40px);
+  margin: 0;
+}
+.sch.teacher .sch-content h2,
+.sch-lesson-editor h2 {
+  font-size: 22px;
+}
+.sch.teacher h3,
+.sch-lesson-editor h3 {
+  font-size: 19px;
+}
+/* Button system. :where() keeps it at element specificity, so tabs, segments, menus and
+   compact row buttons refine it without fighting it. */
+:where(.sch.teacher, .sch-lesson-editor) button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+}
+:where(.sch.teacher, .sch-lesson-editor) button .ui-icon {
+  width: 20px;
+  height: 20px;
+}
+:where(.sch.teacher, .sch-lesson-editor) button.sch-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+:where(.sch.teacher, .sch-lesson-editor)
+  button:hover:not(:disabled):not(.sch-primary):not([aria-pressed='true']) {
+  background: color-mix(in srgb, var(--mint) 55%, var(--surface));
+}
+:where(.sch.teacher, .sch-lesson-editor) button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.sch-field input,
+.sch-field select,
+.sch-field textarea {
+  font-weight: 400;
+}
+.sch-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin: 0 0 32px;
+}
+.sch-page-head > div:first-child {
+  min-width: 0;
+  flex: 1 1 420px;
+}
+.sch-lead {
+  margin-top: 8px;
+  font-size: 17px;
+  max-width: 62ch;
+}
+.sch-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.sch-code-chip,
+.sch-seat-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-weight: 700;
+  color: var(--soft);
+}
+.sch-code-chip code {
+  font:
+    800 20px Nunito,
+    sans-serif;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+}
+.sch-panel-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.sch-panel-card > h2 {
+  margin-bottom: 16px;
+}
+.sch-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.sch-card-head a {
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.sch-card-empty {
+  padding: 16px 0 4px;
+}
+.sch-empty-state {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 32px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  margin: 8px 0 24px;
+}
+.sch-empty-state p {
+  margin: 0;
+}
+.sch-empty-title {
+  font-family: Baloo, 'Baloo Da 2', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--ink);
+}
+.sch-empty-state > :last-child:not(p) {
+  margin-top: 8px;
+}
+
+/* Overview */
+.sch-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.sch-stat {
+  display: grid;
+  gap: 8px;
+  padding: 24px;
+  text-decoration: none;
+  transition: background var(--duration);
+}
+.sch-stat + .sch-stat {
+  border-left: 1px solid var(--line);
+}
+.sch-stat:hover {
+  background: color-mix(in srgb, var(--mint) 35%, var(--surface));
+}
+.sch-stat dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--soft);
+}
+.sch-stat dt .ui-icon {
+  color: var(--accent);
+}
+.sch-stat dd {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.sch-stat-value {
+  font-family: Baloo, 'Baloo Da 2', sans-serif;
+  font-weight: 800;
+  font-size: clamp(40px, 4vw, 56px);
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.sch-stat-detail {
+  color: var(--soft);
+  font-size: 15px;
+}
+.sch-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 32px;
+}
+.sch-quick-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  text-decoration: none;
+  font-weight: 700;
+}
+.sch-quick-action:first-child {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+}
+.sch-quick-action:not(:first-child):hover {
+  background: color-mix(in srgb, var(--mint) 55%, var(--surface));
+}
+.sch-quick-action .ui-icon {
+  width: 20px;
+  height: 20px;
+}
+.sch-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.sch-overview-grid .sch-panel-card {
+  margin: 0;
+}
+.sch-overview-side {
+  display: grid;
+  gap: 24px;
+}
+.sch-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sch-feed li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sch-feed li:last-child {
+  border-bottom: 0;
+}
+.sch-feed li > div:first-child {
+  min-width: 0;
+}
+.sch-feed p {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.sch-feed a {
+  text-decoration: none;
+}
+.sch-feed a:hover strong {
+  text-decoration: underline;
+}
+.sch-feed-end {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: end;
+  justify-items: end;
+  align-items: center;
+  gap: 4px 10px;
+  flex-shrink: 0;
+  text-align: end;
+}
+.sch-feed-score {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sch-feed-end > small {
+  grid-column: 1 / -1;
+}
+.sch-stat dd {
+  align-content: start;
+}
+.sch-approvals {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* Classes */
+.sch-class-list {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+.sch-class-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 24px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sch-class-main {
+  display: grid;
+  gap: 8px;
+  max-width: 640px;
+}
+.sch-class-main > .sch-field {
+  max-width: 420px;
+}
+.sch-class-meta {
+  font-weight: 700;
+  color: var(--ink);
+}
+.sch-class-roster {
+  font-size: 15px;
+}
+.sch-class-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 12px;
+  max-width: 300px;
+  padding-top: 31px;
+}
+.sch-class-actions small {
+  flex-basis: 100%;
+  font-size: 14px;
+}
+
+/* Students */
+.sch-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.sch-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.sch-form[data-editing] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  scroll-margin-top: 24px;
+}
+.sch-form > h2 {
+  margin: 0;
+}
+.sch-form .sch-toolbar {
+  margin: 0;
+}
+.sch-import > summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent);
+  min-height: 24px;
+}
+.sch-import[open] > summary {
+  margin-bottom: 16px;
+}
+.sch-import > :not(summary) + * {
+  margin-top: 16px;
+}
+.sch-class-codes {
+  padding-left: 20px;
+}
+.sch-roster-filters {
+  margin-top: 8px;
+}
+.sch-filter-count {
+  margin: 0 0 12px;
+}
+.sch-username {
+  font-family: ui-monospace, monospace;
+  font-size: 15px;
+}
+.sch-roster-table tbody tr[data-state='suspended'] th,
+.sch-roster-table tbody tr[data-state='suspended'] td:not(.sch-row-actions) {
+  color: var(--soft);
+}
+.sch-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.sch-row-actions button,
+.sch.teacher .sch-menu > summary {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 15px;
+}
+.sch-menu {
+  position: relative;
+}
+.sch-menu > summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.sch-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.sch-menu > summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+.sch-menu[open] > summary .ui-icon {
+  transform: rotate(180deg);
+}
+.sch-menu-items {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 10;
+  display: grid;
+  min-width: 200px;
+  padding: 8px;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.sch-menu-items button {
+  justify-content: flex-start;
+  border-color: transparent;
+  min-height: 44px;
+}
+
+/* PIN dialog */
+.sch-dialog {
+  width: min(880px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--ground);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.sch-dialog::backdrop {
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+.sch-dialog h2 {
+  font-size: 26px;
+  outline: none;
+}
+.sch-once {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--peach) 55%, var(--ground));
+  color: var(--ink);
+  font-weight: 700;
+}
+.sch-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* Results */
+.sch-results-summary {
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+.sch-results-table {
+  min-width: 720px;
+}
+.sch-results-table tbody th {
+  min-width: 10ch;
+}
+.sch-result-items ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.sch-result-items li {
+  display: flex;
+  gap: 8px;
+  font-size: 15px;
+}
+.sch-result-mark .ui-icon {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--soft);
+}
+.sch-result-items li[data-correct='true'] .ui-icon {
+  color: var(--accent);
+}
+.sch-cell-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+/* Lessons library */
+.sch-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sch-lesson-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.sch-lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sch-lesson-row > div {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+.sch.teacher .sch-lesson-row h2,
+.sch-lesson-row h2 {
+  font-size: 22px;
+  margin: 0;
+}
+.sch-lesson-row p {
+  margin: 0;
+}
+
+/* Lesson editor */
+.sch-lesson-editor {
+  min-width: 0;
+}
+.sch-editor-head {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: grid;
+  gap: 12px;
+  margin: -8px 0 24px;
+  padding: 12px 0 16px;
+  background: var(--ground);
+  border-bottom: 1px solid var(--line);
+}
+.sch-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  min-height: 32px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+.sch-back .ui-icon {
+  width: 18px;
+  height: 18px;
+}
+.sch-editor-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.sch-editor-title h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sch-save-state {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--soft);
+}
+.sch-save-state[data-dirty] {
+  color: var(--focus);
+}
+.sch-editor-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sch-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sch-segments button .ui-icon {
+  width: 18px;
+  height: 18px;
+}
+.sch-readiness p {
+  display: block;
+  margin: 0;
+}
+.sch-readiness p[data-state] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  max-width: none;
+  font-size: 15px;
+}
+.sch-readiness p[data-state='ready'] {
+  color: var(--accent);
+  font-weight: 700;
+}
+.sch-readiness p[data-state='warning'] {
+  margin-top: 6px;
+  color: var(--ink);
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--peach) 50%, var(--ground));
+}
+.sch-readiness .ui-icon {
+  width: 18px;
+  height: 18px;
+}
+.sch-progress {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.sch-progress p {
+  margin: 0;
+  max-width: none;
+  color: var(--ink);
+}
+.sch-progress-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%) 0 0 / 40% 100%
+      no-repeat,
+    color-mix(in srgb, var(--accent) 15%, transparent);
+  animation: sch-progress 1.4s ease-in-out infinite;
+}
+@keyframes sch-progress {
+  from {
+    background-position:
+      -40% 0,
+      0 0;
+  }
+  to {
+    background-position:
+      140% 0,
+      0 0;
+  }
+}
+.sch-lesson-details {
+  display: grid;
+  gap: 20px;
+}
+.sch-scope {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.sch-scope .sch-field {
+  max-width: 380px;
+}
+.sch-steps-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 32px 0 16px;
+}
+.sch-steps-head h2 {
+  margin: 0;
+}
+.sch-step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.sch-step-list .sch-step {
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  scroll-margin-top: 220px;
+}
+.sch-step > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 20px;
+  cursor: pointer;
+  border-radius: 16px;
+}
+.sch-step > summary::-webkit-details-marker {
+  display: none;
+}
+.sch-step > summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.sch-step-number {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sch-step-kind {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sch-step-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--soft);
+}
+.sch-step-caret {
+  color: var(--accent);
+  transition: transform var(--duration);
+}
+.sch-step[open] .sch-step-caret {
+  transform: rotate(180deg);
+}
+.sch-step-body {
+  display: grid;
+  gap: 16px;
+  padding: 4px 20px 24px;
+  border-top: 1px solid var(--line);
+}
+.sch-step-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+}
+.sch-step-tools button {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 15px;
+}
+.sch-flip {
+  transform: rotate(180deg);
+}
+.sch-step-body > button,
+.sch-question > button,
+.sch-fieldset > button {
+  justify-self: start;
+  width: fit-content;
+}
+.sch-question {
+  display: grid;
+  gap: 16px;
+  padding: 20px 0 4px;
+  border-top: 1px dashed var(--line);
+  scroll-margin-top: 220px;
+}
+.sch-question-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sch-fieldset {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.sch-fieldset legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+.sch-fieldset .sch-option button {
+  min-width: 48px;
+  padding: 8px;
+}
+.sch-reagents > label {
+  width: min(100%, 300px);
+}
+.sch-reagents small {
+  margin-left: 4px;
+}
+.sch-tolerance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 8px;
+  align-items: end;
+}
+.sch-add-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+}
+.sch-add-steps > span {
+  font-weight: 700;
+  margin-right: 8px;
+}
+.sch-editor-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+/* Action results float at the bottom of the viewport, where the teacher acted. */
+.sch-toast-region {
+  position: fixed;
+  z-index: 40;
+  right: 24px;
+  bottom: 24px;
+  width: min(440px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.sch-toast {
+  position: relative;
+  pointer-events: auto;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  animation: sch-toast-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sch-toast .sch-notice,
+.sch-toast .sch-error {
+  margin: 0;
+  padding: 14px 56px 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.sch-toast .sch-error p {
+  margin: 0;
+}
+.sch-toast .sch-error button {
+  margin-top: 8px;
+}
+:where(.sch.teacher, .sch-lesson-editor) .sch-toast-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+@keyframes sch-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Bangla display type for the new console elements. */
+[lang|='bn'] .sch-stat-value,
+[lang|='bn'] .sch-empty-title,
+[lang|='bn'] .sch-nav > p {
+  font-family: 'Baloo Da 2', Baloo, sans-serif;
+  line-height: 1.25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sch-skeleton,
+  .sch-progress-bar,
+  .sch-toast {
+    animation: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .sch-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sch-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (max-width: 900px) {
   .sch-shell {
-    grid-template-columns: 170px minmax(0, 1fr);
+    grid-template-columns: 180px minmax(0, 1fr);
     gap: 24px;
     padding-inline: 4%;
   }
-  .sch-grid {
+  .sch-grid,
+  .sch-grid-3 {
     grid-template-columns: 1fr;
+  }
+  .sch-nav a {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .sch-header-end > .sch-school-name {
+    display: none;
   }
 }
 @media (max-width: 700px) {
   .sch-header {
-    padding: 20px 5%;
+    padding: 16px 16px;
+  }
+  .sch-header-end {
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .sch-header-end > span {
     display: none;
   }
+  .sch-signout span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
   .sch-shell {
     display: flex;
     flex-direction: column;
-    padding: 16px 5%;
-    gap: 20px;
+    padding: 12px 16px;
+    gap: 16px;
   }
   .sch-nav {
     display: block;
+    position: static;
+    align-self: stretch;
+    min-width: 0;
+    margin-inline: -16px;
   }
   .sch-nav > p {
     display: none;
@@ -533,13 +1649,13 @@ label.sch-option {
     flex-direction: row;
     overflow-x: auto;
     gap: 4px;
+    padding: 0 16px 4px;
+    scrollbar-width: none;
   }
   .sch-nav a {
     white-space: nowrap;
-    padding: 12px;
-  }
-  .sch-nav > button {
-    margin-top: 12px;
+    padding: 10px 14px;
+    flex-shrink: 0;
   }
   .sch-pin-grid {
     grid-template-columns: 1fr;
@@ -592,6 +1708,180 @@ label.sch-option {
   .sch-content h1 {
     font-size: 36px;
   }
+  .sch.teacher .sch-content h1,
+  .sch-lesson-editor h1 {
+    font-size: 30px;
+  }
+  .sch-page-head {
+    margin-bottom: 24px;
+  }
+  .sch-panel-card {
+    padding: 16px;
+  }
+  .sch-stats {
+    grid-template-columns: 1fr;
+  }
+  .sch-stat {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 16px;
+  }
+  .sch-stat dd {
+    justify-items: end;
+    text-align: end;
+  }
+  .sch-stat-value {
+    font-size: 36px;
+  }
+  .sch-stat + .sch-stat {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .sch-quick {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .sch-quick-action {
+    padding: 8px 12px;
+  }
+  .sch-feed li {
+    align-items: flex-start;
+  }
+  .sch-class-row {
+    grid-template-columns: 1fr;
+  }
+  .sch-class-actions {
+    padding-top: 0;
+    max-width: none;
+  }
+  .sch-inline-form > button {
+    margin-top: 0;
+    width: 100%;
+  }
+  .sch-grid-4 {
+    grid-template-columns: 1fr;
+  }
+  .sch-lesson-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .sch-editor-head {
+    position: static;
+    margin-top: 0;
+  }
+  .sch-step-list .sch-step {
+    padding: 0;
+  }
+  .sch-step > summary {
+    padding: 12px 14px;
+  }
+  .sch-step-body {
+    padding: 4px 14px 20px;
+  }
+  .sch-step-preview {
+    display: none;
+  }
+  .sch-dialog {
+    padding: 20px;
+    border-radius: 18px;
+  }
+  .sch-dialog-actions {
+    justify-content: stretch;
+  }
+  .sch-dialog-actions > button {
+    flex: 1 1 100%;
+  }
+  /* Roster and results become one card per student. */
+  .sch-roster-table,
+  .sch-results-table {
+    min-width: 0;
+  }
+  .sch-roster-table thead,
+  .sch-results-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .sch-roster-table,
+  .sch-roster-table tbody,
+  .sch-roster-table tr,
+  .sch-results-table,
+  .sch-results-table tbody,
+  .sch-results-table tr {
+    display: block;
+  }
+  .sch-roster-table tr,
+  .sch-results-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .sch-roster-table th,
+  .sch-roster-table td,
+  .sch-results-table th,
+  .sch-results-table td {
+    display: block;
+    padding: 0;
+    border: 0;
+    text-align: start;
+  }
+  .sch-roster-table tbody th,
+  .sch-results-table tbody th {
+    grid-column: 1 / -1;
+    font-size: 18px;
+  }
+  .sch-roster-table td[data-label]::before,
+  .sch-results-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--soft);
+  }
+  .sch .sch-results-table .sch-number {
+    text-align: start;
+  }
+  .sch-results-table .sch-result-items,
+  .sch-roster-table .sch-row-actions {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+  .sch-roster-table td.sch-row-actions {
+    display: flex;
+    justify-content: flex-start;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+  }
+  .sch-menu-items {
+    left: auto;
+    right: 0;
+  }
+  .sch-results-table caption {
+    display: block;
+    width: 100%;
+    padding-bottom: 12px;
+  }
+  .sch-header .sch-header-end,
+  .sch-header .sch-header-end:has(> .theme-picker) {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .sch-header-end > * {
+    min-width: 0;
+  }
+  .sch-header-end .sch-language select {
+    min-width: 0;
+  }
 }
 @media print {
   body * {
@@ -607,9 +1897,16 @@ label.sch-option {
     padding: 20px;
     background: white;
     color: black;
+    border: 0;
+    box-shadow: none;
+    max-height: none;
+    width: auto;
   }
   .sch-pin-print .sch-toolbar,
-  .sch-pin-print .sch-notice {
+  .sch-pin-print .sch-notice,
+  .sch-pin-print .sch-dialog-actions,
+  .sch-pin-print .sch-once,
+  .sch-pin-print > .sch-muted {
     display: none;
   }
   .sch-pin-grid {

@@ -26,7 +26,7 @@ describe('school-specific error recovery', () => {
     const bangla = schoolError(english, 'bn');
     for (const fragment of fragments) expect(bangla).toContain(fragment);
     expect(bangla).not.toMatch(/অভিভাবক|parent|guardian/i);
-    expect(schoolError(english, 'en')).toBe(english);
+    if (!/fetch|internal/i.test(english)) expect(schoolError(english, 'en')).toBe(english);
   });
 
   it('distinguishes a PIN lockout from the generic quota code used by the API', () => {
@@ -44,12 +44,12 @@ describe('school-specific error recovery', () => {
     ).toContain('বরাদ্দ শেষ');
   });
 
-  it('keeps Firebase auth codes available without rewriting English SDK messages', () => {
+  it('maps Firebase auth codes to the same recovery copy in both languages', () => {
     const error = Object.assign(new Error('Authentication failed.'), {
       code: 'auth/invalid-credential',
     });
     expect(schoolError(error, 'bn')).toContain('শিক্ষকের ইমেইল বা পাসওয়ার্ড');
-    expect(schoolError(error, 'en')).toBe('Authentication failed.');
+    expect(schoolError(error, 'en')).toMatch(/email and password don’t match/);
     expect(
       schoolError({ code: 'auth/id-token-revoked', message: 'Expired credentials.' }, 'bn'),
     ).toContain('আবার প্রবেশ');
@@ -63,5 +63,72 @@ describe('school-specific error recovery', () => {
     expect(schoolError(authored, 'bn')).toBe(authored);
     expect(schoolErrorMessage(null)).toBe('Could not finish. Please try again.');
     expect(schoolError(null, 'bn')).toContain('আবার চেষ্টা');
+  });
+});
+
+describe('English recovery copy never shows transport details', () => {
+  const credentials = [
+    'Firebase: Error (auth/wrong-password).',
+    'Firebase: Error (auth/user-not-found).',
+    'Firebase: Error (auth/invalid-credential).',
+    'Firebase: Error (auth/invalid-login-credentials).',
+  ];
+  it('gives every credential failure one message, so it never reveals whether an email exists', () => {
+    const messages = new Set(credentials.map((m) => schoolError(m, 'en')));
+    expect(messages.size).toBe(1);
+    const [message] = [...messages];
+    expect(message).not.toMatch(/firebase|auth\//i);
+    expect(message).toMatch(/email and password/i);
+    expect(new Set(credentials.map((m) => schoolError(m, 'bn', 'teacher'))).size).toBe(1);
+  });
+
+  it.each([
+    ['Failed to fetch', /internet connection/i],
+    [
+      {
+        code: 'auth/network-request-failed',
+        message: 'Firebase: Error (auth/network-request-failed).',
+      },
+      /internet connection/i,
+    ],
+    ['Internal error', /on our side/i],
+    [{ code: 'INTERNAL', message: 'Something went wrong. Please try again.' }, /on our side/i],
+    ['Request failed (502).', /on our side/i],
+    ['Firebase: Error (auth/popup-closed-by-user).', /Google sign-in was closed/i],
+    ['Firebase: Error (auth/too-many-requests).', /too many/i],
+    ['Firebase: Error (auth/email-already-in-use).', /already has an account/i],
+    ['Firebase: Error (auth/weak-password).', /at least 8 characters/i],
+    ['Firebase: Error (auth/some-new-code).', /could not sign you in/i],
+  ])('explains %s in plain English', (error, expected) => {
+    const message = schoolError(error, 'en');
+    expect(message).toMatch(expected);
+    expect(message).not.toMatch(/firebase|auth\/|fetch|\(\d{3}\)/i);
+  });
+
+  it('keeps the friendly messages the API already writes', () => {
+    for (const message of [
+      'School AI is temporarily unavailable. Your saved lesson is unchanged; try again shortly.',
+      'Your account is paused. Please ask your teacher.',
+      'This shared lesson is already in your school lessons. Open your copy instead.',
+    ])
+      expect(schoolError(message, 'en')).toBe(message);
+  });
+});
+
+describe('Bangla register follows the audience', () => {
+  it('addresses teachers respectfully and students informally', () => {
+    expect(schoolError('Failed to fetch', 'bn', 'teacher')).toContain('করুন');
+    expect(schoolError('Failed to fetch', 'bn', 'teacher')).not.toMatch(/করো|তোমার/);
+    expect(schoolError('Failed to fetch', 'bn')).toContain('করো');
+    expect(schoolError('This lesson changed. Reload it before saving.', 'bn', 'teacher')).toContain(
+      'খুলুন',
+    );
+    expect(schoolError(null, 'bn', 'teacher')).not.toMatch(/করো|তোমার/);
+  });
+
+  it('explains a paused student account to the student', () => {
+    expect(schoolError('Your account is paused. Please ask your teacher.', 'bn')).toContain(
+      'অ্যাকাউন্ট',
+    );
   });
 });
