@@ -10,6 +10,7 @@ import { selectLanguageProfile } from '../lib/i18n';
 import { api } from '../lib/api';
 import { getVoice, releaseVoice } from '../lib/voice';
 import { s } from '../lib/strings/en';
+import { UiIcon } from './UiIcon';
 import '../app/explorers.css';
 export function Avatar({ kind = 'fox' }: { kind?: string }) {
   return (
@@ -60,18 +61,7 @@ export function ProfilePicker() {
             <span>
               {s.agePrefix} {uiText(child.ageBand)}
             </span>
-            <svg
-              className="profile-arrow"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              aria-hidden="true"
-            >
-              <path d="M4 12h15m-6-6 6 6-6 6" />
-            </svg>
+            <UiIcon name="arrowRight" className="profile-arrow" />
           </button>
         ))}
       </div>

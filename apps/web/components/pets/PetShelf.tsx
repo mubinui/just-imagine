@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useLanguage } from '../../lib/i18n';
 import { PetArt } from './PetArt';
 import { PET_CATALOG } from './catalog';
+import { UiIcon } from '../UiIcon';
 
 /** "My pets": every pet, found ones to choose as a buddy, the rest as silhouettes with their goal. */
 export function PetShelf({
@@ -72,16 +73,7 @@ export function PetShelf({
         </ul>
         <div className="learn-tiles">
           <button type="button" className="dock-tile" onClick={onClose}>
-            <svg
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-            >
-              <path d="M6 6l12 12M18 6 6 18" />
-            </svg>
+            <UiIcon name="close" />
             <span>{t('learnWorlds.close')}</span>
           </button>
         </div>

@@ -18,6 +18,7 @@ import {
 } from './play-model';
 import { FOOD_REQUESTS, MISSIONS, PLAY_COPY } from './play-copy';
 import type { PublicPack } from './types';
+import { UiIcon } from '../UiIcon';
 
 type Point = { x: number; y: number };
 type Drag = { id: string; x: number; y: number };
@@ -257,9 +258,7 @@ export function LearningGame({
           }}
           aria-label={bn ? 'আবার খেলো' : uiText('Restart game')}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 9a8 8 0 1 1 0 7M4 3v6h6" />
-          </svg>
+          <UiIcon name="restart" />
         </button>
       </header>
       <svg

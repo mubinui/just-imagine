@@ -3,6 +3,7 @@ import { useLanguage } from '../lib/i18n';
 import { copy as uiText } from '../lib/i18n/ui';
 
 import { useEffect, useRef, useState } from 'react';
+import { UiIcon } from './UiIcon';
 
 const gravity = { earth: 9.81, moon: 1.62 } as const;
 
@@ -135,17 +136,7 @@ export function GravityPlayground({
         </div>
         <button className="gravity-drop" onClick={() => release()}>
           {moving || drop ? uiText('Drop again') : uiText('Drop the ball')}
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            aria-hidden="true"
-          >
-            <path d="M12 4v16m-6-6 6 6 6-6" />
-          </svg>
+          <UiIcon name="arrowDown" width="18" height="18" />
         </button>
       </div>
       {!compact && (

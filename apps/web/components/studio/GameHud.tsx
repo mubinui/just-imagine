@@ -5,6 +5,7 @@ import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useState } from 'react';
 import { s } from '../../lib/strings/en';
 import type { GameAsk, GameHud as GameHudState } from '../../lib/game-bridge';
+import { UiIcon } from '../UiIcon';
 
 /** Seconds as m:ss for the timer chip. */
 export function formatTimer(seconds: number): string {
@@ -19,57 +20,13 @@ const fill = (template: string, values: Record<string, string | number>) =>
       : uiText(String(values[key] ?? '')),
   );
 
-const StarIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      d="M12 2.6 14.6 8.4l6.3.6-4.8 4.2 1.4 6.2L12 16.2l-5.5 3.2 1.4-6.2L3.1 9l6.3-.6Z"
-      fill="currentColor"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+const StarIcon = () => <UiIcon name="star" />;
 const HeartIcon = ({ empty = false }: { empty?: boolean }) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      d="M12 20.4s-7.6-4.6-7.6-10.2A4.3 4.3 0 0 1 12 7.7a4.3 4.3 0 0 1 7.6 2.5c0 5.6-7.6 10.2-7.6 10.2Z"
-      fill={empty ? 'none' : 'currentColor'}
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinejoin="round"
-    />
-  </svg>
+  <UiIcon name={empty ? 'heartEmpty' : 'heart'} />
 );
-const ClockIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <circle cx="12" cy="13" r="7.6" />
-    <path d="M12 9v4.4l2.8 1.8M9.5 2.8h5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-const KnotIcon = () => (
-  <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" strokeLinecap="round">
-    <circle cx="32" cy="32" r="22" fill="var(--peach)" />
-    <path
-      d="M14 28c8-9 26-9 33 0s-4 20-15 17-12-15-2-19 20 3 19 12M18 40c5 6 16 9 26 4"
-      stroke="var(--ink)"
-      strokeWidth="3.4"
-    />
-    <path d="M47 13c4 2 6 6 5 10" stroke="var(--ink)" strokeWidth="3.4" />
-  </svg>
-);
-const TrophyIcon = () => (
-  <svg viewBox="0 0 64 64" aria-hidden="true">
-    <circle cx="32" cy="32" r="24" fill="var(--yellow)" />
-    <path
-      d="M32 13.5 37.4 25l12.6 1.3-9.5 8.4 2.8 12.4L32 40.7l-11.3 6.4 2.8-12.4-9.5-8.4L26.6 25Z"
-      fill="var(--ground)"
-      stroke="var(--ink)"
-      strokeWidth="2.6"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+const ClockIcon = () => <UiIcon name="timer" />;
+const KnotIcon = () => <UiIcon name="knot" />;
+const TrophyIcon = () => <UiIcon name="trophy" />;
 
 function Sheet({
   id,

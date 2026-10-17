@@ -4,6 +4,7 @@ import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useState, type RefObject } from 'react';
 import type { Engine, SimulationFrame } from '@just-imagine/engine';
 import type { PreviewKey } from '../../lib/preview-worlds';
+import { UiIcon } from '../UiIcon';
 
 const ACTIVITIES: Record<PreviewKey, { title: string; hint: string; action: string }> = {
   jellyDragon: {
@@ -113,9 +114,7 @@ export function PlayActions({
             }
           }}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m8 5 11 7-11 7Z" fill="currentColor" />
-          </svg>
+          <UiIcon name="play" />
           {uiText(full ? 'Baskets are full' : activity.action)}
         </button>
         {world === 'fractionsLab' && (

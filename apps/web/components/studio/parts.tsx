@@ -74,11 +74,7 @@ export function StudioControls({
     </div>
   );
 }
-const StarIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-    <path d="m12 2.5 2.6 6.1 6.6.6-5 4.4 1.5 6.5L12 16.7l-5.7 3.4 1.5-6.5-5-4.4 6.6-.6Z" />
-  </svg>
-);
+const StarIcon = () => <UiIcon name="star" />;
 
 export function TopBar({
   status,

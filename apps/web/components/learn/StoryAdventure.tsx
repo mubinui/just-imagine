@@ -10,6 +10,7 @@ import { LearningGame } from './LearningGame';
 import { AdventureBoard } from './AdventureBoard';
 import { useAdventureBook } from './useAdventureBook';
 import type { PublicPack, Section } from './types';
+import { UiIcon } from '../UiIcon';
 export type StoryPhase = 'begin' | 'progress' | 'complete';
 const CLASSIC_SECTIONS: Record<string, Section> = {
   brush: 'hygiene',
@@ -190,9 +191,12 @@ function StoryBook({
                   <LearnArt id={c.characterId} />
                   <span>{uiText(c.title[lang])}</span>
                   {book.done.includes(c.id) && (
-                    <svg viewBox="0 0 24 24" aria-label={bn ? 'খেলা হয়েছে' : uiText('Played')}>
-                      <path d="m5 12 4 4L19 6" />
-                    </svg>
+                    <UiIcon
+                      name="check"
+                      role="img"
+                      aria-hidden={false}
+                      aria-label={bn ? 'খেলা হয়েছে' : uiText('Played')}
+                    />
                   )}
                 </button>
               ))}
