@@ -319,7 +319,9 @@ export function ParentPanel({
               <div className="plan-cards">
                 {planOffers('family').map((plan) => {
                   const bn = interfaceLanguage === 'bn';
-                  const current = plan.tier === data.user.plan && (plan.tier === 'free' || plan.period === 'month');
+                  const current =
+                    plan.tier === data.user.plan &&
+                    (plan.tier === 'free' || plan.period === 'month');
                   return (
                     <article
                       key={plan.id}
@@ -338,9 +340,7 @@ export function ParentPanel({
                         </strong>
                         {plan.period && (
                           <span>
-                            {plan.period === 'month'
-                              ? uiText('per month')
-                              : uiText('per year')}
+                            {plan.period === 'month' ? uiText('per month') : uiText('per year')}
                           </span>
                         )}
                       </p>

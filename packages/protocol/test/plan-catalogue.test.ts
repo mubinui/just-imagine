@@ -13,7 +13,11 @@ it('offers parents a free plan and a family plan monthly and yearly', () => {
 
 it('offers schools seat-based yearly plans and a custom network plan', () => {
   const schools = planOffers('school');
-  expect(schools.map((p) => p.id)).toEqual(['school-classroom', 'school-standard', 'school-network']);
+  expect(schools.map((p) => p.id)).toEqual([
+    'school-classroom',
+    'school-standard',
+    'school-network',
+  ]);
   for (const plan of schools) {
     expect(plan.seats).toBeGreaterThan(0);
     expect(plan.seats).toBeLessThanOrEqual(5000);

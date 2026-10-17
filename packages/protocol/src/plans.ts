@@ -65,7 +65,10 @@ export const PLAN_CATALOGUE: readonly PlanOffer[] = [
     name: { en: 'Free', bn: 'ফ্রি' },
     price: { bdt: 0, usd: 0 },
     period: null,
-    summary: { en: 'Try Just Imagine with one explorer.', bn: 'একজন অভিযাত্রীকে নিয়ে জাস্ট ইমাজিন শুরু করুন।' },
+    summary: {
+      en: 'Try Just Imagine with one explorer.',
+      bn: 'একজন অভিযাত্রীকে নিয়ে জাস্ট ইমাজিন শুরু করুন।',
+    },
     features: [
       { en: '1 explorer', bn: '১ জন অভিযাত্রী' },
       {
@@ -84,7 +87,10 @@ export const PLAN_CATALOGUE: readonly PlanOffer[] = [
     name: { en: 'Family, monthly', bn: 'ফ্যামিলি, মাসিক' },
     price: { bdt: 499, usd: 4.99 },
     period: 'month',
-    summary: { en: 'Everything for up to four explorers.', bn: 'চারজন পর্যন্ত অভিযাত্রীর জন্য সবকিছু।' },
+    summary: {
+      en: 'Everything for up to four explorers.',
+      bn: 'চারজন পর্যন্ত অভিযাত্রীর জন্য সবকিছু।',
+    },
     features: [
       { en: `${PLAN_LIMITS.family.children} explorers`, bn: '৪ জন অভিযাত্রী' },
       {
@@ -92,7 +98,10 @@ export const PLAN_CATALOGUE: readonly PlanOffer[] = [
         bn: 'দিনে ৬০ মিনিট কথা',
       },
       { en: `${PLAN_LIMITS.family.worldsPerDay} new worlds a day`, bn: 'দিনে ২০টি নতুন জগৎ' },
-      { en: `Save up to ${PLAN_LIMITS.family.savedWorlds} worlds`, bn: '২০০টি পর্যন্ত জগৎ সংরক্ষণ' },
+      {
+        en: `Save up to ${PLAN_LIMITS.family.savedWorlds} worlds`,
+        bn: '২০০টি পর্যন্ত জগৎ সংরক্ষণ',
+      },
       { en: 'No sponsor cards', bn: 'কোনো স্পনসর কার্ড নেই' },
     ],
   },
@@ -103,7 +112,10 @@ export const PLAN_CATALOGUE: readonly PlanOffer[] = [
     name: { en: 'Family, yearly', bn: 'ফ্যামিলি, বার্ষিক' },
     price: { bdt: 4990, usd: 49.9 },
     period: 'year',
-    summary: { en: 'The Family plan with two months free.', bn: 'দুই মাস বিনামূল্যে ফ্যামিলি প্ল্যান।' },
+    summary: {
+      en: 'The Family plan with two months free.',
+      bn: 'দুই মাস বিনামূল্যে ফ্যামিলি প্ল্যান।',
+    },
     features: [
       { en: 'Everything in Family', bn: 'ফ্যামিলির সবকিছু' },
       { en: 'Two months free each year', bn: 'প্রতি বছর দুই মাস বিনামূল্যে' },
@@ -118,7 +130,10 @@ export const PLAN_CATALOGUE: readonly PlanOffer[] = [
     period: 'year',
     seats: 40,
     teachers: 2,
-    summary: { en: 'One class, its teachers and every lesson.', bn: 'একটি ক্লাস, শিক্ষক আর সব পাঠ।' },
+    summary: {
+      en: 'One class, its teachers and every lesson.',
+      bn: 'একটি ক্লাস, শিক্ষক আর সব পাঠ।',
+    },
     features: [
       { en: '40 student seats', bn: '৪০ জন শিক্ষার্থী' },
       { en: '2 teachers', bn: '২ জন শিক্ষক' },
@@ -134,11 +149,17 @@ export const PLAN_CATALOGUE: readonly PlanOffer[] = [
     period: 'year',
     seats: 500,
     teachers: 20,
-    summary: { en: 'A whole school, with AI lesson writing.', bn: 'পুরো স্কুল, এআই দিয়ে পাঠ লেখা সহ।' },
+    summary: {
+      en: 'A whole school, with AI lesson writing.',
+      bn: 'পুরো স্কুল, এআই দিয়ে পাঠ লেখা সহ।',
+    },
     features: [
       { en: '500 student seats', bn: '৫০০ জন শিক্ষার্থী' },
       { en: '20 teachers', bn: '২০ জন শিক্ষক' },
-      { en: 'AI lesson writing and simulation generation', bn: 'এআই দিয়ে পাঠ লেখা ও সিমুলেশন তৈরি' },
+      {
+        en: 'AI lesson writing and simulation generation',
+        bn: 'এআই দিয়ে পাঠ লেখা ও সিমুলেশন তৈরি',
+      },
       { en: 'Voice tutor for students', bn: 'শিক্ষার্থীদের জন্য ভয়েস টিউটর' },
     ],
     recommended: true,
