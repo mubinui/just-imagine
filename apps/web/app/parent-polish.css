@@ -233,3 +233,81 @@
 .language-preferences button {
   justify-self: start;
 }
+
+/* Default plans as cards on Plan & billing. */
+.plan-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 20px 0 24px;
+}
+.plan-card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 22px 22px 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.plan-card[data-recommended] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  box-shadow: 0 18px 34px -26px color-mix(in srgb, var(--accent) 70%, #000);
+}
+.plan-card[data-current] {
+  border: 2px solid var(--accent);
+}
+.plan-card h3 {
+  margin: 0;
+  font-size: 21px;
+}
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+.plan-price strong {
+  font:
+    800 26px/1.1 Baloo,
+    serif;
+  color: var(--ink);
+}
+.plan-price span {
+  color: var(--soft);
+  font-size: 14px;
+}
+.plan-card ul {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plan-card li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.plan-card li svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--accent);
+}
+.plan-current {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 700;
+}

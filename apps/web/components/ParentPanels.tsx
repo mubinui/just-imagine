@@ -2,6 +2,7 @@
 import { useLanguage } from '../lib/i18n';
 import { uiNumber } from '../lib/i18n/ui';
 import { copy as uiText, uiError } from '../lib/i18n/ui';
+import { UiIcon } from './UiIcon';
 import { LanguagePreferencesForm } from './LanguagePreferencesForm';
 import { StoryPreferencesForm } from './StoryPreferencesForm';
 import { ThemePicker } from './ThemePicker';
@@ -12,6 +13,7 @@ import {
   AgeBandSchema,
   AvatarSchema,
   PLAN_LIMITS,
+  planOffers,
   conceptCard,
   type MeResponse,
   type ChildResponse,
@@ -314,11 +316,61 @@ export function ParentPanel({
                 {s.plan}: {data.user.plan === 'family' ? s.family : s.free}
               </h2>
               <p>{s.billingInfo}</p>
+              <div className="plan-cards">
+                {planOffers('family').map((plan) => {
+                  const bn = interfaceLanguage === 'bn';
+                  const current = plan.tier === data.user.plan && (plan.tier === 'free' || plan.period === 'month');
+                  return (
+                    <article
+                      key={plan.id}
+                      className="plan-card"
+                      data-current={current || undefined}
+                      data-recommended={plan.recommended || undefined}
+                    >
+                      <h3>{bn ? plan.name.bn : plan.name.en}</h3>
+                      <p className="plan-price">
+                        <strong>
+                          {plan.price
+                            ? bn
+                              ? `৳${uiNumber(plan.price.bdt)}`
+                              : `৳${plan.price.bdt.toLocaleString('en')} · $${plan.price.usd.toFixed(Number.isInteger(plan.price.usd) ? 0 : 2)}`
+                            : uiText('On request')}
+                        </strong>
+                        {plan.period && (
+                          <span>
+                            {plan.period === 'month'
+                              ? uiText('per month')
+                              : uiText('per year')}
+                          </span>
+                        )}
+                      </p>
+                      <p>{bn ? plan.summary.bn : plan.summary.en}</p>
+                      <ul>
+                        {plan.features.map((feature) => (
+                          <li key={feature.en}>
+                            <UiIcon name="check" />
+                            {bn ? feature.bn : feature.en}
+                          </li>
+                        ))}
+                      </ul>
+                      {current && <span className="plan-current">{uiText('Your plan')}</span>}
+                    </article>
+                  );
+                })}
+              </div>
               <p>{env.fake ? s.previewBilling : s.daily}</p>
               <div className="allowance">
-                {Object.entries(PLAN_LIMITS[data.user.plan]).map(([key, value]) => (
-                  <p key={key}>
-                    <span>{uiText(key.replace(/([A-Z])/g, ' $1'))}</span>
+                {(
+                  [
+                    ['Explorers', PLAN_LIMITS[data.user.plan].children],
+                    ['Voice minutes a day', PLAN_LIMITS[data.user.plan].voiceSecondsPerDay / 60],
+                    ['New worlds a day', PLAN_LIMITS[data.user.plan].worldsPerDay],
+                    ['Pictures in each world', PLAN_LIMITS[data.user.plan].imagesPerWorld],
+                    ['Saved worlds', PLAN_LIMITS[data.user.plan].savedWorlds],
+                  ] as const
+                ).map(([label, value]) => (
+                  <p key={label}>
+                    <span>{uiText(label)}</span>
                     <strong>{uiNumber(value)}</strong>
                   </p>
                 ))}
