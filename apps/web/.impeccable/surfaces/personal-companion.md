@@ -16,11 +16,17 @@ related_targets:
 
 Approved scope: an optional parent-supplied photo creates a chibi play friend, with ready-made friends available without a photo. The same name and artwork follow the selected explorer through child screens. The approved cream-and-forest identity, Baloo/Nunito pairing and authored cast remain the visual authority. Implementation and provider configuration are tracked in `docs/handoff/personal-companion-plan.md` at the repository root.
 
-## Navigation and Live assistant placement — 2026-10-17
+## Current Studio exception — 2026-10-18
+
+The user’s later refinement removes the four destination links from Studio’s footer. Studio keeps the cast, a single named Talk/Stop action and Build a game, Start over, Captions and Exit Studio. Exit Studio uses the existing cleanup and selected-character break view, whose Learn, Stories, My worlds and explorer links provide the onward routes. Outside Studio, the shared paper appbar and named Live assistant panel remain. The compact theme chooser is a nonmodal native popover and is excluded from appbar-hiding dialog selectors. Current source is recorded below and in `components-studio-tsx.md` and `theme-picker.md`; the `.impeccable/review/premium/` native review remains pending.
+
+## Earlier navigation and Live assistant placement — 2026-10-17
+
+This dated direction records the first navigation extension. Its Studio destination row is superseded by the current exception above.
 
 Mode: Operate. This extension supersedes the earlier portrait-menu and separate Studio-row placement. The user asks for easily found navigation and Live assistant controls. Preserve the approved characters, existing destinations and voice ownership/cancellation.
 
-## Direction contract
+## Earlier direction contract — 2026-10-17
 
 THESIS: A child sees where to go and where to ask for help without opening an unlabeled portrait menu.
 
@@ -38,15 +44,15 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 Parent setup sits within explorer editing. A 160px portrait column and fluid form share a 28px gap on desktop. At 600px and below the form stacks; the portrait becomes an 80px image beside its name. The form presents Choose a friend and Make a chibi from a photo, a parent-editable name, three personality choices, then the appropriate save action. Selected style pills use forest; selected personalities use a forest outline and leaf fill. Photo mode adds a file field, local preview, an explicit parent permission checkbox and provider explanation. Busy, error and saved states use the existing button and status vocabulary.
 
-Outside Studio, a shared paper bottom bar exposes Studio, Learn, Stories and Worlds beside a named Live assistant trigger. The bar reserves 80px plus the bottom safe area. Destination targets are at least 56px tall, with visible labels, a mint current-page fill and ink text. The assistant uses a 44px portrait beside its title and friend name; on phones these become 36px art and a compact labeled trigger. At 360px and below, navigation and assistant stack in a 120px bar plus the safe area. Child pages reserve the same footprint; character dialogs temporarily hide this bar and reclaim its space.
+Outside Studio, a shared paper bottom bar exposes Studio, Learn, Stories and Worlds beside a named Live assistant trigger. The bar reserves 80px plus the bottom safe area. Destination targets are at least 56px tall, with visible labels, a mint current-page fill and ink text. The assistant uses a 44px portrait beside its title and friend name; on phones these become 36px art and a compact labeled trigger. At 360px and below, navigation and assistant stack in a 120px bar plus the safe area. Child pages reserve the same footprint; character dialogs temporarily hide this bar and reclaim its space, while nonmodal theme popovers preserve it.
 
 The assistant opens a 360px cream panel constrained to viewport width and available height, with scrolling for overflow. Its 16px corners, 24px desktop padding and downward shadow continue the established material language. A 72px portrait sits beside a 24px Baloo heading; Nunito carries the explanation, captions and status. Voice and Close controls are at least 44px tall; Choose explorer is a separate 48px utility row. The four primary destinations stay in the bottom bar instead of being repeated in this panel.
 
-On `/studio`, the shared bar and assistant panel are suppressed. One opaque theme-ink Dock owns the cast, a single named Talk/Stop voice action, the same four visible destinations and the existing game controls. Ground-colored labels, mint selection with ink text and yellow keyboard focus remain paired with the dark footer. The footer uses its own grid rows and wraps on phones, with no second navigation strip. The finished-session surface replaces this stage and footer with the selected character, a quiet return and real next destinations; its behavior is recorded in `components-studio-tsx.md`.
+On `/studio`, the shared bar and assistant panel are suppressed. One dark tonal Dock owns the cast, a single named Talk/Stop voice action and Build a game, Start over, Captions and Exit Studio. Desktop/tablet keeps those groups in one row; phones put the four actions below the cast and voice row. Studio carries no destination row. Exit Studio replaces the stage and footer with the selected character, a quiet return and real next destinations; its behavior is recorded in `components-studio-tsx.md`.
 
 ## Behavior and access
 
-The four visible destinations are Studio (`/studio`), Learn (`/learn`), Stories (`/stories`) and Worlds (`/gallery`); nested routes retain their matching current-page state. Choose explorer (`/play`) remains a utility in the assistant panel. The current destination exposes `aria-current`; the assistant trigger exposes its expanded state and the personal name. The panel is nonmodal. Opening focuses Talk/Stop in real mode or Close in preview; Escape and Close restore trigger focus, and an outside pointer closes it. Opening or navigating does not start microphone capture. Child controls use taps and voice; the editable name and file field belong to parent setup.
+Outside Studio, the four visible destinations are Studio (`/studio`), Learn (`/learn`), Stories (`/stories`) and Worlds (`/gallery`); nested routes retain their matching current-page state. Choose explorer (`/play`) remains a utility in the assistant panel. The current destination exposes `aria-current`; the assistant trigger exposes its expanded state and the personal name. The panel is nonmodal. Opening focuses Talk/Stop in real mode or Close in preview; Escape and Close restore trigger focus, and an outside pointer closes it. Opening or navigating does not start microphone capture. Child controls use taps and voice; the editable name and file field belong to parent setup.
 
 The shared child layout owns the voice session, allowing navigation among child routes without route-driven disconnection. It reports the current screen to the gateway and exposes connection state, optional spoken captions, and Talk together or Stop talking in real mode. Leaving the child layout, switching profiles or explicitly ending the session stops it; finishing Studio also stops its music. Voice navigation accepts only the named child destinations; parent/account routes remain outside that tool.
 
@@ -58,7 +64,7 @@ Preview supports persistent ready-made selection and tap navigation. It explicit
 
 Real photo generation requires parent permission and configured Gemini access. The app keeps generated artwork in the private child profile and does not save the source photo; provider-side retention is governed by the selected Gemini service. Later credentialed checks verified Gemini3.8Live speech, browser microphone transcription, voice-driven world creation and parent upload→generated chibi→save/reload. Image input was synthetic artwork; likeness on a parent-supplied photo and real child/device usability remain acceptance work. See CHECKPOINT.md and the local-development handoff for evidence.
 
-## Navigation extension evidence — 2026-10-17
+## Earlier navigation extension evidence — 2026-10-17
 
 This merge checked the current navigation/provider source, Dock and finished-session source, companion/theme/stage styles, and the navigation and break regressions. Root reports passing source tests and workspace checks; the latest combined-footer build and native review are recorded separately. `docs/images/{landing,learn,studio,laptop,tablet}.png` at the repository root and `.impeccable/review/navigation/` are the capture destinations. First-pass captures in that review directory may show earlier composition. This documenter did not run browser automation, independently approve those captures or perform a new Live/provider call.
 

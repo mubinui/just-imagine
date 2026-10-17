@@ -1,16 +1,19 @@
 import { test, expect } from '@playwright/test';
 
-test('parent chooses a friend and the same voice session follows navigation across child screens', async ({
+test('a chosen friend follows navigation and Exit Studio ends voice until another explicit talk', async ({
   page,
 }) => {
   const errors: string[] = [],
-    sockets: string[] = [];
+    sockets: { url: string; closed: boolean }[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('websocket', (socket) => {
-    if (socket.url().includes('8787')) sockets.push(socket.url());
+    if (!socket.url().includes('8787')) return;
+    const connection = { url: socket.url(), closed: false };
+    sockets.push(connection);
+    socket.on('close', () => (connection.closed = true));
   });
   await page.goto('/parent/children');
-  const setup = page.getByRole('region', { name: "Ari's companion" });
+  const setup = page.getByRole('region', { name: 'Ari companion', exact: true });
   await setup.getByLabel("Friend's name").fill('Pip');
   await setup.getByRole('button', { name: 'Mishti the dreamer' }).click();
   await setup.getByRole('button', { name: 'Save their friend' }).click();
@@ -25,11 +28,17 @@ test('parent chooses a friend and the same voice session follows navigation acro
     .getByRole('button', { name: /^Talk to / })
     .first()
     .click();
+  await expect(page.locator('.stage-status')).toHaveAttribute('data-state', 'connected');
   await page.getByRole('button', { name: 'bounce', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pip', exact: true })).toBeVisible();
+  await expect(page.locator('.studio-dock').getByRole('link')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Exit Studio', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'A lovely place to pause.' })).toBeVisible();
+  await expect(page.getByRole('status')).toHaveText('Call ended · Microphone off');
+  await expect.poll(() => sockets.filter((socket) => socket.closed).length).toBe(1);
   await page
-    .getByRole('navigation', { name: 'Your spaces', exact: true })
-    .getByRole('link', { name: 'Worlds', exact: true })
+    .getByRole('navigation', { name: 'Other adventures', exact: true })
+    .getByRole('link', { name: 'My worlds', exact: true })
     .click();
   await expect(page).toHaveURL(/\/gallery$/);
   const assistant = page.getByRole('button', { name: 'Live assistant: Pip', exact: true });
@@ -48,7 +57,11 @@ test('parent chooses a friend and the same voice session follows navigation acro
     .click();
   await expect(page).toHaveURL(/\/studio$/);
   await expect(page.locator('.engine-host canvas')).toBeVisible();
-  await expect(page.locator('.stage-error')).toHaveCount(0);
+  await expect(page.locator('.stage-status')).toContainText('Voice off');
   expect(sockets).toHaveLength(1);
+  await page.getByRole('button', { name: 'Talk to Pip', exact: true }).click();
+  await expect(page.locator('.stage-status')).toHaveAttribute('data-state', 'connected');
+  await expect(page.locator('.stage-error')).toHaveCount(0);
+  expect(sockets).toHaveLength(2);
   expect(errors).toEqual([]);
 });

@@ -53,7 +53,8 @@ test('Studio preserves canvas proportions and usable controls across viewport si
     await page.getByRole('button', { name: 'Enter a number' }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await page.getByRole('button', { name: 'Finish playing' }).click();
+    await expect(page.locator('.studio-dock').getByRole('link')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Exit Studio', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'A lovely place to pause.' })).toBeVisible();
   }
   expect(errors).toEqual([]);

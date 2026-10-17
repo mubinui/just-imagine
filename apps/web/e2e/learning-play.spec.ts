@@ -3,7 +3,11 @@ import { test, expect } from '@playwright/test';
 test('learning games use direct manipulation and reserve Pip a dock position', async ({ page }) => {
   await page.goto('/play');
   await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
-  await page.getByRole('link', { name: 'Learn', exact: true }).click();
+  await page.getByRole('button', { name: 'Exit Studio', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Other adventures', exact: true })
+    .getByRole('link', { name: 'Learn', exact: true })
+    .click();
   await expect(page.locator('.island.is-open')).toHaveCount(6);
   await page.getByRole('link', { name: /^Hygiene,/ }).click();
   await expect(page.locator('.story-adventure')).toHaveAttribute('data-phase', 'opening');

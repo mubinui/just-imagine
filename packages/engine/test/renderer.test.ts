@@ -278,6 +278,37 @@ it.each([1, 0.25])(
   },
 );
 import { mountEngine } from '../src/renderer';
+it('advances during sustained slow rendering while skipping resume gaps and hidden frames', async () => {
+  const visibility = { hidden: false };
+  vi.stubGlobal('document', visibility);
+  const engine = await mountEngine(setup(), FIXTURE_WORLDS.moonBounce),
+    app = state.apps[0],
+    tick = app.ticker.add.mock.calls[0][0];
+  app.ticker.deltaMS = 200;
+  app.ticker.elapsedMS = 200;
+  tick();
+  expect(engine.frame().time).toBe(0);
+  for (let frame = 0; frame < 10; frame++) tick();
+  expect(engine.frame().time).toBeCloseTo(1);
+
+  visibility.hidden = true;
+  for (let frame = 0; frame < 10; frame++) tick();
+  expect(engine.frame().time).toBeCloseTo(1);
+  visibility.hidden = false;
+  app.ticker.elapsedMS = 2000;
+  tick();
+  expect(engine.frame().time).toBeCloseTo(1);
+
+  app.ticker.deltaMS = 1000 / 60;
+  app.ticker.elapsedMS = 1000 / 60;
+  tick();
+  const resumed = engine.frame().time;
+  expect(resumed).toBeGreaterThan(1);
+  app.ticker.elapsedMS = 2000;
+  tick();
+  expect(engine.frame().time).toBe(resumed);
+  engine.dispose();
+});
 afterEach(() => {
   vi.unstubAllGlobals();
   state.fail = false;

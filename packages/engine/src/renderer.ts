@@ -370,12 +370,16 @@ export async function mountEngine(
   }
   drawAssets();
 
+  let previousFrameWasSlow = false;
   const ticker = () => {
     if (disposed) return;
     const displayDt = app.ticker.deltaMS / 1000;
-    // Pixi caps deltaMS, so use elapsedMS to recognize a genuinely suspended tab.
-    const paused =
-      globalThis.document?.hidden || (app.ticker.elapsedMS ?? app.ticker.deltaMS) > 150;
+    // Skip a suspension gap, but let sustained slow rendering keep physics moving.
+    // Pixi caps deltaMS, so only elapsedMS can identify the first long frame.
+    const hidden = Boolean(globalThis.document?.hidden);
+    const slow = (app.ticker.elapsedMS ?? app.ticker.deltaMS) > 150;
+    const paused = hidden || (slow && !previousFrameWasSlow);
+    previousFrameWasSlow = slow && !hidden;
     if (!paused) sim.advance(Math.min(0.1, displayDt));
     const state = sim.frame();
     // Physics runs at 60Hz. Presentation must also advance on the display frames

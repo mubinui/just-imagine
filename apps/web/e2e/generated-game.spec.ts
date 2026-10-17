@@ -48,7 +48,7 @@ test('plays the generated fixture game: answer its question, tap a fly, the scor
   await expect(page.locator('.game-timer')).not.toContainText('0:45', { timeout: 15000 });
   await page.screenshot({ path: 'test-results/generated-game-score.png' });
   await expect(page.getByRole('dialog', { name: 'The game got tangled' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Finish playing', exact: true }).click();
+  await page.getByRole('button', { name: 'Exit Studio', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'A lovely place to pause.' })).toBeVisible();
   // The game's interval must stop before it can read the disposed simulation.
   await page.waitForTimeout(150);

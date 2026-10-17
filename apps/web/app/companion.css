@@ -32,10 +32,10 @@
 .child-shell.has-child-navigation .story-room {
   min-height: calc(100dvh - var(--child-nav-height));
 }
-.child-shell:has([role='dialog']) {
+.child-shell:has([role='dialog']:not([popover])) {
   --child-nav-height: 0px;
 }
-.child-shell:has([role='dialog']) .child-appbar {
+.child-shell:has([role='dialog']:not([popover])) .child-appbar {
   display: none;
 }
 .child-appbar {

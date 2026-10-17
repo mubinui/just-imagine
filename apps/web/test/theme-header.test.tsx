@@ -18,7 +18,9 @@ describe('reachable theme controls', () => {
       route.path = path;
       const html = renderToStaticMarkup(<Header />);
       expect(html).toContain('href="/parent/dashboard"');
-      expect(html).toContain('<select');
+      expect(html).toContain('aria-label="App theme"');
+      expect(html).toContain('popover="auto"');
+      expect(html).toContain('type="radio"');
       expect(html).toContain('value="default"');
       expect(html).toContain('value="forest"');
       expect(html).toContain('value="ocean"');

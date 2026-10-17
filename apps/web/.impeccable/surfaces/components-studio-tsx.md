@@ -7,7 +7,7 @@ related_targets: ['components/CharacterFace.tsx', 'components/studio']
 
 # Surface brief: child Studio (`components/Studio.tsx`, route `/studio`)
 
-Scope: the child-facing play screen, Experience mode. The visitor is a child aged 6 to 13 on a landscape tablet held in two hands, in a living room in daylight or lamplight, with a parent nearby. The job: speak an idea, watch it become a world, poke it, hear why it behaved that way. Actions are voice, tap, drag, flick, dial, slider, keypad; never typed text. Proof is the live world itself. Constraints: the engine canvas is 16:9 and resizes to its host width; the voice client and world source are fixed contracts; e2e flows rely on the names "Voice connection: connected", the prediction option buttons, the `gravity` select with preset values, "Cannon and Cup", "Lab tools", "Enter a number", "Clear", "Apply number", range sliders, "Start over", "Finish playing", and the "World actions" region.
+Scope: the child-facing play screen, Experience mode. The visitor is a child aged 6 to 13 on a landscape tablet held in two hands, in a living room in daylight or lamplight, with a parent nearby. The job: speak an idea, watch it become a world, poke it, hear why it behaved that way. Actions are voice, tap, drag, flick, dial, slider, keypad; never typed text. Proof is the live world itself. Constraints: the engine canvas is 16:9 and resizes to its host width; the voice client and world source are fixed contracts; e2e flows rely on the names "Voice connection: connected", the prediction option buttons, the `gravity` select with preset values, "Cannon and Cup", "Lab tools", "Enter a number", "Clear", "Apply number", range sliders, "Start over", "Exit Studio", and the "World actions" region.
 
 Memorable moment: the selected friend is waiting on the stage, with a named voice action and a world that responds directly to play.
 
@@ -27,7 +27,19 @@ FORM: Full-bleed stage with cast strip, first of three structures considered (st
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
-## Navigation and finished-session extension — 2026-10-17
+## Single-row Studio controls — 2026-10-18
+
+The user rejected the extra Studio/Learn/Stories/Worlds footer row. Studio now keeps one footer with the named cast, one Talk/Stop or retry action, and four controls: Build a game, Start over, Captions and Exit Studio. Desktop and tablet keep these groups in the same row. At 700px and below the cast and Talk share the first row, with the four actions in a second full-width row. The footer fills the stage width without an inherited page maximum or outer margin; cast names remain visible and the cast can scroll horizontally. There are no child destination links or separate assistant panel inside Studio.
+
+Exit Studio calls the existing finish path: pending voice work and child voice stop, music stops and the selected-character StudioBreak replaces the stage. Its Learn, Stories, My worlds and explorer links provide real destinations. Back to Studio remounts the retained world without starting Live. Existing heading focus, truthful voice state and the quiet, non-celebratory finish remain unchanged. Ordinary child pages retain the shared paper appbar and named assistant panel.
+
+The header groups status and the compact ThemePicker button on the right. Its native nonmodal popover uses radio choices and follows the shared contract in `theme-picker.md`; opening it is not a microphone action. The existing 16:9 engine canvas and Lab layout remain intact. The invitation’s container sizing now measures its actual panel, including beside the editor, and the portrait has no inherited bottom margin. The existing 220px invitation-only fit at 360px and below remains; generated worlds keep their 16:9 canvas. This is a local fit correction, not a new stage or typography rule. The footer retains the dark tonal ink surface and existing cream controls, sunshine voice action and keyboard focus.
+
+Source checked: `components/studio/Dock.tsx`, `components/Studio.tsx`, `components/studio/StudioBreak.tsx`, `app/studio.css`, `components/ThemePicker.tsx` and `app/theme-picker.css`. Root reports that the fresh 15-capture review matched the requested Studio composition; the remaining Learn points recapture and overall finish verdict are still pending in `.impeccable/review/premium/`. This documenter checked the final sizing source, not that capture set. This source merge establishes neither a fresh screenshot verdict nor Live/provider acceptance. Normative frontmatter and `.impeccable/design.json` remain unchanged.
+
+## Earlier navigation and finished-session extension — 2026-10-17
+
+The footer-destination arrangement in this checkpoint is superseded by the single-row controls above; its finish behavior remains in use.
 
 The user clarified that the two Studio menus should merge on Studio only. The shared child layout therefore suppresses its ordinary paper appbar on `/studio`; one theme-ink Dock contains the cast, a single named Talk/Stop action, Studio/Learn/Stories/Worlds navigation and Build a game, Start over, Captions and Finish playing. Other child pages keep their shared navigation and named assistant panel. Navigation uses the existing SVG icon family and visible labels, ground text on ink, mint/ink current-page state and yellow focus. Navigating or opening the assistant elsewhere does not start microphone capture.
 

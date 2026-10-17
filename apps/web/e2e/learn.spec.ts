@@ -15,7 +15,11 @@ test('Learn Map to Space: Saturn comes closer, asks a challenge, pays points and
   });
   await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
   await expect(page).toHaveURL(/studio/);
-  await page.getByRole('link', { name: 'Learn', exact: true }).click();
+  await page.getByRole('button', { name: 'Exit Studio', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Other adventures', exact: true })
+    .getByRole('link', { name: 'Learn', exact: true })
+    .click();
 
   // The map: six islands, all six destinations open with saved progress.
   await expect(page).toHaveURL(/\/learn$/);

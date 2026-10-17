@@ -1,5 +1,7 @@
 'use client';
-import { useId, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { THEME_PALETTES } from '@just-imagine/protocol';
+import { UiIcon } from './UiIcon';
 import { useLanguage } from '../lib/i18n';
 import {
   getAppearanceSnapshot,
@@ -55,6 +57,40 @@ export function ThemePicker({
     getAppearanceServerSnapshot,
   );
   const helpId = useId();
+  const panelId = useId();
+  const titleId = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const choices = [
+    { value: 'default', label: copy.defaultCompact, theme: state.published.theme },
+    { value: 'forest', label: copy.forest, theme: 'forest' },
+    { value: 'ocean', label: copy.ocean, theme: 'ocean' },
+    { value: 'terracotta', label: copy.terracotta, theme: 'terracotta' },
+  ] as const;
+  const selected = choices.find((choice) => choice.value === state.preference)!;
+  const placePanel = useCallback(() => {
+    const bounds = trigger.current?.getBoundingClientRect();
+    if (!bounds || !panel.current) return;
+    const width = Math.min(288, window.innerWidth - 32);
+    panel.current.style.setProperty(
+      '--theme-panel-left',
+      `${Math.max(16, Math.min(bounds.right - width, window.innerWidth - width - 16))}px`,
+    );
+    panel.current.style.setProperty(
+      '--theme-panel-top',
+      `${Math.max(16, Math.min(bounds.bottom + 8, window.innerHeight - 340))}px`,
+    );
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    window.addEventListener('resize', placePanel);
+    window.addEventListener('scroll', placePanel, true);
+    return () => {
+      window.removeEventListener('resize', placePanel);
+      window.removeEventListener('scroll', placePanel, true);
+    };
+  }, [open, placePanel]);
   const feedback = !state.preferenceSaved
     ? copy.temporary
     : state.preference === 'default'
@@ -78,12 +114,65 @@ export function ThemePicker({
   );
   return compact ? (
     <div className="theme-picker theme-picker--compact">
-      {control}
+      <button
+        ref={trigger}
+        type="button"
+        className="theme-trigger"
+        aria-label={copy.title}
+        aria-expanded={open}
+        aria-controls={panelId}
+        aria-haspopup="dialog"
+        popoverTarget={panelId}
+        onClick={() => {
+          placePanel();
+          trigger.current?.focus();
+        }}
+      >
+        <span
+          className="theme-swatch"
+          style={{ backgroundColor: THEME_PALETTES[state.theme].accent }}
+          aria-hidden="true"
+        />
+        <span>{selected.label}</span>
+        <UiIcon name="chevron" />
+      </button>
+      <div
+        ref={panel}
+        id={panelId}
+        className="theme-panel"
+        popover="auto"
+        role="dialog"
+        aria-labelledby={titleId}
+        aria-describedby={helpId}
+        onToggle={(event) => setOpen(event.newState === 'open')}
+      >
+        <h2 id={titleId}>{copy.title}</h2>
+        <fieldset>
+          <legend className="sr-only">{copy.label}</legend>
+          {choices.map((choice) => (
+            <label className="theme-choice" key={choice.value}>
+              <span
+                className="theme-swatch"
+                style={{ backgroundColor: THEME_PALETTES[choice.theme].accent }}
+                aria-hidden="true"
+              />
+              <span>{choice.label}</span>
+              <input
+                type="radio"
+                name={panelId}
+                value={choice.value}
+                checked={state.preference === choice.value}
+                onChange={() => setThemePreference(choice.value)}
+              />
+            </label>
+          ))}
+        </fieldset>
+        <p className="theme-panel-feedback" role="status">
+          {feedback}
+        </p>
+      </div>
       <span id={helpId} className="sr-only">
         {copy.help}
-      </span>
-      <span className="sr-only" role="status">
-        {feedback}
       </span>
     </div>
   ) : (

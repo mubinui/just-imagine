@@ -202,43 +202,42 @@
 /* ---------- points ---------- */
 .learn-points {
   display: grid;
-  grid-template-columns: auto auto;
-  grid-template-rows: auto auto;
+  grid-template-columns: 24px auto auto;
+  grid-template-rows: auto;
   align-items: center;
   column-gap: 8px;
+  min-height: 48px;
   margin: 0;
-  padding: 10px 16px 10px 12px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--ground) 7.843%, transparent);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ground) 10%, var(--ink));
   color: var(--ground);
+  white-space: nowrap;
 }
 .learn-points .star {
-  grid-row: 1 / span 2;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--yellow);
-  color: var(--ink);
+  width: 24px;
+  height: 24px;
+  color: var(--yellow);
 }
 .learn-points[data-bump] .star {
   animation: star-bump 700ms var(--ease-out);
 }
 .learn-points .star svg {
-  width: 26px;
-  height: 26px;
+  width: 23px;
+  height: 23px;
 }
 .learn-points .value {
   font:
-    800 26px/1 Baloo,
+    800 20px/1.2 Nunito,
     sans-serif;
   font-variant-numeric: tabular-nums;
 }
 .learn-points .label {
-  color: color-mix(in srgb, var(--ground) 70.196%, transparent);
+  color: color-mix(in srgb, var(--ground) 84%, var(--ink));
   font:
-    700 13px/1.1 Nunito,
+    700 13px/1.5 Nunito,
     sans-serif;
 }
 @keyframes star-bump {
@@ -840,9 +839,6 @@ button.pet-card:hover {
   }
   .pet-shelf ul {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .learn-points .label {
-    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -2788,4 +2784,42 @@ button.pet-card:hover {
   min-width: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .learn-stage:not(.learn-map) > .learn-dock:not(:has(.talk)) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    gap: 8px;
+    min-height: 0;
+  }
+
+  .learn-stage:not(.learn-map) > .learn-dock:not(:has(.talk)) .dock-friends {
+    grid-column: 1;
+    grid-row: 1;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    overflow: visible;
+  }
+
+  .learn-stage:not(.learn-map) > .learn-dock:not(:has(.talk)) .learn-points {
+    flex: 0 0 auto;
+  }
+
+  .learn-stage:not(.learn-map) > .learn-dock:not(:has(.talk)) .dock-tiles {
+    grid-column: 1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+    gap: 4px;
+    justify-content: stretch;
+  }
+
+  .learn-stage:not(.learn-map) > .learn-dock:not(:has(.talk)) .dock-tiles > .dock-tile {
+    width: auto;
+    min-width: 0;
+    min-height: 64px;
+    padding: 8px 3px;
+    overflow-wrap: anywhere;
+  }
 }

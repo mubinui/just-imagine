@@ -18,6 +18,7 @@ import { LearnIcon, PointsBadge } from './parts';
 import { buddyFor, doneIn, fetchLearn, readBuddy, writeBuddy, type LearnState } from './progress';
 import type { LearnIsland, Section } from './types';
 import { useFamilyCatalog } from '../../lib/catalog';
+import styles from './LearnMap.module.css';
 
 const ISLAND_ART: Record<Section, string> = {
   space: 'saturn',
@@ -26,6 +27,15 @@ const ISLAND_ART: Record<Section, string> = {
   food: 'carrot',
   hygiene: 'tooth',
   exercise: 'coach',
+};
+
+const WORLD_PAINTING: Record<Section, string> = {
+  space: 'space-world-v1',
+  animals: 'animals-world-v1',
+  body: 'body-world-v1',
+  food: 'food-world-v1',
+  hygiene: 'tooth-town-v1',
+  exercise: 'exercise-world-v1',
 };
 
 /** Reads the explorer the child picked on /play; the Learn screens share it with the Studio. */
@@ -104,43 +114,6 @@ export function useLearnState(child: ChildResponse | undefined) {
   };
 }
 
-function ProgressRing({ done, total }: { done: number; total: number }) {
-  const r = 46,
-    length = 2 * Math.PI * r,
-    share = total ? done / total : 0;
-  return (
-    <svg className="island-ring" viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r={r} fill="none" className="track" strokeWidth="5" />
-      <circle
-        cx="50"
-        cy="50"
-        r={r}
-        fill="none"
-        className="arc"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeDasharray={`${(share * length).toFixed(2)} ${length.toFixed(2)}`}
-        transform="rotate(-90 50 50)"
-      />
-    </svg>
-  );
-}
-
-function IslandBase({ section }: { section: Section }) {
-  return (
-    <svg className="island-base" viewBox="0 0 240 120" aria-hidden="true">
-      <path
-        d="M20 40 Q30 112 120 118 Q210 112 220 40Z"
-        className="underside"
-        data-section={section}
-      />
-      <path d="M70 70 Q120 100 170 70" fill="none" className="seam" strokeWidth="5" />
-      <ellipse cx="120" cy="40" rx="104" ry="30" className="top" data-section={section} />
-      <ellipse cx="120" cy="34" rx="88" ry="20" className="top-light" />
-    </svg>
-  );
-}
-
 export function LearnMap({ islands }: { islands: LearnIsland[] }) {
   const { language, t } = useLanguage();
   const child = useChild();
@@ -150,20 +123,34 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
   const learn = state ?? { points: child?.points ?? 0, pets: child?.pets ?? [], progress: {} };
   const buddy = child ? buddyFor(learn, readBuddy(child.id)) : undefined;
   return (
-    <main className="stage learn-stage learn-map">
+    <main className={`stage learn-stage learn-map ${styles.map}`}>
       <StageHeader title={t('learnWorlds.tile')} status={getVoice().status} />
       <div
-        className="learn-map-content"
+        className={`learn-map-content ${styles.content}`}
         tabIndex={0}
         role="region"
         aria-labelledby="learn-map-title"
       >
-        <div className="learn-map-intro">
-          <h2 id="learn-map-title">{t('learnWorlds.mapTitle')}</h2>
-          <p>{t('learnWorlds.mapIntro')}</p>
-        </div>
+        <header className={`learn-map-intro ${styles.intro}`}>
+          <div className={styles.invitation}>
+            <h2 id="learn-map-title">{t('learnWorlds.mapTitle')}</h2>
+            <p>{t('learnWorlds.mapIntro')}</p>
+          </div>
+          <div className={styles.explorer}>
+            <PointsBadge
+              points={learn.points}
+              label={t('learnWorlds.pointsLabel')}
+              language={language}
+            />
+            {child && <PetSlot childId={child.id} state={state} />}
+            <button type="button" className={styles.pets} onClick={() => setShelf(true)}>
+              <LearnIcon name="paw" />
+              <span>{t('learnWorlds.myPets')}</span>
+            </button>
+          </div>
+        </header>
         {(loading || failed) && (
-          <div className="learn-map-notice" role="status">
+          <div className={`learn-map-notice ${styles.notice}`} role="status">
             <span>
               {t(loading ? 'learnWorlds.progressLoading' : 'learnWorlds.progressUnavailable')}
             </span>
@@ -174,7 +161,7 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
             )}
           </div>
         )}
-        <section className="islands" aria-label={t('learnWorlds.mapHint')}>
+        <section className={`islands ${styles.worlds}`} aria-label={t('learnWorlds.mapHint')}>
           {islands.map((island) => {
             const challenges = [
               ...new Set([
@@ -194,16 +181,28 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
               : t('learnWorlds.comingSoon');
             const body = (
               <>
-                <span className="island-figure">
-                  {island.open && done > 0 && <ProgressRing done={done} total={total} />}
-                  <span className="island-art">
+                <span
+                  className={styles.landscape}
+                  style={{
+                    backgroundImage: `url(/learn/cinematic/${WORLD_PAINTING[island.section]}.webp)`,
+                  }}
+                  aria-hidden="true"
+                >
+                  <span className={styles.character}>
                     <LearnArt id={ISLAND_ART[island.section]} />
                   </span>
-                  <IslandBase section={island.section} />
                 </span>
-                <span className="island-copy">
-                  <span className="island-name">{name}</span>
-                  <span className="island-note">{note}</span>
+                <span className={styles.worldCopy}>
+                  <span className={styles.worldHeading}>
+                    <span className={`island-name ${styles.name}`}>{name}</span>
+                    {island.open && <UiIcon name="back" className={styles.arrow} />}
+                  </span>
+                  <span className={`island-note ${styles.note}`}>{note}</span>
+                  {island.open && done > 0 && (
+                    <span className={styles.progress} aria-hidden="true">
+                      <span style={{ width: `${Math.min(1, done / total) * 100}%` }} />
+                    </span>
+                  )}
                 </span>
               </>
             );
@@ -211,19 +210,19 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
               <Link
                 key={island.section}
                 href={`/learn/${island.section}`}
-                className="island is-open"
+                className={`island is-open ${styles.world}`}
                 aria-label={`${name}, ${note}`}
               >
                 {body}
               </Link>
             ) : (
-              <div key={island.section} className="island is-soon">
+              <div key={island.section} className={`island is-soon ${styles.world}`}>
                 {body}
               </div>
             );
           })}
         </section>
-        <Link href="/stories" className="learn-story-room-link">
+        <Link href="/stories" className={`learn-story-room-link ${styles.story}`}>
           <svg viewBox="0 0 100 100" aria-hidden="true">
             <Actor id="katha" />
           </svg>
@@ -238,23 +237,6 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
           <UiIcon name="back" className="learn-story-arrow" />
         </Link>
       </div>
-      <nav className="dock learn-dock" aria-label={t('learnWorlds.mapTitle')}>
-        <div className="dock-friends">
-          {child && <PetSlot childId={child.id} state={state} />}
-          <PointsBadge
-            points={learn.points}
-            label={t('learnWorlds.pointsLabel')}
-            language={language}
-          />
-        </div>
-        <div className="dock-talk" />
-        <div className="dock-tiles">
-          <button type="button" className="dock-tile" onClick={() => setShelf(true)}>
-            <LearnIcon name="paw" />
-            <span>{t('learnWorlds.myPets')}</span>
-          </button>
-        </div>
-      </nav>
       {shelf && child && (
         <PetShelf
           pets={learn.pets}

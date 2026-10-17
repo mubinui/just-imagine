@@ -8,12 +8,14 @@ test('profile gesture unlocks audio, world renders, prediction and lab controls 
   await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
   await expect(page).toHaveURL(/studio/);
   await expect(page.locator('canvas')).toBeVisible();
-  await expect(page.getByText('Voice connection: idle')).toBeVisible();
+  await expect(page.locator('.stage-status')).toHaveAttribute('data-state', 'idle');
+  await expect(page.locator('.stage-status')).toContainText('Voice off');
   await page
     .getByRole('button', { name: /^Talk to / })
     .first()
     .click();
-  await expect(page.getByText('Voice connection: connected')).toBeVisible();
+  await expect(page.locator('.stage-status')).toHaveAttribute('data-state', 'connected');
+  await expect(page.locator('.stage-status')).toContainText('Listening');
   await expect(page.getByRole('button', { name: 'bounce', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'bounce', exact: true }).click();
   await expect(page.getByRole('button', { name: 'bounce', exact: true })).toHaveCount(0);
@@ -28,7 +30,7 @@ test('profile gesture unlocks audio, world renders, prediction and lab controls 
   await page.getByRole('button', { name: 'Apply number' }).click();
   const slider = page.getByRole('slider').first();
   await expect(slider).toHaveValue((await slider.getAttribute('max')) || '');
-  await page.getByRole('button', { name: 'Finish playing' }).click();
+  await page.getByRole('button', { name: 'Exit Studio', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'A lovely place to pause.' })).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -105,7 +107,7 @@ test('coalesces slider transport, preserves values during asset updates, and res
     .getByRole('button', { name: /^Talk to / })
     .first()
     .click();
-  await expect(page.getByText('Voice connection: connected')).toBeVisible();
+  await expect(page.locator('.stage-status')).toHaveAttribute('data-state', 'connected');
   await page.getByRole('button', { name: 'Cannon and Cup', exact: true }).click();
   const slider = page.getByRole('slider').first();
   await expect(slider).toBeVisible();

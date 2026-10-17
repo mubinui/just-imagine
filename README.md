@@ -15,11 +15,17 @@ This is a working local prototype with test and browser evidence, **not a produc
 
 ## Project screenshots
 
-| Welcome                                               | Learn                                                 | Studio                                                               |
-| ----------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
-| ![Just Imagine welcome page](docs/images/landing.png) | ![Illustrated learning worlds](docs/images/learn.png) | ![Studio characters and combined navigation](docs/images/studio.png) |
+| Welcome                                               | Learn                                                 | Studio                                                            |
+| ----------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------- |
+| ![Just Imagine welcome page](docs/images/landing.png) | ![Illustrated learning worlds](docs/images/learn.png) | ![Studio characters with one control row](docs/images/studio.png) |
 
 Open the full Studio views: [laptop, 1440 × 900](docs/images/laptop.png) · [tablet, 1024 × 768](docs/images/tablet.png). These are actual app captures; [capture details](docs/images/PROVENANCE.md).
+
+| Learn on tablet                                            | Dark theme choices                                           |
+| ---------------------------------------------------------- | ------------------------------------------------------------ |
+| ![Learning worlds on tablet](docs/images/learn-tablet.png) | ![Theme choices on a dark background](docs/images/theme.png) |
+
+Studio keeps its characters, voice and play controls together, with one Exit Studio action. Learn uses larger character-led worlds, readable progress and a compact points badge. Theme choices follow the surrounding light or dark surface.
 
 ## Run locally
 

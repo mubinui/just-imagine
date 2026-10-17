@@ -6,7 +6,7 @@ import { useLanguage } from '../../lib/i18n';
 import { SPECIALISTS, CHARACTERS, type CharacterId, type Companion } from '@just-imagine/protocol';
 import { s } from '../../lib/strings/en';
 import { CharacterArt } from './CharacterArt';
-import { ChildNavigation, CompanionArt } from '../companion/Companion';
+import { CompanionArt } from '../companion/Companion';
 import { ThemePicker } from '../ThemePicker';
 import type { JobStatus, VoiceStatus } from './parts';
 
@@ -34,15 +34,17 @@ export function StageHeader({
     <header className="stage-header">
       <h1 className="stage-title">{uiText(title)}</h1>
       {center}
-      <ThemePicker compact />
-      <p className="stage-status" data-state={state} role="status">
-        <span className="dot" aria-hidden="true" />
-        <span>{uiText(label)}</span>
-        {note && <span className="note">{uiText(note)}</span>}
-        <span className="sr-only">
-          {s.speak}: {uiText(label)}
-        </span>
-      </p>
+      <div className="stage-tools">
+        <p className="stage-status" data-state={state} role="status">
+          <span className="dot" aria-hidden="true" />
+          <span>{uiText(label)}</span>
+          {note && <span className="note">{uiText(note)}</span>}
+          <span className="sr-only">
+            {s.speak}: {uiText(label)}
+          </span>
+        </p>
+        <ThemePicker compact />
+      </div>
     </header>
   );
 }
@@ -172,9 +174,6 @@ export function Dock({
           </button>
         )}
       </div>
-      <div className="studio-navigation">
-        <ChildNavigation />
-      </div>
       <div className="dock-tiles">
         <button type="button" className="dock-tile" onClick={onNewGame}>
           <UiIcon name="game" />
@@ -190,7 +189,7 @@ export function Dock({
         </button>
         <button type="button" className="dock-tile is-quiet" onClick={onFinish}>
           <UiIcon name="finish" />
-          <span>{s.end}</span>
+          <span>{language === 'bn' ? 'স্টুডিও থেকে বের হই' : 'Exit Studio'}</span>
         </button>
       </div>
     </footer>
