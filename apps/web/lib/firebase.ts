@@ -17,8 +17,10 @@ function init() {
   const auth = getAuth(app),
     db = getFirestore(app);
   if (env.emulators) {
-    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    connectAuthEmulator(auth, `http://127.0.0.1:${env.authEmulatorPort}`, {
+      disableWarnings: true,
+    });
+    connectFirestoreEmulator(db, '127.0.0.1', env.firestoreEmulatorPort);
   }
   return { auth, db };
 }
