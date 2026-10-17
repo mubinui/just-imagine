@@ -6,3 +6,4 @@ export * from './linear';
 export * from './unit-circle';
 export * from './registry';
 export * from './chem/formula';
+export * from './chem/lab';
