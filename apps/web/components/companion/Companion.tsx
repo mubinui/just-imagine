@@ -341,10 +341,8 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
         data-live={live && !env.fake ? 'true' : undefined}
         onClick={() => setOpen(!open)}
       >
-        <CompanionArt companion={companion} speaking={speaking} />
-        <span className="companion-toggle-label">
-          <strong>{t('childNavigation.assistant')}</strong>
-          <span>{uiText(companion.name)}</span>
+        <span className="companion-toggle-portrait">
+          <CompanionArt companion={companion} speaking={speaking} />
         </span>
       </button>
     </div>

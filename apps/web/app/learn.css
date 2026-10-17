@@ -1515,12 +1515,7 @@ button.pet-card:hover {
   flex-shrink: 0;
 }
 .learn-dock .companion-dock.is-inline .companion-toggle {
-  height: 84px;
-  min-width: 84px;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px;
+  --portrait: 76px;
 }
 .learn-hint {
   display: -webkit-box;
@@ -1607,8 +1602,7 @@ button.pet-card:hover {
     flex: 1;
   }
   .learn-dock .companion-dock.is-inline .companion-toggle {
-    height: 64px;
-    min-width: 64px;
+    --portrait: 60px;
   }
   .learn-dock .dock-tiles {
     flex-wrap: wrap;
