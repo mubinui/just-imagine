@@ -7,6 +7,7 @@ import {
   SchoolDocSchema,
   StudentDocSchema,
   StudentUsernameSchema,
+  StudentStatusSchema,
   studentUid,
   schoolPaths,
   DocumentIdSchema,
@@ -50,14 +51,29 @@ export function parseCsv(csv: string): Record<string, string>[] {
     return fail(400, 'CSV needs firstName, username and classId columns.');
   return rows.map((values) => Object.fromEntries(header.map((key, i) => [key, values[i] ?? ''])));
 }
+/** PIN lockouts are kept per username; the teacher roster shows them without exposing secrets. */
+const loginUserRef = (sid: string, username: string) =>
+  db().doc('schoolLoginUsers/' + hash(sid + ':' + username));
 export async function listStudents(actor: SchoolAdminActor, classId?: string) {
   const sid = await schoolId(actor);
   let query: FirebaseFirestore.Query = db().collection(schoolPaths.students(sid));
   if (classId) query = query.where('classId', '==', classId);
   const snap = await query.limit(5000).get();
+  const students = snap.docs.map((d) => ({ id: d.id, ...StudentDocSchema.parse(d.data()) }));
+  const limits = students.length
+    ? await db().getAll(...students.map((st) => loginUserRef(sid, st.username)))
+    : [];
+  const now = Date.now();
   return {
-    students: snap.docs
-      .map((d) => ({ id: d.id, ...StudentDocSchema.parse(d.data()) }))
+    students: students
+      .map((student, index) => {
+        const limit = limits[index]?.data();
+        const locked = Number(limit?.['lockedUntil'] ?? 0) > now;
+        return {
+          ...student,
+          signIn: { failures: locked ? 0 : Number(limit?.['failures'] ?? 0), locked },
+        };
+      })
       .sort((a, b) => a.firstName.localeCompare(b.firstName)),
   };
 }
@@ -172,6 +188,41 @@ export async function resetPin(actor: SchoolAdminActor, id: string) {
   });
   await revoke(studentUid(sid, id));
   return { studentId: id, pin };
+}
+/** Suspension keeps the record and history, ends live sessions and blocks sign-in. */
+export async function setStudentStatus(actor: SchoolAdminActor, id: string, input: unknown) {
+  const sid = await schoolId(actor),
+    { status } = z.strictObject({ status: StudentStatusSchema }).parse(input),
+    ref = db().doc(schoolPaths.student(sid, id));
+  const result = await db().runTransaction(async (tx) => {
+    const [snap, school] = await Promise.all([
+      tx.get(ref),
+      tx.get(db().doc(schoolPaths.school(sid))),
+    ]);
+    if (SchoolDocSchema.parse(school.data()).status !== 'active')
+      return fail(403, 'This school is paused.');
+    if (!snap.exists) return fail(404, 'Student not found.');
+    const before = StudentDocSchema.parse(snap.data());
+    const next = StudentDocSchema.parse({
+      ...before,
+      status,
+      authVersion:
+        status === 'suspended' && before.status !== 'suspended'
+          ? before.authVersion + 1
+          : before.authVersion,
+    });
+    tx.set(ref, next);
+    return { student: { id, ...next } };
+  });
+  if (status === 'suspended') await revoke(studentUid(sid, id));
+  return result;
+}
+/** Clears a PIN lockout (or the count of recent wrong PINs) without changing the PIN. */
+export async function unlockStudent(actor: SchoolAdminActor, id: string) {
+  const sid = await schoolId(actor),
+    profile = await read(schoolPaths.student(sid, id), StudentDocSchema);
+  await loginUserRef(sid, profile.username).delete();
+  return { studentId: id, signIn: { failures: 0, locked: false } };
 }
 export async function deleteStudent(actor: SchoolAdminActor, id: string) {
   const sid = await schoolId(actor);

@@ -98,12 +98,47 @@ export async function reserveAi(sid: string, kind: 'aiDrafts' | 'aiReactions') {
     tx.set(ref, { ...usage, [kind]: usage[kind] + 1 });
   });
 }
+/**
+ * The provider accepts a subset of JSON Schema. Bounded arrays of object/union items (lesson
+ * steps, quiz questions) expand past its limit and fail with 400 INVALID_ARGUMENT, so they are
+ * sent unbounded; `$schema`, `oneOf` and `const` are normalised. The local Zod schema stays authoritative.
+ */
+export function providerJsonSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(providerJsonSchema);
+  if (!schema || typeof schema !== 'object') return schema;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === '$schema') continue;
+    // `const` is ignored by the provider (a step kind could drift); a one-value enum is enforced.
+    if (key === 'const') out['enum'] = [value];
+    else out[key === 'oneOf' ? 'anyOf' : key] = providerJsonSchema(value);
+  }
+  const items = out['items'];
+  if (
+    out['type'] === 'array' &&
+    items &&
+    typeof items === 'object' &&
+    ((items as Record<string, unknown>)['type'] === 'object' ||
+      (items as Record<string, unknown>)['type'] === 'array' ||
+      'anyOf' in items)
+  ) {
+    delete out['minItems'];
+    delete out['maxItems'];
+  }
+  return out;
+}
 export async function modelResult<T>(
   model: SchoolModel,
   prompt: string,
   schema: z.ZodType<T>,
 ): Promise<T> {
-  const raw = await model(prompt, z.toJSONSchema(schema, { unrepresentable: 'any' }));
+  const raw = await model(
+    prompt,
+    providerJsonSchema(z.toJSONSchema(schema, { unrepresentable: 'any' })) as Record<
+      string,
+      unknown
+    >,
+  );
   const parsed = schema.safeParse(raw);
   if (!parsed.success)
     return fail(

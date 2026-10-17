@@ -36,7 +36,7 @@ const expectedMcq: Record<string, Record<string, [string, string]>> = {
   },
   'acid-base': {
     check1: ['NaOH', 'NaOH'],
-    q1: ['Below7', '7-এর নিচে'],
+    q1: ['Below 7', '7-এর নিচে'],
     q4: ['Basic', 'ক্ষারীয়'],
     q5: ['Salt and water', 'লবণ ও পানি'],
   },

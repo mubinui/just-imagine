@@ -20,7 +20,7 @@ import {
 } from '@just-imagine/server-core';
 import { ApiFault } from '../errors';
 import { db, newId, read, schoolId, fail } from './common';
-import { login, acceptInvite } from './login';
+import { login, acceptInvite, checkInvite } from './login';
 import {
   ClassBodySchema,
   createStudents,
@@ -29,6 +29,8 @@ import {
   updateStudent,
   resetPin,
   deleteStudent,
+  setStudentStatus,
+  unlockStudent,
 } from './roster';
 import {
   listLessons,
@@ -45,6 +47,7 @@ import { assistLessonText, draftLesson, translateLesson } from './authoring';
 import { grade, boards, results, hint, teacherBoards } from './grading';
 import { react } from './chemistry';
 import type { SchoolModel } from './ai';
+import { recentActivity } from './activity';
 declare module 'fastify' {
   interface FastifyRequest {
     schoolActor: SchoolAdminActor | null;
@@ -84,6 +87,9 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
     verifyPupil = options.verifyStudent ?? requireStudent,
     suspended = options.isSchoolSuspended ?? isSchoolSuspended;
   app.post('/v1/study/login', { bodyLimit: 2048 }, (req) => login(req.body));
+  app.post('/v1/school/invites/check', { bodyLimit: 2048 }, (req) =>
+    checkInvite(z.object({ token: z.string().max(500) }).parse(req.body).token),
+  );
   app.post('/v1/school/invites/accept', (req) =>
     acceptInvite(z.object({ token: z.string().max(500) }).parse(req.body).token, bearer(req)),
   );
@@ -198,6 +204,12 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
     routes.post('/v1/school/students/:id/reset-pin', (req) =>
       resetPin(schoolActor(req), id(req.params)),
     );
+    routes.patch('/v1/school/students/:id/status', (req) =>
+      setStudentStatus(schoolActor(req), id(req.params), req.body),
+    );
+    routes.post('/v1/school/students/:id/unlock', (req) =>
+      unlockStudent(schoolActor(req), id(req.params)),
+    );
     routes.get('/v1/school/lessons', (req) =>
       z.object({ scope: z.literal('global').optional() }).parse(req.query).scope === 'global'
         ? db()
@@ -254,6 +266,7 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
         .parse(req.query);
       return teacherBoards(schoolActor(req), q.scope, q.period, q.classId);
     });
+    routes.get('/v1/school/activity', (req) => recentActivity(schoolActor(req)));
     routes.get('/v1/school/results', (req) => {
       const q = z
         .object({ classId: DocumentIdSchema, lessonId: DocumentIdSchema })

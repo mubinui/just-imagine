@@ -87,6 +87,8 @@ export async function login(input: unknown) {
     }
   });
   if (!valid || !found || !profile) return fail(403, 'Check your school code, username and PIN.');
+  if (profile.status === 'suspended')
+    return fail(403, 'Your account is paused. Please ask your teacher.');
   if (!(await db().doc(schoolPaths.schoolClass(sid, profile.classId)).get()).exists)
     return fail(403, 'Your class is not available. Ask your teacher.');
   const uid = studentUid(sid, found.id);
@@ -99,6 +101,30 @@ export async function login(input: unknown) {
     classId: profile.classId,
   });
   return { customToken };
+}
+/**
+ * Anonymous pre-check so the join page never creates an account for a dead link. Only the token
+ * holder learns the invited email; acceptance still re-checks everything after sign-in.
+ */
+export async function checkInvite(token: string) {
+  const parts = token.split('.'),
+    [sid, inviteId, entropy] = parts;
+  DocumentIdSchema.parse(sid);
+  DocumentIdSchema.parse(inviteId);
+  if (!sid || !inviteId || !entropy || parts.length !== 3)
+    return fail(400, 'This invite link is incomplete.');
+  const snap = await db().doc(schoolPaths.invite(sid, inviteId)).get();
+  if (!snap.exists) return fail(403, 'This invite has expired or was already used.');
+  const invite = SchoolInviteDocSchema.parse(snap.data());
+  const actual = Buffer.from(hash(token), 'hex'),
+    expected = Buffer.from(invite.tokenHash, 'hex');
+  if (
+    actual.length !== expected.length ||
+    !timingSafeEqual(actual, expected) ||
+    invite.expiresAt < Date.now()
+  )
+    return fail(403, 'This invite has expired or was already used.');
+  return { email: invite.email, schoolId: sid };
 }
 export async function acceptInvite(token: string, idToken: string) {
   const decoded = await adminAuth()

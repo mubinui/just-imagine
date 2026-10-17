@@ -89,12 +89,12 @@ const SUPPORT: Record<string, Support> = {
     ),
     prompts: [
       t(
-        'Predict: with u = 4 m/s and a = 0, what velocity and displacement will you expect after 4 s?',
-        'আগে অনুমান: u = 4 m/s ও a = 0 হলে 4 s পরে বেগ ও সরণ কত হতে পারে?',
+        'Predict: at the starting settings, u = 4 m/s and a = 2 m/s², what velocity and displacement will you expect after 4 s?',
+        'আগে অনুমান: শুরুর মান u = 4 m/s ও a = 2 m/s² হলে 4 s পরে বেগ ও সরণ কত হতে পারে?',
       ),
       t(
-        'Observe: run that case, then change only a to 2 m/s² and run again. Record both final velocities and displacements, including units.',
-        'দেখো: ওই অবস্থায় চালাও, পরে শুধু a = 2 m/s² করে আবার চালাও। দুইবারের শেষ বেগ ও সরণ এককসহ লেখো।',
+        'Observe: run that case, then change only a to 0 and run again. Record both final velocities and displacements, including units.',
+        'দেখো: ওই অবস্থায় চালাও, পরে শুধু a = 0 করে আবার চালাও। দুইবারের শেষ বেগ ও সরণ এককসহ লেখো।',
       ),
       t(
         'Explain: use Δv/Δt and the area under the velocity–time graph to account for the differences. Then test braking and describe what happens after rest.',
@@ -791,15 +791,15 @@ export const DEMO_LESSONS = [
       ),
       numeric(
         'q2',
-        'If u=4m/s and a=2m/s², what is v after4s?',
-        'u=4m/s ও a=2m/s² হলে 4s পর v কত?',
+        'If u = 4 m/s and a = 2 m/s², what is v after 4 s?',
+        'u = 4 m/s ও a = 2 m/s² হলে 4 s পর v কত?',
         12,
         'm/s',
       ),
       task(
         'q3',
-        'Change acceleration to reach12m/s after4s.',
-        'ত্বরণ বদলে 4s পর 12m/s বেগ পাও।',
+        'Change the acceleration so the velocity reaches 12 m/s after 4 s.',
+        'ত্বরণ বদলে 4 s পর 12 m/s বেগ পাও।',
         'motion-graphs',
         { ...motion, a: 0 },
         ['a'],
@@ -808,8 +808,8 @@ export const DEMO_LESSONS = [
       ),
       numeric(
         'q4',
-        'What is the displacement for u=4,a=2,t=4?',
-        'u=4,a=2,t=4 হলে সরণ কত?',
+        'What is the displacement for u = 4 m/s, a = 2 m/s² and t = 4 s?',
+        'u = 4 m/s, a = 2 m/s² ও t = 4 s হলে সরণ কত?',
         32,
         'm',
       ),
@@ -832,8 +832,8 @@ export const DEMO_LESSONS = [
     'physics-3',
     t('Force: start the cart', 'বল: গাড়িটি চালাও'),
     t(
-      'A cart starts moving when the push exceeds maximum static friction. While moving, net force equals mass times acceleration. This level-floor model uses g=9.8m/s².',
-      'ধাক্কা সর্বোচ্চ স্থিতি ঘর্ষণ ছাড়ালে গাড়ি চলতে শুরু করে। চলার সময় লব্ধি বল ভর ও ত্বরণের গুণফলের সমান। সমতল মেঝের মডেলে g=9.8m/s²।',
+      'A cart starts moving when the push exceeds maximum static friction. While moving, net force equals mass times acceleration. This level-floor model uses g = 9.8 m/s².',
+      'ধাক্কা সর্বোচ্চ স্থিতি ঘর্ষণ ছাড়ালে গাড়ি চলতে শুরু করে। চলার সময় লব্ধি বল ভর ও ত্বরণের গুণফলের সমান। সমতল মেঝের মডেলে g = 9.8 m/s²।',
     ),
     explore(
       'newton-cart',
@@ -855,8 +855,8 @@ export const DEMO_LESSONS = [
       ),
       numeric(
         'q2',
-        'For m=2kg and μs=0.3, what is maximum static friction?',
-        'm=2kg ও μs=0.3 হলে সর্বোচ্চ স্থিতি ঘর্ষণ কত?',
+        'For m = 2 kg and μs = 0.3, what is the maximum static friction?',
+        'm = 2 kg ও μs = 0.3 হলে সর্বোচ্চ স্থিতি ঘর্ষণ কত?',
         5.88,
         'N',
       ),
@@ -872,8 +872,8 @@ export const DEMO_LESSONS = [
       ),
       numeric(
         'q4',
-        'For10N push and3.92N friction on2kg, find acceleration.',
-        '2kg বস্তুর ওপর 10N ধাক্কা ও 3.92N ঘর্ষণ হলে ত্বরণ কত?',
+        'For a 10 N push and 3.92 N friction on 2 kg, find the acceleration.',
+        '2 kg বস্তুর ওপর 10 N ধাক্কা ও 3.92 N ঘর্ষণ হলে ত্বরণ কত?',
         3.04,
         'm/s²',
       ),
@@ -919,15 +919,15 @@ export const DEMO_LESSONS = [
       ),
       numeric(
         'q2',
-        'Find the total resistance of10Ω and20Ω in series.',
-        'শ্রেণি সংযোগে 10Ω ও 20Ω-এর মোট রোধ কত?',
+        'Find the total resistance of 10 Ω and 20 Ω in series.',
+        'শ্রেণি সংযোগে 10 Ω ও 20 Ω-এর মোট রোধ কত?',
         30,
         'Ω',
       ),
       task(
         'q3',
-        'With30Ω total resistance, set the source for0.2A.',
-        'মোট রোধ 30Ω রেখে উৎস বদলে 0.2A প্রবাহ পাও।',
+        'With 30 Ω total resistance, set the source for 0.2 A.',
+        'মোট রোধ 30 Ω রেখে উৎস বদলে 0.2 A প্রবাহ পাও।',
         'ohms-circuit',
         { ...circuit, emf: 3 },
         ['emf'],
@@ -936,8 +936,8 @@ export const DEMO_LESSONS = [
       ),
       numeric(
         'q4',
-        'A6V source across30Ω gives what current?',
-        '30Ω রোধে 6V দিলে প্রবাহ কত?',
+        'A 6 V source across 30 Ω gives what current?',
+        '30 Ω রোধে 6 V দিলে প্রবাহ কত?',
         0.2,
         'A',
       ),
@@ -981,10 +981,10 @@ export const DEMO_LESSONS = [
         ],
         0,
       ),
-      numeric('q2', 'For y=2x+1, find y when x=3.', 'y=2x+1 হলে x=3-তে y কত?', 7, ''),
+      numeric('q2', 'For y = 2x + 1, find y when x = 3.', 'y = 2x + 1 হলে x = 3-তে y কত?', 7, ''),
       task(
         'q3',
-        'Make the slope equal3.',
+        'Make the slope equal to 3.',
         'ঢাল 3 করো।',
         'linear-graph',
         line,
@@ -992,7 +992,7 @@ export const DEMO_LESSONS = [
         'slopeEquals',
         { m: 3, tol: 0.01 },
       ),
-      numeric('q4', 'What is the y-intercept of y=2x+1?', 'y=2x+1-এর y-ছেদক কত?', 1, ''),
+      numeric('q4', 'What is the y-intercept of y = 2x + 1?', 'y = 2x + 1-এর y-ছেদক কত?', 1, ''),
       mcq(
         'q5',
         'A horizontal line has slope…',
@@ -1012,7 +1012,7 @@ export const DEMO_LESSONS = [
     'math-gm-9',
     t('Trigonometry: the unit circle', 'ত্রিকোণমিতি: একক বৃত্ত'),
     t(
-      'A unit circle has radius1. At angleθ, the point has coordinates(cosθ,sinθ). Tangent is sinθ/cosθ when cosθ is nonzero.',
+      'A unit circle has radius 1. At angle θ, the point has coordinates (cos θ, sin θ). Tangent is sin θ / cos θ when cos θ is nonzero.',
       'একক বৃত্তের ব্যাসার্ধ 1। θ কোণে বিন্দুর স্থানাঙ্ক (cosθ,sinθ)। cosθ শূন্য না হলে tanθ=sinθ/cosθ।',
     ),
     explore(
@@ -1036,7 +1036,7 @@ export const DEMO_LESSONS = [
       numeric('q2', 'What is sin30°?', 'sin30° কত?', 0.5, ''),
       task(
         'q3',
-        'Set an angle whose sine is1.',
+        'Set an angle whose sine is 1.',
         'যে কোণের sine 1 সেই কোণ নাও।',
         'unit-circle',
         circle,
@@ -1047,7 +1047,7 @@ export const DEMO_LESSONS = [
       numeric('q4', 'What is cos0°?', 'cos0° কত?', 1, ''),
       mcq(
         'q5',
-        'At90°, tangent is…',
+        'At 90°, tangent is…',
         '90°-তে tangent…',
         [
           ['Undefined', 'অসংজ্ঞায়িত'],
@@ -1064,7 +1064,7 @@ export const DEMO_LESSONS = [
     'chemistry-9',
     t('Acids, bases and indicators', 'এসিড, ক্ষারক ও নির্দেশক'),
     t(
-      'This virtual bench models ideal dilute strong acids and bases at25°C. Equal acid and base equivalents neutralise. Excess reagent changes pH. Never reproduce virtual reactions outside a supervised laboratory.',
+      'This virtual bench models ideal dilute strong acids and bases at 25 °C. Equal acid and base equivalents neutralise. Excess reagent changes pH. Never reproduce virtual reactions outside a supervised laboratory.',
       'এই ভার্চুয়াল বেঞ্চে 25°C তাপমাত্রায় আদর্শ লঘু শক্তিশালী এসিড ও ক্ষারক দেখানো হয়। সমান এসিড ও ক্ষারক সমতুল্য প্রশমিত হয়। অতিরিক্ত বিকারক pH বদলায়। তত্ত্বাবধানহীন বাস্তব পরীক্ষায় এসব অনুকরণ কোরো না।',
     ),
     {
@@ -1081,15 +1081,15 @@ export const DEMO_LESSONS = [
         'An acidic solution usually has pH…',
         'এসিডীয় দ্রবণের pH সাধারণত…',
         [
-          ['Below7', '7-এর নিচে'],
-          ['Above7', '7-এর ওপরে'],
-          ['Always14', 'সব সময় 14'],
+          ['Below 7', '7-এর নিচে'],
+          ['Above 7', '7-এর ওপরে'],
+          ['Always 14', 'সব সময় 14'],
         ],
         0,
       ),
       numeric(
         'q2',
-        'At25°C, what is the ideal neutral pH?',
+        'At 25 °C, what is the ideal neutral pH?',
         '25°C-তে আদর্শ নিরপেক্ষ pH কত?',
         7,
         '',
@@ -1162,8 +1162,8 @@ export const DEMO_LESSONS = [
       ),
       numeric(
         'q2',
-        'In2H₂+O₂→2H₂O, how many hydrogen atoms are on either side?',
-        '2H₂+O₂→2H₂O-তে প্রতিপাশে হাইড্রোজেন পরমাণু কয়টি?',
+        'In 2H₂ + O₂ → 2H₂O, how many hydrogen atoms are on either side?',
+        '2H₂ + O₂ → 2H₂O-তে প্রতিপাশে হাইড্রোজেন পরমাণু কয়টি?',
         4,
         '',
       ),

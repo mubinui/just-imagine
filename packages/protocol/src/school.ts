@@ -18,6 +18,8 @@ export const SchoolCodeSchema = z
   .trim()
   .toUpperCase()
   .regex(/^[A-HJ-NP-Z2-9]{6}$/);
+/** Browser `pattern` form (unicode-sets mode) of the username rule, applied after lower-casing. */
+export const STUDENT_USERNAME_PATTERN = '[a-z0-9][a-z0-9._\\-]{2,31}';
 export const StudentUsernameSchema = z
   .string()
   .trim()
@@ -116,7 +118,11 @@ export const SchoolClassDocSchema = z.object({
   boardsVisible: z.boolean().default(true),
   createdAt: EpochMsSchema,
 });
+/** A suspended student keeps their records but cannot sign in until a teacher restores them. */
+export const StudentStatusSchema = z.enum(['active', 'suspended']);
+export type StudentStatus = z.infer<typeof StudentStatusSchema>;
 export const StudentDocSchema = z.object({
+  status: StudentStatusSchema.default('active'),
   authVersion: z.number().int().nonnegative().default(0),
   firstName: z.string().trim().min(1).max(40),
   username: StudentUsernameSchema,
@@ -223,6 +229,8 @@ export const LessonFieldsSchema = z.object({
   authorUid: z.string(),
   revision: z.number().int().nonnegative(),
   updatedAt: EpochMsSchema,
+  /** The shared (global) lesson a school copy was made from; guards against duplicate copies. */
+  copiedFrom: DocumentIdSchema.optional(),
 });
 export type LessonFields = z.infer<typeof LessonFieldsSchema>;
 

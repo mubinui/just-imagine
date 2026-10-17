@@ -41,6 +41,8 @@ export async function schoolId(actor: SchoolAdminActor): Promise<string> {
 export async function student(actor: StudentActor) {
   const value = await read(schoolPaths.student(actor.schoolId, actor.studentId), StudentDocSchema);
   if (value.classId !== actor.classId) return fail(403, 'Your class changed. Sign in again.');
+  if (value.status === 'suspended')
+    return fail(403, 'Your account is paused. Please ask your teacher.');
   return value;
 }
 export function visible(lesson: LessonDoc, actor: StudentActor): boolean {

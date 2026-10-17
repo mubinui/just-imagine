@@ -193,8 +193,12 @@ export async function saveLesson(
     return fail(403, 'Only the operator publishes global lessons.');
   const nextId = id ?? newId('w');
   const scope = global ? 'global' : body.lesson.scope === 'class' ? 'class' : 'school';
+  // Provenance is server-owned once a lesson exists; an omitted or undefined value is never stored.
+  const { copiedFrom: requestedCopiedFrom, ...fields } = body.lesson;
+  const copiedFrom = existing ? existing.lesson.copiedFrom : requestedCopiedFrom;
   const lesson = LessonDocSchema.parse({
-    ...body.lesson,
+    ...fields,
+    ...(copiedFrom ? { copiedFrom } : {}),
     scope,
     schoolId: sid,
     classIds: scope === 'class' ? body.lesson.classIds : [],
@@ -316,8 +320,19 @@ export async function copyLesson(actor: SchoolAdminActor, id: string) {
   const source = await read(schoolPaths.lesson(id), LessonDocSchema);
   if (source.scope !== 'global' || source.status !== 'published')
     return fail(404, 'Published global lesson not found.');
+  const copies = await db()
+    .collection('lessons')
+    .where('schoolId', '==', await schoolId(actor))
+    .where('copiedFrom', '==', id)
+    .limit(5)
+    .get();
+  if (copies.docs.some((d) => d.get('status') !== 'archived'))
+    return fail(
+      409,
+      'This shared lesson is already in your school lessons. Open your copy instead.',
+    );
   return saveLesson(actor, {
-    lesson: { ...source, scope: 'school', status: 'draft' },
+    lesson: { ...source, scope: 'school', status: 'draft', copiedFrom: id },
     keys: await read(schoolPaths.lessonKeys(id), LessonKeysDocSchema),
   });
 }

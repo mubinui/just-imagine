@@ -2,12 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { mix, gradeLabSubmission } from '@just-imagine/stem-sims';
 import { REACTIONS, REAGENTS } from '@just-imagine/stem-content';
 import { DEMO_LESSONS } from '../src/school/demo-lessons';
-import { validateLesson } from '../src/school/lessons';
+import { editableLessonSchema, validateLesson } from '../src/school/lessons';
 import { correct } from '../src/school/grading';
-import { requestSchoolJson, modelResult } from '../src/school/ai';
+import { requestSchoolJson, modelResult, providerJsonSchema } from '../src/school/ai';
 import { z } from 'zod';
 import { assistLessonText, buildDraftPrompt, buildTextAssistPrompt } from '../src/school/authoring';
-import { LessonTextAssistRequestSchema } from '@just-imagine/protocol';
+import { LessonKeysDocSchema, LessonTextAssistRequestSchema } from '@just-imagine/protocol';
 import { parseCsv } from '../src/school/roster';
 import { validatePredictedReaction } from '../src/school/chemistry';
 describe('school learning boundaries', () => {
@@ -283,5 +283,63 @@ describe('school learning boundaries', () => {
       ),
     ).toBe(false);
     expect(validatePredictedReaction(reaction, ['hcl', 'koh'], false)).toBe(false);
+  });
+});
+
+const draftSchema = z.object({ lesson: editableLessonSchema, keys: LessonKeysDocSchema });
+type Node = Record<string, unknown>;
+function nodes(value: unknown, out: Node[] = []): Node[] {
+  if (Array.isArray(value)) value.forEach((v) => nodes(v, out));
+  else if (value && typeof value === 'object') {
+    out.push(value as Node);
+    Object.values(value).forEach((v) => nodes(v, out));
+  }
+  return out;
+}
+const isComplexArray = (n: Node) => {
+  const items = n['items'] as Node | undefined;
+  return n['type'] === 'array' && !!items && (items['type'] === 'object' || !!items['anyOf']);
+};
+
+describe('provider JSON schema for school AI', () => {
+  // Vertex/Gemini rejected the raw draft schema with 400 INVALID_ARGUMENT: bounded arrays of
+  // step and question unions expand beyond the provider's limit, forcing a slower retry.
+  it('drops only the constructs the provider rejects from the whole-lesson draft schema', () => {
+    const raw = z.toJSONSchema(draftSchema, { unrepresentable: 'any' });
+    expect(nodes(raw).some((n) => isComplexArray(n) && 'maxItems' in n)).toBe(true);
+    const provider = providerJsonSchema(raw);
+    const all = nodes(provider);
+    expect(all.some((n) => '$schema' in n || 'oneOf' in n)).toBe(false);
+    // The provider ignores `const`, letting a step kind drift; a one-value enum is enforced.
+    expect(all.some((n) => 'const' in n)).toBe(false);
+    expect(all.some((n) => JSON.stringify(n['enum']) === '["quiz"]')).toBe(true);
+    expect(all.some((n) => isComplexArray(n) && ('maxItems' in n || 'minItems' in n))).toBe(false);
+    // Bounds on simple arrays and strings remain as guidance for the model.
+    expect(all.some((n) => n['type'] === 'array' && 'maxItems' in n)).toBe(true);
+    expect(all.some((n) => 'maxLength' in n)).toBe(true);
+  });
+
+  it('sends the provider schema on the first call and still validates the full local schema', async () => {
+    const seen: unknown[] = [];
+    const seed = DEMO_LESSONS[1]!;
+    const draft = await modelResult(
+      async (_prompt, schema) => {
+        seen.push(schema);
+        return { lesson: { ...seed.lesson, status: 'draft' }, keys: seed.keys };
+      },
+      'quoted data',
+      draftSchema,
+    );
+    expect(draft.lesson.title).toEqual(seed.lesson.title);
+    expect(seen).toHaveLength(1);
+    expect(nodes(seen[0]).some((n) => isComplexArray(n) && 'maxItems' in n)).toBe(false);
+    const tooManySteps = Array.from({ length: 21 }, () => seed.lesson.steps[0]!);
+    await expect(
+      modelResult(
+        async () => ({ lesson: { ...seed.lesson, steps: tooManySteps }, keys: seed.keys }),
+        'quoted data',
+        draftSchema,
+      ),
+    ).rejects.toMatchObject({ status: 503 });
   });
 });
