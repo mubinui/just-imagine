@@ -80,3 +80,25 @@ it('repairs an invalid patch once using validation issues without mutating the o
   expect(generate.mock.calls[1]?.[0]).toContain('Validation issues to repair');
   expect(fixture.title).not.toBe('Repaired title');
 });
+
+it('repairs a request contradiction within the same bounded scene attempts before publication', async () => {
+  const generate = vi.fn(async (_prompt: string) => generated());
+  const review = vi
+    .fn()
+    .mockResolvedValueOnce('Move the unrequested blocking decoration into the backdrop.')
+    .mockResolvedValueOnce(null);
+  const doc = await buildScene(job, generate, review);
+  expect(doc.worldId).toBe(job.worldId);
+  expect(generate).toHaveBeenCalledTimes(2);
+  expect(review).toHaveBeenCalledTimes(2);
+  expect(generate.mock.calls[1]?.[0]).toContain('Child-request validation issues');
+  expect(generate.mock.calls[1]?.[0]).toContain('blocking decoration');
+});
+
+it('fails closed after three rejected scenes instead of publishing a known contradiction', async () => {
+  const generate = vi.fn(async (_prompt: string) => generated());
+  const review = vi.fn(async () => 'The requested route is blocked.');
+  await expect(buildScene(job, generate, review)).rejects.toThrow('three attempts');
+  expect(generate).toHaveBeenCalledTimes(3);
+  expect(review).toHaveBeenCalledTimes(3);
+});

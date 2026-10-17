@@ -3,12 +3,16 @@ export function GET(request: Request) {
   const parsed = ThemeIdSchema.safeParse(new URL(request.url).searchParams.get('theme'));
   const theme = parsed.success ? parsed.data : 'forest';
   const palette = THEME_PALETTES[theme];
+  const bangla = new URL(request.url).searchParams.get('lang') === 'bn';
   return Response.json(
     {
       id: '/',
-      name: 'Just Imagine',
-      short_name: 'Just Imagine',
-      description: 'A playful family space for imagination and discovery.',
+      lang: bangla ? 'bn-BD' : 'en',
+      name: bangla ? 'জাস্ট ইমাজিন' : 'Just Imagine',
+      short_name: bangla ? 'জাস্ট ইমাজিন' : 'Just Imagine',
+      description: bangla
+        ? 'পরিবারের সঙ্গে কল্পনা, খেলা আর নতুন কিছু শেখার জায়গা।'
+        : 'A playful family space for imagination and discovery.',
       start_url: '/',
       display: 'standalone',
       background_color: palette.ground,

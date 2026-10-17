@@ -17,6 +17,8 @@ const JobBase = z.object({
 export const BuildWorldJobSchema = JobBase.extend({
   kind: z.literal('build'),
   description: z.string().min(1).max(4000),
+  // Server-captured moderated child words; an assistant summary must not drop exclusions.
+  childRequest: z.string().min(1).max(4000).optional(),
   concepts: z.array(ConceptSchema).max(LIMITS.maxConcepts),
   ageBand: AgeBandSchema,
   tier: TierSchema,
@@ -36,6 +38,7 @@ export type BuildWorldJob = z.infer<typeof BuildWorldJobSchema>;
 export const PatchWorldJobSchema = JobBase.extend({
   kind: z.literal('patch'),
   instruction: z.string().min(1).max(2000),
+  childRequest: z.string().min(1).max(2000).optional(),
   promptVersion: z.string().min(1),
 });
 export type PatchWorldJob = z.infer<typeof PatchWorldJobSchema>;

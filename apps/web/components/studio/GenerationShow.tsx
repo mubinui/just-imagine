@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useState } from 'react';
 import { SPECIALISTS, CHARACTERS, type CharacterId } from '@just-imagine/protocol';
 import { CharacterArt } from './CharacterArt';
@@ -75,7 +76,7 @@ function lineFor(beat: Beat, sinceStatusMs: number, heroName: string | undefined
     case 'props':
       return s.show.props;
     case 'hero':
-      return s.show.hero.replace('{name}', heroName ?? s.show.heroDefault);
+      return uiText(s.show.hero, { name: heroName ?? s.show.heroDefault });
     case 'reveal':
       return s.show.reveal;
     case 'loop':
@@ -152,7 +153,7 @@ export function GenerationShow({
   return (
     <div className={`show is-${beat}`} data-beat={beat} data-painted={painted}>
       <div className="show-inner">
-        <div className="show-friend" role="img" aria-label={friend}>
+        <div className="show-friend" role="img" aria-label={uiText(friend)}>
           <span className="spotlight" aria-hidden="true" />
           <CharacterArt
             id={character}
@@ -194,17 +195,17 @@ export function GenerationShow({
       </div>
       <div className="show-caption-wrap">
         <p className="specialist-role">
-          {friend} · {specialist.role[lang]}
+          {uiText(friend)} · {uiText(specialist.role[lang])}
         </p>
         <p className="specialist-making">
           {job === 'ready'
             ? lang
               ? 'তোমার জগত তৈরি'
-              : 'Your world is ready'
+              : uiText('Your world is ready')
             : specialist.making[lang]}
         </p>
         <p className="show-caption" key={line} role="status" aria-live="polite">
-          {line}
+          {uiText(line)}
         </p>
         {beat === 'late' && onOfferFallback && (
           <button type="button" className="pill primary show-offer" onClick={onOfferFallback}>

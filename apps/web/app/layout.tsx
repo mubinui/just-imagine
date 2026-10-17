@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { LanguageRoot } from '../components/LanguageRoot';
 import { AppearanceProvider } from '../components/AppearanceProvider';
 import '../lib/i18n/fonts.css';
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <body>
         <AppearanceProvider />
-        {children}
+        <LanguageRoot>{children}</LanguageRoot>
       </body>
     </html>
   );

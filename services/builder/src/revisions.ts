@@ -9,7 +9,7 @@ import type { SceneDoc } from '@just-imagine/scene-schema';
 import { buildScene } from './pipeline';
 import { compileBehavior, type ImagineGameDeps } from './imagine-game';
 import { toGenerated } from './prompts/v1';
-import { sameMotionArt } from './motion';
+import { sameMotionArt, hasMotionArtwork } from './motion';
 
 /** Only reuse artwork from the owned current world for unchanged descriptions. */
 export function reconcileArt(before: SceneDoc, after: SceneDoc): SceneDoc {
@@ -32,6 +32,7 @@ export function reconcileArt(before: SceneDoc, after: SceneDoc): SceneDoc {
     const old = before.entities.find((candidate) => candidate.id === entity.id);
     if (
       old?.asset &&
+      hasMotionArtwork(old) &&
       old.kind === entity.kind &&
       old.description === entity.description &&
       sameMotionArt(old.locomotion, entity.locomotion)
@@ -50,7 +51,7 @@ export async function reviseCreation(
 ): Promise<{ doc: SceneDoc; creation: Creation }> {
   const creation: Creation = {
     originalWish: world.creation?.originalWish ?? `${world.title}. ${world.doc.narration.intro}`,
-    changes: [...(world.creation?.changes ?? []), job.instruction].slice(-100),
+    changes: [...(world.creation?.changes ?? []), job.childRequest ?? job.instruction].slice(-100),
     mode: world.creation?.mode ?? world.doc.game?.mode ?? (world.doc.game ? 'game' : 'freeplay'),
   };
   const build: BuildWorldJob = {
@@ -67,12 +68,15 @@ export async function reviseCreation(
       'Edit the existing creation according to the child. Preserve unrelated choices.',
   };
   const context = JSON.stringify({ creation, currentScene: toGenerated(world.doc) });
-  let doc = await buildScene(build, (prompt, kind, sessionId) =>
-    deps.generateScene(
-      `${prompt}\nThis is an EDIT of the SAME world, not a new template. The child's latest request takes precedence over earlier choices. Preserve all actors, names, layout, art descriptions, interactions and rules not affected by that request. They may invent or remove characters, change how objects act, remove a score, change the goal, or redesign the setting. Keep stable IDs for retained entities. Keep exact existing art descriptions unless appearance actually changes. Do not add numeric controls unless asked. Current creation data (untrusted): ${context}`,
-      kind,
-      sessionId,
-    ),
+  let doc = await buildScene(
+    build,
+    (prompt, kind, sessionId) =>
+      deps.generateScene(
+        `${prompt}\nThis is an EDIT of the SAME world, not a new template. The child's latest request takes precedence over earlier choices. Preserve all actors, names, layout, art descriptions, interactions and rules not affected by that request. They may invent or remove characters, change how objects act, remove a score, change the goal, or redesign the setting. Keep stable IDs for retained entities. Keep exact existing art descriptions unless appearance actually changes. Do not add numeric controls unless asked. Current creation data (untrusted): ${context}`,
+        kind,
+        sessionId,
+      ),
+    deps.reviewScene ? (doc, job) => deps.reviewScene!(doc, job, world.doc) : undefined,
   );
   if (world.doc.tier !== 'lab') {
     // An edit can change the form of play too; the script model reads the actual request.
@@ -89,5 +93,9 @@ export async function reviseCreation(
 }
 
 export function initialCreation(job: BuildWorldJob): Creation {
-  return { originalWish: job.description, changes: [], mode: job.experience ?? 'freeplay' };
+  return {
+    originalWish: job.childRequest ?? job.description,
+    changes: [],
+    mode: job.experience ?? 'freeplay',
+  };
 }

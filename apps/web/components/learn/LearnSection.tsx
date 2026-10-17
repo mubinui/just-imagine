@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import '../../app/studio.css';
 import '../../app/learn.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -292,7 +293,7 @@ export function LearnSection({ packs }: { packs: PublicPack[] }) {
                 {t('learnWorlds.challengeFrom', { name: closeName || persona?.name || '' })}
                 {challenge && <b>{t('learnWorlds.pointsEarned', { points: challenge.points })}</b>}
               </p>
-              <h2 id="challenge-q">{question}</h2>
+              <h2 id="challenge-q">{uiText(question)}</h2>
               {quiz.options ? (
                 <div className="answer-tiles">
                   {quiz.options.map((option) => (
@@ -302,7 +303,7 @@ export function LearnSection({ packs }: { packs: PublicPack[] }) {
                       className="answer-tile"
                       onClick={() => voice.answer(option)}
                     >
-                      {option}
+                      {uiText(option)}
                     </button>
                   ))}
                 </div>
@@ -322,13 +323,15 @@ export function LearnSection({ packs }: { packs: PublicPack[] }) {
           )}
         </div>
         <p className="learn-hint">
-          {voice.error ||
-            voice.caption ||
-            (failed
-              ? t('learnWorlds.unavailable')
-              : close
-                ? t('learnWorlds.tapHintBusy')
-                : t('learnWorlds.tapHint'))}
+          {uiText(
+            voice.error ||
+              voice.caption ||
+              (failed
+                ? t('learnWorlds.unavailable')
+                : close
+                  ? t('learnWorlds.tapHintBusy')
+                  : t('learnWorlds.tapHint')),
+          )}
         </p>
       </div>
       <nav className="dock learn-dock" aria-label={title}>

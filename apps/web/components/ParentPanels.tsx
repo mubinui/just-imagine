@@ -1,4 +1,8 @@
 'use client';
+import { useLanguage } from '../lib/i18n';
+import { uiNumber } from '../lib/i18n/ui';
+import { copy as uiText, uiError } from '../lib/i18n/ui';
+import { LanguagePreferencesForm } from './LanguagePreferencesForm';
 import { StoryPreferencesForm } from './StoryPreferencesForm';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -7,6 +11,7 @@ import {
   AgeBandSchema,
   AvatarSchema,
   PLAN_LIMITS,
+  conceptCard,
   type MeResponse,
   type ChildResponse,
   type WorldListResponse,
@@ -18,7 +23,7 @@ import {
 import { api } from '../lib/api';
 import { env } from '../lib/env';
 import { s } from '../lib/strings/en';
-import { setLanguage, type Language } from '../lib/i18n';
+import { setLanguage, readLanguage, currentLanguage, type Language } from '../lib/i18n';
 import { CompanionSetup } from './companion/CompanionSetup';
 import { Avatar } from './ProfilePicker';
 import { Modal } from './Modal';
@@ -28,6 +33,7 @@ export function ParentPanel({
 }: {
   panel: 'dashboard' | 'children' | 'billing' | 'settings';
 }) {
+  const { language: interfaceLanguage } = useLanguage();
   const router = useRouter();
   const [data, setData] = useState<MeResponse>(),
     [error, setError] = useState(''),
@@ -38,11 +44,10 @@ export function ParentPanel({
     [discoveries, setDiscoveries] = useState<DiscoveryListResponse['discoveries']>([]),
     [confirm, setConfirm] = useState<{ kind: 'account' | 'child' | 'world'; id: string }>();
   async function load() {
+    const requestedLanguage = currentLanguage();
     try {
       const me = await api<MeResponse>('me');
-      setData(me);
       const u = await api<UsageTodayResponse>('usageToday');
-      setUsage(u);
       const family = await Promise.all(
         me.children.map(async (child) => {
           const childId = child.id;
@@ -54,24 +59,29 @@ export function ParentPanel({
           return { worlds: w.worlds, sessions: ss.sessions, discoveries: d.discoveries };
         }),
       );
+      if (requestedLanguage !== currentLanguage()) return;
+      setData(me);
+      setUsage(u);
       setWorlds([...new Map(family.flatMap((f) => f.worlds).map((w) => [w.id, w])).values()]);
       setSessions(family.flatMap((f) => f.sessions));
       setDiscoveries(family.flatMap((f) => f.discoveries));
     } catch (e) {
-      setError(e instanceof Error ? e.message : s.unavailable);
+      setError(e instanceof Error ? uiError(e) : s.unavailable);
     }
   }
   useEffect(() => {
     queueMicrotask(() => void load());
-  }, []);
+  }, [interfaceLanguage]);
   async function action(fn: () => Promise<unknown>) {
     setError('');
     setBusy(true);
     try {
       await fn();
       await load();
+      return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : s.unavailable);
+      setError(e instanceof Error ? uiError(e) : s.unavailable);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -113,12 +123,12 @@ export function ParentPanel({
   return (
     <>
       <div className="page-heading">
-        <h1>{s[panel]}</h1>
+        <h1>{uiText(s[panel])}</h1>
         <span className="subtle">{s.theme}</span>
       </div>
       {error && (
         <p className="error" role="alert">
-          {error}
+          {uiText(error)}
         </p>
       )}
       {!data ? (
@@ -131,8 +141,11 @@ export function ParentPanel({
                 <div>
                   <h2>{s.minutes}</h2>
                   <p className="usage-number">
-                    {Math.round((usage?.used.voiceSeconds || 0) / 60)}{' '}
-                    <span>/ {Math.round((usage?.limits.voiceSecondsPerDay || 900) / 60)}</span>
+                    {uiNumber(Math.round((usage?.used.voiceSeconds || 0) / 60))}
+                    {uiText(' ')}
+                    <span>
+                      / {uiNumber(Math.round((usage?.limits.voiceSecondsPerDay || 900) / 60))}
+                    </span>
                   </p>
                   <progress
                     aria-label={s.minutes}
@@ -142,12 +155,14 @@ export function ParentPanel({
                 </div>
                 <div>
                   <h2>{s.worldSaved}</h2>
-                  <p className="usage-number">{worlds.length}</p>
+                  <p className="usage-number">{uiNumber(worlds.length)}</p>
                 </div>
               </section>
               <section className="parent-section exploration-section">
-                <h2>This week&apos;s exploration</h2>
-                <p className="chart-description">Minutes spent talking and exploring together.</p>
+                <h2>{uiText("This week's exploration")}</h2>
+                <p className="chart-description">
+                  {uiText('Minutes spent talking and exploring together.')}
+                </p>
                 {week.some((day) => day.minutes > 0) ? (
                   <div className="exploration-chart">
                     {week.map(({ day, minutes }, i) => {
@@ -156,30 +171,45 @@ export function ParentPanel({
                           <div
                             className="exploration-column"
                             role="img"
-                            aria-label={`${day.toDateString()}: ${minutes} minutes`}
+                            aria-label={uiText('{v0}: {v1} minutes', {
+                              v0: day.toLocaleDateString(
+                                interfaceLanguage === 'bn' ? 'bn-BD' : 'en-US',
+                              ),
+                              v1: minutes,
+                            })}
                           >
                             <span
                               className="exploration-bar"
                               style={{ height: `${(minutes / chartMax) * 100}%` }}
                             />
-                            <strong aria-hidden="true">{minutes}</strong>
+                            <strong aria-hidden="true">{uiNumber(minutes)}</strong>
                           </div>
-                          <span>{day.toLocaleDateString(undefined, { weekday: 'short' })}</span>
+                          <span>
+                            {uiText(
+                              day.toLocaleDateString(
+                                interfaceLanguage === 'bn' ? 'bn-BD' : 'en-US',
+                                { weekday: 'short' },
+                              ),
+                            )}
+                          </span>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
                   <div className="exploration-empty">
-                    <p>Your week starts with a little wonder.</p>
+                    <p>{uiText('Your week starts with a little wonder.')}</p>
                     <Link className="text-link" href="/play">
-                      Start an adventure
+                      {uiText('Start an adventure')}
                     </Link>
                   </div>
                 )}
                 <p className="exploration-summary">
-                  {data.children.reduce((sum, c) => sum + c.loopsCompleted, 0)} completed learning
-                  loops · {new Set(discoveries.map((d) => d.concept)).size} concepts discovered
+                  {uiNumber(data.children.reduce((sum, c) => sum + c.loopsCompleted, 0))}
+                  {uiText(' ')}
+                  {uiText('completed learning loops ·')}
+                  {uiNumber(new Set(discoveries.map((d) => d.concept)).size)}{' '}
+                  {uiText('concepts discovered')}
                 </p>
               </section>
               <section className="parent-section">
@@ -188,22 +218,23 @@ export function ParentPanel({
                   <div className="child-summary" key={child.id}>
                     <Avatar kind={child.avatar} />
                     <div>
-                      <strong>{child.firstName}</strong>
+                      <strong>{uiText(child.firstName)}</strong>
                       <p>
-                        {s.agePrefix} {child.ageBand} · {child.sessionTargetMinutes} min
+                        {s.agePrefix} {uiText(child.ageBand)} ·{' '}
+                        {uiNumber(child.sessionTargetMinutes)} {uiText('min')}
                       </p>
                     </div>
                   </div>
                 ))}
               </section>
               <section className="parent-section">
-                <h2>Discoveries</h2>
+                <h2>{uiText('Discoveries')}</h2>
                 {discoveries.length ? (
                   discoveries.map((d, index) => (
                     <article className="parent-discovery" key={`${d.concept}-${index}`}>
-                      <h3>{d.title}</h3>
-                      <p>{d.kidExplanation}</p>
-                      <p>{d.realLifeNote}</p>
+                      <h3>{uiText(d.title)}</h3>
+                      <p>{uiText(d.kidExplanation)}</p>
+                      <p>{uiText(d.realLifeNote)}</p>
                     </article>
                   ))
                 ) : (
@@ -215,8 +246,10 @@ export function ParentPanel({
                 {worlds.map((w) => (
                   <div className="data-row" key={w.id}>
                     <span>
-                      <strong>{w.title}</strong>
-                      <p>{w.concepts.join(' · ')}</p>
+                      <strong>{uiText(w.title)}</strong>
+                      <p>
+                        {w.concepts.map((c) => conceptCard(c, interfaceLanguage).title).join(' · ')}
+                      </p>
                     </span>
                     <button disabled={busy} onClick={() => setConfirm({ kind: 'world', id: w.id })}>
                       {s.remove}
@@ -230,12 +263,17 @@ export function ParentPanel({
                   sessions.map((ss) => (
                     <article className="session-entry" key={ss.id}>
                       <time dateTime={new Date(ss.startedAt).toISOString()}>
-                        {new Date(ss.startedAt).toLocaleDateString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
+                        {uiText(
+                          new Date(ss.startedAt).toLocaleDateString(
+                            interfaceLanguage === 'bn' ? 'bn-BD' : 'en-US',
+                            {
+                              month: 'short',
+                              day: 'numeric',
+                            },
+                          ),
+                        )}
                       </time>
-                      <p>{ss.summary}</p>
+                      <p>{uiText(ss.summary)}</p>
                     </article>
                   ))
                 ) : (
@@ -247,7 +285,8 @@ export function ParentPanel({
           {panel === 'children' && (
             <>
               <p>
-                {data.children.length} / {PLAN_LIMITS[data.user.plan].children}{' '}
+                {uiNumber(data.children.length)} / {uiNumber(PLAN_LIMITS[data.user.plan].children)}
+                {uiText(' ')}
                 {s.children.toLowerCase()}
               </p>
               {data.children.map((child) => (
@@ -278,8 +317,8 @@ export function ParentPanel({
               <div className="allowance">
                 {Object.entries(PLAN_LIMITS[data.user.plan]).map(([key, value]) => (
                   <p key={key}>
-                    <span>{key.replace(/([A-Z])/g, ' $1')}</span>
-                    <strong>{value}</strong>
+                    <span>{uiText(key.replace(/([A-Z])/g, ' $1'))}</span>
+                    <strong>{uiNumber(value)}</strong>
                   </p>
                 ))}
               </div>
@@ -313,14 +352,22 @@ export function ParentPanel({
           )}
           {panel === 'settings' && (
             <>
+              <LanguagePreferencesForm
+                key={
+                  data.children.find((c) => c.id === readActiveChildId())?.id ??
+                  data.children[0]?.id ??
+                  'family'
+                }
+                child={data.children.find((c) => c.id === readActiveChildId()) ?? data.children[0]}
+              />
               <section className="parent-section">
                 <h2>{s.captions}</h2>
                 <p>{s.captionHelp}</p>
                 {data.children.map((child) => (
                   <div className="data-row" key={child.id}>
-                    <span>{child.firstName}</span>
+                    <span>{uiText(child.firstName)}</span>
                     <input
-                      aria-label={`${child.firstName} ${s.captions}`}
+                      aria-label={`${uiText(child.firstName)} ${s.captions}`}
                       type="checkbox"
                       checked={child.captions}
                       disabled={busy}
@@ -334,8 +381,12 @@ export function ParentPanel({
                 ))}
               </section>
               <section className="parent-section">
-                <h2>Learning through stories</h2>
-                <p>Choose what your child discovers with Katha, their storytelling friend.</p>
+                <h2>{uiText('Learning through stories')}</h2>
+                <p>
+                  {uiText(
+                    'Choose what your child discovers with Katha, their storytelling friend.',
+                  )}
+                </p>
                 {data.children.map((child) => (
                   <StoryPreferencesForm key={child.id} child={child} />
                 ))}
@@ -398,32 +449,34 @@ function ChildForm({
   child?: ChildResponse;
   onCompanionSaved?: () => Promise<void>;
   busy: boolean;
-  save: (body: CreateChildBody | Record<string, unknown>) => Promise<void>;
+  save: (body: CreateChildBody | Record<string, unknown>) => Promise<boolean>;
   remove?: () => void;
 }) {
+  useLanguage();
   const [name, setName] = useState(child?.firstName || ''),
     [age, setAge] = useState(child?.ageBand || '8-10'),
     [avatar, setAvatar] = useState(child?.avatar || 'fox'),
     [target, setTarget] = useState(child?.sessionTargetMinutes || 8),
     [labsUnlocked, setLabsUnlocked] = useState(child?.labsUnlocked || false),
     [tier, setTier] = useState(child?.tier || 'playground'),
-    [language, setChildLanguage] = useState<Language>(child?.language ?? 'en');
+    [language, setChildLanguage] = useState<Language>(child?.language ?? readLanguage());
   return (
     <form
       className="child-form"
       action={async () => {
-        await save({
+        const saved = await save({
           firstName: name,
           ageBand: age,
           avatar,
           language,
           ...(child ? { sessionTargetMinutes: target, labsUnlocked, tier } : {}),
         });
+        if (!saved) return;
         if (child && readActiveChildId() === child.id) setLanguage(language);
         if (!child) setName('');
       }}
     >
-      <h2>{child?.firstName || s.newChild}</h2>
+      <h2>{uiText(child?.firstName || s.newChild)}</h2>
       <div className="form-grid">
         <label>
           {s.name}
@@ -439,7 +492,9 @@ function ChildForm({
           {s.age}
           <select value={age} onChange={(e) => setAge(AgeBandSchema.parse(e.target.value))}>
             {AgeBandSchema.options.map((band) => (
-              <option key={band}>{band}</option>
+              <option key={band} value={band}>
+                {uiText(band)}
+              </option>
             ))}
           </select>
         </label>
@@ -447,7 +502,9 @@ function ChildForm({
           {s.avatar}
           <select value={avatar} onChange={(e) => setAvatar(AvatarSchema.parse(e.target.value))}>
             {AvatarSchema.options.map((a) => (
-              <option key={a}>{a}</option>
+              <option key={a} value={a}>
+                {uiText(a)}
+              </option>
             ))}
           </select>
         </label>
@@ -457,23 +514,23 @@ function ChildForm({
             value={language}
             onChange={(e) => setChildLanguage(e.target.value === 'bn' ? 'bn' : 'en')}
           >
-            <option value="en">English</option>
+            <option value="en">{uiText('English')}</option>
             <option value="bn" lang="bn">
-              বাংলা
+              {uiText('Bangla (Bangladesh)')}
             </option>
           </select>
         </label>
         {child && (
           <>
             <label>
-              Learning mode
+              {uiText('Learning mode')}
               <select
                 value={tier}
                 onChange={(event) => setTier(event.target.value as 'playground' | 'lab')}
               >
-                <option value="playground">Playgrounds</option>
+                <option value="playground">{uiText('Playgrounds')}</option>
                 <option value="lab" disabled={age === '6-7' && !labsUnlocked}>
-                  Labs
+                  {uiText('Labs')}
                 </option>
               </select>
             </label>
@@ -486,7 +543,7 @@ function ChildForm({
                   if (!event.target.checked && age === '6-7') setTier('playground');
                 }}
               />
-              Allow Labs for younger children
+              {uiText('Allow Labs for younger children')}
             </label>
           </>
         )}
@@ -506,7 +563,11 @@ function ChildForm({
       </div>
       {child && onCompanionSaved && <CompanionSetup child={child} onSaved={onCompanionSaved} />}
       {!child && (
-        <p>You can choose their friend or make a chibi from a photo after adding this explorer.</p>
+        <p>
+          {uiText(
+            'You can choose their friend or make a chibi from a photo after adding this explorer.',
+          )}
+        </p>
       )}
       <div className="actions">
         <button className="button primary" disabled={busy}>

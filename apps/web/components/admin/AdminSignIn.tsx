@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText, uiError } from '../../lib/i18n/ui';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -6,6 +8,7 @@ import { firebase } from '../../lib/firebase';
 import { Brand } from '../Shell';
 
 export function AdminSignIn() {
+  useLanguage();
   const router = useRouter();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -27,7 +30,7 @@ export function AdminSignIn() {
       if (!response.ok) {
         await signOut(auth);
         throw new Error(
-          (await response.json().catch(() => null))?.error ?? 'Sign in again to continue.',
+          (await response.json().catch(() => null))?.error ?? uiText('Sign in again to continue.'),
         );
       }
       router.replace('/admin');
@@ -36,10 +39,10 @@ export function AdminSignIn() {
       const code = (e as { code?: string }).code ?? '';
       setError(
         code.startsWith('auth/')
-          ? 'That email and password do not match an account.'
+          ? uiText('That email and password do not match an account.')
           : e instanceof Error
-            ? e.message
-            : 'Sign in again to continue.',
+            ? uiError(e)
+            : uiText('Sign in again to continue.'),
       );
     } finally {
       setBusy(false);
@@ -50,27 +53,28 @@ export function AdminSignIn() {
       <main className="auth-page adm-signin">
         <Brand />
         <section>
-          <h1>Operator sign-in</h1>
+          <h1>{uiText('Operator sign-in')}</h1>
           <p>
-            For Just Imagine operators only. Parent accounts sign in at the family area; this
-            console needs an operator account with admin access.
+            {uiText(
+              'For Just Imagine operators only. Parent accounts sign in at the family area; this console needs an operator account with admin access.',
+            )}
           </p>
           <form action={(f) => void submit(f)} className="adm-signin-form">
             <label>
-              Email
+              {uiText('Email')}
               <input name="email" type="email" autoComplete="username" required />
             </label>
             <label>
-              Password
+              {uiText('Password')}
               <input name="password" type="password" autoComplete="current-password" required />
             </label>
             {error && (
               <p className="adm-alert" role="alert">
-                {error}
+                {uiText(error)}
               </p>
             )}
             <button type="submit" className="adm-button adm-primary" disabled={busy}>
-              {busy ? 'Checking access…' : 'Sign in'}
+              {busy ? uiText('Checking access…') : uiText('Sign in')}
             </button>
           </form>
         </section>

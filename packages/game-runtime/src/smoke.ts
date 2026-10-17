@@ -192,6 +192,14 @@ export async function createEngineStage(source: SceneDoc): Promise<Stage> {
       sim.flick(id, velocity);
       refresh();
     },
+    drag(id, at) {
+      sim.drag(id, at);
+      refresh();
+    },
+    release(id) {
+      sim.cancelDrag(id);
+      refresh();
+    },
     dial(dial: Dial, value: string) {
       sim.setDial(dial, value);
       if (dial === 'gravity' && GRAVITY_PRESETS[value] !== undefined)

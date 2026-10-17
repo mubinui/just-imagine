@@ -1,4 +1,6 @@
 'use client';
+import { uiNumber } from '../../lib/i18n/ui';
+import { copy as uiText } from '../../lib/i18n/ui';
 import type { Variable, Challenge } from '@just-imagine/scene-schema';
 import { s } from '../../lib/strings/en';
 import { ChevronIcon } from './parts';
@@ -31,7 +33,7 @@ export function LabDrawer({
   return (
     <section className={open ? 'lab-drawer' : 'lab-drawer is-closed'} aria-label={title}>
       <div className="lab-head">
-        <h2>{title}</h2>
+        <h2>{uiText(title)}</h2>
         <button
           type="button"
           aria-expanded={open}
@@ -52,9 +54,9 @@ export function LabDrawer({
         {Object.entries(variables).map(([id, v]) => (
           <div className="variable" key={id}>
             <label htmlFor={id}>
-              {v.label}
+              {uiText(v.label)}
               <output htmlFor={id}>
-                {values[id] ?? v.value} {v.unit}
+                {uiNumber(values[id] ?? v.value)} {uiText(v.unit)}
               </output>
             </label>
             <input
@@ -82,9 +84,9 @@ export function LabDrawer({
                   : state === 'active'
                     ? s.challengeActive
                     : s.challengeTry}
-                : {c.goal}
+                : {uiText(c.goal)}
               </strong>
-              {c.hint}
+              {uiText(c.hint)}
             </p>
           );
         })}

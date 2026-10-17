@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText } from '../../lib/i18n/ui';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -17,6 +19,7 @@ const PAGES = [
 ] as const;
 
 export function AdminShell({ email, children }: { email: string; children: React.ReactNode }) {
+  useLanguage();
   const path = usePathname();
   const router = useRouter();
   const [leaving, setLeaving] = useState(false);
@@ -25,17 +28,17 @@ export function AdminShell({ email, children }: { email: string; children: React
       <header className="header adm-header">
         <Brand />
         <p className="adm-who">
-          Operator console
-          <span>{email}</span>
+          {uiText('Operator console')}
+          <span>{uiText(email)}</span>
         </p>
       </header>
       <div className="parent-shell">
         <aside className="parent-nav">
-          <p>Operate</p>
-          <nav aria-label="Operator console">
+          <p>{uiText('Operate')}</p>
+          <nav aria-label={uiText('Operator console')}>
             {PAGES.map(([href, label]) => (
               <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}>
-                {label}
+                {uiText(label)}
               </Link>
             ))}
           </nav>
@@ -49,7 +52,7 @@ export function AdminShell({ email, children }: { email: string; children: React
               router.replace('/admin/sign-in');
             }}
           >
-            {leaving ? 'Signing out…' : 'Sign out'}
+            {leaving ? uiText('Signing out…') : uiText('Sign out')}
           </button>
         </aside>
         <main className="parent-content adm-content">{children}</main>

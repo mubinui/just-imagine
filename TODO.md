@@ -1,4 +1,45 @@
+# Generated game quality — verified locally
+
+- [x] Research the model routing, sandbox, physics and publication gaps; persist the plan.
+- [x] Separate and verify the game authoring model.
+- [x] Derive acceptance plans from the actual child request before script generation.
+- [x] Add explicit real-engine input playback and measurable consequence checks.
+- [x] Reject broken mechanics and repair without substituting template games.
+- [x] Run source tests and real-service creative acceptance, refresh runtime and hand off.
+
+- [x] Correct the opaque mid-layer masking the child-selected setting; validate native and legacy layer handling.
+
+Handoff: [generated-game-quality-operations.md](docs/handoff/generated-game-quality-operations.md). Final real planet controls, voice selection and starfield passed desktop/phone review; native optional overlay was rejected and omitted. General model reliability/latency remains an explicit limit.
+
 # Implementation todo
+
+## Generated motion and child-request pipeline — verified locally
+
+Plan: [generated-animation-reliability-plan.md](docs/handoff/generated-animation-reliability-plan.md).
+
+- [x] Trace the production path and reproduce an uncached registration failure.
+- [x] Register complete poses without clipping shifted limbs; retain strict validation.
+- [x] Add native resolution, identity-preserving repair and actionable fixed diagnostics.
+- [x] Verify generated run/swim/fly experiences through real controls and rendering, including actual arrival and low-speed rest.
+- [x] Preserve actual typed/spoken choices independently of the companion summary; verify real ASR exclusions.
+- [x] Accept clearly aligned native6/9/12-pose cycles and preserve palette-safe keyed detail.
+- [x] Reject concrete scene/request contradictions before art, preserving requested collision challenges and edits.
+- [x] Confirm streamed painted-floor replacement, actual destination arrival/reversal and desktop/phone rendering.
+- [x] Clean temporary QA, export data and complete the source/design checkpoint.
+
+## English / Bangladeshi Bangla consistency — completed locally
+
+Plan: [language-consistency-plan.md](docs/handoff/language-consistency-plan.md).
+
+- [x] Apply one reactive selection across every screen and profile switch.
+- [x] Prevent failed settings saves and old Live sessions from using a different language.
+- [x] Complete missing screen, navigation, companion, parent and operator translations.
+- [x] Review meaningful Bangladeshi names, instructions, numbers and feedback.
+- [x] Enforce selected-language-only Live speech and generated content.
+- [x] Resolve saved-content language behavior while preserving originals.
+- [x] Verify both languages in real services and desktop/phone flows; update checkpoint.
+
+Handoff: [language-operations.md](docs/handoff/language-operations.md). Both language editions, saved-content translation and ten real Live turns passed; scoped review fixes resolved. Current app3300 includes the completed extension; prior published tag is unchanged.
 
 ## UI consistency, themes and tagged release — completed
 
@@ -52,7 +93,8 @@ Remaining scope: custom photo/outfit images still have no articulated pose set, 
 - [x] Add optional backward-compatible generated locomotion/atlas metadata, validated nine-pose processing and art reuse for stride-only edits.
 - [x] Play all 11 affected learning chapters, verify saved progress/zero rewards and desktop/phone motion; fresh design review: ship for Learn scope.
 - [x] Finish authored-motion acceptance, QA cleanup/export and checkpoint; record generated-world failures honestly.
-- [ ] Improve generated animation-art reliability: all four full creation attempts failed required art checks. Direct production asset generation passed separately; this is not end-to-end acceptance.
+- [x] Improve generated animation-art reliability for bounded real run/swim/fly creation; see the current acceptance and failure history above.
+- [ ] Evaluate a broader diverse-request set and generation latency/success rates; custom articulated outfits and film rigs remain separate.
 
 ## Story-led learning completion
 
@@ -167,3 +209,22 @@ Plan: [creative-freedom-plan.md](docs/handoff/creative-freedom-plan.md).
 - [ ] Complete child usability sessions and production policy/release review.
 
 Do not infer production readiness from completed source checkboxes. The preview uses local samples and synthetic voice, and does not accept payments.
+
+## Schools + STEM — 2026-10-17
+
+Spec: [2026-10-17-schools-stem-design.md](docs/superpowers/specs/2026-10-17-schools-stem-design.md) (draft, awaiting user review). Owner: Claude Code, building with the user; Codex reviews protocol and gateway insertions.
+
+- [x] Research current auth, data model, admin console, game runtime, gateway and design system; grill decisions (D1–D20).
+- [x] Write the Schools + STEM design spec.
+- [x] Codex/Claude preflight collaboration: reproduce identity/parser boundaries, review family-role separation and persist the ownership handoff (review only).
+- [ ] Resolve preflight blockers in the owned implementation and reconcile chemistry quantity controls before school integration; see `docs/handoff/schools-collaboration.md`.
+- [ ] User reviews the spec; settle §20 items (Chemistry tutor, invite email, reaction-table reviewer).
+- [x] Write the master plan and the S0 and S3 plans (docs/superpowers/plans/2026-10-17-schools-*.md); S1, S2 and S4–S7 plans follow as S0 and S3 land.
+- [x] S0 Foundations: `protocol/src/school.ts`, school guards in server-core, Firestore rules and indexes, API module skeletons, emulator rules tests.
+- [ ] S1 Super admin: Schools (create, seats, quota, suspend), teacher invites, Catalog (promote world, story-pack editor and JSON upload), global lessons.
+- [ ] S2 Teacher console: invite join, classes, roster and CSV import, PIN sheet and reset, student PIN login with lockout.
+- [x] S3 Content and sims (models and data; sim views move to S4, AI fallback to S5; official NCTB chapter check still open): confirm NCTB chapters, taxonomy, motion-graphs / newton-cart / ohms-circuit / linear-graph / unit-circle models and views, reaction table, chemistry lab, AI fallback with atom balance.
+- [ ] S4 Lessons: impeccable surface briefs on Codex's design system, lesson editor, AI draft and translate, approve and publish, student home and lesson player.
+- [ ] S5 Quizzes and leaderboards: MCQ / numeric / sim-task grading, points once per item, class and school boards (weekly, all-time), results page.
+- [ ] S6 Tutor: `tutorHello` / `tutorState` / `tutorEvent` / `tutorAction`, gateway tutor module, web tutor dock, school voice quota.
+- [ ] S7 Demo: seed Dhaka Demo High School and seven global lessons, Playwright flows on three viewports and three presets, Codex handoffs.

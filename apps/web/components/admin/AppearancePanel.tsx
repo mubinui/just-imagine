@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText, uiError } from '../../lib/i18n/ui';
 import { useState, type CSSProperties } from 'react';
 import { THEME_PALETTES, type Appearance, type ThemeId } from '@just-imagine/protocol';
 import { themeStyle, publishAppearance } from '../../lib/appearance';
@@ -9,6 +11,7 @@ import { UiIcon } from '../UiIcon';
 
 const load = () => adminApi<Appearance>('appearance');
 export function AppearancePanel() {
+  useLanguage();
   const { data, error, loading, reload } = useAdminResource(load);
   const [draft, setDraft] = useState<ThemeId>(),
     [busy, setBusy] = useState(false),
@@ -31,11 +34,15 @@ export function AppearancePanel() {
       });
       publishAppearance({ theme: selected, revision: data.revision + 1 });
       setNotice(
-        `${palette.name} is live. Open pages update within 30 seconds or when they regain focus.`,
+        uiText('{v0} is live. Open pages update within 30 seconds or when they regain focus.', {
+          v0: String(palette.name),
+        }),
       );
       await reload();
     } catch (e) {
-      setFailure(e instanceof Error ? e.message : 'The theme could not be applied. Try again.');
+      setFailure(
+        e instanceof Error ? uiError(e) : uiText('The theme could not be applied. Try again.'),
+      );
     } finally {
       setBusy(false);
     }
@@ -43,8 +50,8 @@ export function AppearancePanel() {
   return (
     <>
       <PageHeading
-        title="Appearance"
-        detail="Choose the colours families see throughout Just Imagine."
+        title={uiText('Appearance')}
+        detail={uiText('Choose the colours families see throughout Just Imagine.')}
         onRefresh={() => void reload()}
         busy={loading || busy}
       />
@@ -54,13 +61,14 @@ export function AppearancePanel() {
       ) : (
         <div className="adm-appearance">
           <section className="adm-section" aria-labelledby="palette-title">
-            <h2 id="palette-title">Interface palette</h2>
+            <h2 id="palette-title">{uiText('Interface palette')}</h2>
             <p className="adm-detail">
-              The brand mark, navigation, buttons and reading surfaces change together. Character
-              art and learning worlds keep their original colours.
+              {uiText(
+                'The brand mark, navigation, buttons and reading surfaces change together. Character art and learning worlds keep their original colours.',
+              )}
             </p>
             <fieldset className="adm-palettes" disabled={busy}>
-              <legend className="sr-only">Choose a palette</legend>
+              <legend className="sr-only">{uiText('Choose a palette')}</legend>
               {(Object.keys(THEME_PALETTES) as ThemeId[]).map((id) => {
                 const p = THEME_PALETTES[id];
                 return (
@@ -83,10 +91,10 @@ export function AppearancePanel() {
                     </span>
                     <span>
                       <strong>
-                        {p.name}
-                        {data.theme === id ? ' · Live' : ''}
+                        {uiText(p.name)}
+                        {data.theme === id ? ` · ${uiText('Live')}` : ''}
                       </strong>
-                      <small>{p.description}</small>
+                      <small>{uiText(p.description)}</small>
                     </span>
                   </label>
                 );
@@ -99,7 +107,7 @@ export function AppearancePanel() {
                 disabled={busy || loading || !!error || selected === data.theme}
                 onClick={() => void save()}
               >
-                {busy ? 'Applying…' : `Apply ${palette.name}`}
+                {busy ? uiText('Applying…') : uiText('Apply {v0}', { v0: String(palette.name) })}
               </button>
               {selected !== data.theme && (
                 <button
@@ -111,48 +119,52 @@ export function AppearancePanel() {
                     setFailure('');
                   }}
                 >
-                  Reset preview
+                  {uiText('Reset preview')}
                 </button>
               )}
             </div>
             <p className="adm-live" role="status">
-              {notice ||
-                (selected === data.theme
-                  ? `${palette.name} is the published theme.`
-                  : 'Preview only. Apply when you are ready.')}
+              {uiText(
+                notice ||
+                  (selected === data.theme
+                    ? uiText('{v0} is the published theme.', { v0: String(palette.name) })
+                    : uiText('Preview only. Apply when you are ready.')),
+              )}
             </p>
             {failure && (
               <p className="adm-alert" role="alert">
-                {failure}
+                {uiText(failure)}
               </p>
             )}
           </section>
           <section
             className="adm-theme-preview"
             style={themeStyle(selected) as CSSProperties}
-            aria-label={`${palette.name} theme preview`}
+            aria-label={uiText('{v0} theme preview', { v0: String(palette.name) })}
           >
             <div className="adm-preview-brand">
               <Mark size={42} />
               <strong>
-                Just Imagine<span>.</span>
+                {uiText('Just Imagine')}
+                <span>.</span>
               </strong>
             </div>
             <div className="adm-preview-stage">
               <UiIcon name="book" />
               <h2>
-                A little idea.
-                <br />A whole new world.
+                {uiText('A little idea.')}
+                <br />
+                {uiText('A whole new world.')}
               </h2>
-              <p>Your characters, your adventures.</p>
+              <p>{uiText('Your characters, your adventures.')}</p>
               <span className="adm-preview-button">
-                <UiIcon name="mic" /> Talk together
+                <UiIcon name="mic" /> {uiText('Talk together')}
               </span>
             </div>
             <div className="adm-preview-paper">
-              <strong>Read, play, discover.</strong>
-              <p>A calm place for the next big question.</p>
-              <span>Parent and reading surfaces</span>
+              <strong>{uiText('Read, play, discover.')}</strong>
+              <p>{uiText('A calm place for the next big question.')}</p>
+              <span>{uiText('Parent and reading surfaces')}</span>
             </div>
           </section>
         </div>

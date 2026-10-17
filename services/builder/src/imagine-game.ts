@@ -9,8 +9,9 @@ import {
 import { checkScript } from '@just-imagine/game-runtime';
 import { smokeRun, type SmokeLanguage, type SmokeResult } from '@just-imagine/game-runtime/node';
 import type { BuildWorldJob } from '@just-imagine/protocol';
-import { buildScene, type GenerateJson } from './pipeline';
+import { buildScene, type GenerateJson, type ReviewScene } from './pipeline';
 import { GAME_SCENE_HINT, gameScriptPrompt, retryFeedback } from './game-prompt';
+import { validateGameplayPlan, runGameplayPlan, type PlanGame } from './game-playtest';
 
 /** Calls the script model with a prompt; resolves with its parsed JSON output. */
 export type GenerateScript = (prompt: string, sessionId?: string) => Promise<unknown>;
@@ -25,6 +26,9 @@ export type Moderate = (text: string, language: SmokeLanguage) => Promise<boolea
 export interface ImagineGameDeps {
   generateScene: GenerateJson;
   generateScript: GenerateScript;
+  reviewScene?: ReviewScene;
+  /** Production supplies a planner independent of the not-yet-written programme. */
+  planGame?: PlanGame;
   /** Child-facing string check; defaults to the scene blocklist. */
   moderate?: Moderate;
   /** Simulated seconds for the smoke run. */
@@ -128,8 +132,11 @@ export async function imagineGame(
       attempts: 0,
       fallback: false,
     };
-  const doc = await buildScene(job, (prompt, kind, sessionId) =>
-    deps.generateScene(`${prompt}\n${GAME_SCENE_HINT}`, kind, sessionId),
+  const doc = await buildScene(
+    job,
+    (prompt, kind, sessionId) =>
+      deps.generateScene(`${prompt}\n${GAME_SCENE_HINT}`, kind, sessionId),
+    deps.reviewScene,
   );
   return compileBehavior(doc, job, deps);
 }
@@ -143,13 +150,28 @@ export async function compileBehavior(
 ): Promise<ImagineGameResult> {
   const mode = job.experience ?? 'freeplay';
   const language: SmokeLanguage = job.language ?? 'en';
+  let plan;
+  try {
+    plan = deps.planGame
+      ? validateGameplayPlan(await deps.planGame(doc, job, previous?.source), doc)
+      : undefined;
+    if (plan?.externalOnly && mode !== 'freeplay')
+      throw new Error('A goal-based game needs a scripted acceptance journey');
+  } catch {
+    throw new GameGenerationError(
+      'Could not establish a valid gameplay acceptance plan; no replacement world was published.',
+    );
+  }
   const prompt = gameScriptPrompt({
-    description: job.description,
+    description: job.childRequest
+      ? `Actual child words (preserve choices and exclusions): ${JSON.stringify(job.childRequest)}\nCompanion interpretation (cannot override the child): ${JSON.stringify(job.description)}`
+      : job.description,
     doc,
     language,
     ageBand: job.ageBand,
     mode,
     previous,
+    ...(plan ? { plan } : {}),
   });
   let feedback = '';
   let failure = '';
@@ -176,9 +198,15 @@ export async function compileBehavior(
           ...(deps.moderate ? { moderate: deps.moderate } : {}),
           ...(deps.seconds ? { seconds: deps.seconds } : {}),
         });
-        if (problem === null)
+        const gameplayProblem =
+          problem === null && plan
+            ? await runGameplayPlan(doc, source, plan, (text) =>
+                (deps.moderate ?? blocklistModeration)(text, language),
+              )
+            : null;
+        if (problem === null && gameplayProblem === null)
           return { doc: withScript(doc, source, mode), kind: 'game', attempts, fallback: false };
-        failure = problem;
+        failure = problem ?? gameplayProblem!;
       }
     } catch (error) {
       failure = `the script model failed: ${error instanceof Error ? error.message : String(error)}`;

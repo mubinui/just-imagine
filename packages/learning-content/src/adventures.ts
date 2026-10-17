@@ -707,7 +707,7 @@ export const ADVENTURES: Readonly<Record<string, LearningAdventure>> = {
     title: ['A delivery inside you', 'শরীরের ভেতরে পৌঁছানো'],
     opening: [
       'A tiny pretend delivery crew has arrived inside a model body. Heart, Lungs, Brain, Stomach and Bone each have a job for you.',
-      'মডেল শরীরের ভেতরে ছোট খেলার পৌঁছানোর দল। হৃদয়, ফুসফুস, মগজ, পাকস্থলী আর হাড় সবার তোমার জন্য কাজ আছে।',
+      'মডেল শরীরের ভেতরে ছোট খেলার পৌঁছানোর দল। হৃৎপিণ্ড, ফুসফুস, মগজ, পাকস্থলী আর হাড় সবার তোমার জন্য কাজ আছে।',
     ],
     ending: [
       'The model body works as a team. Air, blood, messages, food and support all have their own journeys.',
@@ -716,18 +716,18 @@ export const ADVENTURES: Readonly<Record<string, LearningAdventure>> = {
     chapters: [
       chapter(
         'heart',
-        ['Captain Heart’s parcel', 'হৃদয় ক্যাপ্টেনের পার্সেল'],
+        ['Captain Heart’s parcel', 'ক্যাপ্টেন ধুকপুকের পার্সেল'],
         [
           'Captain Heart has an oxygen parcel to deliver. It must visit the heart on the outward and return journeys.',
-          'হৃদয় ক্যাপ্টেন অক্সিজেনের পার্সেল পৌঁছাবে। যাওয়া আর ফেরায় হৃদয়ে আসতে হবে।',
+          'ক্যাপ্টেন ধুকপুক অক্সিজেনের পার্সেল পৌঁছাবে। যাওয়া আর ফেরায় হৃৎপিণ্ডে আসতে হবে।',
         ],
         [
           'Carry the parcel: lungs → heart → body → heart → lungs.',
-          'পার্সেল নাও: ফুসফুস → হৃদয় → শরীর → হৃদয় → ফুসফুস।',
+          'পার্সেল নাও: ফুসফুস → হৃৎপিণ্ড → শরীর → হৃৎপিণ্ড → ফুসফুস।',
         ],
         [
           'Delivery complete! The heart pumps blood; the parcel is a simplified model of its work.',
-          'পৌঁছানো শেষ! হৃদয় রক্ত চালায়; পার্সেল তার কাজের সহজ মডেল।',
+          'পৌঁছানো শেষ! হৃৎপিণ্ড রক্ত চালায়; পার্সেল তার কাজের সহজ মডেল।',
         ],
         1,
         { kind: 'classic', game: 'oxygen' },
@@ -947,7 +947,7 @@ export const ADVENTURES: Readonly<Record<string, LearningAdventure>> = {
         ],
         [
           'Rehearsal complete! Active play helps the heart, muscles and bones.',
-          'মহড়া শেষ! সক্রিয় খেলা হৃদয়, পেশি আর হাড়কে সাহায্য করে।',
+          'মহড়া শেষ! সক্রিয় খেলা হৃৎপিণ্ড, পেশি আর হাড়কে সাহায্য করে।',
         ],
         0,
         { kind: 'classic', game: 'dance' },

@@ -116,7 +116,8 @@ describe('Learning Worlds conversation through the gateway', () => {
       expect(persona.persona).toEqual({ packId: 'space', characterId: 'saturn' });
       expect(persona.characterId).toBe('bhombol');
       const instruction = systemInstruction(persona, '');
-      expect(instruction).toContain('শুধু বাংলায় কথা বলো');
+      expect(instruction).toContain('OUTPUT LANGUAGE: bn-BD');
+      expect(instruction).toContain('Use ONLY natural Bangladeshi Bangla');
       expect(instruction).not.toContain(saturn.answerKey);
       expect(voiceFor(persona)).toBe('Kore');
 

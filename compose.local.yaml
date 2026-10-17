@@ -81,7 +81,9 @@ services:
       ASSET_DIRECTORY: /data/worlds
       BUILDER_AUDIENCE: http://builder:3302
       TASK_SERVICE_ACCOUNT: local@demo-just-imagine-local.iam.gserviceaccount.com
-      SCENE_MODEL: ${SCENE_MODEL:-gemini-3.8-flash}
+      SCENE_MODEL: ${SCENE_MODEL:-gemini-4-argon}
+      GAME_MODEL: ${GAME_MODEL:-gemini-4-argon}
+      GAME_MODEL_LOCATION: ${GAME_MODEL_LOCATION:-global}
       HERO_MODEL: ${HERO_MODEL:-gemini-nano-banana-2.1}
       PROP_MODEL: ${PROP_MODEL:-gemini-3.1-flash-lite-image}
     ports: ['127.0.0.1:3302:3302']

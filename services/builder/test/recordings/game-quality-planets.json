@@ -1,0 +1,334 @@
+{
+  "provenance": "Real gemini-4-argon output, 2026-10-17. Replayed fixtures, not a fresh cloud call.",
+  "plan": {
+    "externalOnly": false,
+    "intent": "Explore a peaceful space scene with two talking planets, Luma the violet moon and Rumi the amber ringed planet, where tapping either planet glides it gently closer without overlapping the other and tapping it again sends it back home, with no score, timer, quiz, or ending.",
+    "controls": [
+      "Tap Luma to glide her gently close, and tap her again to send her back to her home spot.",
+      "Tap Rumi to glide him gently close, and tap him again to send him back to his home spot."
+    ],
+    "requirements": [
+      "Keep Luma at her home position (4.2, 4.5) and Rumi at his home position (11.8, 4.5) in zero-gravity space with enough separation so their bodies never overlap.",
+      "When Luma is tapped at her home spot, glide her gently to a closer position at least 0.8 m from home and bring her to rest without overlapping Rumi.",
+      "When Luma is tapped a second time while close, glide her gently back to her home position at (4.2, 4.5) and bring her to rest.",
+      "When Rumi is tapped at his home spot, glide him gently to a closer position at least 0.8 m from home and bring him to rest without overlapping Luma.",
+      "When Rumi is tapped a second time while close, glide him gently back to his home position at (11.8, 4.5) and bring him to rest.",
+      "Do not include any score changes, timers, quiz questions, or win/lose endings while moving between the two planets."
+    ],
+    "scenarios": [
+      {
+        "name": "Glide Luma and Rumi close and send each home",
+        "seconds": 16,
+        "inputs": [
+          {
+            "at": 0.5,
+            "type": "tap",
+            "target": "luma"
+          },
+          {
+            "at": 4.5,
+            "type": "tap",
+            "target": "luma"
+          },
+          {
+            "at": 8.5,
+            "type": "tap",
+            "target": "rumi"
+          },
+          {
+            "at": 12.5,
+            "type": "tap",
+            "target": "rumi"
+          }
+        ],
+        "checks": [
+          {
+            "at": 4,
+            "type": "displacement",
+            "trigger": 0,
+            "target": "luma",
+            "min": 0.8
+          },
+          {
+            "at": 4,
+            "type": "speed",
+            "target": "luma",
+            "max": 0.5
+          },
+          {
+            "at": 8,
+            "type": "near",
+            "trigger": 1,
+            "target": "luma",
+            "x": 4.2,
+            "y": 4.5,
+            "tolerance": 0.5
+          },
+          {
+            "at": 8,
+            "type": "speed",
+            "target": "luma",
+            "max": 0.5
+          },
+          {
+            "at": 12,
+            "type": "displacement",
+            "trigger": 2,
+            "target": "rumi",
+            "min": 0.8
+          },
+          {
+            "at": 12,
+            "type": "speed",
+            "target": "rumi",
+            "max": 0.5
+          },
+          {
+            "at": 16,
+            "type": "near",
+            "trigger": 3,
+            "target": "rumi",
+            "x": 11.8,
+            "y": 4.5,
+            "tolerance": 0.5
+          },
+          {
+            "at": 16,
+            "type": "speed",
+            "target": "rumi",
+            "max": 0.5
+          },
+          {
+            "after": 0,
+            "at": 16,
+            "type": "command",
+            "command": "score",
+            "min": 0,
+            "max": 0
+          },
+          {
+            "after": 0,
+            "at": 16,
+            "type": "command",
+            "command": "ask",
+            "min": 0,
+            "max": 0
+          },
+          {
+            "after": 0,
+            "at": 16,
+            "type": "command",
+            "command": "win",
+            "min": 0,
+            "max": 0
+          },
+          {
+            "after": 0,
+            "at": 16,
+            "type": "command",
+            "command": "lose",
+            "min": 0,
+            "max": 0
+          }
+        ]
+      }
+    ],
+    "unverified": [
+      "Live voice conversation and question answering for Luma and Rumi via character metadata",
+      "Clear facial features on both Luma the violet moon and Rumi the amber ringed planet"
+    ]
+  },
+  "doc": {
+    "schemaVersion": 1,
+    "worldId": "w_quality_planets",
+    "tier": "playground",
+    "title": "Luma and Rumi: Talking Planets",
+    "theme": {
+      "paletteHint": "deep indigo space, soft violet glow, warm amber and gold",
+      "timeOfDay": "night",
+      "backdropDescription": "Velvety indigo night sky with a large glowing golden star cluster in the far upper right third and distant twinkling stars.",
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      },
+      "midLayerDescription": "Soft painted lavender and teal nebula clouds drifting in open space with plenty of clear room in the center.",
+      "midLayer": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
+    },
+    "environment": {
+      "gravity": {
+        "x": 0,
+        "y": 0
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
+      "medium": "space",
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
+      "seed": 42107
+    },
+    "materials": {
+      "planet_stone": {
+        "density": 2.5,
+        "friction": 0.7,
+        "restitution": 0.1,
+        "softness": 0.02,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      }
+    },
+    "entities": [
+      {
+        "id": "luma",
+        "kind": "sprite",
+        "name": "Luma",
+        "description": "A friendly round violet moon with soft lavender craters, a warm smiling face, big curious eyes, and a gentle rim light.",
+        "body": {
+          "shape": "circle",
+          "material": "planet_stone",
+          "isStatic": false,
+          "size": {
+            "width": 3.2,
+            "height": 3.2
+          }
+        },
+        "transform": {
+          "x": 4.2,
+          "y": 4.5,
+          "rotation": 0
+        },
+        "tags": ["luma", "planet", "moon", "talking_planet"],
+        "behaviors": [
+          {
+            "type": "glow",
+            "color": "#b388ff"
+          },
+          {
+            "type": "face",
+            "target": "pointer"
+          }
+        ],
+        "pretend": false,
+        "character": {
+          "name": "Luma",
+          "personality": "Gentle, curious violet moon who speaks softly and loves sharing cozy stories about craters, moonlight, and floating in quiet space.",
+          "greeting": "Hello friend! I am Luma the violet moon. Tap me to glide close and ask me anything!",
+          "topic": "Moons, craters, night skies, and how gentle forces make things glide in space."
+        }
+      },
+      {
+        "id": "rumi",
+        "kind": "sprite",
+        "name": "Rumi",
+        "description": "A cheerful amber planet with sweeping golden rings, warm honey stripes, rosy cheeks, and a bright expressive smiling face.",
+        "body": {
+          "shape": "circle",
+          "material": "planet_stone",
+          "isStatic": false,
+          "size": {
+            "width": 3.8,
+            "height": 3.8
+          }
+        },
+        "transform": {
+          "x": 11.8,
+          "y": 4.5,
+          "rotation": 0
+        },
+        "tags": ["rumi", "planet", "ringed_planet", "talking_planet"],
+        "behaviors": [
+          {
+            "type": "glow",
+            "color": "#ffca28"
+          },
+          {
+            "type": "face",
+            "target": "pointer"
+          }
+        ],
+        "pretend": false,
+        "character": {
+          "name": "Rumi",
+          "personality": "Warm, cheerful amber ringed planet who loves swirling icy rings, big questions, and welcoming space travelers.",
+          "greeting": "Hi there! I am Rumi! Tap me to bring me close or send me home, and ask me all about my shiny rings!",
+          "topic": "Ringed planets, space rocks, ice rings, and how pushes and pulls move worlds."
+        }
+      }
+    ],
+    "joints": [],
+    "rules": [
+      {
+        "id": "tap_luma",
+        "when": {
+          "event": "tap",
+          "target": "luma"
+        },
+        "then": [
+          {
+            "action": "sound",
+            "cue": "whoosh"
+          },
+          {
+            "action": "say",
+            "text": "Luma glides gently through space when you call!"
+          }
+        ],
+        "concept": "force",
+        "once": false
+      },
+      {
+        "id": "tap_rumi",
+        "when": {
+          "event": "tap",
+          "target": "rumi"
+        },
+        "then": [
+          {
+            "action": "sound",
+            "cue": "whoosh"
+          },
+          {
+            "action": "say",
+            "text": "Rumi drifts peacefully across the stars!"
+          }
+        ],
+        "concept": "force",
+        "once": false
+      }
+    ],
+    "learning": {
+      "mode": "incidental",
+      "concepts": ["force"],
+      "prediction": {
+        "question": "What makes a resting planet start gliding in space?",
+        "options": ["A gentle push or pull", "Sitting completely still", "Closing its eyes"],
+        "correctIndex": 0,
+        "concept": "force"
+      },
+      "dials": [],
+      "heroEntityId": "luma"
+    },
+    "narration": {
+      "intro": "Meet Luma the violet moon and Rumi the amber ringed planet! Their playful faces, cozy sizes, and close spots are make-believe and not to scale. Tap either friend to glide them close or send them home, and ask them anything!"
+    },
+    "game": {
+      "script": {
+        "apiVersion": 1,
+        "source": "const planets = {\n  luma: {\n    id: 'luma',\n    homeX: 4.2,\n    homeY: 4.5,\n    closeX: 5.8,\n    closeY: 5.2,\n    x: 4.2,\n    y: 4.5,\n    startX: 4.2,\n    startY: 4.5,\n    targetX: 4.2,\n    targetY: 4.5,\n    isClose: false,\n    moving: false,\n    elapsed: 0,\n    duration: 1.6\n  },\n  rumi: {\n    id: 'rumi',\n    homeX: 11.8,\n    homeY: 4.5,\n    closeX: 10.2,\n    closeY: 5.2,\n    x: 11.8,\n    y: 4.5,\n    startX: 11.8,\n    startY: 4.5,\n    targetX: 11.8,\n    targetY: 4.5,\n    isClose: false,\n    moving: false,\n    elapsed: 0,\n    duration: 1.6\n  }\n};\n\ngame.setGravity(0);\n\nfunction getPlanetEntity(id) {\n  const found = game.find(id);\n  return found.length > 0 ? found[0] : null;\n}\n\nfunction togglePlanetGlide(planet) {\n  const ent = getPlanetEntity(planet.id);\n  if (ent) {\n    planet.x = ent.x;\n    planet.y = ent.y;\n  }\n  planet.isClose = !planet.isClose;\n  planet.startX = planet.x;\n  planet.startY = planet.y;\n  planet.targetX = planet.isClose ? planet.closeX : planet.homeX;\n  planet.targetY = planet.isClose ? planet.closeY : planet.homeY;\n  planet.elapsed = 0;\n  planet.moving = true;\n  game.sound('whoosh');\n}\n\ngame.on('tap', (e) => {\n  if (!e.target) return;\n  if (e.target.id === 'luma' || e.target.tags.includes('luma')) {\n    togglePlanetGlide(planets.luma);\n  } else if (e.target.id === 'rumi' || e.target.tags.includes('rumi')) {\n    togglePlanetGlide(planets.rumi);\n  }\n});\n\ngame.on('tick', (e) => {\n  const dt = e.dt > 0 ? e.dt : 0.05;\n  const keys = ['luma', 'rumi'];\n  for (let i = 0; i < keys.length; i++) {\n    const p = planets[keys[i]];\n    const ent = getPlanetEntity(p.id);\n    if (!ent) continue;\n\n    if (p.moving) {\n      p.elapsed += dt;\n      const t = Math.min(1, p.elapsed / p.duration);\n      const s = t * t * (3 - 2 * t);\n      const nextX = p.startX + (p.targetX - p.startX) * s;\n      const nextY = p.startY + (p.targetY - p.startY) * s;\n      const desiredVx = t < 1 ? (nextX - p.x) / dt : 0;\n      const desiredVy = t < 1 ? (nextY - p.y) / dt : 0;\n\n      p.x = nextX;\n      p.y = nextY;\n      game.move(p.id, { x: p.x, y: p.y });\n      game.impulse(p.id, { x: desiredVx - ent.vx, y: desiredVy - ent.vy });\n\n      if (t >= 1) {\n        p.moving = false;\n        p.x = p.targetX;\n        p.y = p.targetY;\n        game.move(p.id, { x: p.targetX, y: p.targetY });\n        game.impulse(p.id, { x: -ent.vx, y: -ent.vy });\n        if (p.isClose) {\n          game.sound('ding');\n          game.celebrate('sparkle');\n        } else {\n          game.sound('pop');\n        }\n      }\n    } else {\n      const dx = p.targetX - ent.x;\n      const dy = p.targetY - ent.y;\n      if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {\n        game.move(p.id, { x: p.targetX, y: p.targetY });\n      }\n      if (Math.abs(ent.vx) > 0.01 || Math.abs(ent.vy) > 0.01) {\n        game.impulse(p.id, { x: -ent.vx, y: -ent.vy });\n      }\n    }\n  }\n});\n",
+        "hash": "7045710b0093134943361aa6d2889908e9923f0a2eae1c5083973742c142b4f2"
+      },
+      "mode": "freeplay"
+    }
+  }
+}

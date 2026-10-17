@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { StoryChapter } from '@just-imagine/learning-content/play';
 import { useLanguage, formatNumber } from '../../lib/i18n';
@@ -330,7 +331,7 @@ export function AdventureBoard({
     s.feedback === 'try'
       ? bn
         ? 'এটা এখনো মেলেনি। আলোকিত পথ বা চিহ্ন দেখে আবার চেষ্টা করো।'
-        : 'That did not match yet. Follow the lit path or matching marks and try again.'
+        : uiText('That did not match yet. Follow the lit path or matching marks and try again.')
       : s.feedback === 'start'
         ? chapter.goal[lang]
         : learned;
@@ -439,7 +440,7 @@ export function AdventureBoard({
                 role="button"
                 tabIndex={0}
                 className={`assembly-slot ${s.placed.includes(i) ? 'is-filled' : ''}`}
-                aria-label={`${bn ? 'জায়গা' : 'Space'} ${formatNumber(i + 1, language)}`}
+                aria-label={`${bn ? 'জায়গা' : uiText('Space')} ${formatNumber(i + 1, language)}`}
                 onClick={() => {
                   if (selected !== undefined) dispatch({ type: 'place', piece: selected, slot: i });
                 }}
@@ -477,7 +478,7 @@ export function AdventureBoard({
                     key={i}
                     role="button"
                     tabIndex={0}
-                    aria-label={`${bn ? 'অংশ' : 'Piece'} ${formatNumber(i + 1, language)}`}
+                    aria-label={`${bn ? 'অংশ' : uiText('Piece')} ${formatNumber(i + 1, language)}`}
                     aria-pressed={selected === i}
                     className={`adventure-piece ${selected === i ? 'is-selected' : ''}`}
                     onPointerDown={(e) => start(e, i, { x: 170 + i * 70, y: 365 })}
@@ -518,7 +519,7 @@ export function AdventureBoard({
                 key={i}
                 role="button"
                 tabIndex={0}
-                aria-label={`${bn ? 'পৌঁছে দাও' : 'Deliver to'} ${game.nodes[i]!.label[lang]}`}
+                aria-label={`${bn ? 'পৌঁছে দাও' : uiText('Deliver to')} ${game.nodes[i]!.label[lang]}`}
                 onClick={() => {
                   if (selected !== undefined) deliver(i);
                 }}
@@ -544,7 +545,7 @@ export function AdventureBoard({
                   <GameProp id="sign" x={p.x} y={p.y} size={100} />
                 )}
                 <text x={p.x} y={p.y + 80} textAnchor="middle">
-                  {game.nodes[i]!.label[lang]}
+                  {uiText(game.nodes[i]!.label[lang])}
                 </text>
               </g>
             ))}
@@ -555,10 +556,10 @@ export function AdventureBoard({
                 isSwimmer
                   ? bn
                     ? 'ডলফিন বেছে নাও'
-                    : 'Choose Dolphin'
+                    : uiText('Choose Dolphin')
                   : bn
                     ? 'পার্সেল তুলে নাও'
-                    : 'Pick up parcel'
+                    : uiText('Pick up parcel')
               }
               className={`adventure-piece ${selected === 0 ? 'is-selected' : ''}`}
               onPointerDown={(e) => start(e, 0, travel.frame)}
@@ -624,7 +625,7 @@ export function AdventureBoard({
                   role="button"
                   tabIndex={blocked ? -1 : 0}
                   aria-disabled={blocked}
-                  aria-label={`${bn ? 'ঘর' : 'Cell'} ${cell + 1}${blocked ? (bn ? ' পাথর' : ' blocked') : ''}${pickup ? (bn ? ' সংগ্রহ' : ' collect') : ''}`}
+                  aria-label={`${bn ? 'ঘর' : uiText('Cell')} ${cell + 1}${blocked ? (bn ? ' পাথর' : ' blocked') : ''}${pickup ? (bn ? ' সংগ্রহ' : ' collect') : ''}`}
                   className={`trail-cell ${blocked ? 'is-blocked' : ''}`}
                   onClick={() => walk(cell)}
                   onKeyDown={(e) => {
@@ -744,17 +745,17 @@ export function AdventureBoard({
                     />
                     {art('star', 80, 155, 90)}
                     <text x="130" y="315">
-                      {bn ? 'কাছে' : 'Near'}
+                      {bn ? 'কাছে' : uiText('Near')}
                     </text>
                     <text x="590" y="315" textAnchor="end">
-                      {bn ? 'দূরে' : 'Far'}
+                      {bn ? 'দূরে' : uiText('Far')}
                     </text>
                   </>
                 )}
                 <g
                   role="button"
                   tabIndex={0}
-                  aria-label={bn ? 'মডেল সরাও' : 'Move the model'}
+                  aria-label={bn ? 'মডেল সরাও' : uiText('Move the model')}
                   onPointerDown={(e) => start(e, 0, { x: 130 + s.value * 460, y: 250 })}
                 >
                   <circle
@@ -839,7 +840,7 @@ export function AdventureBoard({
                 <g
                   role="button"
                   tabIndex={0}
-                  aria-label={bn ? 'ঘোরানোর হাতল' : 'Rotation handle'}
+                  aria-label={bn ? 'ঘোরানোর হাতল' : uiText('Rotation handle')}
                   className="adventure-piece"
                   onPointerDown={(e) =>
                     start(e, 0, {
@@ -892,7 +893,7 @@ export function AdventureBoard({
                     key={i}
                     role="button"
                     tabIndex={0}
-                    aria-label={`${bn ? 'ঘষো' : 'Scrub'} ${[bn ? 'তালু' : 'palms', bn ? 'পিঠ' : 'backs', bn ? 'আঙুল' : 'fingers', bn ? 'নখ' : 'nails'][i]}`}
+                    aria-label={`${bn ? 'ঘষো' : uiText('Scrub')} ${[bn ? 'তালু' : 'palms', bn ? 'পিঠ' : 'backs', bn ? 'আঙুল' : 'fingers', bn ? 'নখ' : 'nails'][i]}`}
                     onPointerDown={(e) => {
                       e.currentTarget.setPointerCapture(e.pointerId);
                       setZone(i);
@@ -967,16 +968,19 @@ export function AdventureBoard({
                       y={178 + Math.floor(i / 2) * 140}
                       textAnchor="middle"
                     >
-                      {
+                      {uiText(
                         (bn
                           ? ['তালু', 'পিঠ', 'আঙুল', 'নখ']
-                          : ['Palms', 'Backs', 'Fingers', 'Nails'])[i]
-                      }
+                          : [uiText('Palms'), uiText('Backs'), uiText('Fingers'), uiText('Nails')])[
+                          i
+                        ],
+                      )}
                     </text>
                   </g>
                 ))}
                 <text x="405" y="365" textAnchor="middle">
-                  {formatNumber(Math.ceil((game.milliseconds - s.milliseconds) / 1000), language)}{' '}
+                  {formatNumber(Math.ceil((game.milliseconds - s.milliseconds) / 1000), language)}
+                  {uiText(' ')}
                   {bn ? 'সেকেন্ড বাকি' : 'seconds left'}
                 </text>
               </>
@@ -1019,13 +1023,13 @@ export function AdventureBoard({
                     ? quarter % 2 === 0
                       ? bn
                         ? 'চেপে ভরো'
-                        : 'Hold to fill'
+                        : uiText('Hold to fill')
                       : bn
                         ? 'ছেড়ে খালি করো'
-                        : 'Release to empty'
+                        : uiText('Release to empty')
                     : bn
                       ? 'ধীরে, শান্তভাবে'
-                      : 'Slow and quiet'}
+                      : uiText('Slow and quiet')}
                 </text>
               </>
             )}
@@ -1056,7 +1060,7 @@ export function AdventureBoard({
             <g
               role="button"
               tabIndex={0}
-              aria-label={bn ? 'ব্যবহৃত টিস্যু বিনে ফেলো' : 'Put used tissue in bin'}
+              aria-label={bn ? 'ব্যবহৃত টিস্যু বিনে ফেলো' : uiText('Put used tissue in bin')}
               onClick={() => {
                 if (selected !== undefined) dispatch({ type: 'cover', target: 'bin' });
               }}
@@ -1077,13 +1081,13 @@ export function AdventureBoard({
                 strokeWidth="3"
               />
               <text x="600" y="295" textAnchor="middle" className="inverse-label">
-                {bn ? 'বিন' : 'Bin'}
+                {bn ? 'বিন' : uiText('Bin')}
               </text>
             </g>
             <g
               role="button"
               tabIndex={0}
-              aria-label={bn ? 'টিস্যু তুলে নাও' : 'Pick up tissue'}
+              aria-label={bn ? 'টিস্যু তুলে নাও' : uiText('Pick up tissue')}
               onPointerDown={(e) => start(e, 0, { x: 350, y: 340 })}
               onClick={() => setSelected(0)}
               onKeyDown={(e) => activate(e, () => setSelected(0))}
@@ -1113,7 +1117,7 @@ export function AdventureBoard({
           <span className="trail-instruction">
             {bn
               ? 'পাশের ঘরে চলো · সংগ্রহ করো · পতাকায় যাও'
-              : 'Neighbouring squares · Collect the pieces · Reach the flag'}
+              : uiText('Neighbouring squares · Collect the pieces · Reach the flag')}
           </span>
         )}
         {game.kind === 'memory' && (
@@ -1124,7 +1128,7 @@ export function AdventureBoard({
                 key={choice.id}
                 disabled={!demoDone || demoPlaying || s.complete}
                 aria-disabled={!demoDone || demoPlaying}
-                aria-label={`${bn ? 'তাল' : 'Pattern pad'} ${i + 1}: ${choice.label[lang]}`}
+                aria-label={`${bn ? 'তাল' : uiText('Pattern pad')} ${i + 1}: ${choice.label[lang]}`}
                 className={`memory-pad ${demo === i ? 'is-lit' : ''}`}
                 data-correct={s.step > 0 && game.sequence[s.step - 1] === i}
                 onClick={() => {
@@ -1144,7 +1148,7 @@ export function AdventureBoard({
                     />
                   </svg>
                 )}
-                <span>{choice.label[lang]}</span>
+                <span>{uiText(choice.label[lang])}</span>
               </button>
             ))}
           </div>
@@ -1152,7 +1156,7 @@ export function AdventureBoard({
 
         {game.kind === 'adjust' && (
           <label>
-            {bn ? 'ঘুরিয়ে বা সরিয়ে চিহ্ন মেলাও' : 'Turn or slide to match the marker'}
+            {bn ? 'ঘুরিয়ে বা সরিয়ে চিহ্ন মেলাও' : uiText('Turn or slide to match the marker')}
             <input
               type="range"
               min={linear ? 0 : -180}
@@ -1165,7 +1169,7 @@ export function AdventureBoard({
                   value: Number(e.target.value) / (linear ? 100 : 180 / Math.PI),
                 })
               }
-              aria-label={bn ? 'মডেলের নিয়ন্ত্রণ' : 'Model control'}
+              aria-label={bn ? 'মডেলের নিয়ন্ত্রণ' : uiText('Model control')}
             />
             <span>
               {game.mode === 'tilt'
@@ -1183,14 +1187,14 @@ export function AdventureBoard({
             {demoPlaying
               ? bn
                 ? 'দেখো আর শোনো…'
-                : 'Watch and listen…'
+                : uiText('Watch and listen…')
               : demoDone
                 ? bn
                   ? 'তাল আবার দেখাও'
-                  : 'Show the pattern again'
+                  : uiText('Show the pattern again')
                 : bn
                   ? 'তাল দেখাও'
-                  : 'Show the pattern'}
+                  : uiText('Show the pattern')}
           </button>
         )}
         {game.kind === 'hold' && game.mode !== 'wash' && (
@@ -1211,10 +1215,10 @@ export function AdventureBoard({
             {game.mode === 'breathe'
               ? bn
                 ? 'চেপে ভরো · ছেড়ে খালি করো'
-                : 'Hold to fill · Release to empty'
+                : uiText('Hold to fill · Release to empty')
               : bn
                 ? 'চাঁদ ধরে রাখো'
-                : 'Hold the moon'}
+                : uiText('Hold the moon')}
           </button>
         )}
         {game.kind === 'cover' && (
@@ -1224,24 +1228,24 @@ export function AdventureBoard({
               onClick={() => dispatch({ type: 'cover', target: 'cover' })}
               disabled={s.coverPhase !== 'cover' || s.complete}
             >
-              {bn ? 'টিস্যু দিয়ে ঢাকো' : 'Cover with tissue'}
+              {bn ? 'টিস্যু দিয়ে ঢাকো' : uiText('Cover with tissue')}
             </button>
             <button
               type="button"
               onClick={() => dispatch({ type: 'cover', target: 'bin' })}
               disabled={s.coverPhase !== 'bin' || s.complete}
             >
-              {bn ? 'বিনে ফেলো' : 'Put in bin'}
+              {bn ? 'বিনে ফেলো' : uiText('Put in bin')}
             </button>
           </>
         )}
         {game.kind === 'trail' && (
           <div className="trail-directions">
             {[
-              [-1, 0, 'Left', 'বাঁ'],
-              [0, -1, 'Up', 'ওপরে'],
-              [0, 1, 'Down', 'নিচে'],
-              [1, 0, 'Right', 'ডান'],
+              [-1, 0, uiText('Left'), 'বাঁ'],
+              [0, -1, uiText('Up'), 'ওপরে'],
+              [0, 1, uiText('Down'), 'নিচে'],
+              [1, 0, uiText('Right'), 'ডান'],
             ].map(([dx, dy, en, bengali]) => (
               <button
                 type="button"
@@ -1260,18 +1264,18 @@ export function AdventureBoard({
             {isSwimmer && game.kind === 'route'
               ? bn
                 ? 'ডলফিন বেছে পরের গন্তব্য চাপো, অথবা টেনে পথ দেখাও।'
-                : 'Choose Dolphin, then tap the next stop, or drag to guide the route.'
+                : uiText('Choose Dolphin, then tap the next stop, or drag to guide the route.')
               : bn
                 ? 'টানো, অথবা অংশ বেছে জায়গা চাপো।'
-                : 'Drag, or select a piece and tap its destination.'}
+                : uiText('Drag, or select a piece and tap its destination.')}
           </span>
         )}
       </div>
       <details className="game-discovery">
-        <summary>{bn ? 'এখানে কী ঘটছে?' : 'What’s happening here?'}</summary>
-        <p>{learned}</p>
+        <summary>{bn ? 'এখানে কী ঘটছে?' : uiText('What’s happening here?')}</summary>
+        <p>{uiText(learned)}</p>
         <button type="button" onClick={onProgress}>
-          {bn ? 'বন্ধুকে বোঝাতে বলো' : 'Ask my friend to explain'}
+          {bn ? 'বন্ধুকে বোঝাতে বলো' : uiText('Ask my friend to explain')}
         </button>
       </details>
       <footer className="adventure-feedback">
@@ -1281,11 +1285,11 @@ export function AdventureBoard({
         >
           <LearnArt id={character.id} />
         </div>
-        <p aria-live="polite">{feedback}</p>
+        <p aria-live="polite">{uiText(feedback)}</p>
         <progress
           max={total}
           value={progress}
-          aria-label={bn ? 'অধ্যায়ের অগ্রগতি' : 'Chapter progress'}
+          aria-label={bn ? 'অধ্যায়ের অগ্রগতি' : uiText('Chapter progress')}
         />
         <span>{formatNumber(Math.round((progress / total) * 100), language)}%</span>
       </footer>

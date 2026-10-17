@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../lib/i18n';
+import { copy as uiText } from '../lib/i18n/ui';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
@@ -7,6 +9,7 @@ import { env } from '../lib/env';
 import { firebase } from '../lib/firebase';
 import { s } from '../lib/strings/en';
 export function ParentShell({ children }: { children: React.ReactNode }) {
+  useLanguage();
   const path = usePathname(),
     router = useRouter();
   return (
@@ -33,7 +36,7 @@ export function ParentShell({ children }: { children: React.ReactNode }) {
                 href={'/parent/' + route}
                 aria-current={path.endsWith(route!) ? 'page' : undefined}
               >
-                {label}
+                {uiText(label)}
               </Link>
             ))}
           </nav>

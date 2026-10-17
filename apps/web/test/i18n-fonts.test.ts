@@ -33,9 +33,9 @@ describe('Bangla fonts', () => {
     }
   });
   it('switches the stacks under lang=bn: Noto Sans Bengali for body, Baloo Da 2 for headings and .brand', () => {
-    expect(css).toMatch(/\[lang='bn'\][^{]*\{[^}]*font-family:\s*'Noto Sans Bengali'/);
-    expect(css).toMatch(/\[lang='bn'\]\s+\.brand[^{]*\{[^}]*font-family:\s*'Baloo Da 2'/);
-    expect(css).toMatch(/\[lang='bn'\]\s+h1[^{]*\{[^}]*font-family:\s*'Baloo Da 2'/);
+    expect(css).toMatch(/\[lang\|='bn'\][^{]*\{[^}]*font-family:\s*'Noto Sans Bengali'/);
+    expect(css).toMatch(/\[lang\|='bn'\]\s+\.brand[^{]*\{[^}]*font-family:\s*'Baloo Da 2'/);
+    expect(css).toMatch(/\[lang\|='bn'\]\s+h1[^{]*\{[^}]*font-family:\s*'Baloo Da 2'/);
   });
   it('records both licences beside the files', () => {
     const notice = readFileSync(join(root, 'public/fonts/NOTICE.md'), 'utf8');

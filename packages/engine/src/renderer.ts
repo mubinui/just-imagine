@@ -5,7 +5,7 @@ import type { SceneDoc } from '@just-imagine/scene-schema';
 import { readBoundedJson } from './bounded-json';
 import { placeholder, playSurface } from './placeholder';
 import { SoundCues } from './sound';
-import { TextureLease } from './textures';
+import { TextureLease, OpaqueOverlayError } from './textures';
 import { recordPointer, pointerVelocity, type PointerSample } from './gesture';
 import { createSimulation, type Simulation, type EngineEvent } from './simulation';
 export interface Engine extends Simulation {
@@ -183,7 +183,7 @@ export async function mountEngine(
   }
   function drawEntity(e: SceneDoc['entities'][number], id: string) {
     sources.set(id, e);
-    const key = JSON.stringify([e.asset, e.body.size, e.body.shape, e.locomotion]);
+    const key = JSON.stringify([e.asset, e.body, e.kind, e.tags, e.locomotion]);
     const existing = sprites.get(id);
     if (existing && viewKeys.get(id) === key) return;
     existing?.destroy({ children: true });
@@ -327,8 +327,7 @@ export async function mountEngine(
       background.addChild(slot);
       backgrounds.set(index, { key, slot });
       if (asset?.status === 'ready')
-        void textures
-          .acquire(asset.url)
+        void (index === 1 ? textures.acquireOverlay(asset.url) : textures.acquire(asset.url))
           .then((texture) => {
             if (disposed || backgrounds.get(index)?.slot !== slot) return;
             const sprite = new Sprite(texture);
@@ -336,7 +335,9 @@ export async function mountEngine(
             sprite.height = 9;
             slot.addChild(sprite);
           })
-          .catch(() => {
+          .catch((error) => {
+            // Immutable opaque legacy mid-layers remain hidden; do not retry every frame.
+            if (error instanceof OpaqueOverlayError) return;
             if (backgrounds.get(index)?.slot === slot) backgrounds.get(index)!.key = '';
           });
     }

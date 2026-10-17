@@ -3,7 +3,7 @@ export default defineConfig({
   test: {
     include: process.env['FIRESTORE_EMULATOR_HOST']
       ? ['test/**/*.test.ts']
-      : ['test/app.test.ts', 'test/companion.test.ts'],
+      : ['test/app.test.ts', 'test/companion.test.ts', 'test/editions.test.ts'],
     environment: 'node',
     fileParallelism: false,
     testTimeout: 60000,

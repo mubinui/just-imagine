@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { UiIcon, type UiIconName } from '../UiIcon';
 import { formatNumber, type Language } from '../../lib/i18n';
 
@@ -70,13 +72,14 @@ export function PointsBadge({
   language: Language;
   bump?: number;
 }) {
+  useLanguage();
   return (
     <p className="learn-points" aria-label={`${label}: ${points}`} data-bump={bump}>
       <span className="star" key={bump}>
         <StarIcon />
       </span>
       <span className="value">{formatNumber(points, language)}</span>
-      <span className="label">{label}</span>
+      <span className="label">{uiText(label)}</span>
     </p>
   );
 }

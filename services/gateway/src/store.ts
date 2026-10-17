@@ -10,6 +10,9 @@ import {
   SessionDocSchema,
   DiscoveryDocSchema,
   conceptCard,
+  languageOf,
+  contentTexts,
+  textUsesLanguage,
   paths,
   UsageDailyDocSchema,
   PLAN_LIMITS,
@@ -24,6 +27,7 @@ import {
 import { ConceptSchema, findBlockedTerm } from '@just-imagine/scene-schema';
 import {
   db,
+  ContentEditions,
   localDevelopment,
   verifyIdToken,
   readDoc,
@@ -142,6 +146,13 @@ export class FirestoreSessionStore implements SessionStore {
       return PLAN_LIMITS[record.identity.plan].voiceSecondsPerDay - usage.voiceSeconds - delta;
     });
   }
+  async release(record: SessionRecord) {
+    await db().runTransaction(async (tx) => {
+      const lock = await tx.get(this.lock(record));
+      if (lock.data()?.['sessionId'] === record.id && lock.data()?.['owner'] === this.owner)
+        tx.delete(lock.ref);
+    });
+  }
   async finish(record: SessionRecord, summary: string, reason: ByeReason) {
     const { uid, childId } = record.identity;
     await db().runTransaction(async (tx) => {
@@ -186,7 +197,17 @@ export class FirestoreSessionStore implements SessionStore {
       world.childId !== record.identity.childId
     )
       throw new Error('FORBIDDEN');
-    return world;
+    const translated = await new ContentEditions().cached(
+      {
+        kind: 'world',
+        path: paths.world(id),
+        uid: record.identity.uid,
+        childId: record.identity.childId,
+      },
+      languageOf(record.identity.child),
+      world,
+    );
+    return translated ?? world;
   }
   async story(record: SessionRecord, id: string) {
     const { uid, childId } = record.identity;
@@ -203,7 +224,16 @@ export class FirestoreSessionStore implements SessionStore {
     const value = StoryDocSchema.parse(book.data());
     if (value.ownerUid !== uid || value.childId !== childId || !value.manuscript)
       throw new Error('FORBIDDEN');
-    return value;
+    const language = languageOf(record.identity.child);
+    const translated = await new ContentEditions().cached(
+      { kind: 'story', path: `stories/${id}`, uid, childId },
+      language,
+      value,
+    );
+    if (translated) return { ...translated, language };
+    if (contentTexts('story', value).every((entry) => textUsesLanguage(entry.text, language)))
+      return { ...value, language };
+    throw new Error('Open this story in the selected language before calling Katha.');
   }
   async enqueue(job: BuilderJob) {
     if (await isKillSwitchOn()) throw new Error('KILL_SWITCH');

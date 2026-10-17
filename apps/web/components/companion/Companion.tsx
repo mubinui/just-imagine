@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText, uiError } from '../../lib/i18n/ui';
 /* eslint-disable @next/next/no-img-element -- Private, bounded data URLs are generated per child and cannot use the public image optimizer. */
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -61,6 +63,14 @@ export function CompanionArt({
   );
 }
 export function CompanionProvider({ children }: { children: React.ReactNode }) {
+  const { language } = useLanguage();
+  const lastLanguage = useRef(language);
+  useEffect(() => {
+    if (lastLanguage.current !== language) {
+      getVoice().end();
+    }
+    lastLanguage.current = language;
+  }, [language]);
   const pathname = usePathname(),
     router = useRouter();
   const [child, setChild] = useState<ChildResponse>(),
@@ -102,16 +112,17 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       if (message.type === 'navigate') router.push(CHILD_DESTINATIONS[message.destination]);
       if (message.type === 'characterState') setSpeaking(message.speaking);
       if (message.type === 'interrupted' || message.type === 'bye') setSpeaking(false);
-      if (message.type === 'bye') setCaption('See you next time.');
+      if (message.type === 'bye') setCaption(uiText('See you next time.'));
       if (message.type === 'transcript' && message.role === 'character' && !env.fake)
         setCaption(message.text);
-      if (message.type === 'error') setError(message.message);
+      if (message.type === 'error') setError(uiError(message.message));
     });
     return () => {
       off();
       offStatus();
+      offMouth();
     };
-  }, [pathname, router]);
+  }, [pathname, router, language]);
   async function start() {
     if (!child) return;
     setError('');
@@ -119,7 +130,9 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       await getVoice().unlockAudio();
       await ensureChildVoice(child, sessionStorage.getItem('ji-world') ?? undefined);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Your friend could not connect. Try again.');
+      setError(
+        e instanceof Error ? uiError(e) : uiText('Your friend could not connect. Try again.'),
+      );
     }
   }
   return (
@@ -134,6 +147,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
   );
 }
 export function CompanionMenu({ inline = false }: { inline?: boolean }) {
+  useLanguage();
   const { child, speaking, caption, status, error, start } = useContext(CompanionContext);
   const router = useRouter(),
     pathname = usePathname();
@@ -172,86 +186,97 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
   return (
     <div className={inline ? 'companion-dock is-inline' : 'companion-dock'}>
       {open && (
-        <section className="companion-menu" aria-label={`${companion.name}'s navigation`}>
+        <section
+          className="companion-menu"
+          aria-label={uiText('{v0} navigation', { v0: companion.name })}
+        >
           <div className="companion-greeting">
             <CompanionArt companion={companion} speaking={speaking} />
             <div>
-              <h2>Where shall we go?</h2>
-              <p>{companion.name}, your AI play friend</p>
+              <h2>{uiText('Where shall we go?')}</h2>
+              <p>
+                {uiText(companion.name)}
+                {uiText(', your AI play friend')}
+              </p>
             </div>
           </div>
           <p className="companion-invitation">
             {env.fake
-              ? 'Choose where we go together.'
-              : 'You can say “Show my saved worlds” or “Let’s make a game.”'}
+              ? uiText('Choose where we go together.')
+              : uiText('You can say “Show my saved worlds” or “Let’s make a game.”')}
           </p>
           {caption && (
             <p className="companion-caption" aria-live="polite">
-              {caption}
+              {uiText(caption)}
             </p>
           )}
-          <nav aria-label="Explore with your friend">
+          <nav aria-label={uiText('Explore with your friend')}>
             <button
               ref={firstDestination}
               type="button"
               aria-current={pathname === '/studio' ? 'page' : undefined}
               onClick={() => go('studio')}
             >
-              Our adventure <DestinationArrow />
+              {uiText('Our adventure')}
+              <DestinationArrow />
             </button>
             <button
               type="button"
               aria-current={pathname === '/gallery' ? 'page' : undefined}
               onClick={() => go('gallery')}
             >
-              Saved worlds <DestinationArrow />
+              {uiText('Saved worlds')}
+              <DestinationArrow />
             </button>
             <button
               type="button"
               aria-current={pathname === '/play' ? 'page' : undefined}
               onClick={() => go('play')}
             >
-              Choose explorer <DestinationArrow />
+              {uiText('Choose explorer')}
+              <DestinationArrow />
             </button>
             <button
               type="button"
               aria-current={pathname.startsWith('/learn') ? 'page' : undefined}
               onClick={() => go('learn')}
             >
-              Learning worlds <DestinationArrow />
+              {uiText('Learning worlds')}
+              <DestinationArrow />
             </button>
             <button
               type="button"
               aria-current={pathname === '/stories' ? 'page' : undefined}
               onClick={() => go('stories')}
             >
-              Katha’s story room <DestinationArrow />
+              {uiText('Katha’s story room')}
+              <DestinationArrow />
             </button>
           </nav>
           <div className="companion-voice">
             <span role="status">
               {env.fake
-                ? 'Preview friend · tap to explore'
+                ? uiText('Preview friend · tap to explore')
                 : status === 'connected'
-                  ? 'Listening · you can speak'
+                  ? uiText('Listening · you can speak')
                   : status === 'connecting' || status === 'reconnecting'
-                    ? 'Connecting…'
-                    : 'Microphone off'}
+                    ? uiText('Connecting…')
+                    : uiText('Microphone off')}
             </span>
             {!env.fake &&
               (status === 'connected' ? (
                 <button type="button" onClick={() => getVoice().end()}>
-                  Stop talking
+                  {uiText('Stop talking')}
                 </button>
               ) : (
                 <button type="button" onClick={() => void start()}>
-                  Talk together
+                  {uiText('Talk together')}
                 </button>
               ))}
           </div>
-          {error && <p role="alert">{error}</p>}
+          {error && <p role="alert">{uiText(error)}</p>}
           <button type="button" className="companion-close" onClick={closeMenu}>
-            Close
+            {uiText('Close')}
           </button>
         </section>
       )}
@@ -260,7 +285,7 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
         ref={trigger}
         className={inline ? 'dock-tile companion-toggle' : 'companion-toggle'}
         aria-expanded={open}
-        aria-label={`Chat with ${companion.name}`}
+        aria-label={uiText('Chat with {v0}', { v0: String(companion.name) })}
         onClick={() => setOpen(!open)}
       >
         <CompanionArt companion={companion} speaking={speaking} />

@@ -1,4 +1,7 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { uiNumber } from '../../lib/i18n/ui';
+import { copy as uiText, uiError } from '../../lib/i18n/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   deletionConfirmationFor,
@@ -20,12 +23,14 @@ function Meter({
   limit: number;
   unit: string;
 }) {
+  useLanguage();
   return (
     <div className="adm-meter">
       <div>
-        <span>{label}</span>
+        <span>{uiText(label)}</span>
         <span className="num">
-          {used} of {limit} {unit}
+          {uiNumber(used)} {uiText('of')}
+          {uiNumber(limit)} {uiText(unit)}
         </span>
       </div>
       <progress
@@ -48,6 +53,7 @@ export function FamilyDrawer({
   onChanged: () => void;
   onDeleted: () => void;
 }) {
+  useLanguage();
   const dialog = useRef<HTMLDialogElement>(null);
   const load = useCallback(() => adminApi<AdminFamilyDetail>('family', { params: { uid } }), [uid]);
   const { data, error, loading, reload } = useAdminResource(load);
@@ -74,11 +80,13 @@ export function FamilyDrawer({
     setNotice('');
     try {
       await run();
-      setNotice(`${label}. Recorded in the audit log.`);
+      setNotice(uiText('{v0}. Recorded in the audit log.', { v0: String(label) }));
       setReason('');
       after();
     } catch (e) {
-      setFailure(e instanceof Error ? e.message : 'That change did not go through. Try again.');
+      setFailure(
+        e instanceof Error ? uiError(e) : uiText('That change did not go through. Try again.'),
+      );
     } finally {
       setBusy(false);
     }
@@ -94,9 +102,9 @@ export function FamilyDrawer({
       onCancel={onClose}
     >
       <div className="adm-drawer-head">
-        <h2 id="family-title">{data?.email ?? 'Family'}</h2>
+        <h2 id="family-title">{uiText(data?.email ?? uiText('Family'))}</h2>
         <button type="button" className="adm-button" onClick={() => dialog.current?.close()}>
-          Close
+          {uiText('Close')}
         </button>
       </div>
       <LoadError message={error} />
@@ -106,72 +114,77 @@ export function FamilyDrawer({
         <>
           <dl className="adm-facts">
             <div>
-              <dt>Plan</dt>
-              <dd>{planLabel(data)}</dd>
+              <dt>{uiText('Plan')}</dt>
+              <dd>{uiText(planLabel(data))}</dd>
             </div>
             <div>
-              <dt>Account</dt>
+              <dt>{uiText('Account')}</dt>
               <dd>
                 {data.deletionPending ? (
-                  <Status tone="bad">Deletion in progress</Status>
+                  <Status tone="bad">{uiText('Deletion in progress')}</Status>
                 ) : data.suspended ? (
-                  <Status tone="bad">Suspended</Status>
+                  <Status tone="bad">{uiText('Suspended')}</Status>
                 ) : (
-                  <Status tone="good">Active</Status>
+                  <Status tone="good">{uiText('Active')}</Status>
                 )}
                 {data.suspendedReason && (
-                  <span className="adm-detail"> {data.suspendedReason}</span>
+                  <span className="adm-detail"> {uiText(data.suspendedReason)}</span>
                 )}
               </dd>
             </div>
             <div>
-              <dt>Explorers</dt>
-              <dd>{ageBandSummary(data.children)}</dd>
+              <dt>{uiText('Explorers')}</dt>
+              <dd>{uiText(ageBandSummary(data.children))}</dd>
             </div>
             <div>
-              <dt>Joined</dt>
+              <dt>{uiText('Joined')}</dt>
               <dd>{formatWhen(data.createdAt)}</dd>
             </div>
             <div>
-              <dt>Billing</dt>
+              <dt>{uiText('Billing')}</dt>
               <dd>
                 {data.subscriptionStatus
-                  ? `Stripe subscription ${data.subscriptionStatus.replace('_', ' ')}`
+                  ? uiText('Stripe subscription {v0}', {
+                      v0: String(data.subscriptionStatus.replace('_', ' ')),
+                    })
                   : data.hasBillingAccount
-                    ? 'Stripe customer, no subscription'
-                    : 'No payment account'}
+                    ? uiText('Stripe customer, no subscription')
+                    : uiText('No payment account')}
               </dd>
             </div>
             <div>
-              <dt>Saved worlds · sessions in 30 days</dt>
+              <dt>{uiText('Saved worlds · sessions in 30 days')}</dt>
               <dd className="num">
-                {data.worlds} · {data.sessions30}
+                {uiNumber(data.worlds)} · {uiNumber(data.sessions30)}
               </dd>
             </div>
           </dl>
 
           <section className="adm-drawer-section" aria-labelledby="usage-today">
-            <h3 id="usage-today">Today against limits</h3>
+            <h3 id="usage-today">{uiText('Today against limits')}</h3>
             <Meter
-              label="Voice"
+              label={uiText('Voice')}
               used={Math.round(data.usageToday.voiceSeconds / 60)}
               limit={Math.round(data.limits.voiceSecondsPerDay / 60)}
               unit="min"
             />
             <Meter
-              label="Worlds"
+              label={uiText('Worlds')}
               used={data.usageToday.worlds}
               limit={data.limits.worldsPerDay}
               unit="worlds"
             />
             <p className="adm-detail">
-              Last 7 days: {Math.round(data.usage7.voiceSeconds / 60)} voice min,{' '}
-              {data.usage7.worlds} worlds, {data.usage7.images} images.
+              {uiText('Last 7 days:')}
+              {uiNumber(Math.round(data.usage7.voiceSeconds / 60))} {uiText('voice min,')}
+              {uiNumber(data.usage7.worlds)} {uiText('worlds,')}
+              {uiText(' ')}
+              {uiNumber(data.usage7.images)} {uiText('images.')}
             </p>
           </section>
 
           <section className="adm-drawer-section adm-actions" aria-labelledby="family-actions">
-            <h3 id="family-actions">Actions</h3>
+            <h3 id="family-actions">{uiText('Actions')}</h3>
             <ReasonField id="family-reason" value={reason} onChange={setReason} />
             <div className="adm-action-row">
               <button
@@ -179,67 +192,76 @@ export function FamilyDrawer({
                 className="adm-button"
                 disabled={!ready || data.deletionPending}
                 onClick={() =>
-                  void act(data.compPlan ? 'Comp ended' : 'Family plan comped', () =>
-                    adminApi('setPlan', {
-                      params: { uid },
-                      body: { ...body, plan: data.compPlan ? 'free' : 'family' },
-                    }),
+                  void act(
+                    data.compPlan ? uiText('Comp ended') : uiText('Family plan comped'),
+                    () =>
+                      adminApi('setPlan', {
+                        params: { uid },
+                        body: { ...body, plan: data.compPlan ? 'free' : 'family' },
+                      }),
                   )
                 }
               >
-                {data.compPlan ? 'End Family comp' : 'Comp Family plan'}
+                {data.compPlan ? uiText('End Family comp') : uiText('Comp Family plan')}
               </button>
               <button
                 type="button"
                 className="adm-button"
                 disabled={!ready || data.deletionPending}
                 onClick={() =>
-                  void act("Today's quota reset", () =>
+                  void act(uiText("Today's quota reset"), () =>
                     adminApi('resetQuota', { params: { uid }, body }),
                   )
                 }
               >
-                Reset today&apos;s quota
+                {uiText("Reset today's quota")}
               </button>
               <button
                 type="button"
                 className="adm-button"
                 disabled={!ready || data.deletionPending}
                 onClick={() =>
-                  void act(data.suspended ? 'Account reinstated' : 'Account suspended', () =>
-                    adminApi('setSuspension', {
-                      params: { uid },
-                      body: { ...body, suspended: !data.suspended },
-                    }),
+                  void act(
+                    data.suspended ? uiText('Account reinstated') : uiText('Account suspended'),
+                    () =>
+                      adminApi('setSuspension', {
+                        params: { uid },
+                        body: { ...body, suspended: !data.suspended },
+                      }),
                   )
                 }
               >
-                {data.suspended ? 'Reinstate account' : 'Suspend account'}
+                {data.suspended ? uiText('Reinstate account') : uiText('Suspend account')}
               </button>
             </div>
             {!reasonReady(reason) && (
-              <p className="adm-detail">Write a reason first; every change is audited.</p>
+              <p className="adm-detail">
+                {uiText('Write a reason first; every change is audited.')}
+              </p>
             )}
             <p className="adm-live" role="status">
-              {notice}
+              {uiText(notice)}
             </p>
             {failure && (
               <p className="adm-alert" role="alert">
-                {failure}
+                {uiText(failure)}
               </p>
             )}
           </section>
 
           <section className="adm-drawer-section adm-danger" aria-labelledby="family-delete">
-            <h3 id="family-delete">Delete this family</h3>
+            <h3 id="family-delete">{uiText('Delete this family')}</h3>
             <p>
-              Removes the parent account, explorer profiles, worlds, sessions and usage, and cancels
-              billing. This cannot be undone. Type{' '}
-              <strong className="adm-phrase">{deletionConfirmationFor(data.email)}</strong> to
-              confirm. The reason above is recorded with the request.
+              {uiText(
+                'Removes the parent account, explorer profiles, worlds, sessions and usage, and cancels billing. This cannot be undone. Type',
+              )}
+              {uiText(' ')}
+              <strong className="adm-phrase">{uiText(deletionConfirmationFor(data.email))}</strong>
+              {uiText(' ')}
+              {uiText('to confirm. The reason above is recorded with the request.')}
             </p>
             <label htmlFor="family-confirm" className="adm-reason">
-              Confirmation
+              {uiText('Confirmation')}
               <input
                 id="family-confirm"
                 value={typed}
@@ -254,7 +276,7 @@ export function FamilyDrawer({
               disabled={!ready || !canConfirmDeletion(typed, data.email) || data.deletionPending}
               onClick={() =>
                 void act(
-                  'Deletion requested',
+                  uiText('Deletion requested'),
                   () =>
                     adminApi('deleteFamily', {
                       params: { uid },
@@ -264,7 +286,7 @@ export function FamilyDrawer({
                 )
               }
             >
-              Delete family data
+              {uiText('Delete family data')}
             </button>
           </section>
         </>

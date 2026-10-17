@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../lib/i18n';
+import { copy as uiText } from '../lib/i18n/ui';
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -6,6 +8,7 @@ const gravity = { earth: 9.81, moon: 1.62 } as const;
 
 /** A small gravity experiment: equal drop height and restitution, different acceleration. */
 export function GravityPlayground() {
+  useLanguage();
   const [planet, setPlanet] = useState<'earth' | 'moon'>('earth');
   const [drop, setDrop] = useState(0);
   const [moving, setMoving] = useState(false);
@@ -53,18 +56,22 @@ export function GravityPlayground() {
   }
 
   return (
-    <section className="gravity-playground" aria-label="Try a gravity experiment">
+    <section className="gravity-playground" aria-label={uiText('Try a gravity experiment')}>
       <div className="gravity-heading">
-        <span>What if gravity changed?</span>
+        <span>{uiText('What if gravity changed?')}</span>
         <span className="experiment-live">
-          <i aria-hidden="true" /> Try it here
+          <i aria-hidden="true" /> {uiText('Try it here')}
         </span>
       </div>
       <div className="gravity-scene" data-planet={planet}>
         <svg
           viewBox="0 0 520 430"
           role="img"
-          aria-label={`A ball bouncing under ${planet} gravity`}
+          aria-label={uiText(
+            planet === 'earth'
+              ? 'A ball bouncing under Earth’s gravity'
+              : 'A ball bouncing under the Moon’s gravity',
+          )}
         >
           <circle className="gravity-orbit" cx="270" cy="230" r="185" />
           <circle className="gravity-orbit" cx="270" cy="230" r="145" />
@@ -97,25 +104,25 @@ export function GravityPlayground() {
             <path d="M120 110V378M113 110H127M113 378H127" />
           </g>
           <text x="97" y="246" className="gravity-height-label" transform="rotate(-90 97 246)">
-            Same drop. Different gravity.
+            {uiText('Same drop. Different gravity.')}
           </text>
         </svg>
         <div className="gravity-reading" aria-live="polite">
-          <strong>{planet === 'earth' ? 'Earth' : 'The Moon'}</strong>
+          <strong>{planet === 'earth' ? uiText('Earth') : uiText('The Moon')}</strong>
           <span>{gravity[planet]} m/s²</span>
         </div>
       </div>
       <div className="gravity-tools">
-        <div className="planet-switch" role="group" aria-label="Choose gravity">
+        <div className="planet-switch" role="group" aria-label={uiText('Choose gravity')}>
           <button aria-pressed={planet === 'earth'} onClick={() => release('earth')}>
-            Earth
+            {uiText('Earth')}
           </button>
           <button aria-pressed={planet === 'moon'} onClick={() => release('moon')}>
-            Moon
+            {uiText('Moon')}
           </button>
         </div>
         <button className="gravity-drop" onClick={() => release()}>
-          {moving || drop ? 'Drop again' : 'Drop the ball'}
+          {moving || drop ? uiText('Drop again') : uiText('Drop the ball')}
           <svg
             width="18"
             height="18"
@@ -129,7 +136,7 @@ export function GravityPlayground() {
           </svg>
         </button>
       </div>
-      <p className="gravity-note">One small change. A whole new “what if?”</p>
+      <p className="gravity-note">{uiText('One small change. A whole new “what if?”')}</p>
     </section>
   );
 }

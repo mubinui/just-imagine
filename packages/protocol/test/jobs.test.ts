@@ -49,3 +49,33 @@ describe('BuilderJobSchema', () => {
     expect(r.success).toBe(false);
   });
 });
+
+it('preserves optional server-captured child words and keeps legacy queued jobs readable', () => {
+  const old = {
+    ...base,
+    kind: 'build',
+    description: 'A fox',
+    concepts: [],
+    ageBand: '8-10',
+    tier: 'playground',
+    styleVersion: 'v1',
+    promptVersion: 'v1',
+    conversationSummary: '',
+  };
+  expect(BuilderJobSchema.parse(old)).not.toHaveProperty('childRequest');
+  expect(
+    BuilderJobSchema.parse({ ...old, childRequest: 'No score. Keep my indigo scarf.' }),
+  ).toMatchObject({ childRequest: 'No score. Keep my indigo scarf.' });
+  expect(BuilderJobSchema.safeParse({ ...old, childRequest: 'x'.repeat(4001) }).success).toBe(
+    false,
+  );
+  expect(
+    BuilderJobSchema.safeParse({
+      ...base,
+      kind: 'patch',
+      instruction: 'Make it blue',
+      promptVersion: 'v1',
+      childRequest: 'x'.repeat(2001),
+    }).success,
+  ).toBe(false);
+});

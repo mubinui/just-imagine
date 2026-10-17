@@ -1,0 +1,384 @@
+{
+  "provenance": "Real gemini-4-argon output, 2026-10-17. Replayed fixtures, not a fresh cloud call.",
+  "plan": {
+    "externalOnly": false,
+    "intent": "Toggle a portal on and off by tapping the bolt toy, moving the bolt up when active and down when inactive, and teleport the ball between two pads at (4, 3) and (12, 3) when tapped only while the portal is on.",
+    "controls": [
+      "Tap bolt_toy to toggle the portal on (bolt moves up) and off (bolt moves down).",
+      "Tap ball while the portal is on to teleport it between (4, 3) and (12, 3)."
+    ],
+    "requirements": [
+      "Start with the portal off, ball at (4, 3), and bolt_toy at (8, 6).",
+      "Tapping ball while the portal is off leaves the ball in place without teleporting.",
+      "Tapping bolt_toy toggles the portal on and visibly moves bolt_toy up; tapping it again toggles the portal off and returns bolt_toy down to (8, 6).",
+      "When the portal is on, tapping ball teleports it between (4, 3) and (12, 3) and supports repeated swapping after re-enabling.",
+      "Do not include points, quizzes, timers, or win/lose endings."
+    ],
+    "scenarios": [
+      {
+        "name": "portal_toggle_and_repeated_teleport",
+        "seconds": 14,
+        "inputs": [
+          {
+            "at": 1,
+            "type": "tap",
+            "target": "ball"
+          },
+          {
+            "at": 2.5,
+            "type": "tap",
+            "target": "bolt_toy"
+          },
+          {
+            "at": 4.5,
+            "type": "tap",
+            "target": "ball"
+          },
+          {
+            "at": 6.5,
+            "type": "tap",
+            "target": "bolt_toy"
+          },
+          {
+            "at": 8.5,
+            "type": "tap",
+            "target": "ball"
+          },
+          {
+            "at": 10,
+            "type": "tap",
+            "target": "bolt_toy"
+          },
+          {
+            "at": 11.5,
+            "type": "tap",
+            "target": "ball"
+          },
+          {
+            "at": 13,
+            "type": "tap",
+            "target": "ball"
+          }
+        ],
+        "checks": [
+          {
+            "at": 1.8,
+            "type": "near",
+            "invariant": true,
+            "target": "ball",
+            "x": 4,
+            "y": 3,
+            "tolerance": 0.5
+          },
+          {
+            "at": 3.5,
+            "type": "displacement",
+            "trigger": 1,
+            "target": "bolt_toy",
+            "min": 0.5
+          },
+          {
+            "at": 5.5,
+            "type": "near",
+            "trigger": 2,
+            "target": "ball",
+            "x": 12,
+            "y": 3,
+            "tolerance": 0.6
+          },
+          {
+            "at": 7.5,
+            "type": "near",
+            "trigger": 3,
+            "target": "bolt_toy",
+            "x": 8,
+            "y": 6,
+            "tolerance": 0.4
+          },
+          {
+            "at": 9.3,
+            "type": "near",
+            "invariant": true,
+            "target": "ball",
+            "x": 12,
+            "y": 3,
+            "tolerance": 0.6
+          },
+          {
+            "at": 10.8,
+            "type": "displacement",
+            "trigger": 5,
+            "target": "bolt_toy",
+            "min": 0.5
+          },
+          {
+            "at": 12.3,
+            "type": "near",
+            "trigger": 6,
+            "target": "ball",
+            "x": 4,
+            "y": 3,
+            "tolerance": 0.6
+          },
+          {
+            "at": 13.8,
+            "type": "near",
+            "trigger": 7,
+            "target": "ball",
+            "x": 12,
+            "y": 3,
+            "tolerance": 0.6
+          },
+          {
+            "at": 14,
+            "after": 0,
+            "type": "command",
+            "command": "score",
+            "min": 0,
+            "max": 0
+          },
+          {
+            "at": 14,
+            "after": 0,
+            "type": "command",
+            "command": "ask",
+            "min": 0,
+            "max": 0
+          },
+          {
+            "at": 14,
+            "after": 0,
+            "type": "command",
+            "command": "win",
+            "min": 0,
+            "max": 0
+          },
+          {
+            "at": 14,
+            "after": 0,
+            "type": "command",
+            "command": "lose",
+            "min": 0,
+            "max": 0
+          }
+        ]
+      }
+    ],
+    "unverified": ["Visual appearance of the portal pads at (4, 3) and (12, 3)."]
+  },
+  "doc": {
+    "schemaVersion": 1,
+    "worldId": "w_fixture_moon_bounce",
+    "tier": "playground",
+    "title": "Bouncy Ball on the Moon",
+    "theme": {
+      "paletteHint": "deep indigo with silver",
+      "timeOfDay": "night",
+      "backdropDescription": "cartoon moon surface with soft grey craters, a starry sky and a tiny Earth in the distance",
+      "backdrop": {
+        "url": "",
+        "width": 1920,
+        "height": 1080,
+        "status": "placeholder"
+      }
+    },
+    "environment": {
+      "gravity": {
+        "x": 0,
+        "y": 0
+      },
+      "wind": {
+        "x": 0,
+        "y": 0
+      },
+      "medium": "air",
+      "bounds": {
+        "width": 16,
+        "height": 9
+      },
+      "seed": 7
+    },
+    "materials": {
+      "moondust": {
+        "density": 1.5,
+        "friction": 0.8,
+        "restitution": 0.1,
+        "softness": 0.1,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "rubber": {
+        "density": 1.1,
+        "friction": 0.8,
+        "restitution": 0.85,
+        "softness": 0.2,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      },
+      "metal": {
+        "density": 6,
+        "friction": 0.4,
+        "restitution": 0.2,
+        "softness": 0,
+        "buoyant": false,
+        "breakable": false,
+        "pretend": false
+      }
+    },
+    "entities": [
+      {
+        "id": "ground",
+        "kind": "ground",
+        "name": "moon ground",
+        "description": "soft grey cartoon moon surface",
+        "body": {
+          "shape": "box",
+          "material": "moondust",
+          "isStatic": true,
+          "size": {
+            "width": 16,
+            "height": 1
+          }
+        },
+        "transform": {
+          "x": 8,
+          "y": 8.5,
+          "rotation": 0
+        },
+        "tags": ["ground"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "ball",
+        "kind": "sprite",
+        "name": "bouncy ball",
+        "description": "bright red rubber bouncy ball with a white star",
+        "body": {
+          "shape": "circle",
+          "material": "rubber",
+          "isStatic": true,
+          "size": {
+            "width": 1,
+            "height": 1
+          }
+        },
+        "transform": {
+          "x": 4,
+          "y": 3,
+          "rotation": 0
+        },
+        "tags": ["ball", "hero"],
+        "behaviors": [],
+        "pretend": false
+      },
+      {
+        "id": "bolt_toy",
+        "kind": "sprite",
+        "name": "metal bolt",
+        "description": "shiny chunky cartoon metal bolt",
+        "body": {
+          "shape": "box",
+          "material": "metal",
+          "isStatic": true,
+          "size": {
+            "width": 0.8,
+            "height": 0.8
+          }
+        },
+        "transform": {
+          "x": 8,
+          "y": 6,
+          "rotation": 0
+        },
+        "tags": ["bolt"],
+        "behaviors": [],
+        "pretend": false
+      }
+    ],
+    "joints": [],
+    "rules": [
+      {
+        "id": "r_ball_bounce",
+        "when": {
+          "event": "collision",
+          "a": "ball",
+          "b": "ground",
+          "minImpulse": 1
+        },
+        "then": [
+          {
+            "action": "sound",
+            "cue": "boing"
+          },
+          {
+            "action": "say",
+            "text": "Look how slowly it falls! The Moon pulls much less than Earth does."
+          }
+        ],
+        "concept": "gravity",
+        "once": true
+      },
+      {
+        "id": "r_bolt_land",
+        "when": {
+          "event": "collision",
+          "a": "bolt",
+          "b": "ground",
+          "minImpulse": 1
+        },
+        "then": [
+          {
+            "action": "sound",
+            "cue": "ding"
+          },
+          {
+            "action": "say",
+            "text": "The heavy bolt fell just as slowly as the ball. Gravity pulls everything the same way!"
+          }
+        ],
+        "concept": "mass",
+        "once": true
+      },
+      {
+        "id": "r_earth",
+        "when": {
+          "event": "dial",
+          "dial": "gravity",
+          "value": "earth"
+        },
+        "then": [
+          {
+            "action": "say",
+            "text": "Whoa, Earth gravity! Everything drops faster now."
+          }
+        ],
+        "once": false
+      }
+    ],
+    "learning": {
+      "concepts": ["gravity", "mass"],
+      "prediction": {
+        "question": "Which one lands first on the Moon, the ball or the heavy bolt?",
+        "options": ["the ball", "the bolt", "same time"],
+        "correctIndex": 2,
+        "concept": "gravity"
+      },
+      "dials": ["gravity"],
+      "heroEntityId": "ball"
+    },
+    "narration": {
+      "intro": "Welcome to the Moon! Drop the ball and the bolt and watch what happens."
+    },
+    "game": {
+      "script": {
+        "apiVersion": 1,
+        "source": "let portalOn = false; const PAD_LEFT = { x: 4, y: 3 }; const PAD_RIGHT = { x: 12, y: 3 }; const BOLT_OFF = { x: 8, y: 6 }; const BOLT_ON = { x: 8, y: 4.5 }; game.move(\"ball\", PAD_LEFT); game.move(\"bolt_toy\", BOLT_OFF); game.on(\"tap\", (e) => { if (!e.target) return; const id = e.target.id; const tags = e.target.tags || []; if (id === \"bolt_toy\" || tags.includes(\"bolt\")) { portalOn = !portalOn; if (portalOn) { game.move(\"bolt_toy\", BOLT_ON); game.sound(\"ding\"); game.say(\"Portal is on! Tap the ball to teleport!\"); } else { game.move(\"bolt_toy\", BOLT_OFF); game.sound(\"pop\"); game.say(\"Portal is off!\"); } return; } if (id === \"ball\" || tags.includes(\"ball\")) { if (!portalOn) { game.sound(\"boing\"); game.say(\"The portal is off! Tap the bolt first.\"); return; } const balls = game.find(\"ball\"); const currentBall = balls.length > 0 ? balls[0] : e.target; const destination = currentBall.x < 8 ? PAD_RIGHT : PAD_LEFT; game.move(\"ball\", destination); game.sound(\"whoosh\"); game.celebrate(\"sparkle\"); game.say(\"Zap! Teleported to the other pad!\"); } });",
+        "hash": "0c090af7b6f5eaf65a7c1366f80146233ab8658ac6dd1f9b813eed2fbb49f478"
+      },
+      "mode": "freeplay"
+    }
+  }
+}

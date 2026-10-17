@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import '../../app/studio.css';
 import '../../app/learn.css';
 import { useEffect, useState } from 'react';
@@ -37,6 +38,7 @@ const ISLAND_ART: Record<Section, string> = {
 /** Reads the explorer the child picked on /play; the Learn screens share it with the Studio. */
 export function useChild(): ChildResponse | undefined {
   const router = useRouter();
+  const { language } = useLanguage();
   const [child, setChild] = useState<ChildResponse>();
   useEffect(() => {
     let parsed: ChildResponse | undefined;
@@ -52,7 +54,7 @@ export function useChild(): ChildResponse | undefined {
     // Restore the selected explorer after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setChild(parsed);
-  }, [router]);
+  }, [router, language]);
   return child;
 }
 
@@ -139,7 +141,7 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
                 </span>
                 <IslandBase section={island.section} />
               </span>
-              <span className="island-name">{name}</span>
+              <span className="island-name">{uiText(name)}</span>
               <span className="island-note">
                 {island.open
                   ? t('learnWorlds.progress', { done, total })
@@ -170,9 +172,11 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
           <Actor id="katha" />
         </svg>
         <span>
-          <strong>{language === 'bn' ? 'কথার গল্পঘর' : 'Katha’s story room'}</strong>
+          <strong>{language === 'bn' ? 'কথার গল্পঘর' : uiText('Katha’s story room')}</strong>
           <span>
-            {language === 'bn' ? 'তোমার ভাবনা থেকে নতুন গল্প' : 'A new story from your imagination'}
+            {language === 'bn'
+              ? 'তোমার ভাবনা থেকে নতুন গল্প'
+              : uiText('A new story from your imagination')}
           </span>
         </span>
         <span aria-hidden="true">→</span>

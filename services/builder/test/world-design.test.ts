@@ -5,7 +5,13 @@ import { BuildWorldJobSchema } from '@just-imagine/protocol';
 
 describe('world design rules', () => {
   it('cover story, magnet, child as hero, discovery and the eleven rules', () => {
-    for (const word of ['Story first', 'magnet', 'child is the hero', 'surprise', 'Plus it'])
+    for (const word of [
+      'For a requested story',
+      'magnet',
+      'child is the hero',
+      'surprise',
+      'Plus it',
+    ])
       expect(WORLD_DESIGN_RULES).toContain(word);
     expect(WORLD_DESIGN_RULES.match(/^\d+\./gm)?.length).toBe(11);
   });

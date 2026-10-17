@@ -1,8 +1,11 @@
+'use client';
+import { useLanguage } from '../lib/i18n';
 import Link from 'next/link';
 import { s } from '../lib/strings/en';
 import { env } from '../lib/env';
 import { Mark } from './Mark';
 export function Brand() {
+  useLanguage();
   return (
     <Link className="brand" href="/">
       <span className="brand-mark" aria-hidden="true">
@@ -14,6 +17,7 @@ export function Brand() {
   );
 }
 export function Header() {
+  useLanguage();
   return (
     <header className="header">
       <Brand />
@@ -25,6 +29,7 @@ export function Header() {
   );
 }
 export function Preview() {
+  useLanguage();
   return env.fake ? (
     <div className="preview" role="note">
       {s.preview}
@@ -32,6 +37,7 @@ export function Preview() {
   ) : null;
 }
 export function Footer() {
+  useLanguage();
   return (
     <footer>
       <Brand />

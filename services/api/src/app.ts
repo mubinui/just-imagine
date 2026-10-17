@@ -1,4 +1,13 @@
 import Fastify from 'fastify';
+import type { ContentEditions } from '@just-imagine/server-core';
+import {
+  LanguageSchema,
+  paths,
+  contentTexts,
+  textUsesLanguage,
+  type Language,
+  type ContentKind,
+} from '@just-imagine/protocol';
 import { FirestoreStoryStore, storyRoutes } from './stories';
 import cors from '@fastify/cors';
 import { z } from 'zod';
@@ -32,6 +41,7 @@ export interface ApiOptions {
   isSuspended?: (uid: string) => Promise<boolean>;
   learn?: LearnStore;
   stories?: FirestoreStoryStore;
+  editions?: ContentEditions;
   origins: string[];
 }
 export function createApi(options: ApiOptions) {
@@ -133,25 +143,154 @@ export function createApi(options: ApiOptions) {
       await options.store.deleteChild(req.parentUid, id(req.params, 'childId'));
       return reply.status(204).send();
     });
-    routes.get('/v1/children/:childId/worlds', (req) =>
-      options.store.listWorlds(req.parentUid, id(req.params, 'childId')),
-    );
-    routes.get('/v1/children/:childId/sessions', (req) =>
-      options.store.listSessions(req.parentUid, id(req.params, 'childId')),
-    );
-    routes.get('/v1/children/:childId/discoveries', (req) =>
-      options.store.listDiscoveries(req.parentUid, id(req.params, 'childId')),
-    );
-    routes.get('/v1/worlds/:worldId', (req) =>
-      options.store.getWorld(req.parentUid, id(req.params, 'worldId')),
-    );
+    const selectedLanguage = (headers: Record<string, unknown>): Language | undefined =>
+      headers['x-app-language'] === undefined
+        ? undefined
+        : LanguageSchema.parse(headers['x-app-language']);
+    const edition = async <T>(
+      uid: string,
+      language: Language | undefined,
+      kind: ContentKind,
+      path: string,
+      childId: string,
+      value: T,
+    ): Promise<T> => {
+      if (!language) return value;
+      if (!options.editions) {
+        if (contentTexts(kind, value).every((entry) => textUsesLanguage(entry.text, language)))
+          return value;
+        throw new ApiFault(
+          503,
+          'INTERNAL',
+          'This language edition is not ready. Please try again shortly.',
+        );
+      }
+      try {
+        return await options.editions.apply({ uid, childId, kind, path }, language, value);
+      } catch {
+        throw new ApiFault(
+          503,
+          'INTERNAL',
+          'This language edition is not ready. Please try again shortly.',
+        );
+      }
+    };
+    routes.get('/v1/children/:childId/worlds', async (req) => {
+      const childId = id(req.params, 'childId'),
+        language = selectedLanguage(req.headers);
+      const result = await options.store.listWorlds(req.parentUid, childId);
+      if (!language) return result;
+      if (!options.editions) {
+        if (result.worlds.every((world) => textUsesLanguage(world.title, language))) return result;
+        throw new ApiFault(
+          503,
+          'INTERNAL',
+          'This language edition is not ready. Please try again shortly.',
+        );
+      }
+      return {
+        worlds: await Promise.all(
+          result.worlds.map(async (summary) => {
+            const canonical = await options.store.getWorld(req.parentUid, summary.id);
+            const localized = await edition(
+              req.parentUid,
+              language,
+              'world',
+              paths.world(summary.id),
+              childId,
+              canonical,
+            );
+            return { ...summary, title: localized.title };
+          }),
+        ),
+      };
+    });
+    routes.get('/v1/children/:childId/sessions', async (req) => {
+      const childId = id(req.params, 'childId'),
+        result = await options.store.listSessions(req.parentUid, childId);
+      return {
+        sessions: await Promise.all(
+          result.sessions.map((value) =>
+            edition(
+              req.parentUid,
+              selectedLanguage(req.headers),
+              'session',
+              paths.session(value.id),
+              childId,
+              value,
+            ),
+          ),
+        ),
+      };
+    });
+    routes.get('/v1/children/:childId/discoveries', async (req) => {
+      const childId = id(req.params, 'childId'),
+        result = await options.store.listDiscoveries(req.parentUid, childId);
+      return {
+        discoveries: await Promise.all(
+          result.discoveries.map((value) =>
+            edition(
+              req.parentUid,
+              selectedLanguage(req.headers),
+              'discovery',
+              paths.discovery(req.parentUid, childId, value.concept),
+              childId,
+              value,
+            ),
+          ),
+        ),
+      };
+    });
+    routes.get('/v1/worlds/:worldId', async (req) => {
+      const worldId = id(req.params, 'worldId'),
+        value = await options.store.getWorld(req.parentUid, worldId);
+      return edition(
+        req.parentUid,
+        selectedLanguage(req.headers),
+        'world',
+        paths.world(worldId),
+        value.childId,
+        value,
+      );
+    });
+    routes.post('/v1/worlds/:worldId/text-edition', async (req) => {
+      const worldId = id(req.params, 'worldId'),
+        value = await options.store.getWorld(req.parentUid, worldId);
+      const body = z
+        .strictObject({
+          language: LanguageSchema,
+          texts: z.array(z.string().trim().min(1).max(1000)).min(1).max(16),
+        })
+        .parse(req.body);
+      if (!options.editions) throw new ApiFault(503, 'INTERNAL', 'Translation is unavailable.');
+      try {
+        return {
+          texts: await options.editions.runtime(
+            {
+              kind: 'world',
+              path: paths.world(worldId),
+              uid: req.parentUid,
+              childId: value.childId,
+            },
+            body.language,
+            body.texts,
+          ),
+        };
+      } catch {
+        throw new ApiFault(
+          503,
+          'INTERNAL',
+          'This language edition is not ready. Please try again shortly.',
+        );
+      }
+    });
     routes.delete('/v1/worlds/:worldId', async (req, reply) => {
       await options.store.deleteWorld(req.parentUid, id(req.params, 'worldId'));
       return reply.status(204).send();
     });
     routes.get('/v1/usage/today', (req) => options.store.usageToday(req.parentUid));
     learnRoutes(routes, options.learn ?? new FirestoreLearnStore());
-    storyRoutes(routes, options.stories ?? new FirestoreStoryStore());
+    storyRoutes(routes, options.stories ?? new FirestoreStoryStore(), options.editions);
     routes.post('/v1/me/delete', async (req, reply) => {
       const me = await options.store.me(req.parentUid);
       if (me.user.stripeCustomerId && !options.billing)

@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useRef, useState } from 'react';
 import { ADVENTURES, type StoryChapter } from '@just-imagine/learning-content/play';
 import { useLanguage, formatNumber } from '../../lib/i18n';
@@ -30,6 +31,7 @@ export function StoryAdventure(props: {
   onObservation: (event: string) => void;
   onChallenge: (characterId: string) => void;
 }) {
+  useLanguage();
   const book = useAdventureBook(props.childId, props.pack.id);
   const story = ADVENTURES[props.pack.id];
   if (!story) return null;
@@ -37,7 +39,7 @@ export function StoryAdventure(props: {
     return (
       <div className="story-loading" role="status">
         <LearnArt id={story.chapters[0]!.characterId} />
-        <p>{'Opening your adventure… / তোমার গল্প খুলছে…'}</p>
+        <p>{uiText('Opening your adventure…')}</p>
       </div>
     );
   return <StoryBook {...props} book={book} />;
@@ -145,10 +147,11 @@ function StoryBook({
     >
       <header className="story-toolbar">
         <div>
-          <h2>{story.title[lang]}</h2>
+          <h2>{uiText(story.title[lang])}</h2>
           <p>
-            {formatNumber(index + 1, language)} / {formatNumber(story.chapters.length, language)} ·{' '}
-            {chapter.title[lang]}
+            {formatNumber(index + 1, language)} / {formatNumber(story.chapters.length, language)} ·
+            {uiText(' ')}
+            {uiText(chapter.title[lang])}
           </p>
         </div>
         <div className="story-tools">
@@ -156,18 +159,22 @@ function StoryBook({
             type="button"
             className="story-friend"
             onClick={() => onMeet(chapter.characterId)}
-            aria-label={bn ? `${character.nameBn}কে কাছে আনো` : `Meet ${character.name}`}
+            aria-label={
+              bn
+                ? `${character.nameBn}কে কাছে আনো`
+                : uiText('Meet {v0}', { v0: String(character.name) })
+            }
           >
             <LearnArt id={chapter.characterId} />
-            <span>{bn ? 'বন্ধুর সঙ্গে দেখা' : 'Meet your friend'}</span>
+            <span>{bn ? 'বন্ধুর সঙ্গে দেখা' : uiText('Meet your friend')}</span>
           </button>
           <details className="story-chapters" ref={details}>
             <summary>
               <LearnIcon name="map" />
-              <span>{bn ? 'গল্পের পাতা' : 'Story chapters'}</span>
+              <span>{bn ? 'গল্পের পাতা' : uiText('Story chapters')}</span>
             </summary>
-            <nav aria-label={bn ? 'গল্পের অধ্যায়' : 'Adventure chapters'}>
-              <p>{story.opening[lang]}</p>
+            <nav aria-label={bn ? 'গল্পের অধ্যায়' : uiText('Adventure chapters')}>
+              <p>{uiText(story.opening[lang])}</p>
               {story.chapters.map((c, i) => (
                 <button
                   type="button"
@@ -177,9 +184,9 @@ function StoryBook({
                   data-chapter-link={c.id}
                 >
                   <LearnArt id={c.characterId} />
-                  <span>{c.title[lang]}</span>
+                  <span>{uiText(c.title[lang])}</span>
                   {book.done.includes(c.id) && (
-                    <svg viewBox="0 0 24 24" aria-label={bn ? 'খেলা হয়েছে' : 'Played'}>
+                    <svg viewBox="0 0 24 24" aria-label={bn ? 'খেলা হয়েছে' : uiText('Played')}>
                       <path d="m5 12 4 4L19 6" />
                     </svg>
                   )}
@@ -197,7 +204,7 @@ function StoryBook({
               {phase === 'ending' && allDone
                 ? bn
                   ? 'পুরো গল্প একসঙ্গে!'
-                  : 'The whole story, together!'
+                  : uiText('The whole story, together!')
                 : chapter.title[lang]}
             </h3>
             <p>{phase === 'ending' && allDone ? story.ending[lang] : chapter.setup[lang]}</p>
@@ -225,22 +232,24 @@ function StoryBook({
                   ? allDone
                     ? bn
                       ? 'আবার গল্প খেলি'
-                      : 'Play the story again'
+                      : uiText('Play the story again')
                     : bn
                       ? 'পরের অধ্যায়'
-                      : 'Next chapter'
+                      : uiText('Next chapter')
                   : bn
                     ? 'চলো সাহায্য করি'
-                    : 'Let’s help'}
+                    : uiText('Let’s help')}
               </button>
               <button type="button" onClick={() => onGuide(chapter, currentPhase)}>
                 <LearnIcon name="phone" />
-                {bn ? `${character.nameBn}কে ডাকো` : `Call ${character.name}`}
+                {bn
+                  ? `${character.nameBn}কে ডাকো`
+                  : uiText('Call {v0}', { v0: String(character.name) })}
               </button>
               {phase === 'ending' && (
                 <button type="button" onClick={() => onChallenge(chapter.characterId)}>
                   <LearnIcon name="studio" />
-                  {bn ? 'কথায় চ্যালেঞ্জ' : 'Try a spoken challenge'}
+                  {bn ? 'কথায় চ্যালেঞ্জ' : uiText('Try a spoken challenge')}
                 </button>
               )}
             </div>
@@ -250,21 +259,25 @@ function StoryBook({
         <>
           <div className="story-play-heading">
             <div>
-              <h3>{chapter.title[lang]}</h3>
-              <p>{chapter.goal[lang]}</p>
+              <h3>{uiText(chapter.title[lang])}</h3>
+              <p>{uiText(chapter.goal[lang])}</p>
             </div>
             <div className="story-play-actions">
               <button
                 type="button"
                 onClick={() => onGuide(chapter, 'progress')}
-                aria-label={bn ? `${character.nameBn}কে ডাকো` : `Call ${character.name}`}
+                aria-label={
+                  bn
+                    ? `${character.nameBn}কে ডাকো`
+                    : uiText('Call {v0}', { v0: String(character.name) })
+                }
               >
                 {figure}
-                <span>{bn ? 'সাহায্য নাও' : 'Ask for help'}</span>
+                <span>{bn ? 'সাহায্য নাও' : uiText('Ask for help')}</span>
               </button>
               <button
                 type="button"
-                aria-label={bn ? 'অধ্যায় আবার খেলো' : 'Restart chapter'}
+                aria-label={bn ? 'অধ্যায় আবার খেলো' : uiText('Restart chapter')}
                 onClick={() => {
                   clearTimeout(endingTimer.current);
                   setAttempt((v) => v + 1);
@@ -299,26 +312,27 @@ function StoryBook({
       )}
       <footer className="story-bookmark">
         <span>
-          {formatNumber(book.done.length, language)} /{' '}
-          {formatNumber(story.chapters.length, language)}{' '}
+          {formatNumber(book.done.length, language)} /{uiText(' ')}
+          {formatNumber(story.chapters.length, language)}
+          {uiText(' ')}
           {bn ? 'অধ্যায় খেলা হয়েছে' : 'chapters played'}
         </span>
         <span role="status">
           {book.status === 'saving'
             ? bn
               ? 'গল্প সেভ হচ্ছে…'
-              : 'Saving your story…'
+              : uiText('Saving your story…')
             : book.status === 'offline'
               ? bn
                 ? 'এখানে আছে; অনলাইনে সেভ আবার চেষ্টা করো।'
-                : 'Kept here; online save needs another try.'
+                : uiText('Kept here; online save needs another try.')
               : bn
                 ? 'গল্পের পাতা মনে রাখা আছে'
-                : 'Your place is remembered'}
+                : uiText('Your place is remembered')}
         </span>
         {book.status === 'offline' && (
           <button type="button" onClick={() => void book.save()}>
-            {bn ? 'আবার সেভ করো' : 'Retry save'}
+            {bn ? 'আবার সেভ করো' : uiText('Retry save')}
           </button>
         )}
       </footer>

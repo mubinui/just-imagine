@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useRef } from 'react';
 import { useLanguage } from '../../lib/i18n';
 import { PetArt } from './PetArt';
@@ -55,7 +56,7 @@ export function PetShelf({
                     onClick={() => onChoose(pet.id)}
                   >
                     <PetArt id={pet.id} />
-                    <strong>{name}</strong>
+                    <strong>{uiText(name)}</strong>
                     {buddy === pet.id && <small>{t('learnWorlds.buddy')}</small>}
                   </button>
                 ) : (

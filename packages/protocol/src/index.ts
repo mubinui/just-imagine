@@ -15,3 +15,6 @@ export * from './stories';
 export * from './specialists';
 
 export * from './appearance';
+
+export * from './language-policy';
+export * from './content-language';

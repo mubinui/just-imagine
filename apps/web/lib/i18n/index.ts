@@ -1,6 +1,8 @@
+import { setActiveStrings } from '../strings/en';
 import { useSyncExternalStore } from 'react';
 import { en, type StringKey, type StringTable } from './en';
 import { bn } from './bn';
+import { UI_BN } from './ui-bn';
 
 export type { StringKey, StringTable } from './en';
 
@@ -20,8 +22,8 @@ export function strings(language: Language): StringTable {
 }
 
 /** The value for the html or element `lang` attribute. */
-export function langAttr(language: Language): 'en' | 'bn' {
-  return language;
+export function langAttr(language: Language): 'en' | 'bn-BD' {
+  return language === 'bn' ? 'bn-BD' : 'en';
 }
 
 const BENGALI_ZERO = 0x09e6;
@@ -55,6 +57,19 @@ function lookup(table: StringTable, key: string): string | undefined {
   return typeof node === 'string' ? node : undefined;
 }
 
+/** Attach grammatical Bangla name suffixes without changing the stored identity. */
+export function withNameSuffix(
+  value: string,
+  suffix: string | undefined,
+  language: Language,
+): string {
+  if (!suffix) return value;
+  if (language !== 'bn' || !/[\u0980-\u09ff]$/u.test(value)) return value + suffix;
+  if (suffix === '-কে') return value + 'কে';
+  if (suffix === '-এর') return value + (/[অআইঈউঊঋএঐওঔািীুূেৈোৌ]$/u.test(value) ? 'র' : 'ের');
+  return value + suffix;
+}
+
 /**
  * The string for `key` in `language`, with `{name}`-style variables filled in. Numbers are written
  * in the numerals of the language; a variable that was not passed stays visible as `{name}`.
@@ -62,10 +77,16 @@ function lookup(table: StringTable, key: string): string | undefined {
 export function translate(language: Language, key: StringKey, vars?: Vars): string {
   const text = lookup(TABLES[language], key) ?? lookup(en, key) ?? key;
   if (!vars) return text;
-  return text.replace(/\{(\w+)\}/g, (match, name: string) => {
+  return text.replace(/\{(\w+)\}(-এর|-কে)?/g, (match, name: string, suffix: string | undefined) => {
     const value = vars[name];
     if (value === undefined) return match;
-    return typeof value === 'number' ? formatNumber(value, language) : value;
+    const formatted =
+      typeof value === 'number'
+        ? formatNumber(value, language)
+        : language === 'bn'
+          ? (UI_BN[value] ?? value)
+          : (Object.entries(UI_BN).find(([, bn]) => bn === value)?.[0] ?? value);
+    return withNameSuffix(formatted, suffix, language);
   });
 }
 
@@ -114,7 +135,19 @@ export function readLanguage(): Language {
  * Records the parent's choice locally and tells every `useLanguage()` about it. The caller also
  * saves it to the child profile through the api; this only keeps the browser in step.
  */
+const LANGUAGE_RENDER_KEY = '__justImagineRenderLanguage';
+export function currentLanguage(): Language {
+  const value = (globalThis as Record<string, unknown>)[LANGUAGE_RENDER_KEY];
+  return isLanguage(value) ? value : DEFAULT_LANGUAGE;
+}
+export function setRenderLanguage(language: Language): void {
+  (globalThis as Record<string, unknown>)[LANGUAGE_RENDER_KEY] = language;
+}
+
 export function setLanguage(language: Language): void {
+  if (!isLanguage(language)) throw new Error('Unsupported language');
+  setRenderLanguage(language);
+  setActiveStrings(TABLES[language]);
   const store = storage();
   if (store) {
     store.setItem(PREFERENCE_KEY, language);
@@ -153,4 +186,13 @@ export function useLanguage() {
     setLanguage,
     t: (key: StringKey, vars?: Vars) => translate(language, key, vars),
   };
+}
+
+/** Selecting a profile also updates already-mounted navigation in the same tab. */
+export function selectLanguageProfile(
+  profile: { id: string; language?: Language } & Record<string, unknown>,
+): void {
+  const store = storage();
+  store?.setItem(CHILD_KEY, JSON.stringify(profile));
+  setLanguage(profile.language === 'bn' ? 'bn' : 'en');
 }

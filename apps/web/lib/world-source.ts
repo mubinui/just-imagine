@@ -1,3 +1,5 @@
+import { api } from './api';
+import { currentLanguage } from './i18n';
 import { WorldDocSchema, paths, type WorldSource, type WorldWithId } from '@just-imagine/protocol';
 import {
   FakeWorldSource,
@@ -53,15 +55,34 @@ export function createWorldSource(key: PreviewKey = 'jellyDragon'): WorldSource 
     );
   return {
     subscribe(id, update, error) {
-      return onSnapshot(
+      let active = true,
+        revision = 0;
+      const language = currentLanguage();
+      const stop = onSnapshot(
         doc(firebase().db, paths.world(id)),
         (snap) => {
+          const current = ++revision;
           const parsed = WorldDocSchema.safeParse(snap.data());
-          if (parsed.success) update({ ...parsed.data, id });
-          else error?.(new Error('The world document could not be validated.'));
+          if (!parsed.success) {
+            error?.(new Error('The world document could not be validated.'));
+            return;
+          }
+          // Firestore remains the live invalidation source; only an owned translated API view is rendered.
+          void api<WorldWithId>('getWorld', { worldId: id })
+            .then((localized) => {
+              if (active && current === revision && language === currentLanguage())
+                update(localized);
+            })
+            .catch((failure) => {
+              if (active && current === revision) error?.(failure);
+            });
         },
         error,
       );
+      return () => {
+        active = false;
+        stop();
+      };
     },
   };
 }

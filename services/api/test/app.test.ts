@@ -120,3 +120,97 @@ it('requires a signed-in parent and explicit photo permission before drawing a c
   expect(missing.statusCode).toBe(503);
   await app.close();
 });
+
+describe('selected-language response boundary', () => {
+  it('uses only the verified owner and rejects unsupported languages before translating', async () => {
+    const calls: unknown[] = [];
+    const app = createApi({
+      store: {
+        getWorld: async (uid: string, id: string) => ({
+          id,
+          ownerUid: uid,
+          childId: 'c_one',
+          title: 'A garden',
+        }),
+      } as ApiStore,
+      verifyToken: async () => ({ uid: 'parent' }),
+      origins: [],
+      editions: {
+        apply: async (...args: unknown[]) => {
+          calls.push(args);
+          return { title: 'বাগান' };
+        },
+      } as never,
+    });
+    const res = await app.inject({
+      url: '/v1/worlds/w_one',
+      headers: { authorization: 'Bearer valid', 'x-app-language': 'bn' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().title).toBe('বাগান');
+    expect(calls[0]).toEqual([
+      { uid: 'parent', childId: 'c_one', kind: 'world', path: 'worlds/w_one' },
+      'bn',
+      expect.objectContaining({ title: 'A garden' }),
+    ]);
+    expect(
+      (
+        await app.inject({
+          url: '/v1/worlds/w_one',
+          headers: { authorization: 'Bearer valid', 'x-app-language': 'hi' },
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(calls).toHaveLength(1);
+    await app.close();
+  });
+  it('does not return original prose as a successful selected-language edition on model failure', async () => {
+    const app = createApi({
+      store: {
+        getWorld: async () => ({ id: 'w_one', childId: 'c_one', title: 'A garden' }),
+      } as unknown as ApiStore,
+      verifyToken: async () => ({ uid: 'parent' }),
+      origins: [],
+      editions: {
+        apply: async () => {
+          throw new Error('model secret');
+        },
+      } as never,
+    });
+    const res = await app.inject({
+      url: '/v1/worlds/w_one',
+      headers: { authorization: 'Bearer valid', 'x-app-language': 'bn' },
+    });
+    expect(res.statusCode).toBe(503);
+    expect(res.body).not.toContain('A garden');
+    expect(res.body).not.toContain('model secret');
+    await app.close();
+  });
+});
+
+it('fails a missing translator closed rather than presenting English content in Bangla', async () => {
+  const app = createApi({
+    store: {
+      getWorld: async () => ({ id: 'w_one', childId: 'c_one', title: 'A garden' }),
+    } as unknown as ApiStore,
+    verifyToken: async () => ({ uid: 'parent' }),
+    origins: [],
+  });
+  expect(
+    (
+      await app.inject({
+        url: '/v1/worlds/w_one',
+        headers: { authorization: 'Bearer valid', 'x-app-language': 'bn' },
+      })
+    ).statusCode,
+  ).toBe(503);
+  expect(
+    (
+      await app.inject({
+        url: '/v1/worlds/w_one',
+        headers: { authorization: 'Bearer valid', 'x-app-language': 'en' },
+      })
+    ).statusCode,
+  ).toBe(200);
+  await app.close();
+});

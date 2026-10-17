@@ -10,7 +10,7 @@ export const MISSIONS: Record<Section, [string, string, string, string]> = {
     'Oxygen delivery crew',
     'অক্সিজেন পৌঁছানোর দল',
     'Carry the oxygen parcel from lungs → heart → body → heart → lungs.',
-    'অক্সিজেন নিয়ে যাও: ফুসফুস → হৃদয় → শরীর → হৃদয় → ফুসফুস।',
+    'অক্সিজেন নিয়ে যাও: ফুসফুস → হৃৎপিণ্ড → শরীর → হৃৎপিণ্ড → ফুসফুস।',
   ],
   space: [
     'Moonlight detective',

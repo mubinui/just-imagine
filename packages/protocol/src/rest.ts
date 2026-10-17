@@ -114,6 +114,7 @@ export const ROUTES = {
   listSessions: { method: 'GET', path: '/v1/children/:childId/sessions' },
   listDiscoveries: { method: 'GET', path: '/v1/children/:childId/discoveries' },
   getWorld: { method: 'GET', path: '/v1/worlds/:worldId' },
+  worldTextEdition: { method: 'POST', path: '/v1/worlds/:worldId/text-edition' },
   deleteWorld: { method: 'DELETE', path: '/v1/worlds/:worldId' },
   usageToday: { method: 'GET', path: '/v1/usage/today' },
   checkout: { method: 'POST', path: '/v1/billing/checkout' },

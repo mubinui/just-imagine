@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText } from '../../lib/i18n/ui';
 import type { Companion } from '@just-imagine/protocol';
 import { CompanionArt } from '../companion/Companion';
 import { tappableEntities } from '../../lib/playable-preview';
@@ -47,6 +49,7 @@ export function StudioControls({
   onFinish: () => void;
   menu?: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <div className="controls" role="group" aria-label={s.guides}>
       {live ? (
@@ -57,7 +60,7 @@ export function StudioControls({
       ) : (
         <button type="button" className="pill primary" onClick={onAsk}>
           <MicIcon />
-          <span>{s.ask.replace('{name}', name)}</span>
+          <span>{s.ask.replace('{name}', uiText(name))}</span>
         </button>
       )}
       <button type="button" className="pill build" onClick={onBuild}>
@@ -96,6 +99,7 @@ export function TopBar({
   storybook?: React.ReactNode;
   note?: string;
 }) {
+  useLanguage();
   const state =
     status === 'connected' && job && job !== 'ready' && job !== 'failed' ? 'building' : status;
   const label =
@@ -127,11 +131,11 @@ export function TopBar({
         <span>{s.captions}</span>
       </button>
       <div className="status-chip" data-state={state} role="status">
-        <strong>{label}</strong>
+        <strong>{uiText(label)}</strong>
         <small>
-          {s.speak}: {status}
+          {s.speak}: {uiText(status)}
         </small>
-        {note && <small className="note">{note}</small>}
+        {note && <small className="note">{uiText(note)}</small>}
         {status === 'error' && (
           <button type="button" onClick={onRetry}>
             {s.retry}
@@ -151,6 +155,7 @@ export function Storybook<K extends string>({
   selected: K;
   onSelect: (key: K) => void;
 }) {
+  useLanguage();
   return (
     <div className="storybook" role="group" aria-label={s.storybook}>
       <span className="storybook-tag" title={s.preview}>
@@ -164,7 +169,7 @@ export function Storybook<K extends string>({
           onClick={() => onSelect(key)}
           aria-pressed={selected === key}
         >
-          {doc.title}
+          {uiText(doc.title)}
         </button>
       ))}
     </div>
@@ -188,6 +193,7 @@ export function Listening({
   live: boolean;
   speaking?: boolean;
 }) {
+  useLanguage();
   const name = personalName ?? CHARACTERS[character].displayName;
   return (
     <div
@@ -205,7 +211,7 @@ export function Listening({
             </span>
           )}
         </div>
-        <h1>{building ? s.building : live ? s.listening.replace('{name}', name) : s.tapFriend}</h1>
+        <h1>{building ? s.building : live ? uiText(s.listening, { name }) : s.tapFriend}</h1>
         {building ? (
           <span className="building-dots" aria-hidden="true">
             <i />
@@ -231,6 +237,7 @@ export function DialTray({
   values: Record<string, string>;
   onChange: (dial: Dial, value: string) => void;
 }) {
+  useLanguage();
   if (!doc.learning.dials.length) return null;
   const options = (dial: Dial): [string, string][] =>
     dial === 'gravity'
@@ -250,7 +257,7 @@ export function DialTray({
         <label className="dial" key={dial}>
           <span>{s.dialLabels[dial]}</span>
           <select
-            aria-label={dial}
+            aria-label={uiText(dial)}
             value={
               values[dial] ??
               (dial === 'gravity'
@@ -271,7 +278,7 @@ export function DialTray({
             </option>
             {options(dial).map(([value, label]) => (
               <option key={value} value={value}>
-                {label}
+                {uiText(label)}
               </option>
             ))}
           </select>
@@ -290,10 +297,11 @@ export function EntityActions({
   onTap: (id: string) => void;
   onFlick: (id: string, direction: { x: number; y: number }) => void;
 }) {
+  useLanguage();
   const dynamic = tappableEntities(doc).filter((entity) => !entity.character);
   if (!dynamic.length) return null;
   return (
-    <section aria-label="World actions" className="entity-actions">
+    <section aria-label={uiText('World actions')} className="entity-actions">
       <p id="entity-keyboard-help" className="sr-only">
         {s.keyboardPlay}
       </p>
@@ -319,7 +327,7 @@ export function EntityActions({
               }
             }}
           >
-            {e.name}
+            {uiText(e.name)}
           </button>
         ))}
       </div>
@@ -334,14 +342,15 @@ export function PredictionSheet({
   prediction: Extract<ServerMessage, { type: 'prediction' }>;
   onAnswer: (index: number) => void;
 }) {
+  useLanguage();
   return (
     <div className="prediction-sheet" role="dialog" aria-labelledby="prediction-title">
       <div className="prediction-card">
-        <h2 id="prediction-title">{prediction.question}</h2>
+        <h2 id="prediction-title">{uiText(prediction.question)}</h2>
         <div className="actions">
           {prediction.options.map((option, index) => (
             <button type="button" key={option} onClick={() => onAnswer(index)}>
-              {option}
+              {uiText(option)}
             </button>
           ))}
         </div>
@@ -357,15 +366,16 @@ export function DiscoveryToast({
   discovery: Extract<ServerMessage, { type: 'discovery' }>;
   onClose: () => void;
 }) {
+  useLanguage();
   return (
     <section className="discovery-toast" aria-live="polite" aria-label={s.discovery}>
       <span className="badge" aria-hidden="true">
         <StarIcon />
       </span>
       <details>
-        <summary>{discovery.title}</summary>
-        <p>{discovery.kidExplanation}</p>
-        <p>{discovery.realLifeNote}</p>
+        <summary>{uiText(discovery.title)}</summary>
+        <p>{uiText(discovery.kidExplanation)}</p>
+        <p>{uiText(discovery.realLifeNote)}</p>
       </details>
       <button type="button" className="close" aria-label={s.close} onClick={onClose}>
         <CloseIcon />
@@ -393,6 +403,7 @@ export function CastStrip({
   left?: React.ReactNode;
   right?: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <nav className="cast-strip" aria-label={s.guides}>
       <div className="corner left">{left}</div>
@@ -412,7 +423,7 @@ export function CastStrip({
                 .filter(Boolean)
                 .join(' ')}
               aria-pressed={isActive}
-              aria-label={c.displayName}
+              aria-label={uiText(c.displayName)}
               onClick={() => onPick(c.id)}
             >
               <span className="art">
@@ -425,7 +436,7 @@ export function CastStrip({
                   <CharacterArt id={c.id} />
                 )}
               </span>
-              <span className="name">{c.displayName}</span>
+              <span className="name">{uiText(c.displayName)}</span>
             </button>
           );
         })}
@@ -436,6 +447,7 @@ export function CastStrip({
 }
 
 export function SummonOverlay({ character }: { character: CharacterId }) {
+  useLanguage();
   const c = CHARACTERS[character];
   return (
     <div className="summon" role="status" aria-live="assertive">
@@ -443,14 +455,15 @@ export function SummonOverlay({ character }: { character: CharacterId }) {
         <span className="art">
           <CharacterArt id={character} />
         </span>
-        <h2>{s.summoned.replace('{name}', c.displayName)}</h2>
-        <p>{c.catchphrase}</p>
+        <h2>{uiText(s.summoned, { name: c.displayName })}</h2>
+        <p>{uiText(c.catchphrase)}</p>
       </div>
     </div>
   );
 }
 
 export function SpellFlourish({ spell }: { spell: keyof typeof s.spellNames }) {
+  useLanguage();
   return (
     <div className="spell" role="status" aria-live="polite">
       <span className="spell-banner">{s.spellNames[spell]}</span>
@@ -460,5 +473,5 @@ export function SpellFlourish({ spell }: { spell: keyof typeof s.spellNames }) {
 
 export function quotaCopy(seconds: number) {
   if (seconds <= 30) return s.quotaSoon;
-  return s.quotaFriendly.replace('{minutes}', String(Math.max(1, Math.round(seconds / 60))));
+  return uiText(s.quotaFriendly, { minutes: Math.max(1, Math.round(seconds / 60)) });
 }

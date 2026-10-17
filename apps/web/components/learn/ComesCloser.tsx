@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLanguage } from '../../lib/i18n';
 import { getVoice } from '../../lib/voice';
@@ -144,7 +145,7 @@ export function ComesCloser({
             )}
           </div>
         </div>
-        <h2 id="closer-name">{name}</h2>
+        <h2 id="closer-name">{uiText(name)}</h2>
         <p className="closer-status" role="status">
           {call === 'ringing'
             ? t('learnWorlds.ringing', { name })
@@ -192,12 +193,12 @@ export function ComesCloser({
         )}
         <div className="character-speech" aria-live="polite">
           {caption ? (
-            <p className="bubble is-live">{caption}</p>
+            <p className="bubble is-live">{uiText(caption)}</p>
           ) : (
             !playing &&
             visible.map((fact, i) => (
               <p key={i} className="bubble">
-                {fact}
+                {uiText(fact)}
               </p>
             ))
           )}

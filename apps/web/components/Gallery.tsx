@@ -1,14 +1,19 @@
 'use client';
+import { useLanguage } from '../lib/i18n';
+import { copy as uiText, uiError } from '../lib/i18n/ui';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type WorldListResponse, type ChildResponse } from '@just-imagine/protocol';
+import { conceptCard, type WorldListResponse, type ChildResponse } from '@just-imagine/protocol';
 import { FIXTURE_WORLDS } from '@just-imagine/fixtures/browser';
 import { api } from '../lib/api';
 import { getVoice } from '../lib/voice';
 import { env } from '../lib/env';
 import { s } from '../lib/strings/en';
 export function Gallery() {
+  const { language } = useLanguage();
+  const [loading, setLoading] = useState(true),
+    [retry, setRetry] = useState(0);
   const [worlds, setWorlds] = useState<WorldListResponse['worlds']>([]),
     [error, setError] = useState('');
   const router = useRouter();
@@ -18,10 +23,28 @@ export function Gallery() {
       router.replace('/play');
       return;
     }
-    api<WorldListResponse>('listWorlds', { childId: child.id })
-      .then((r) => setWorlds(r.worlds))
-      .catch((e) => setError(e.message));
-  }, [router]);
+    let active = true;
+    queueMicrotask(() => {
+      if (active) {
+        setLoading(true);
+        setError('');
+        setWorlds([]);
+      }
+    });
+    void api<WorldListResponse>('listWorlds', { childId: child.id })
+      .then((result) => {
+        if (active) setWorlds(result.worlds);
+      })
+      .catch((error) => {
+        if (active) setError(uiError(error));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [router, language, retry]);
   function open(id: string) {
     const key = Object.entries(FIXTURE_WORLDS).find(([, doc]) => doc.worldId === id)?.[0];
     if (key) sessionStorage.setItem('ji-fixture', key);
@@ -30,7 +53,7 @@ export function Gallery() {
     void getVoice()
       .unlockAudio()
       .then(() => router.push('/studio'))
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(uiError(e)));
   }
   return (
     <main className="gallery">
@@ -40,7 +63,15 @@ export function Gallery() {
           {s.back}
         </Link>
       </div>
-      {error && <p role="alert">{error}</p>}
+      {loading && <p role="status">{uiText('Opening your saved worlds in this language…')}</p>}
+      {error && (
+        <div role="alert">
+          <p>{uiText(error)}</p>
+          <button className="button secondary" onClick={() => setRetry((n) => n + 1)}>
+            {uiText('Try again')}
+          </button>
+        </div>
+      )}
       <div className="world-grid">
         {worlds.map((world, index) => (
           <button
@@ -50,14 +81,14 @@ export function Gallery() {
           >
             <span className="world-shape" aria-hidden="true" />
             <span className="world-tile-copy">
-              <strong>{world.title}</strong>
-              <span>{world.concepts.join(' · ')}</span>
+              <strong>{uiText(world.title)}</strong>
+              <span>{world.concepts.map((c) => conceptCard(c, language).title).join(' · ')}</span>
               <span>{s.open} ↗</span>
             </span>
           </button>
         ))}
       </div>
-      {!worlds.length && <p>{s.empty}</p>}
+      {!loading && !error && !worlds.length && <p>{s.empty}</p>}
     </main>
   );
 }

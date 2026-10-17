@@ -1,4 +1,7 @@
 'use client';
+import { useLanguage } from '../lib/i18n';
+import { uiNumber } from '../lib/i18n/ui';
+import { copy as uiText, uiError } from '../lib/i18n/ui';
 import '../app/studio.css';
 import { PlayActions } from './studio/PlayActions';
 import { WorldCast } from './studio/WorldCast';
@@ -27,6 +30,7 @@ import type { Engine, EngineEvent } from '@just-imagine/engine';
 import { getVoice, releaseVoice, ensureChildVoice } from '../lib/voice';
 import { getMixer, soundForEngineEvents } from '../lib/sound';
 import { musicThemeFor } from '../lib/sound/theme';
+import { gameTextEdition } from '../lib/content-voice-copy';
 import { createWorldSource } from '../lib/world-source';
 import { recordDemoDiscovery } from '../lib/demo';
 import { env } from '../lib/env';
@@ -78,6 +82,7 @@ function appendKey(draft: string, key: string) {
 }
 
 export function Studio() {
+  const { language } = useLanguage();
   const router = useRouter();
   const host = useRef<HTMLDivElement>(null),
     engine = useRef<Engine | undefined>(undefined);
@@ -156,7 +161,7 @@ export function Studio() {
     try {
       getVoice().send(msg);
     } catch (e) {
-      setError(e instanceof Error ? e.message : s.unavailable);
+      setError(e instanceof Error ? uiError(e) : s.unavailable);
     }
   };
   const connectVoice = async () => {
@@ -171,7 +176,7 @@ export function Studio() {
       await ensureChildVoice(selected, message.worldId, message.characterId);
       setStatus(getVoice().status);
     } catch (e) {
-      setError(e instanceof Error ? e.message : s.unavailable);
+      setError(e instanceof Error ? uiError(e) : s.unavailable);
     }
   };
   useEffect(() => {
@@ -258,7 +263,7 @@ export function Studio() {
             setError(
               c.language === 'bn'
                 ? 'তোমার দুনিয়া তৈরি শেষ হয়নি। আবার চেষ্টা করো।'
-                : 'Your world could not finish. Please try making it again.',
+                : uiText('Your world could not finish. Please try making it again.'),
             );
             if (worldRef.current?.id === message.worldId && worldRef.current.status !== 'ready')
               selectWorldId(undefined);
@@ -330,7 +335,7 @@ export function Studio() {
           setQuota(message.voiceSecondsLeft);
           break;
         case 'error':
-          setError(message.message);
+          setError(uiError(message.message));
           break;
         case 'bye':
           clearPending();
@@ -381,9 +386,9 @@ export function Studio() {
             setPrediction({ type: 'prediction', question: p.question, options: p.options });
         }
       },
-      (e) => setError(e.message),
+      (e) => setError(uiError(e)),
     );
-  }, [worldId, fixture]);
+  }, [worldId, fixture, language]);
   useEffect(() => {
     if (!discovery) return;
     if (env.fake && child && worldId) recordDemoDiscovery(child.id, worldId, discovery);
@@ -483,7 +488,7 @@ export function Studio() {
         setEngineEpoch((n) => n + 1);
       })
       .catch((e) => {
-        if (active) setError(e.message);
+        if (active) setError(uiError(e));
       });
     return () => {
       active = false;
@@ -499,16 +504,55 @@ export function Studio() {
   useEffect(() => {
     const mounted = engine.current;
     if (ended || !mounted || !gameSource) return;
+    let active = true,
+      hudSequence = 0,
+      askSequence = 0,
+      saySequence = 0;
+    const translate = gameTextEdition(worldRef.current!.id, language);
+    const translationFailed = (error: unknown) => {
+      if (active) setError(uiError(error));
+    };
     const bridge = mountGameBridge(
       mounted,
       gameSource,
       {
-        onHud: setGameHud,
-        onSay: (text) => {
-          setCaption(text);
-          if (liveRef.current) send({ type: 'simEvent', ruleId: 'game_say', say: text });
+        onHud: (hud) => {
+          const sequence = ++hudSequence;
+          if (!hud.label) {
+            setGameHud(hud);
+            return;
+          }
+          // Numeric feedback stays responsive while prose is prepared; never flash the other language.
+          setGameHud((previous) => ({ ...hud, label: previous?.label }));
+          void translate(hud.label)
+            .then((label) => {
+              if (active && sequence === hudSequence) setGameHud({ ...hud, label });
+            })
+            .catch(translationFailed);
         },
-        onAsk: setGameAsk,
+        onSay: (text) => {
+          const sequence = ++saySequence;
+          void translate(text)
+            .then((localized) => {
+              if (!active || sequence !== saySequence) return;
+              setCaption(localized);
+              if (liveRef.current) send({ type: 'simEvent', ruleId: 'game_say', say: localized });
+            })
+            .catch(translationFailed);
+        },
+        onAsk: (ask) => {
+          const sequence = ++askSequence;
+          if (!ask) {
+            setGameAsk(undefined);
+            return;
+          }
+          void Promise.all([translate(ask.question), ...ask.options.map(translate)])
+            .then(([question, ...options]) => {
+              if (active && sequence === askSequence)
+                setGameAsk({ ...ask, question: question!, options });
+            })
+            .catch(translationFailed);
+        },
         onSound: (cue) => getMixer().playCue(cue),
         onTangled: () => {
           setGameAsk(undefined);
@@ -519,13 +563,14 @@ export function Studio() {
     );
     gameBridge.current = bridge;
     return () => {
+      active = false;
       bridge.stop();
       if (gameBridge.current === bridge) gameBridge.current = undefined;
       setGameHud(undefined);
       setGameAsk(undefined);
       setGameTangled(false);
     };
-  }, [engineEpoch, world?.id, gameSource, gameRun, ended]);
+  }, [engineEpoch, world?.id, gameSource, gameRun, ended, language]);
   function restartGame() {
     gameBridge.current?.stop();
     engine.current?.reset();
@@ -811,14 +856,14 @@ export function Studio() {
         <div className="caption-band">
           {captions && caption && world && (
             <p className="caption" aria-live="polite">
-              {caption}
+              {uiText(caption)}
             </p>
           )}
         </div>
       </div>
       {error && (
         <p className="stage-error" role="alert">
-          {error}
+          {uiText(error)}
           <button type="button" onClick={() => setError('')} aria-label={s.close}>
             <CloseIcon />
           </button>
@@ -863,12 +908,12 @@ export function Studio() {
             aria-modal="true"
             aria-labelledby="keypad-title"
           >
-            <h2 id="keypad-title">{keypad.variable.label}</h2>
+            <h2 id="keypad-title">{uiText(keypad.variable.label)}</h2>
             <output aria-live="polite">
-              {keypad.draft || '0'}
+              {uiText(keypad.draft || '0')}
               <small>
-                {' '}
-                → {clampToVariable(Number(keypad.draft), keypad.variable)} {keypad.variable.unit}
+                {uiText(' ')}→ {uiNumber(clampToVariable(Number(keypad.draft), keypad.variable))}{' '}
+                {uiText(keypad.variable.unit)}
               </small>
             </output>
             <div className="keypad-keys">
@@ -878,7 +923,7 @@ export function Studio() {
                   key={k}
                   onClick={() => setKeypad({ ...keypad, draft: appendKey(keypad.draft, k) })}
                 >
-                  {k}
+                  {uiText(k)}
                 </button>
               ))}
             </div>

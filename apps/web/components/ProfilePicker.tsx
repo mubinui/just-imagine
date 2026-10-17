@@ -1,9 +1,12 @@
 'use client';
+import { useLanguage } from '../lib/i18n';
+import { copy as uiText, uiError } from '../lib/i18n/ui';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { MeResponse, ChildResponse } from '@just-imagine/protocol';
 import { CompanionArt } from './companion/Companion';
+import { selectLanguageProfile } from '../lib/i18n';
 import { api } from '../lib/api';
 import { getVoice, releaseVoice } from '../lib/voice';
 import { s } from '../lib/strings/en';
@@ -21,23 +24,24 @@ export function Avatar({ kind = 'fox' }: { kind?: string }) {
   );
 }
 export function ProfilePicker() {
+  useLanguage();
   const [data, setData] = useState<MeResponse>(),
     [error, setError] = useState('');
   const router = useRouter();
   useEffect(() => {
     api<MeResponse>('me')
       .then(setData)
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(uiError(e)));
   }, []);
   function select(child: ChildResponse) {
     releaseVoice();
     const voice = getVoice();
     const unlocked = voice.unlockAudio();
     sessionStorage.removeItem('ji-world');
-    localStorage.setItem('ji-child', JSON.stringify(child));
+    selectLanguageProfile(child);
     void Promise.resolve(unlocked)
       .then(() => router.push('/studio'))
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(uiError(e)));
   }
   return (
     <main className="picker">
@@ -52,9 +56,9 @@ export function ProfilePicker() {
             ) : (
               <Avatar kind={child.avatar} />
             )}
-            <strong>{child.firstName}</strong>
+            <strong>{uiText(child.firstName)}</strong>
             <span>
-              {s.agePrefix} {child.ageBand}
+              {s.agePrefix} {uiText(child.ageBand)}
             </span>
             <svg
               className="profile-arrow"
@@ -71,7 +75,7 @@ export function ProfilePicker() {
           </button>
         ))}
       </div>
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert">{uiText(error)}</p>}
       {data?.children.length === 0 && <p>{s.empty}</p>}
       <Link href="/parent/children" className="text-link">
         {s.add} ↗

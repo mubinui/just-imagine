@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useRef, useState } from 'react';
 import { useLanguage, formatNumber } from '../../lib/i18n';
 import { LearnArt } from './LearnArt';
@@ -110,7 +111,7 @@ export function LearningActivity({
   const explanation = bn ? activity.explanationBn : activity.explanation;
   return (
     <div className={`learning-play is-${k}`}>
-      <h3>{title}</h3>
+      <h3>{uiText(title)}</h3>
       {k === 'orbit' && (
         <>
           <svg
@@ -175,7 +176,8 @@ export function LearningActivity({
               </g>
             </svg>
             <strong>
-              {formatNumber(Math.ceil((20000 - scrubMs) / 1000), language)}{' '}
+              {formatNumber(Math.ceil((20000 - scrubMs) / 1000), language)}
+              {uiText(' ')}
               {t('learnWorlds.seconds')}
             </strong>
           </div>
@@ -393,7 +395,7 @@ export function LearningActivity({
       )}
       {done && (
         <p className="activity-insight" role="status">
-          {explanation}
+          {uiText(explanation)}
         </p>
       )}
     </div>

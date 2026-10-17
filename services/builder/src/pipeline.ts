@@ -13,9 +13,18 @@ export type GenerateJson = (
   kind: 'scene' | 'patch',
   sessionId?: string,
 ) => Promise<unknown>;
+export type ReviewScene = (
+  doc: SceneDoc,
+  job: BuildWorldJob,
+  before?: SceneDoc,
+) => Promise<string | null>;
 import { scenePromptV1, SAFETY_POLICY } from './prompts/v1';
 export { STYLE_BIBLE, SAFETY_POLICY, PROMPT_VERSION } from './prompts/v1';
-export async function buildScene(job: BuildWorldJob, generate: GenerateJson): Promise<SceneDoc> {
+export async function buildScene(
+  job: BuildWorldJob,
+  generate: GenerateJson,
+  review?: ReviewScene,
+): Promise<SceneDoc> {
   if (job.promptVersion !== 'v1')
     throw new Error(`Unsupported prompt version: ${job.promptVersion}`);
   const prompt = scenePromptV1(job);
@@ -31,8 +40,11 @@ export async function buildScene(job: BuildWorldJob, generate: GenerateJson): Pr
       const output = GeneratedSceneSchema.parse(previous);
       if (output.tier !== job.tier) throw new Error('Requested tier does not match generated tier');
       const result = validateScene(fromGenerated(output, job.worldId));
-      if (result.ok) return result.doc;
-      issues = `\nValidation issues to repair: ${JSON.stringify(result.issues)}`;
+      if (result.ok) {
+        const problem = job.labKind ? null : await review?.(result.doc, job);
+        if (!problem) return result.doc;
+        issues = `\nChild-request validation issues to repair: ${JSON.stringify(problem)}`;
+      } else issues = `\nValidation issues to repair: ${JSON.stringify(result.issues)}`;
     } catch (error) {
       issues = `\nValidation error to repair: ${error instanceof Error ? error.message : 'invalid output'}`;
     }

@@ -1,4 +1,5 @@
 'use client';
+import { uiError } from '../../lib/i18n/ui';
 import { useEffect, useRef, useState } from 'react';
 import type { ChildResponse, ServerMessage } from '@just-imagine/protocol';
 import { ensureChildVoice, getVoice } from '../../lib/voice';
@@ -115,7 +116,7 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
           break;
         case 'error':
           summoning.current = undefined;
-          setError(message.message);
+          setError(uiError(message.message));
           break;
         case 'bye':
           personaRef.current = undefined;
@@ -150,7 +151,7 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
       .catch((e: unknown) => {
         pending.current = undefined;
         summoning.current = undefined;
-        setError(e instanceof Error ? e.message : String(e));
+        setError(uiError(e));
       });
   }
   function hangUp() {

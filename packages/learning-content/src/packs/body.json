@@ -290,7 +290,7 @@
     {
       "id": "heart",
       "name": "Captain Heart",
-      "nameBn": "হৃদয় ক্যাপ্টেন",
+      "nameBn": "ক্যাপ্টেন ধুকপুক",
       "look": "A coral heart with tiny gloved hands and a courier satchel.",
       "voice": "Sulafat",
       "personality": "A cheerful delivery captain; blood is the delivery route, not a literal parcel service.",
@@ -317,7 +317,7 @@
     {
       "id": "lungs",
       "name": "Breeze & Puff",
-      "nameBn": "বাতাস আর ফুঁ",
+      "nameBn": "দমু আর ফুঁ",
       "look": "Two soft pink lungs with a branching airway and friendly faces.",
       "voice": "Sulafat",
       "personality": "A gentle double act who love balloon jokes but explain lungs are not balloons.",
@@ -335,7 +335,7 @@
         "আমাদের ছোট বায়ুথলি থেকে অক্সিজেন রক্তে যায়।",
         "রক্তের কার্বন ডাইঅক্সাইড নিঃশ্বাসে বের হয়।",
         "ডায়াফ্রাম বাতাস ঢোকাতে ও বের করতে সাহায্য করে।",
-        "আমরা হৃদয়ের সঙ্গে শরীরকে সাহায্য করি।"
+        "আমরা হৃৎপিণ্ডের সঙ্গে শরীরকে সাহায্য করি।"
       ],
       "catchphrase": "Room for a little fresh air!",
       "catchphraseBn": "একটু বাতাসের জায়গা দাও!",
@@ -344,7 +344,7 @@
     {
       "id": "brain",
       "name": "Professor Brain",
-      "nameBn": "মগজ মামা",
+      "nameBn": "মস্তিষ্ক মামা",
       "look": "A lavender folded brain with a little bow tie and bright eyes.",
       "voice": "Sulafat",
       "personality": "A curious switchboard operator who sometimes loses a pretend pencil.",
@@ -371,7 +371,7 @@
     {
       "id": "stomach",
       "name": "Chef Tummy",
-      "nameBn": "পেটু রাঁধুনি",
+      "nameBn": "পাকু রাঁধুনি",
       "look": "A peach stomach with a chef scarf and a soft curved silhouette.",
       "voice": "Sulafat",
       "personality": "A mixer chef who makes squishy sound effects, never gross or scary.",
@@ -414,7 +414,7 @@
         "হাড় মিলে তোমার কঙ্কাল তৈরি করে।",
         "কঙ্কাল শরীরকে অবলম্বন দেয়।",
         "খুলি মস্তিষ্ককে রক্ষা করে।",
-        "পাঁজর হৃদয় ও ফুসফুস রক্ষা করে।",
+        "পাঁজর হৃৎপিণ্ড ও ফুসফুস রক্ষা করে।",
         "পেশি হাড়কে টেনে নড়তে সাহায্য করে।",
         "দুটি হাড় যেখানে মেলে সেটাই সন্ধি।"
       ],

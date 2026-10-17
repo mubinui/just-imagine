@@ -295,7 +295,7 @@ The child and parent worlds share typography and semantic colors. Interface tran
 **Key Characteristics:**
 
 - One coordinated palette, inverted between rooms: Forest is the warm cream-and-forest default; authorized Ocean and Terracotta presets preserve the same semantic roles.
-- Baloo for anything that names (headings, dial values, chip titles, answer buttons); Nunito for anything that explains (body, captions, pill labels).
+- Baloo for anything that names (headings, dial values, chip titles, answer buttons); Nunito for anything that explains (body, captions, pill labels). Bangla extends those roles with Baloo Da 2 and Noto Sans Bengali.
 - Sunshine (#f7d76e) means live: mic ring, speaking friend's ring, pressed pill, connected dot, active challenge, spell banner.
 - Fully rounded pills on the stage; 10 to 16 px corners in the parent room.
 - Soft offset shadows cast toward the floor; no borders on the stage, quiet 1 px dividers in the parent room.
@@ -378,11 +378,19 @@ The Appearance surface separates a draft preview from the published palette, lab
 - **Learn Mission** (`learn-mission`): a concise Baloo instruction above play, container-sized on desktop; the phone override is 25px.
 - **Learn Feedback** (`learn-feedback`): bold Nunito consequences beneath play, 15px on phones.
 - **Learn Story Title** (`learn-story-title`): opening and ending chapter names, 27px on phones.
-- **Learn Story Copy** (`learn-story-copy`): bilingual setup, goal and consequence, 16px on phones and at most 65ch in the dialogue surface.
+- **Learn Story Copy** (`learn-story-copy`): setup, goal and consequence in the selected English or Bangla edition, 16px on phones and at most 65ch in the dialogue surface.
+
+### English and Bangla type extension — 2026-10-17
+
+The selected language keeps the rounded naming face and readable sentence face. English retains the existing Baloo/Nunito stack. `lib/i18n/fonts.css` supplies self-hosted Baloo Da 2 for Bangla display text (declared weights 400 to 800) and Noto Sans Bengali for body text (declared weights 400 to 700), with separate Bengali and Latin subsets and `font-display: swap`. Font provenance and licences remain in `public/fonts/NOTICE.md`. These are locale extensions of the existing roles; the default frontmatter stays intact.
+
+On `bn-BD` content the body stack is Noto Sans Bengali, Nunito, sans-serif; headings, brand, named profile/world text and usage totals use Baloo Da 2, Baloo, serif with a 1.3 line-height. Bengali-only `@font-face` aliases also supply Baloo/Nunito component declarations with the corresponding Bengali glyphs. The aliases do not replace their Latin faces. Do not claim a supplied 800-weight Bengali body face: the current Noto declaration ends at 700.
+
+Allow Bengali marks and longer labels their full reading space. Learn island names and notes use 1.45 leading; phone map rows grow to the translated content. These observed adjustments belong to the locale and surface, rather than a replacement global type scale. See `.impeccable/surfaces/learn.md` for the map rhythm.
 
 ### Named Rules
 
-**The Naming Face Rule.** Baloo appears wherever a thing is named or chosen: headings, dial values, variable names, answer buttons, keypad digits, the spell banner. Nunito appears wherever a thing is explained: body, captions, pill labels, hints. A Baloo sentence or a Nunito heading is a defect.
+**The Naming Face Rule.** Baloo appears wherever a thing is named or chosen: headings, dial values, variable names, answer buttons, keypad digits, the spell banner. Nunito appears wherever a thing is explained: body, captions, pill labels, hints. A Baloo sentence or a Nunito heading is a defect. For Bengali glyphs, Baloo Da 2 carries the naming role and Noto Sans Bengali carries explanation.
 
 **The Sentence Case Rule.** No uppercase labels anywhere. Small labels get Baloo weight and a darker colour, not tracking or capitals.
 
@@ -467,6 +475,12 @@ The stage steps up to full pills and large corners: every button, caption, chip 
 - **Stage range:** 44 px tall, forest accent, full width under its Baloo label and a forest tabular-nums value.
 - **Number entry:** a 44 px outlined pill (2 px `line`, forest Baloo 16 px) opens the keypad: 28 px corners, 64 px cream-white keys with 16 px corners and Baloo 26 px digits, 56 px pill actions.
 
+### App and conversation language — 2026-10-17
+
+The existing parent form vocabulary carries one labelled English/Bangla choice, an explicit save action and separate status/error feedback. Settings explains that the chosen language covers screens, learning, voice and saved stories/worlds, and that a first translation may take a moment. With an active explorer, switch the browser only after the child update succeeds; before an explorer exists, save the browser preference. Profile selection updates mounted shared navigation in the same tab. Document language, title, description and manifest language follow the selection after hydration; the initial server render remains English.
+
+Authored controls, loading/error states, accessible labels and known preset names use the selected edition. Keep editable names, email addresses and technical identifiers as data. English and Bangla remain the only Live choices; new conversations and generation follow the parent setting. Saved display prose opens in a translated edition while original records, art, scripts, physics and progress retain their identity. First-open, translation failure and retry states must name the actual operation rather than imply a new book is being generated. Backend policy and edition boundaries live in `docs/handoff/language-operations.md` at the repository root; current wording conventions live in `docs/i18n/bangla-review.md`.
+
 ### Shared utility icons — 2026-10-16
 
 `components/UiIcon.tsx` defines a single 24×24 SVG family with 1.9px rounded strokes, round caps/joins, `currentColor` and no fill. Mic/mic-off, controller, book, paw, captions, home/gallery, directional and session actions use recognizable control symbols. SVGs are decorative inside labelled controls (`aria-hidden`, not focusable); the owning button or link supplies its accessible name and target. Keep character portraits and scientific artwork separate from this utility vocabulary.
@@ -504,6 +518,16 @@ The canvas remains exactly 16:9. The action area, dials and caption band align t
 Objects are deliberately larger within the world: the whole fraction block is twice a half's width, and the cup has an open collision interior. Learning annotations use Nunito and scale to a minimum of 13 CSS pixels at the rendered canvas width; ruler labels and plots remain within the scene. Curves are tessellated at a larger drawing scale before conversion to world units, preserving smooth round toys and pegs. Generated painting supplies atmosphere while native geometry and measurements carry the experiment.
 
 The desktop and phone review set covers all six worlds in `.impeccable/review/worlds/`. Source verification for this extension covers `lib/playable-preview.ts`, `components/studio/PlayActions.tsx`, `app/studio.css` and the engine renderer, placeholder and world-graphics modules. This is an ordinary extension: incumbent frontmatter and `.impeccable/design.json` remain unchanged; previously documented metadata drift is deferred.
+
+### Newly generated world actors — 2026-10-17
+
+New articulated world actors use the existing engine’s distance-driven locomotion and registered sprite-sheet presentation. The builder requests native 2K art with the hero image model, then registers complete silhouettes into three aligned columns with 6, 9 or 12 chronological poses. One scale applies across the actor’s poses; walking/running uses a shared foot anchor, swimming/flying a body-center anchor. Output uses 512px cells only when source dimensions and pose extents support that detail; smaller sources retain 256px cells. Clipped, merged, extra or ambiguously ordered subjects and unresolved backgrounds fail registration, and identity/safety review remains mandatory. Articulated assets use `motion-v5`; rolling chassis retain `motion-v2`. This does not regenerate saved art or add pose coverage to single-image photos or outfits.
+
+The actor’s visual cycle follows actual travel and stops at rest; it does not move the physics body. Scene staging normally makes the main actor 3–4m across in a 16m world, while preserving explicit child size choices and balanced casts. The moderated child’s actual words travel independently of the model’s summary and govern creation and edits, including quiet open play and exclusions. Optional story structure must not add unrequested blocking scenery, characters, scores, timers or quizzes. The `wd4` guidance removes a contradictory compulsory-obstacle prompt. An independent strict-JSON scene review now checks request fidelity before script/art within the existing three scene attempts, for initial creation and owned edits; explicit Labs retain their established path. Review uses a 15s HTTP timeout, 20s abort and one SDK attempt; repeated rejection or unavailable review fails closed. This gate adds bounded checking, not a broad semantic guarantee.
+
+Approved scenery supplies the painted base floor only for a full-width static ground body at the bottom of a generated playground. Collision stays intact, and platforms, walls, Lab geometry and missing-art placeholders remain visible. The renderer replaces a streamed placeholder when its body, kind or presentation tags change, so a loading rectangle is not a permanent cream strip over a painting. An intervening Fenn world failed gameplay because an unrequested solid lantern tree blocked arrival around x10.1 for a tap at x12; it produced no phone capture. After the scene-review correction, a fresh full Fenn flow passed arrival, rest and reversal, and inspected desktop/phone captures confirm the clear route and removed cream strip. The loading strip is a corrected defect, not a new surface treatment.
+
+Recorded earlier real-service acceptance covers Turtle Tide swimming, the enlarged Kingfisher flying and Fenn running through native creation, actual input, arrival and rest, with desktop/phone captures. Those accepted sheets have 9/9/12 distinct poses in 512px cells; the later blocked Fenn test does not inherit that acceptance. Configured-model review controls rejected the retained blocked world and approved the clear Fenn scene. Final fresh Fenn acceptance then passed the full real Live → scene review → native scene/script/art → owned API → canvas flow without injected art or manual repair, preserved the exact typed wish and contained only `ground_forest` and `fenn`. Its native 1536×1536 sheet has nine 512px poses; arrival/rest and reverse travel passed, and inspected desktop/phone captures show no page errors or overflow. Separate synthesized English PCM passed the real gateway/Gemini ASR path and preserved the child’s exclusions in `originalWish`; that spoken world was not browser-playtested. Earlier failed generations, the undersized first bird and a stable-x-only stopping false positive do not establish acceptance. Model variation and bounded retries remain; these cases establish articulated 2D sprite acting, not arbitrary-request reliability, continuous rigs, physical-microphone quality or child enjoyment. Source, evidence and current operational limits are recorded in repository `docs/handoff/generated-animation-operations.md` and `.impeccable/surfaces/components-studio-tsx.md`.
 
 ### Personal companion — 2026-10-16
 
@@ -553,6 +577,7 @@ The shared engine motion helpers and optional generated-world locomotion/atlas m
 - **Do** mount registered preset actor art in the existing fixed square SVG slot so optional Rive assets swap without layout change.
 - **Do** use shared registered raster poses for predefined actors, preserve Tooth Town and coach matching poses, tie travel locomotion to actual distance, and keep Pip in its reserved dock tile.
 - **Do** retain the cream-and-forest Learn shell while generated art supplies tactile material and light.
+- **Do** render interface prose and accessible labels in the selected English or Bangla edition, using the Bengali font extension and enough leading for marks and wrapped copy.
 
 ### Don't:
 
@@ -564,6 +589,7 @@ The shared engine motion helpers and optional generated-world locomotion/atlas m
 - **Don't** present the geometric landing window or local registered raster cast as final external Rive assets. Delivered local artwork has its own documented limits.
 - **Don't** describe sprite acting as finished film, a continuous skeletal rig or phoneme lip-sync, or claim pose coverage for single-image photos/outfits or old generated worlds.
 - **Don't** replace inline SVG icons with glyph fonts or emoji in chrome.
+- **Don't** compress Bengali labels to fit English measurements or show both languages as a loading shortcut.
 
 ## Welcome and parent refinements — 2026-10-16
 

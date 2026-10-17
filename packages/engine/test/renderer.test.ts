@@ -508,3 +508,27 @@ it('lets a child select a fixed world character directly on the canvas without a
     engine.dispose();
   }
 });
+
+it('replaces loading floor geometry when progressive scenery marks it as painted', async () => {
+  const doc = structuredClone(FIXTURE_WORLDS.moonBounce);
+  const floor = doc.entities.find((e) => e.kind === 'ground')!;
+  const index = doc.entities.indexOf(floor);
+  const engine = await mountEngine(setup(), doc);
+  const layer = state.apps[0].stage.children[0].children[1];
+  const before = [...layer.children],
+    oldFloor = before[index];
+  floor.tags.push('painted_ground');
+  engine.update(doc);
+  expect(oldFloor.destroyed).toBe(true);
+  // The narrow Pixi double does not remove a destroyed child from its parent.
+  expect(
+    layer.children.some(
+      (view: any) => view !== oldFloor && !view.destroyed && !before.includes(view),
+    ),
+  ).toBe(true);
+  expect(layer.children).toContain(before[index === 0 ? 1 : 0]);
+  const updated = [...layer.children];
+  engine.update(doc);
+  expect(layer.children).toEqual(updated);
+  engine.dispose();
+});

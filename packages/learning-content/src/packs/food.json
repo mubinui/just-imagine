@@ -290,7 +290,7 @@
     {
       "id": "carrot",
       "name": "Cara Carrot",
-      "nameBn": "গাজর গুড়ি",
+      "nameBn": "গাজর গাজু",
       "look": "A bright orange carrot with leafy hair and a small apron.",
       "voice": "Sulafat",
       "personality": "A proud gardener who says her leafy hair needs no comb.",
@@ -344,7 +344,7 @@
     {
       "id": "bean",
       "name": "Benny Bean",
-      "nameBn": "শিমু বিন",
+      "nameBn": "শিমু",
       "look": "A curved burgundy bean with tiny boots and a warm grin.",
       "voice": "Sulafat",
       "personality": "A tiny builder with a big toolbox of nutrients.",
@@ -371,7 +371,7 @@
     {
       "id": "rice",
       "name": "Rafi Rice",
-      "nameBn": "ভাতু রাফি",
+      "nameBn": "ভাতবন্ধু রাফি",
       "look": "A small bowl of rice with a green rim and steam curls.",
       "voice": "Sulafat",
       "personality": "An energetic grain who calls meals little fuel stops.",
@@ -398,7 +398,7 @@
     {
       "id": "water",
       "name": "Wavy Water",
-      "nameBn": "পানি টলমল",
+      "nameBn": "টলমল পানি",
       "look": "A clear blue water droplet with little ripples and bright eyes.",
       "voice": "Sulafat",
       "personality": "A cheerful splash who never claims to be a magic cure.",

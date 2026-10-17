@@ -11,23 +11,23 @@ export const PLAY_COPY: Record<string, [string, string]> = {
   ],
   oxygen_try: [
     'Follow the route. Blood first goes from the lungs to the heart. After the body, it returns through the heart.',
-    'পথটা দেখো। ফুসফুস থেকে রক্ত আগে হৃদয়ে যায়। শরীর থেকে আবার হৃদয় হয়ে ফেরে।',
+    'পথটা দেখো। ফুসফুস থেকে রক্ত আগে হৃৎপিণ্ডে যায়। শরীর থেকে আবার হৃৎপিণ্ড হয়ে ফেরে।',
   ],
   oxygen_heart: [
     'The heart pumps oxygen-rich blood towards the body. Where is the delivery needed?',
-    'হৃদয় অক্সিজেনভরা রক্ত শরীরে পাম্প করে। এবার কোথায় পৌঁছাবে?',
+    'হৃৎপিণ্ড অক্সিজেনভরা রক্ত শরীরে পাম্প করে। এবার কোথায় পৌঁছাবে?',
   ],
   oxygen_cells: [
     'Body cells use oxygen. Blood returns to the heart carrying more carbon dioxide.',
-    'কোষ অক্সিজেন ব্যবহার করে। রক্ত বেশি কার্বন ডাইঅক্সাইড নিয়ে হৃদয়ে ফেরে।',
+    'কোষ অক্সিজেন ব্যবহার করে। রক্ত বেশি কার্বন ডাইঅক্সাইড নিয়ে হৃৎপিণ্ডে ফেরে।',
   ],
   oxygen_return: [
     'The heart sends this blood to the lungs for another gas exchange.',
-    'হৃদয় রক্তকে আবার গ্যাস বিনিময়ের জন্য ফুসফুসে পাঠায়।',
+    'হৃৎপিণ্ড রক্তকে আবার গ্যাস বিনিময়ের জন্য ফুসফুসে পাঠায়।',
   ],
   oxygen_lungs: [
     'A full journey! Lungs take in oxygen; the heart keeps blood moving. Our parcel is a pretend model of this teamwork.',
-    'পুরো যাত্রা শেষ! ফুসফুস অক্সিজেন নেয়, হৃদয় রক্ত চালায়। প্যাকেটটি এই কাজের কল্পনার নমুনা।',
+    'পুরো যাত্রা শেষ! ফুসফুস অক্সিজেন নেয়, হৃৎপিণ্ড রক্ত চালায়। প্যাকেটটি এই কাজের কল্পনার নমুনা।',
   ],
   moon_full: [
     'Full moon: Earth sees the Moon’s sunlit face. The Moon makes no light of its own.',

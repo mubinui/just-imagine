@@ -16,6 +16,9 @@ import {
   t,
   translate,
   useLanguage,
+  selectLanguageProfile,
+  currentLanguage,
+  setRenderLanguage,
 } from '../lib/i18n';
 
 type Table = { [key: string]: string | Table };
@@ -62,7 +65,7 @@ describe('translate and t', () => {
   it('interpolates {name}-style variables', () => {
     expect(translate('en', 'ask', { name: 'Mishti' })).toBe('Ask Mishti');
     const bangla = translate('bn', 'ask', { name: 'মিষ্টি' });
-    expect(bangla).toBe(bn.ask.replace('{name}', 'মিষ্টি'));
+    expect(bangla).toBe('মিষ্টিকে জিজ্ঞেস করো');
     expect(bangla).not.toContain('{');
   });
   it('resolves nested keys with dots', () => {
@@ -92,7 +95,7 @@ describe('numbers and attributes', () => {
   });
   it('exposes the html lang value and the language list', () => {
     expect(langAttr('en')).toBe('en');
-    expect(langAttr('bn')).toBe('bn');
+    expect(langAttr('bn')).toBe('bn-BD');
     expect(LANGUAGES).toEqual(['en', 'bn']);
     expect(DEFAULT_LANGUAGE).toBe('en');
   });
@@ -114,6 +117,7 @@ describe('current language from the child profile', () => {
   });
   afterEach(() => {
     delete (globalThis as { localStorage?: unknown }).localStorage;
+    setRenderLanguage('en');
   });
   it('falls back to English without a profile, with a malformed profile, or with an unknown value', () => {
     expect(readLanguage()).toBe('en');
@@ -150,11 +154,28 @@ describe('current language from the child profile', () => {
     expect(notified).toBe(1);
     expect(readLanguage()).toBe('en');
   });
+  it('notifies mounted screens when another profile is chosen in the same tab', () => {
+    let notified = 0;
+    const unsubscribe = subscribeLanguage(() => notified++);
+    selectLanguageProfile({ ...profile, language: 'bn' });
+    expect(readLanguage()).toBe('bn');
+    expect(currentLanguage()).toBe('bn');
+    expect(notified).toBe(1);
+    selectLanguageProfile({ ...profile, id: 'c_2', language: 'en' });
+    expect(readLanguage()).toBe('en');
+    expect(notified).toBe(2);
+    unsubscribe();
+  });
+  it('rejects unsupported language changes without altering the saved choice', () => {
+    setLanguage('bn');
+    expect(() => setLanguage('hi' as 'en')).toThrow('Unsupported language');
+    expect(readLanguage()).toBe('bn');
+  });
   it('t() follows the current language', () => {
     expect(t('stop')).toBe(en.stop);
     setLanguage('bn');
     expect(t('stop')).toBe(bn.stop);
-    expect(t('ask', { name: 'Pori Apu' })).toBe(bn.ask.replace('{name}', 'Pori Apu'));
+    expect(t('ask', { name: 'Pori Apu' })).toBe('পরী আপুকে জিজ্ঞেস করো');
   });
   it('useLanguage renders the default language on the server even when storage says bn', () => {
     store.set('ji-child', JSON.stringify({ ...profile, language: 'bn' }));

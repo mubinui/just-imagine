@@ -1,4 +1,7 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { uiNumber } from '../../lib/i18n/ui';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useCallback, useState } from 'react';
 import type { AdminFamilyListResponse } from '@just-imagine/protocol';
 import { adminApi, useAdminResource } from './adminApi';
@@ -9,6 +12,7 @@ import { Empty, LoadError, PageHeading, Skeleton, Status } from './parts';
 const PAGE_SIZE = 25;
 
 export function FamiliesPanel() {
+  useLanguage();
   const [query, setQuery] = useState('');
   const [cursors, setCursors] = useState<string[]>([]);
   const [open, setOpen] = useState<string | null>(null);
@@ -24,8 +28,10 @@ export function FamiliesPanel() {
   return (
     <>
       <PageHeading
-        title="Families"
-        detail="Parent accounts, plans and usage. Explorers appear only as counts and age bands."
+        title={uiText('Families')}
+        detail={uiText(
+          'Parent accounts, plans and usage. Explorers appear only as counts and age bands.',
+        )}
       />
       <form
         className="adm-search"
@@ -35,7 +41,7 @@ export function FamiliesPanel() {
           setQuery(String(form.get('q') ?? '').trim());
         }}
       >
-        <label htmlFor="family-search">Parent email starts with</label>
+        <label htmlFor="family-search">{uiText('Parent email starts with')}</label>
         <div className="adm-search-row">
           <input
             id="family-search"
@@ -46,7 +52,7 @@ export function FamiliesPanel() {
             autoComplete="off"
           />
           <button type="submit" className="adm-button adm-primary">
-            Search
+            {uiText('Search')}
           </button>
           {query && (
             <button
@@ -57,7 +63,7 @@ export function FamiliesPanel() {
                 setQuery('');
               }}
             >
-              Show all
+              {uiText('Show all')}
             </button>
           )}
         </div>
@@ -66,10 +72,16 @@ export function FamiliesPanel() {
       {!data && loading ? (
         <Skeleton rows={8} />
       ) : data && data.families.length === 0 ? (
-        <Empty title={query ? `No parent email starts with “${query}”.` : 'No families yet.'}>
+        <Empty
+          title={
+            query
+              ? uiText('No parent email starts with “{v0}”.', { v0: String(query) })
+              : uiText('No families yet.')
+          }
+        >
           {query
-            ? 'Search matches the start of the address, so try fewer characters.'
-            : 'Families appear here once a parent signs up.'}
+            ? uiText('Search matches the start of the address, so try fewer characters.')
+            : uiText('Families appear here once a parent signs up.')}
         </Empty>
       ) : (
         data && (
@@ -77,17 +89,19 @@ export function FamiliesPanel() {
             <div className="adm-table-wrap">
               <table className="adm-table adm-families">
                 <caption className="adm-visually-hidden">
-                  Families{query ? ` matching ${query}` : ''}; open a family for actions.
+                  {uiText('Families')}
+                  {query ? uiText(' matching {v0}', { v0: String(query) }) : ''}
+                  {uiText('; open a family for actions.')}
                 </caption>
                 <thead>
                   <tr>
-                    <th scope="col">Parent email</th>
-                    <th scope="col">Plan</th>
-                    <th scope="col">Account</th>
+                    <th scope="col">{uiText('Parent email')}</th>
+                    <th scope="col">{uiText('Plan')}</th>
+                    <th scope="col">{uiText('Account')}</th>
                     <th scope="col" className="num">
-                      Explorers
+                      {uiText('Explorers')}
                     </th>
-                    <th scope="col">Joined</th>
+                    <th scope="col">{uiText('Joined')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -100,18 +114,18 @@ export function FamiliesPanel() {
                           onClick={() => setOpen(family.uid)}
                           aria-haspopup="dialog"
                         >
-                          {family.email || family.uid}
+                          {uiText(family.email || family.uid)}
                         </button>
                       </th>
-                      <td>{planLabel(family)}</td>
+                      <td>{uiText(planLabel(family))}</td>
                       <td>
                         {family.suspended ? (
-                          <Status tone="bad">Suspended</Status>
+                          <Status tone="bad">{uiText('Suspended')}</Status>
                         ) : (
-                          <Status tone="good">Active</Status>
+                          <Status tone="good">{uiText('Active')}</Status>
                         )}
                       </td>
-                      <td className="num">{family.childrenCount}</td>
+                      <td className="num">{uiNumber(family.childrenCount)}</td>
                       <td className="adm-when">{formatWhen(family.createdAt)}</td>
                     </tr>
                   ))}
@@ -125,16 +139,19 @@ export function FamiliesPanel() {
                 disabled={!cursors.length || loading}
                 onClick={() => setCursors((c) => c.slice(0, -1))}
               >
-                Previous page
+                {uiText('Previous page')}
               </button>
-              <span className="adm-detail">Page {cursors.length + 1}</span>
+              <span className="adm-detail">
+                {uiText('Page')}
+                {uiNumber(cursors.length + 1)}
+              </span>
               <button
                 type="button"
                 className="adm-button"
                 disabled={!data.nextCursor || loading}
                 onClick={() => data.nextCursor && setCursors((c) => [...c, data.nextCursor!])}
               >
-                Next page
+                {uiText('Next page')}
               </button>
             </div>
           </>

@@ -25,11 +25,13 @@ pnpm local:reload-key  # after changing the key
 pnpm local:stop        # preserve volumes and export emulator data
 ```
 
-Without pnpm on PATH, `node scripts/local.mjs start` (or `status`, `logs`, `reload-key`, `stop`) works with Docker Desktop alone. Keep Docker Desktop running. Browser microphone access works on localhost. The generated scene contains validated declarative physics, never executable model code.
+Without pnpm on PATH, `node scripts/local.mjs start` (or `status`, `logs`, `reload-key`, `stop`) works with Docker Desktop alone. Keep Docker Desktop running. Browser microphone access works on localhost. Generated games combine validated scene data with JavaScript isolated in a budgeted Game API worker. Independent acceptance plans exercise their actual controls in the real headless physics engine before publication.
 
 Ports: web3300, API3301, builder/artwork3302, gateway8788, Auth9099, Firestore8080. All published ports bind to127.0.0.1. Docker volumes retain Firebase data and generic generated world artwork. Firebase imports/exports `/data/firebase/snapshot` inside its volume; full restart and fresh sign-in with the saved game have been verified. Original avatar photos are normalized in memory and not stored by the app; generated chibi art stays in the private child profile.
 
 Local adapters require `LOCAL_DEV=1`, a `demo-` project, both Firebase emulator hosts, and no Cloud Run `K_SERVICE`. Production still uses Cloud Tasks and Cloud Storage. Local build jobs have persisted claims, renewals and bounded retries. Deletion removes queued payloads and fences running writers.
+
+Game authoring now has its own server-only `GAME_MODEL` setting (default `gemini-4-argon`) and `GAME_MODEL_LOCATION` (default `global` for Vertex credentials). Local `SCENE_MODEL` also defaults to Argon; `FAST_MODEL`, image models and Live remain separate. The game author never silently changes model. A nested-schema400 can retry in JSON mode on the same model, followed by strict local validation. The existing scene model adapter retains its separate availability fallback. See [generated-game-quality-plan.md](generated-game-quality-plan.md) for the request-derived physics acceptance gate and visual-layer correction.
 
 ## Acceptance state
 

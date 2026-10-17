@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { useLanguage, formatNumber } from '../../lib/i18n';
 import { getVoice } from '../../lib/voice';
@@ -27,13 +28,13 @@ const HOMES = [
 ];
 const ORGANS = [
   { id: 'lungs', en: 'Lungs', bn: 'ফুসফুস', x: 360, y: 160 },
-  { id: 'heart', en: 'Heart', bn: 'হৃদয়', x: 510, y: 260 },
+  { id: 'heart', en: 'Heart', bn: 'হৃৎপিণ্ড', x: 510, y: 260 },
   { id: 'body', en: 'Body cells', bn: 'শরীরের কোষ', x: 360, y: 380 },
 ];
 const FOOD_LABELS: Record<string, [string, string]> = {
   carrot: ['Carrot', 'গাজর'],
   milk: ['Milk / fortified soy', 'দুধ / পুষ্টিযুক্ত সয়া'],
-  bean: ['Beans', 'বিন'],
+  bean: ['Beans', 'শিম ও ডাল'],
   rice: ['Rice', 'ভাত'],
   fruit: ['Fruit', 'ফল'],
 };
@@ -244,8 +245,8 @@ export function LearningGame({
     >
       <header className="learning-mission">
         <div>
-          <h2>{mission[lang]}</h2>
-          <p>{mission[lang + 2]}</p>
+          <h2>{uiText(mission[lang])}</h2>
+          <p>{uiText(mission[lang + 2])}</p>
         </div>
         <button
           type="button"
@@ -254,7 +255,7 @@ export function LearningGame({
             dispatch({ type: 'reset' });
             setKeyboard(undefined);
           }}
-          aria-label={bn ? 'আবার খেলো' : 'Restart game'}
+          aria-label={bn ? 'আবার খেলো' : uiText('Restart game')}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 9a8 8 0 1 1 0 7M4 3v6h6" />
@@ -334,7 +335,7 @@ export function LearningGame({
               className="game-toy brush-tool"
               role="button"
               tabIndex={0}
-              aria-label={bn ? 'ব্রাশ তুলে নাও' : 'Pick up toothbrush'}
+              aria-label={bn ? 'ব্রাশ তুলে নাও' : uiText('Pick up toothbrush')}
               aria-pressed={keyboard === 'brush'}
               onPointerDown={(e) => dragStart(e, 'brush', { x: drag?.x ?? 570, y: drag?.y ?? 395 })}
               onClick={() => choose('brush')}
@@ -370,7 +371,7 @@ export function LearningGame({
                   rx="10"
                   role="button"
                   tabIndex={0}
-                  aria-label={bn ? 'এখানে ব্রাশ করো' : 'Brush this patch'}
+                  aria-label={bn ? 'এখানে ব্রাশ করো' : uiText('Brush this patch')}
                   onClick={() => dispatch({ type: 'brush', ...p })}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -443,7 +444,7 @@ export function LearningGame({
               className="oxygen-parcel game-toy"
               role="button"
               tabIndex={0}
-              aria-label={bn ? 'অক্সিজেন প্যাকেট তুলে নাও' : 'Pick up oxygen parcel'}
+              aria-label={bn ? 'অক্সিজেন প্যাকেট তুলে নাও' : uiText('Pick up oxygen parcel')}
               onPointerDown={(e) => dragStart(e, 'oxygen', oxygen)}
               onClick={() => choose('oxygen')}
               onKeyDown={(e) => {
@@ -457,7 +458,7 @@ export function LearningGame({
               <rect width="72" height="54" rx="14" fill={s.oxygen >= 2 ? '#8c3d42' : '#e26c5e'} />
               <path d="M36 0V54M0 22H72" stroke="#fff4d8" strokeWidth="6" />
               <text x="36" y="42" textAnchor="middle" fill="#fff9ee">
-                {s.oxygen >= 2 && s.oxygen < 4 ? 'CO₂' : 'O₂'}
+                {s.oxygen >= 2 && s.oxygen < 4 ? uiText('CO₂') : 'O₂'}
               </text>
             </g>
           </>
@@ -487,7 +488,7 @@ export function LearningGame({
               className="game-toy"
               role="button"
               tabIndex={0}
-              aria-label={bn ? 'চাঁদ ঘোরাও' : 'Move the Moon'}
+              aria-label={bn ? 'চাঁদ ঘোরাও' : uiText('Move the Moon')}
               onPointerDown={(e) =>
                 dragStart(e, 'moon', {
                   x: 365 + Math.cos(s.angle) * 210,
@@ -519,7 +520,7 @@ export function LearningGame({
               <circle r="45" fill="#35485a" />
               <path d={phasePath} fill="#f5e8cb" />
               <text y="68" textAnchor="middle">
-                {bn ? 'পৃথিবী থেকে' : 'From Earth'}
+                {bn ? 'পৃথিবী থেকে' : uiText('From Earth')}
               </text>
             </g>
             {pack.characters
@@ -597,7 +598,11 @@ export function LearningGame({
                     id,
                     (bn
                       ? { cow: 'গরু', parrot: 'তোতা', dolphin: 'ডলফিন' }
-                      : { cow: 'Cow', parrot: 'Parrot', dolphin: 'Dolphin' })[id]!,
+                      : {
+                          cow: uiText('Cow'),
+                          parrot: uiText('Parrot'),
+                          dolphin: uiText('Dolphin'),
+                        })[id]!,
                     140 + i * 220,
                     150,
                     112,
@@ -645,7 +650,7 @@ export function LearningGame({
               fill="transparent"
               role="button"
               tabIndex={0}
-              aria-label={bn ? 'পিকনিকের থালায় রাখো' : 'Serve on the picnic plate'}
+              aria-label={bn ? 'পিকনিকের থালায় রাখো' : uiText('Serve on the picnic plate')}
               onClick={() => {
                 if (keyboard) dispatch({ type: 'food', food: keyboard });
               }}
@@ -679,7 +684,7 @@ export function LearningGame({
               >
                 {bn
                   ? { cow: 'গরুর ডাক', parrot: 'তোতার ডাক', dolphin: 'ডলফিনের ডাক' }[id]
-                  : `Hear ${id}`}
+                  : uiText('Hear {v0}', { v0: String(id) })}
               </button>
             ))}
           </div>
@@ -690,27 +695,30 @@ export function LearningGame({
               type="button"
               onClick={() => dispatch({ type: 'moon', angle: s.angle - Math.PI / 12 })}
             >
-              {bn ? 'চাঁদ বাঁয়ে' : 'Moon left'}
+              {bn ? 'চাঁদ বাঁয়ে' : uiText('Moon left')}
             </button>
             <span>
               {bn
                 ? ['পূর্ণিমা খোঁজো', 'অমাবস্যা খোঁজো', 'অর্ধচন্দ্র খোঁজো', 'সব কলা পাওয়া গেছে'][
                     s.phaseGoal
                   ]
-                : ['Find full moon', 'Find new moon', 'Find half moon', 'All phases found'][
-                    s.phaseGoal
-                  ]}
+                : [
+                    uiText('Find full moon'),
+                    uiText('Find new moon'),
+                    uiText('Find half moon'),
+                    uiText('All phases found'),
+                  ][s.phaseGoal]}
             </span>
             <button
               type="button"
               onClick={() => dispatch({ type: 'moon', angle: s.angle + Math.PI / 12 })}
             >
-              {bn ? 'চাঁদ ডানে' : 'Moon right'}
+              {bn ? 'চাঁদ ডানে' : uiText('Moon right')}
             </button>
           </div>
         )}
         {section === 'food' && !s.complete && (
-          <p className="nutrient-request">{FOOD_REQUESTS[s.foods.length]![lang]}</p>
+          <p className="nutrient-request">{uiText(FOOD_REQUESTS[s.foods.length]![lang])}</p>
         )}
         {section === 'exercise' && (
           <div className="dance-pads">
@@ -722,7 +730,12 @@ export function LearningGame({
                 aria-label={
                   bn
                     ? ['বাঁ হাত ওপরে', 'ডান হাত ওপরে', 'দুই হাত ওপরে', 'হাত নিচে'][i]
-                    : ['Left hand up', 'Right hand up', 'Both hands up', 'Hands down'][i]
+                    : [
+                        uiText('Left hand up'),
+                        uiText('Right hand up'),
+                        uiText('Both hands up'),
+                        uiText('Hands down'),
+                      ][i]
                 }
               >
                 <svg viewBox="-100 -70 200 270">
@@ -734,7 +747,7 @@ export function LearningGame({
         )}
       </div>
       <footer className="learning-consequence">
-        <p aria-live="polite">{feedback[lang]}</p>
+        <p aria-live="polite">{uiText(feedback[lang])}</p>
         <div className="game-progress">
           <span>
             {formatNumber(progress[0]!, language)} / {formatNumber(progress[1]!, language)}
@@ -742,7 +755,7 @@ export function LearningGame({
           <progress
             value={progress[0]}
             max={progress[1]}
-            aria-label={bn ? 'খেলার অগ্রগতি' : 'Game progress'}
+            aria-label={bn ? 'খেলার অগ্রগতি' : uiText('Game progress')}
           />
         </div>
         {s.complete && (
@@ -751,7 +764,10 @@ export function LearningGame({
           </button>
         )}
       </footer>
-      <nav className="learning-cast" aria-label={bn ? 'বন্ধুকে প্রশ্ন করো' : 'Ask a character'}>
+      <nav
+        className="learning-cast"
+        aria-label={bn ? 'বন্ধুকে প্রশ্ন করো' : uiText('Ask a character')}
+      >
         {pack.characters.map((c) => (
           <button type="button" key={c.id} onClick={() => onMeet(c.id)}>
             {looks?.[`${pack.id}:${c.id}`]?.image ? (

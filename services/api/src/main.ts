@@ -1,3 +1,4 @@
+import { geminiEditions } from './editions';
 import { startTelemetry, logEvent, localDevelopment } from '@just-imagine/server-core';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
@@ -58,6 +59,14 @@ const app = createApi({
     queue ?? { enqueue: (id) => processDeletion(id, billing?.cancel.bind(billing)) },
   ),
   verifyToken: verifyIdToken,
+  editions:
+    env.GEMINI_API_KEY || (env.COMPANION_VERTEX === '1' && env.GOOGLE_CLOUD_PROJECT)
+      ? geminiEditions({
+          apiKey: env.GEMINI_API_KEY,
+          project: env.GOOGLE_CLOUD_PROJECT,
+          model: env.FAST_MODEL,
+        })
+      : undefined,
   companion:
     env.GEMINI_API_KEY || (env.COMPANION_VERTEX === '1' && env.GOOGLE_CLOUD_PROJECT)
       ? new FirestoreCompanionService(

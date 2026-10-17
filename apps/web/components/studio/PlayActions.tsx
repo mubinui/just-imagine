@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useState, type RefObject } from 'react';
 import type { Engine, SimulationFrame } from '@just-imagine/engine';
 import type { PreviewKey } from '../../lib/preview-worlds';
@@ -50,6 +52,7 @@ export function PlayActions({
   engine: RefObject<Engine | undefined>;
   onPlay: (action: 'primary' | 'again' | 'join') => void;
 }) {
+  useLanguage();
   const [frame, setFrame] = useState<SimulationFrame>();
   useEffect(() => {
     const timer = setInterval(() => setFrame(engine.current?.frame()), 250);
@@ -65,19 +68,23 @@ export function PlayActions({
     .reduce((a, b) => a + b, 0);
   const reading =
     world === 'moonBounce'
-      ? `Gravity ${frame?.gravity.y.toFixed(2) ?? '1.62'} m/s²`
+      ? uiText('Gravity {v0} m/s²', { v0: frame?.gravity.y.toFixed(2) ?? '1.62' })
       : world === 'galtonBoard'
-        ? `${landings} ${landings === 1 ? 'ball' : 'balls'} settled`
+        ? uiText('{v0} balls settled', { v0: landings })
         : world === 'fractionsLab'
-          ? `${whole ? '1 whole' : `${halves} equal halves`}`
+          ? whole
+            ? uiText('1 whole')
+            : uiText('{v0} equal halves', { v0: halves })
           : world === 'projectileLab'
-            ? `${Object.values(frame?.stopwatches ?? {})[0]?.toFixed(2) ?? '0.00'} s flight time`
+            ? uiText('{v0} s flight time', {
+                v0: Object.values(frame?.stopwatches ?? {})[0]?.toFixed(2) ?? '0.00',
+              })
             : '';
   return (
-    <section className="play-actions" aria-label="World actions">
+    <section className="play-actions" aria-label={uiText('World actions')}>
       <div className="play-invitation">
-        <h2>{activity.title}</h2>
-        <p>{activity.hint}</p>
+        <h2>{uiText(activity.title)}</h2>
+        <p>{uiText(activity.hint)}</p>
       </div>
       <div className="play-buttons">
         <button
@@ -109,7 +116,7 @@ export function PlayActions({
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m8 5 11 7-11 7Z" fill="currentColor" />
           </svg>
-          {full ? 'Baskets are full' : activity.action}
+          {uiText(full ? 'Baskets are full' : activity.action)}
         </button>
         {world === 'fractionsLab' && (
           <button
@@ -118,14 +125,14 @@ export function PlayActions({
             disabled={halves < 2}
             onClick={() => onPlay('join')}
           >
-            Join the halves
+            {uiText('Join the halves')}
           </button>
         )}
         <button type="button" className="play-secondary" onClick={() => onPlay('again')}>
-          Try again
+          {uiText('Try again')}
         </button>
       </div>
-      {reading && <output className="play-reading">{reading}</output>}
+      {reading && <output className="play-reading">{uiText(reading)}</output>}
     </section>
   );
 }

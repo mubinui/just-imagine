@@ -176,3 +176,72 @@ it('uses validated JSON mode when the provider rejects a complex response schema
     expect(request.config.safetySettings).toHaveLength(4);
   }
 });
+
+it('sends a bounded 2K motion repair with the same character reference to the hero model', async () => {
+  const model = new VertexModels({
+    project: 'test',
+    sceneModel: 'scene',
+    fastModel: 'fast',
+    heroModel: 'hero',
+    propModel: 'prop',
+  });
+  mockGenerate.mockResolvedValue({
+    candidates: [
+      {
+        content: {
+          parts: [
+            {
+              inlineData: { mimeType: 'image/png', data: Buffer.from('output').toString('base64') },
+            },
+          ],
+        },
+      },
+    ],
+  });
+  const reference = Buffer.from('original character sheet');
+  await model.image('Repair the separated poses', true, false, true, {
+    imageSize: '2K',
+    reference,
+  });
+  const request = mockGenerate.mock.calls[0]![0];
+  expect(request.model).toBe('hero');
+  expect(request.contents[0].parts).toEqual([
+    { text: 'Repair the separated poses' },
+    { inlineData: { mimeType: 'image/png', data: reference.toString('base64') } },
+  ]);
+  expect(request.config.imageConfig).toEqual({ aspectRatio: '1:1', imageSize: '2K' });
+  expect(request.config.httpOptions).toEqual({ timeout: 60000, retryOptions: { attempts: 1 } });
+  expect(request.config.abortSignal).toBeInstanceOf(AbortSignal);
+});
+
+it('bounds independent request review, preserves exact exclusions and refuses malformed approval', async () => {
+  const model = new VertexModels({
+    project: 'test',
+    sceneModel: 'primary',
+    fastModel: 'review',
+    heroModel: '',
+    propModel: '',
+  });
+  const job = {
+    ...evaluationJob(IMAGINATION_CASES[0]!),
+    childRequest: 'Only my fox runs to where I tap. No obstacles or score.',
+  };
+  mockGenerate
+    .mockResolvedValueOnce({
+      text: JSON.stringify({
+        approved: false,
+        issues: ['An unrequested solid tree blocks the route.'],
+      }),
+    })
+    .mockResolvedValueOnce({ text: JSON.stringify({ approved: true, issues: [] }) })
+    .mockResolvedValueOnce({ text: JSON.stringify({ approved: true, issues: ['Still blocked'] }) });
+  expect(await model.reviewScene(FIXTURE_WORLDS.jellyDragon, job)).toContain('solid tree');
+  expect(await model.reviewScene(FIXTURE_WORLDS.jellyDragon, job)).toBeNull();
+  await expect(model.reviewScene(FIXTURE_WORLDS.jellyDragon, job)).rejects.toThrow();
+  const request = mockGenerate.mock.calls[0]![0];
+  expect(request.model).toBe('review');
+  expect(request.contents).toContain(JSON.stringify(job.childRequest));
+  expect(request.contents).toContain('Keep explicitly requested obstacles');
+  expect(request.config.httpOptions).toEqual({ timeout: 15000, retryOptions: { attempts: 1 } });
+  expect(request.config.abortSignal).toBeInstanceOf(AbortSignal);
+});

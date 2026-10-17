@@ -29,12 +29,20 @@ const env = z
     BUILDER_AUDIENCE: z.url(),
     TASK_SERVICE_ACCOUNT: z.email(),
     SCENE_MODEL: z.string().default('gemini-4-argon'),
+    GAME_MODEL: z.string().min(1).default('gemini-4-argon'),
+    GAME_MODEL_LOCATION: z.string().min(1).default('global'),
     FAST_MODEL: z.string().default('gemini-3.8-flash'),
     HERO_MODEL: z.string().default('gemini-nano-banana-2.1'),
     PROP_MODEL: z.string().default('gemini-3.1-flash-lite-image'),
   })
   .parse(process.env);
 const local = localDevelopment();
+const gameModel = new GameScriptModel({
+  project: env.GOOGLE_CLOUD_PROJECT,
+  apiKey: env.GEMINI_API_KEY,
+  model: env.GAME_MODEL,
+  location: env.GAME_MODEL_LOCATION,
+});
 const worker = new BuilderWorker(
   new VertexModels({
     project: env.GOOGLE_CLOUD_PROJECT,
@@ -50,11 +58,8 @@ const worker = new BuilderWorker(
     assetDirectory: local ? env.ASSET_DIRECTORY : undefined,
   },
   {
-    generateScript: new GameScriptModel({
-      project: env.GOOGLE_CLOUD_PROJECT,
-      apiKey: env.GEMINI_API_KEY,
-      model: env.SCENE_MODEL,
-    }).generate,
+    generateScript: gameModel.generate,
+    planGame: gameModel.plan,
   },
 );
 const storyWorker = new StoryWorker(

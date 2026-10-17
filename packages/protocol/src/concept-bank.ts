@@ -56,7 +56,7 @@ export const CONCEPT_BANK: Record<Concept, ConceptCardCopy> = {
     realLifeNote:
       'A rubber ball squashes when it hits the floor and springs back, so it bounces. Clay just squashes and stays.',
     kidHint: 'Springy things squash and spring back.',
-    titleBn: 'বোইং!',
+    titleBn: 'টুপ করে লাফ!',
     realLifeNoteBn:
       'রাবারের বল মেঝেতে পড়ে চ্যাপ্টা হয়ে আবার ফুলে ওঠে, তাই লাফায়। কাদামাটি শুধু চ্যাপ্টা হয়ে থেকে যায়।',
     kidHintBn: 'স্প্রিংয়ের মতো জিনিস চ্যাপ্টা হয়ে আবার ফিরে আসে।',
@@ -87,8 +87,8 @@ export const CONCEPT_BANK: Record<Concept, ConceptCardCopy> = {
     kidHint: 'A seesaw balances when weight and distance make both sides turn equally.',
     titleBn: 'ভারসাম্য',
     realLifeNoteBn:
-      'দুই পাশের ঘোরানোর টান সমান হলে ঢেঁকি ভারসাম্যে থাকে। ভারী বন্ধু মাঝখানের কাছে বসলেই ভারসাম্য হয়।',
-    kidHintBn: 'ওজন আর দূরত্ব মিলে দুই পাশকে সমান ঘোরালে ঢেঁকি ভারসাম্যে থাকে।',
+      'দুই পাশের ঘোরানোর টান সমান হলে দোলনা ভারসাম্যে থাকে। ভারী বন্ধু মাঝখানের কাছে বসলেই ভারসাম্য হয়।',
+    kidHintBn: 'ওজন আর দূরত্ব মিলে দুই পাশকে সমান ঘোরালে দোলনা ভারসাম্যে থাকে।',
   },
   springiness: {
     title: 'Springy',
@@ -165,7 +165,7 @@ export const CONCEPT_BANK: Record<Concept, ConceptCardCopy> = {
     kidHint: 'Some outcomes happen more often than others.',
     titleBn: 'হতে পারে, না-ও পারে',
     realLifeNoteBn:
-      'অনেকগুলো বল পেগের ভেতর দিয়ে ফেললে বেশিরভাগই মাঝের খোপে পড়ে। কিছু ফলাফল এমনিতেই বেশি ঘটে।',
+      'অনেকগুলো বল ছোট খুঁটিগুলোর ফাঁক দিয়ে ফেললে বেশিরভাগই মাঝের খোপে পড়ে। কিছু ফলাফল এমনিতেই বেশি ঘটে।',
     kidHintBn: 'কিছু ফলাফল অন্যগুলোর চেয়ে বেশিবার ঘটে।',
   },
   fraction: {

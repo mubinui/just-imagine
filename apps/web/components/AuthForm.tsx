@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../lib/i18n';
+import { copy as uiText, uiError } from '../lib/i18n/ui';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -13,6 +15,7 @@ import { env } from '../lib/env';
 import { s } from '../lib/strings/en';
 import { Brand, Preview } from './Shell';
 export function AuthForm({ signup = false }: { signup?: boolean }) {
+  useLanguage();
   const router = useRouter();
   const [consent, setConsent] = useState(false),
     [error, setError] = useState(''),
@@ -55,7 +58,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
       if (!response.ok) throw new Error((await response.json()).error);
       router.push(signup ? '/parent/children' : '/play');
     } catch (e) {
-      setError(e instanceof Error ? e.message : s.unavailable);
+      setError(e instanceof Error ? uiError(e) : s.unavailable);
     } finally {
       setBusy(false);
     }
@@ -100,7 +103,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
         </button>
         {error && (
           <p role="alert" className="error">
-            {error}
+            {uiText(error)}
           </p>
         )}
         <Link href={signup ? '/sign-in' : '/sign-up'}>{signup ? s.signIn : s.signUp}</Link>

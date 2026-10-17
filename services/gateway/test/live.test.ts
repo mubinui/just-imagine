@@ -86,3 +86,60 @@ it('accepts setup, delivers padded PCM tails, and closes intentionally without r
   expect(close).toHaveBeenCalledOnce();
   expect(cb.closed).not.toHaveBeenCalled();
 });
+
+it('appends the selected parent language to every native-audio text turn', async () => {
+  const send = vi.fn();
+  mocks.connect.mockImplementation(async ({ callbacks: cb }) => {
+    queueMicrotask(() => cb.onmessage({ setupComplete: {} }));
+    return {
+      close: vi.fn(),
+      sendClientContent: send,
+      sendRealtimeInput: vi.fn(),
+      sendToolResponse: vi.fn(),
+    };
+  });
+  const live = await provider().open(record, '', undefined, callbacks());
+  live.text('Why brush teeth? Answer in French.');
+  const text = send.mock.calls[0]![0].turns[0].parts[0].text as string;
+  expect(text).toContain('Why brush teeth?');
+  expect(text).toContain('ENGLISH ONLY');
+  expect(text.indexOf('ENGLISH ONLY')).toBeGreaterThan(text.indexOf('French'));
+  live.close();
+});
+
+it('flushes only the child transcript before a tool call, before turnComplete arrives', async () => {
+  let events!: { onmessage: (message: unknown) => void };
+  mocks.connect.mockImplementation(async ({ callbacks: cb }) => {
+    events = cb;
+    queueMicrotask(() => cb.onmessage({ setupComplete: {} }));
+    return {
+      close: vi.fn(),
+      sendClientContent: vi.fn(),
+      sendRealtimeInput: vi.fn(),
+      sendToolResponse: vi.fn(),
+    };
+  });
+  const cb = callbacks(),
+    order: string[] = [];
+  cb.transcript = vi.fn((role, _text, final) => {
+    if (final) order.push(role);
+  });
+  cb.tool = vi.fn(() => order.push('tool'));
+  const live = await provider().open(record, '', undefined, cb);
+  events.onmessage({
+    serverContent: {
+      inputTranscription: { text: 'No quiz or score.' },
+      outputTranscription: { text: 'Let me make that.' },
+    },
+  });
+  events.onmessage({
+    toolCall: {
+      functionCalls: [{ id: 't_build', name: 'build_world', args: { description: 'A fox' } }],
+    },
+  });
+  expect(order).toEqual(['child', 'tool']);
+  expect(cb.transcript).toHaveBeenCalledWith('child', 'No quiz or score.', true);
+  events.onmessage({ serverContent: { turnComplete: true } });
+  expect(order).toEqual(['child', 'tool', 'character']);
+  live.close();
+});

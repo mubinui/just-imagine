@@ -1,3 +1,4 @@
+import { spokenLanguageRule } from '@just-imagine/protocol';
 import { GoogleGenAI, Modality, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import type { LiveProvider, LiveCallbacks, SessionRecord } from './contracts';
 import sharp from 'sharp';
@@ -103,6 +104,10 @@ export class VertexLiveProvider implements LiveProvider {
               transcripts.finish();
               callbacks.turnComplete?.();
             }
+            // A tool boundary consumes this utterance. Finish its ASR buffer before
+            // queuing the tool so moderation and verbatim request capture run first.
+            if (message.toolCall?.functionCalls?.length)
+              transcripts.push('child', { finished: true });
             for (const call of message.toolCall?.functionCalls ?? [])
               if (call.id && call.name) callbacks.tool(call.id, call.name, call.args);
             if (message.sessionResumptionUpdate?.newHandle)
@@ -142,7 +147,12 @@ export class VertexLiveProvider implements LiveProvider {
           }),
         text: (text: string) =>
           connected.sendClientContent({
-            turns: [{ role: 'user', parts: [{ text }] }],
+            turns: [
+              {
+                role: 'user',
+                parts: [{ text: `${text}\n\n${spokenLanguageRule(record.identity.child)}` }],
+              },
+            ],
             turnComplete: true,
           }),
         toolResult: (id: string, name: string, result: unknown) =>

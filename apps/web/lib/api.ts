@@ -1,4 +1,5 @@
 'use client';
+import { currentLanguage } from './i18n';
 import { ROUTES, type RouteKey } from '@just-imagine/protocol';
 import { env } from './env';
 import { currentIdToken } from './firebase';
@@ -16,6 +17,7 @@ export async function api<T>(
     headers: {
       Authorization: `Bearer ${await currentIdToken()}`,
       'Content-Type': 'application/json',
+      'X-App-Language': currentLanguage(),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });

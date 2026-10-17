@@ -1,3 +1,7 @@
+'use client';
+import { useLanguage } from '../lib/i18n';
+import { uiNumber } from '../lib/i18n/ui';
+import { copy as uiText } from '../lib/i18n/ui';
 import Link from 'next/link';
 import { Header, Footer, Preview } from '../components/Shell';
 import { s } from '../lib/strings/en';
@@ -5,6 +9,7 @@ import { env } from '../lib/env';
 import { GravityPlayground } from '../components/GravityPlayground';
 import './welcome.css';
 export default function Home() {
+  useLanguage();
   return (
     <>
       <Header />
@@ -36,18 +41,18 @@ export default function Home() {
               )}
             </div>
             <p className="hero-invitation">
-              For curious minds, ages 6–13.
+              {uiText('For curious minds, ages 6–13.')}
               <br />
-              And the grown-ups who cheer them on.
+              {uiText('And the grown-ups who cheer them on.')}
             </p>
           </div>
           <GravityPlayground />
         </section>
         <section className="discovery-story">
           <h2>
-            Little wonders.
+            {uiText('Little wonders.')}
             <br />
-            <span>Big discoveries.</span>
+            <span>{uiText('Big discoveries.')}</span>
           </h2>
           <ol>
             {[
@@ -57,11 +62,11 @@ export default function Home() {
             ].map(([title, text], i) => (
               <li key={title}>
                 <span className="story-step" aria-hidden="true">
-                  {i + 1}
+                  {uiNumber(i + 1)}
                 </span>
                 <div>
-                  <h2>{title}</h2>
-                  <p>{text}</p>
+                  <h2>{uiText(title)}</h2>
+                  <p>{uiText(text)}</p>
                 </div>
               </li>
             ))}

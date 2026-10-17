@@ -17,11 +17,20 @@ import {
 } from '@just-imagine/protocol';
 import { db, isKillSwitchOn, addImages, logEvent, traced } from '@just-imagine/server-core';
 import { buildScene, patchScene, STYLE_BIBLE } from './pipeline';
-import { assetKey, processSprite, processMotionAtlas } from './assets';
+import { assetKey, processSprite, processMotionAtlas, MotionRegistrationError } from './assets';
 import type { VertexModels } from './vertex';
 import { guardPatchedGame, imagineGame, type ImagineGameDeps } from './imagine-game';
 import { initialCreation, reviseCreation } from './revisions';
-import { motionArt, sameMotionArt, locomotionImagePrompt, requireMotionArtwork } from './motion';
+import { applyPaintedFloor } from './presentation';
+import { layerArtPrompt, processLayerArt } from './layer-art';
+import {
+  motionArt,
+  sameMotionArt,
+  locomotionImagePrompt,
+  requireMotionArtwork,
+  motionRepairInstruction,
+  hasMotionArtwork,
+} from './motion';
 import type { PatchOp, AssetRef, Locomotion } from '@just-imagine/scene-schema';
 
 export class BuilderWorker {
@@ -147,6 +156,7 @@ export class BuilderWorker {
             const built = await imagineGame(job, {
               ...this.game,
               generateScene: this.models.generate,
+              reviewScene: this.models.reviewScene,
             });
             logEvent(
               built.fallback ? 'game_fallback' : 'game_kind',
@@ -193,7 +203,7 @@ export class BuilderWorker {
                 {
                   id: 'midLayer',
                   description: doc.theme.midLayerDescription,
-                  kind: 'backdrop',
+                  kind: 'overlay',
                   hero: true,
                 },
               ]
@@ -240,6 +250,7 @@ export class BuilderWorker {
               if (request.id === 'backdrop') {
                 world.doc.theme.backdrop = ref;
                 world.thumbnailUrl = asset.url;
+                applyPaintedFloor(world.doc);
               } else if (request.id === 'midLayer') world.doc.theme.midLayer = ref;
               else {
                 const entity = world.doc.entities.find((e) => e.id === request.id);
@@ -355,11 +366,16 @@ export class BuilderWorker {
       const revised = await reviseCreation(world, job, child, {
         ...this.game,
         generateScene: this.models.generate,
+        reviewScene: this.models.reviewScene,
       });
       next = { ...world, ...revised };
       await this.paintEdit(job, next, world);
     } else {
-      const patched = await patchScene(world.doc, job.instruction, this.models.generate);
+      const patched = await patchScene(
+        world.doc,
+        job.childRequest ?? job.instruction,
+        this.models.generate,
+      );
       patched.doc = await guardPatchedGame(world.doc, patched.doc, {
         language: child.language ?? 'en',
         ...(this.game?.moderate ? { moderate: this.game.moderate } : {}),
@@ -367,7 +383,9 @@ export class BuilderWorker {
       next = { ...world, doc: patched.doc };
       patch = patched.patch;
     }
-    await this.commitRevision(job, lease, world, next, job.instruction, patch);
+    requireMotionArtwork(next.doc);
+    applyPaintedFloor(next.doc);
+    await this.commitRevision(job, lease, world, next, job.childRequest ?? job.instruction, patch);
   }
   private async undo(job: Extract<BuilderJob, { kind: 'undo' }>, lease: string) {
     const world = WorldDocSchema.parse((await db().doc(paths.world(job.worldId)).get()).data());
@@ -410,7 +428,7 @@ export class BuilderWorker {
             {
               id: 'midLayer',
               description: doc.theme.midLayerDescription,
-              kind: 'backdrop',
+              kind: 'overlay',
               hero: true,
             },
           ]
@@ -425,6 +443,7 @@ export class BuilderWorker {
                 old.kind === e.kind &&
                 old.description === e.description &&
                 old.asset?.status === 'ready' &&
+                hasMotionArtwork(old) &&
                 sameMotionArt(old.locomotion, e.locomotion),
             ),
         )
@@ -561,9 +580,11 @@ export class BuilderWorker {
       request.kind,
       request.kind === 'sprite'
         ? request.locomotion
-          ? `${style}:motion-v2:${JSON.stringify(motionArt(request.locomotion))}`
+          ? `${style}:${request.locomotion.kind === 'roll' ? 'motion-v2' : 'motion-v5'}:${JSON.stringify(motionArt(request.locomotion))}`
           : `${style}:cutout-v2`
-        : style,
+        : request.kind === 'overlay'
+          ? `${style}:overlay-v1`
+          : style,
     );
     const cached = AssetCacheDocSchema.safeParse(
       (await db().doc(paths.assetCache(hash)).get()).data(),
@@ -573,33 +594,44 @@ export class BuilderWorker {
       cached: cached.success && cached.data.safetyChecked,
     });
     if (cached.success && cached.data.safetyChecked) return cached.data;
+    let repair = '',
+      reference: Buffer | undefined;
+    let chroma: 'magenta' | 'green' = 'magenta';
+    const motion = request.kind === 'sprite' ? request.locomotion : undefined;
+    const animated = motion && motion.kind !== 'roll';
+    const overlay = request.kind === 'overlay';
     for (let attempt = 0; attempt < 2; attempt++) {
+      let raw: Buffer | undefined;
+      let stage: 'REQUEST' | 'REGISTRATION' | 'REVIEW' | 'STORAGE' = 'REQUEST';
       try {
         const styleBible =
           request.kind === 'sprite'
             ? STYLE_BIBLE.replace('soft rim light', 'clean edges')
             : STYLE_BIBLE;
-        const chroma = attempt > 0 ? 'green' : 'magenta';
         const background = chroma === 'green' ? 'green #00FF00' : 'magenta #FF00FF';
-        const motion = request.kind === 'sprite' ? request.locomotion : undefined;
-        const animated = motion && motion.kind !== 'roll';
-        const motionPrompt = animated
-          ? ` Production nine-frame ${motion.kind} cycle atlas: exactly THREE columns, THREE rows, nine equal cells, chronological left to right then next row. Same full character, same scale, near-side view facing ${motion.facing}, stable body anchor in every cell. Frame1 grounded neutral/recovery, frames2-9 articulate actual legs, wings or flippers through contact, compression, extension and recovery. Runners bend opposite limbs; swimmers flex spine/tail and flippers; birds flap wings. Never nine copies of a standing pose. Ground baseline aligned for runners; body center aligned for swimmers. Generous clear margins around each cell; no grid lines.`
-          : motion?.kind === 'roll' && motion.wheels
+        const motionPrompt =
+          motion?.kind === 'roll' && motion.wheels
             ? ' Render vehicle chassis WITHOUT wheels; rotating geometric wheels will be mounted by the engine. Leave the specified lower wheel areas clear. Side view.'
             : '';
         const prompt = animated
-          ? locomotionImagePrompt(request.description, motion, background)
-          : `${styleBible} ${request.description}.${motionPrompt} ${request.kind === 'sprite' ? `Full body, centered, flat pure ${background} background. Render the character as an opaque painted cartoon: use internal highlights for jelly, glass or light, never let the chroma background show through the body. Crisp clean silhouette, no outer glow, no floating particles, no background shadow, no text. The flat background color is only outside the silhouette.` : 'Wide 16:9 landscape, no text, no foreground characters.'}${attempt ? ' This is a cutout retry: preserve the requested character and its colors, with fully opaque clean edges against the replacement background.' : ''}`;
-        const raw = await this.models.image(
+          ? locomotionImagePrompt(request.description, motion, background) +
+            (repair ? ` ${repair}` : '')
+          : overlay
+            ? `${styleBible} ${layerArtPrompt(request.description, background)}`
+            : `${styleBible} ${request.description}.${motionPrompt} ${request.kind === 'sprite' ? `Full body, centered, flat pure ${background} background. Render the character as an opaque painted cartoon: use internal highlights for jelly, glass or light, never let the chroma background show through the body. Crisp clean silhouette, no outer glow, no floating particles, no background shadow, no text. The flat background color is only outside the silhouette.` : 'Wide 16:9 landscape, no text, no foreground characters.'}${attempt ? ' This is a cutout retry: preserve the requested character and its colors, with fully opaque clean edges against the replacement background.' : ''}`;
+        raw = await this.models.image(
           prompt,
-          request.hero || attempt > 0,
+          Boolean(animated) || request.hero || attempt > 0,
           request.kind !== 'sprite',
+          Boolean(animated),
+          animated ? { imageSize: '2K', ...(reference ? { reference } : {}) } : undefined,
         );
+        stage = 'REGISTRATION';
+        const layer = overlay ? await processLayerArt(raw, chroma) : null;
         const processed =
           request.kind === 'sprite'
             ? animated
-              ? await processMotionAtlas(raw, motion.kind, chroma)
+              ? await processMotionAtlas(raw, motion.kind, chroma, 'auto', 512)
               : await processSprite(raw, chroma)
             : null;
         if (
@@ -611,20 +643,26 @@ export class BuilderWorker {
             { jobId: job.jobId, milestone: request.kind, count: attempt + 1 },
             'WARNING',
           );
+          chroma = 'green';
           continue;
         }
         const image =
           processed?.webp ??
+          layer?.webp ??
           (await sharp(raw, { limitInputPixels: 4096 * 4096 })
             .resize({ width: 2048, height: 1152, fit: 'cover' })
             .webp({ quality: 85 })
             .toBuffer());
+        stage = 'REVIEW';
         if (
           !(await this.models.safeImage(
             image,
             request.description +
+              (overlay
+                ? ' Only the requested sparse decoration on a transparent canvas; no separate landscape, terrain, trees, floor or unrelated background painting.'
+                : '') +
               (animated
-                ? ' A production nine-frame animation sheet of the SAME character, nine articulated poses, not nine different characters.'
+                ? ` A production ${processed && 'animation' in processed ? processed.animation.frames : 9}-frame animation sheet of the SAME character, one complete articulated pose per frame, not different characters. All frames must preserve the requested identity, clothing and colours.`
                 : ''),
           ))
         ) {
@@ -633,8 +671,13 @@ export class BuilderWorker {
             { jobId: job.jobId, milestone: request.kind, count: attempt + 1 },
             'WARNING',
           );
+          // A rejected image is never supplied as a repair reference.
+          reference = undefined;
+          repair = '';
+          chroma = 'green';
           continue;
         }
+        stage = 'STORAGE';
         const prefix = `assets/${hash}`;
         if (this.config.assetDirectory) {
           const dir = join(this.config.assetDirectory, prefix);
@@ -677,14 +720,22 @@ export class BuilderWorker {
           {
             jobId: job.jobId,
             milestone:
-              error instanceof Error && /Animation|outline|transparent/i.test(error.message)
-                ? 'ART_REGISTRATION'
-                : 'ART_REQUEST',
+              error instanceof MotionRegistrationError ? `ART_${error.code}` : `ART_${stage}`,
             count: attempt + 1,
           },
           'WARNING',
         );
         if (attempt === 1) throw error;
+        reference = undefined;
+        repair = '';
+        if (animated && raw && error instanceof MotionRegistrationError) {
+          repair = motionRepairInstruction(error.code);
+          chroma = 'green';
+          // Normalize known, bounded image input for the model's PNG reference part.
+          reference = await sharp(raw, { limitInputPixels: 4096 * 4096 })
+            .png()
+            .toBuffer();
+        } else if (!animated) chroma = 'green';
       }
     }
     throw new Error('Image did not pass safety or background checks');

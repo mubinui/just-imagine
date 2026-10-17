@@ -1,22 +1,46 @@
-# Bangla copy: phrases for the native reader
+# Bangladeshi Bangla copy conventions and reader review
 
-The first Bangla pass lives in `apps/web/lib/i18n/bn.ts` (every UI string) and in the `titleBn`,
-`realLifeNoteBn` and `kidHintBn` fields of `packages/protocol/src/concept-bank.ts` (the nineteen
-Discovery Cards). The key sets match English exactly; `apps/web/test/i18n.test.ts` fails CI if they
-drift. Character names are never translated, only written in Bangla script (মিষ্টি, ভোম্বল, চাঁদনি,
-পরী আপু, অঙ্ক মামা, জাদু কাকা); their ids stay as in English.
+Updated 2026-10-17 for the selected-language extension. English and Bangla are the only supported app/Live languages. The parent setting applies to shared, parent and child screens, conversation, new generation and translated display editions of saved stories/worlds. Bangla pages use `bn-BD`. Source and edition boundaries are recorded in [language-operations.md](../handoff/language-operations.md).
 
-Conventions used, to confirm or change in one sweep:
+## Current source and conventions
 
-- Register: child-facing lines (Studio, picker, gallery, spells, challenges) use তুমি; parent-facing
-  and marketing lines (auth, dashboard, billing, settings, landing) use আপনি. Shared buttons that both
-  see (`close`, `empty`, `cancel`) are written without a verb form that commits to either.
-- Numerals inside Bangla prose (`billingInfo`, the projectile note) are Bengali; lab readings stay
-  Latin by design, and the app formats numbers through `formatNumber()`.
-- Case markers after a placeholder that may hold a Latin name take a hyphen: `{name}-কে`.
-- "Voice" in the child's status chips is rendered as কথা (talking) rather than ভয়েস.
+`apps/web/lib/i18n/bn.ts` is the original typed string table; `ui-bn.ts` extends explicit authored UI copy and known display names. `index.ts` owns language selection, number formatting and grammatical name suffixes; `ui.ts` resolves the selected catalog and localizes errors. Learning names, sentences and facts also live in `packages/learning-content/src/`, and Discovery Card prose lives in `packages/protocol/src/concept-bank.ts`. The typed-table key check covers that table; it is not proof that every added UI sentence or generated passage has received a human language review. Do not translate arbitrary DOM nodes.
 
-Each row below is a phrase I was not sure of. Please mark it fine or write the better line.
+- Child-facing instructions use তুমি; parent/account/marketing instructions use আপনি. Shared neutral controls avoid choosing an unnecessary register.
+- Prefer natural Bangladesh vocabulary: পানি, গোসল, দাঁত মাজা and হাত ধোয়া. Use short direct actions and explain scientific terms through what the child can observe. Retain a useful familiar loanword when it is clearer than a forced alternative.
+- Known cast identities use deliberate authored display forms. Preserve their IDs, artwork and personality. Editable names, emails and technical identifiers remain data; they do not permit English interface sentences to leak into Bangla mode. English mode resolves authored Bangla display forms back to English.
+- Pass numbers through the selected-locale formatter. Bangla prose and UI counts use Bengali numerals; a technical lab reading intentionally passed as English retains its measurement notation. Dates use the selected locale. Preserve named/numbered interpolation tokens before numeral conversion.
+- Route name case markers through `withNameSuffix()`. Bangla-script names attach naturally: `মিষ্টিকে`, `মিষ্টির`, `ভোম্বলের`; Latin-script data retains the hyphenated form, such as `Ari-কে`. Do not concatenate internal enum values with Bangla suffixes.
+- Labels, loading/error messages, accessible names and metadata follow the selected language. A translation failure is recoverable feedback in that language, not a successful response with source-language prose. Do not show English and Bangla together as a loading shortcut.
+- Baloo Da 2 carries the rounded naming role; Noto Sans Bengali carries explanations. Self-hosted subsets, Bengali component aliases and leading are documented in `apps/web/DESIGN.md` and `lib/i18n/fonts.css`. Keep marks unclipped and allow translated labels to wrap.
+
+## Current glossary and corrected examples
+
+These entries describe the checked source rather than an independent native-reader sign-off.
+
+| Meaning                               | Current Bangla display                                         | Convention                                                                            |
+| ------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Just Imagine                          | জাস্ট ইমাজিন                                                   | Authored wordmark text; keep brand geometry.                                          |
+| Mishti / Bhombol / Chandni            | মিষ্টি / ভোম্বল / চাঁদনি                                       | Stable preset identities.                                                             |
+| Pori Apu / Onko Mama / Jadu Kaka      | পরী আপু / অঙ্ক মামা / জাদু কাকা                                | Keep the familiar relationship terms.                                                 |
+| Pip / Ari                             | পিপ / আরি                                                      | Authored preset/sample forms; editable names remain data.                             |
+| Katha’s story room                    | কথার গল্পঘর                                                    | Narrative guide and destination name.                                                 |
+| A world of “what if?”                 | যদি এমন হতো, কী মজাই না হতো!                                   | Natural phrase replaces the earlier literal construction.                             |
+| Slow time                             | সময় ধীরে চলুক!                                                | Replaces the earlier stretched-vowel spelling.                                        |
+| Reveal                                | এই তো, হয়ে গেছে!                                              | Replaces the earlier transliterated flourish.                                         |
+| Voice status                          | কথা বন্ধ / শুনছি / আবার সংযোগ হচ্ছে                            | Short state labels; microphone is মাইক্রোফোন when naming the control.                 |
+| Earth / Moon gravity accessible label | পৃথিবীর মাধ্যাকর্ষণে লাফানো বল / চাঁদের মাধ্যাকর্ষণে লাফানো বল | Complete authored phrases; never `earthের` or `moonের`.                               |
+| Bounce dragon                         | ড্রাগনকে লাফাতে সাহায্য করো                                    | Natural causative action; the longer phone button was captured and scored as fitting. |
+
+## Evidence and remaining human review
+
+The supplied language reports record 84 initial desktop/phone states and 32 confirmation states, including four replacement Bangla parent captures with loaded controls. The finish reviewer covered the confirmation set and representative initial views; the final `ship` verdict resolves the two requested copy corrections above. It does not certify the entire catalog or every app surface. Evidence lives locally under `apps/web/.impeccable/review/language/` and is ignored by Git.
+
+The service reports record ten real speaker/narration turns across English and Bangla and a synthesized English question streamed as real PCM, with a Bangla answer despite a request for French. They support the sampled selected-language behavior. They do not establish native-reader approval, subtle Bangladesh idiom, pronunciation, physical microphone/device listening quality or actual-child comprehension. A Bangladesh reader should still review legal/consent meaning, scientific ambiguity and unfamiliar loanwords in context. This documentation merge did not run a new test or language audit.
+
+## Historical first-pass reader questions
+
+The table below is preserved as the original review backlog. Its quoted copy is a historical snapshot, not the current glossary or an unresolved defect list: several lines were subsequently replaced, as shown above. Check the current source before changing a row. No native reader’s approval is recorded here.
 
 | Key                                                | English                                                               | Bangla                                                                              | Doubt                                                                                                                |
 | -------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |

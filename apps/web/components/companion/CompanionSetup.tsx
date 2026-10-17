@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText, uiError } from '../../lib/i18n/ui';
 /* eslint-disable @next/next/no-img-element -- Parent-selected in-memory photo preview. */
 import { useEffect, useState } from 'react';
 import {
@@ -17,7 +19,8 @@ export function CompanionSetup({
   child: ChildResponse;
   onSaved: () => Promise<void>;
 }) {
-  const [name, setName] = useState(child.companion?.name ?? 'Pip'),
+  useLanguage();
+  const [name, setName] = useState(child.companion?.name ?? uiText('Pip')),
     [characterId, setCharacterId] = useState(child.companion?.characterId ?? 'bhombol'),
     [mode, setMode] = useState<'preset' | 'photo'>(
       child.companion?.kind === 'chibi' ? 'photo' : 'preset',
@@ -42,12 +45,13 @@ export function CompanionSetup({
     try {
       let result: ChildResponse;
       if (mode === 'photo') {
-        if (!photo || !consent) throw new Error('Choose a photo and confirm permission first.');
+        if (!photo || !consent)
+          throw new Error(uiText('Choose a photo and confirm permission first.'));
         const data = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(String(reader.result).split(',')[1]!);
           reader.onerror = () =>
-            reject(new Error('The photo could not be read. Please choose it again.'));
+            reject(new Error(uiText('The photo could not be read. Please choose it again.')));
           reader.readAsDataURL(photo);
         });
         result = await api<ChildResponse>(
@@ -71,23 +75,33 @@ export function CompanionSetup({
         /* Selection refreshes next time the profile is opened. */
       }
       await onSaved();
-      setMessage(`${name} is ready to explore with ${child.firstName}.`);
+      setMessage(
+        uiText('{v0} is ready to explore with {v1}.', {
+          v0: String(name),
+          v1: String(child.firstName),
+        }),
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Your friend could not be saved. Try again.');
+      setError(
+        e instanceof Error ? uiError(e) : uiText('Your friend could not be saved. Try again.'),
+      );
     } finally {
       setBusy(false);
     }
   }
   return (
-    <section className="companion-setup" aria-label={`${child.firstName}'s companion`}>
+    <section
+      className="companion-setup"
+      aria-label={uiText('{v0} companion', { v0: child.firstName })}
+    >
       <div className="companion-setup-preview">
         <CompanionArt companion={friend} />
-        <p>{child.companion?.name ?? 'A friend for every adventure'}</p>
+        <p>{uiText(child.companion?.name ?? uiText('A friend for every adventure'))}</p>
       </div>
       <div className="companion-setup-fields">
-        <h3>Meet their play friend</h3>
-        <p>A familiar face to explore, wonder and find the way together.</p>
-        <div className="companion-options" role="group" aria-label="Companion style">
+        <h3>{uiText('Meet their play friend')}</h3>
+        <p>{uiText('A familiar face to explore, wonder and find the way together.')}</p>
+        <div className="companion-options" role="group" aria-label={uiText('Companion style')}>
           <button
             type="button"
             aria-pressed={mode === 'preset'}
@@ -98,7 +112,7 @@ export function CompanionSetup({
               setPreview('');
             }}
           >
-            Choose a friend
+            {uiText('Choose a friend')}
           </button>
           <button
             type="button"
@@ -106,11 +120,11 @@ export function CompanionSetup({
             disabled={busy}
             onClick={() => setMode('photo')}
           >
-            Make a chibi from a photo
+            {uiText('Make a chibi from a photo')}
           </button>
         </div>
         <label>
-          Friend&apos;s name
+          {uiText("Friend's name")}
           <input
             value={name}
             maxLength={24}
@@ -119,7 +133,7 @@ export function CompanionSetup({
           />
         </label>
         <fieldset disabled={busy}>
-          <legend>Choose their personality</legend>
+          <legend>{uiText('Choose their personality')}</legend>
           <div className="companion-personalities">
             {CompanionIdSchema.options.map((id) => (
               <button
@@ -131,8 +145,8 @@ export function CompanionSetup({
                 <CompanionArt
                   companion={{ kind: 'preset', characterId: id, name: CHARACTERS[id].displayName }}
                 />
-                <span>{CHARACTERS[id].displayName}</span>
-                <small>{CHARACTERS[id].title}</small>
+                <span>{uiText(CHARACTERS[id].displayName)}</span>
+                <small>{uiText(CHARACTERS[id].title)}</small>
               </button>
             ))}
           </div>
@@ -140,7 +154,7 @@ export function CompanionSetup({
         {mode === 'photo' && (
           <div className="companion-photo">
             <label>
-              Photo of your child
+              {uiText('Photo of your child')}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -155,7 +169,7 @@ export function CompanionSetup({
                     (file.size > 4 * 1024 * 1024 ||
                       !['image/jpeg', 'image/png', 'image/webp'].includes(file.type))
                   ) {
-                    setError('Choose a JPEG, PNG or WebP smaller than 4 MB.');
+                    setError(uiText('Choose a JPEG, PNG or WebP smaller than 4 MB.'));
                     e.target.value = '';
                     return;
                   }
@@ -169,13 +183,13 @@ export function CompanionSetup({
                 src={preview}
                 width={96}
                 height={96}
-                alt="Selected photo, used only to draw the companion"
+                alt={uiText('Selected photo, used only to draw the companion')}
               />
             )}
             <p>
-              Use a clear photo of one child. We send it to Gemini to draw a cartoon, then keep only
-              the generated artwork in your child&apos;s profile. The original is not saved by this
-              app.
+              {uiText(
+                "Use a clear photo of one child. We send it to Gemini to draw a cartoon, then keep only the generated artwork in your child's profile. The original is not saved by this app.",
+              )}
             </p>
             <label className="companion-consent">
               <input
@@ -184,12 +198,15 @@ export function CompanionSetup({
                 disabled={busy}
                 onChange={(e) => setConsent(e.target.checked)}
               />
-              I am the parent or guardian and permit this photo to be sent to Gemini for the avatar.
+              {uiText(
+                'I am the parent or guardian and permit this photo to be sent to Gemini for the avatar.',
+              )}
             </label>
             {env.fake && (
               <p>
-                Photo drawing needs the connected Gemini service. You can choose a ready-made friend
-                in this preview.
+                {uiText(
+                  'Photo drawing needs the connected Gemini service. You can choose a ready-made friend in this preview.',
+                )}
               </p>
             )}
           </div>
@@ -201,17 +218,17 @@ export function CompanionSetup({
           onClick={() => void save()}
         >
           {busy
-            ? 'Getting your friend ready…'
+            ? uiText('Getting your friend ready…')
             : mode === 'photo'
-              ? 'Draw their chibi friend'
-              : 'Save their friend'}
+              ? uiText('Draw their chibi friend')
+              : uiText('Save their friend')}
         </button>
         {error && (
           <p className="error" role="alert">
-            {error}
+            {uiText(error)}
           </p>
         )}
-        {message && <p role="status">{message}</p>}
+        {message && <p role="status">{uiText(message)}</p>}
       </div>
     </section>
   );

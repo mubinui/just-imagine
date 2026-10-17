@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText, uiError } from '../../lib/i18n/ui';
 import { useEffect, useRef, useState } from 'react';
 import type { ChildResponse, StoryDoc } from '@just-imagine/protocol';
 import { ensureChildVoice, getVoice } from '../../lib/voice';
@@ -54,7 +55,7 @@ export function useStoryNarration(
         generation.current++;
         current.current = undefined;
         setState('paused');
-        if (message.type === 'error') setError(message.message);
+        if (message.type === 'error') setError(uiError(message.message));
       }
     });
     const offStatus = voice.subscribeStatus((status) => {
@@ -64,8 +65,8 @@ export function useStoryNarration(
         setState('paused');
         setError(
           status === 'reconnecting'
-            ? 'The call is reconnecting. Press Continue when it returns.'
-            : 'The call ended. Your page is saved; you can read or call again.',
+            ? uiText('The call is reconnecting. Press Continue when it returns.')
+            : uiText('The call ended. Your page is saved; you can read or call again.'),
         );
       }
     });
@@ -132,7 +133,7 @@ export function useStoryNarration(
       if (version === generation.current) {
         current.current = undefined;
         setState('paused');
-        setError(e instanceof Error ? e.message : 'Please try the call again.');
+        setError(uiError(e, 'Please try the call again.'));
       }
     }
   }
@@ -148,7 +149,7 @@ export function useStoryNarration(
       setState('listening');
     } catch (e) {
       setState('paused');
-      setError(e instanceof Error ? e.message : 'Could not call Katha.');
+      setError(uiError(e, 'Could not call Katha.'));
     }
   }
   return { state, caption, error, read, pause, ask };

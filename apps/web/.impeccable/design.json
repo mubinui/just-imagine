@@ -379,7 +379,7 @@
       },
       "learn-story-copy": {
         "displayName": "Learn Story Copy",
-        "purpose": "Bilingual setup, goal and consequence; at most 65ch and 16px on phones."
+        "purpose": "Selected English or Bangla setup, goal and consequence; at most 65ch and 16px on phones."
       }
     },
     "shadows": [
@@ -674,6 +674,90 @@
       "removed": "Decorative sparkle badges, summon particles, guide-name sparks and idle Studio particle orb.",
       "retained": "Semantic reward stars, five-point brand star, celestial subject art and contained live voice feedback.",
       "liveFeedback": "DotOrb mounts only when live; 100% portrait footprint. Compact <=280px container uses an 84–140px portrait column separate from copy."
+    },
+    "generatedWorldActors": {
+      "updatedAt": "2026-10-17",
+      "scope": "New generated-world articulated actors using the existing distance-driven engine contract; preserve stage tokens, preset cast, saved references and selected-language policy.",
+      "source": [
+        "../../services/builder/src/assets.ts",
+        "../../services/builder/src/motion.ts",
+        "../../services/builder/src/presentation.ts",
+        "../../services/builder/src/worker.ts",
+        "../../services/builder/src/prompts/v1.ts",
+        "../../services/builder/src/prompts/world-design.ts",
+        "../../packages/engine/src/motion.ts",
+        "../../packages/engine/src/renderer.ts",
+        "lib/world-source.ts"
+      ],
+      "registration": {
+        "request": "Native 2K hero-model art, bounded to two asset attempts; mandatory identity/safety review approves the actual frame count before publication.",
+        "layout": "Three aligned columns with 6, 9 or 12 complete chronological poses; reject clipped, merged, extra or ambiguously ordered subjects and unresolved backgrounds.",
+        "detail": "512px cells only when source dimensions and pose extents support them; otherwise 256px. One shared scale and foot anchor for walking/running, body-center anchor for swimming/flying.",
+        "cache": "Articulated motion-v5; rolling chassis motion-v2; no automatic regeneration of saved references."
+      },
+      "presentation": {
+        "travel": "Actual distance advances the authored cycle; locomotion stops at rest and does not move the physics body.",
+        "staging": "Normally a 3–4m primary actor across a 16m stage; preserve explicit child size choices and balanced casts.",
+        "requestFidelity": "Moderated child words travel independently of the model summary and govern creation/edits, including open play and exclusions; optional story structure cannot add unrequested blocking scenery, actors, scores, timers or quizzes. wd4 removes contradictory compulsory-obstacle guidance.",
+        "sceneReview": "Independent VertexModels.reviewScene / creation-review.ts via optional pipeline ReviewScene checks initial and owned-edit scene context before script/art within the existing three scene attempts. Strict JSON; 15s HTTP timeout, 20s abort and one SDK attempt; repeated rejection or unavailable review fails closed. Explicit Labs retain their path. Bounded checking does not establish a broad semantic guarantee.",
+        "paintedFloor": "Approved scenery supplies only the full-width static base floor at the bottom of a generated playground; collision, platforms, walls, Lab geometry and missing-art placeholders remain. Body/kind/tag changes invalidate the streamed display; the loading cream strip is a corrected defect, not a surface treatment.",
+        "paintedFloorEvidence": "An intervening Fenn scene failed gameplay: an unrequested solid lantern tree blocked arrival around x10.1 for tap x12, with no phone capture. Final fresh Fenn after scene-review correction passed arrival/rest/reversal; parent-inspected generated-fenn-confirm-{desktop,phone}.png show the clear route and removed strip, with no page errors or overflow."
+      },
+      "evidence": {
+        "operations": "../../docs/handoff/generated-animation-operations.md",
+        "surface": "surfaces/components-studio-tsx.md",
+        "localReports": "review/generation-reliability/{sheet-proof,spoken-fidelity}.json; ignored local evidence.",
+        "gameplay": "Earlier recorded real-service Turtle Tide swimming, enlarged Kingfisher flying and Fenn running passed creation, actual input, arrival/rest and desktop/phone capture. Accepted sheets have 9/9/12 distinct masks/frame hashes and 512px cells with clear edges. The later blocked Fenn test does not inherit that acceptance.",
+        "sceneReviewControls": "Implementing parent reports actual configured-model controls reject the retained blocked scene and approve clear Fenn; /tmp/ji-real-request-review.log is private local evidence.",
+        "finalConfirmation": "Parent-reported /tmp/ji-request-review-confirm.log: full real Live → scene review → native scene/script/art → owned API/canvas passed without injected art or manual repair. Exact typed wish; only ground_forest and fenn. Native 1536×1536/nine 512px poses. Tap12 → rest x11.8997/y6.11535, speed about 0.0222m/s; reverse tap4 → x4.12945, speed about 0.0244m/s. Inspected desktop/phone captures confirm route and floor; 1,029 audio frames; QA identity deleted. This named success does not remove earlier model-variability failures.",
+        "speech": "Separate synthesized English 16kHz PCM passed actual gateway/Gemini ASR and preserved exclusions in originalWish with 1,027 returned audio frames; that spoken world was not browser-playtested.",
+        "limits": "Earlier failed art, direct diagnostics, the undersized first bird and stable-x-only false positive are not accepted gameplay. Bounded retries and model variability remain; no arbitrary-request reliability, continuous rig, physical-device sound quality or child-enjoyment claim."
+      }
+    },
+    "localization": {
+      "updatedAt": "2026-10-17",
+      "allowedLanguages": ["en", "bn"],
+      "pageLanguage": {
+        "en": "en",
+        "bn": "bn-BD"
+      },
+      "scope": "Selected language covers shared, parent and child interface prose, accessible labels, Live speakers, new generation and translated display editions of saved content. Preserve editable names, emails and technical identifiers as data.",
+      "source": [
+        "lib/i18n/index.ts",
+        "lib/i18n/ui.ts",
+        "lib/i18n/ui-bn.ts",
+        "lib/i18n/bn.ts",
+        "lib/i18n/fonts.css",
+        "components/LanguageRoot.tsx",
+        "components/LanguagePreferencesForm.tsx"
+      ],
+      "fonts": {
+        "english": "Existing Baloo/Nunito roles and Latin faces remain.",
+        "banglaDisplay": {
+          "family": "Baloo Da 2",
+          "declaredWeights": "400 to 800",
+          "stack": "Baloo Da 2, Baloo, serif",
+          "lineHeight": 1.3
+        },
+        "banglaBody": {
+          "family": "Noto Sans Bengali",
+          "declaredWeights": "400 to 700",
+          "stack": "Noto Sans Bengali, Nunito, sans-serif"
+        },
+        "loading": "Self-hosted Bengali and Latin unicode-range subsets; font-display: swap.",
+        "componentAliases": "Bengali-only Baloo and Nunito font-face aliases resolve component glyphs to Baloo Da 2 and Noto Sans Bengali respectively; Latin faces remain.",
+        "provenance": "public/fonts/NOTICE.md and accompanying OFL licences"
+      },
+      "rhythm": {
+        "learnIslandLeading": 1.45,
+        "phoneMap": "At widths up to 760px, Bengali rows use minmax(230px, auto), a 24px gap and 32px bottom padding. The shared phone map title wraps with 1.3 leading and a 62% maximum width."
+      },
+      "settings": "Explicit save and status/error feedback. An active child update must succeed before browser selection changes; without a child, save browser preference. Profile selection notifies mounted navigation.",
+      "metadata": "Document language, title, description and manifest language follow selection after hydration; initial server rendering remains English.",
+      "savedContent": "Owned translated display editions preserve canonical records, IDs, art, scripts, physics and progress; first-open and recoverable errors identify the actual operation.",
+      "operations": "../../docs/handoff/language-operations.md",
+      "copyConventions": "../../docs/i18n/bangla-review.md",
+      "evidence": "review/language/{capture-report.json,confirmation/report.json,finish-review.md,finish-verdict.md,real-voice-report.json,spoken-language-report.json}; local ignored evidence, not a fresh global certification."
     }
   },
   "components": [
@@ -809,7 +893,7 @@
       "name": "Learn Story Dialogue",
       "kind": "card",
       "refersTo": "learn-story-dialogue",
-      "description": "A readable opening or ending over the painted world, with a named chapter and bilingual story copy.",
+      "description": "A readable opening or ending over the painted world, with a named chapter and story copy in the selected language.",
       "html": "<section class=\"ds-story-dialogue\"><h3>Tooth Town’s big picnic</h3><p>Help your friend get ready for the picnic.</p></section>",
       "css": ".ds-story-dialogue { max-width: 65ch; padding: clamp(20px, 2.5cqw, 36px); border-radius: 16px; background: #fff9eef5; color: var(--ink, #243e36); } .ds-story-dialogue h3 { margin: 0 0 12px; font: 800 clamp(24px, 3cqw, 38px)/1.08 Baloo, sans-serif; text-wrap: balance; } .ds-story-dialogue p { margin: 0 0 10px; font: 700 clamp(15px, 1.45cqw, 18px)/1.45 Nunito, sans-serif; } @media(max-width: 700px) { .ds-story-dialogue { padding: 20px; } .ds-story-dialogue h3 { font-size: 27px; } .ds-story-dialogue p { font-size: 16px; } }"
     },
@@ -827,7 +911,7 @@
     "overview": "Just Imagine has a default Forest palette and two rooms. The parent room is a calm, paper-coloured page: warm cream ground (#fff9ee), deep green foreground (#243e36), forest actions (#245e4e), muted leaf, ochre and clay accents. Locally hosted Baloo provides soft rounded headings; Nunito provides readable body copy. The landing composition pairs a large question with an abstract geometric play window. It makes no claim that geometric placeholders are final illustration.\n\nThe child room is the same palette turned inside out. The Studio is a stage, not a page: the forest green that is ink on the parent side becomes the wings and floor, and the cream that is ground on the parent side becomes the pills, captions and sheets that float at the stage edges. The Dream Launch mark (forest tile, cream cloud, peach arc, sunshine star) supplies the whole stage vocabulary: forest for the house, cream for anything you can touch, peach for warmth, sunshine for anything live. The six preset friends and guides now carry their established identities into tactile registered raster poses inside the same SVG slots; optional external Rive assets retain their existing mounting path.\n\nLearning Worlds adds the user-approved Tooth Town craft to this theatre: tactile sculpted characters, expressive acting poses, soft key and rim lighting, and eight active cinematic environments across nine story adventures. The warm cream-and-forest shell stays familiar. Learn’s rounded rectangular controls, painted scenery and scene gradients remain scoped to Learn. The Tooth Town acting standard now also covers the six preset Studio friends/guides and eight pets through shared registered raster presentation; identities, mounting slots and the optional Rive path remain intact.\n\nThe child and parent worlds share typography and semantic colors. Interface transition duration becomes zero with reduced-motion preferences; shared actor presentation retains semantic poses and audio-driven speech while removing repeated gestures and idle blinks. Physics remains interactive. Parent forms and all actionable child controls retain visible keyboard focus. Browser selection, progress meters and range inputs use the same palette.\n\nThe user authorized the Forest/Ocean/Terracotta preset extension and coordinated recolouring of existing brand/browser/install icons. Semantic interface roles change together; tactile artwork and brand geometry remain. Shared rounded-stroke controls replace decorative sparkle UI. Idle Studio portraits have no particle orb; live feedback stays inside its portrait column. Appearance uses a separate draft preview and explicit audited, revision-checked publication.",
     "keyCharacteristics": [
       "One coordinated palette, inverted between rooms: Forest is the warm cream-and-forest default; authorized Ocean and Terracotta presets preserve the same semantic roles.",
-      "Baloo for anything that names (headings, dial values, chip titles, answer buttons); Nunito for anything that explains (body, captions, pill labels).",
+      "Baloo for anything that names (headings, dial values, chip titles, answer buttons); Nunito for anything that explains (body, captions, pill labels). Bangla extends those roles with Baloo Da 2 and Noto Sans Bengali.",
       "Sunshine (#f7d76e) means live: mic ring, speaking friend's ring, pressed pill, connected dot, active challenge, spell banner.",
       "Fully rounded pills on the stage; 10 to 16 px corners in the parent room.",
       "Soft offset shadows cast toward the floor; no borders on the stage, quiet 1 px dividers in the parent room.",
@@ -852,7 +936,7 @@
       },
       {
         "name": "The Naming Face Rule",
-        "body": "Baloo appears wherever a thing is named or chosen: headings, dial values, variable names, answer buttons, keypad digits, the spell banner. Nunito appears wherever a thing is explained: body, captions, pill labels, hints. A Baloo sentence or a Nunito heading is a defect.",
+        "body": "Baloo appears wherever a thing is named or chosen: headings, dial values, variable names, answer buttons, keypad digits, the spell banner. Nunito appears wherever a thing is explained: body, captions, pill labels, hints. A Baloo sentence or a Nunito heading is a defect. For Bengali glyphs, Baloo Da 2 carries the naming role and Noto Sans Bengali carries explanation.",
         "section": "typography"
       },
       {
@@ -901,7 +985,8 @@
       "Do ease Studio entrances with `cubic-bezier(0.22, 1, 0.36, 1)`; keep acting discrete and requested gestures bounded, with semantic poses and feedback retained under `prefers-reduced-motion`.",
       "Do mount registered preset actor art in the existing fixed square SVG slot so optional Rive assets swap without layout change.",
       "Do use shared registered raster poses for predefined actors, preserve Tooth Town and coach matching poses, tie travel locomotion to actual distance, and keep Pip in its reserved dock tile.",
-      "Do retain the cream-and-forest Learn shell while generated art supplies tactile material and light."
+      "Do retain the cream-and-forest Learn shell while generated art supplies tactile material and light.",
+      "Do render interface prose and accessible labels in the selected English or Bangla edition, using the Bengali font extension and enough leading for marks and wrapped copy."
     ],
     "donts": [
       "Don't put a heading, a card frame or a scrolling column over or around the world in the Studio.",
@@ -912,7 +997,8 @@
       "Don't present the geometric landing window or local registered raster cast as final external Rive assets. Delivered local artwork has its own documented limits.",
       "Don't describe sprite acting as finished film, a continuous skeletal rig or phoneme lip-sync, or claim pose coverage for single-image photos/outfits or old generated worlds.",
       "Don't replace inline SVG icons with glyph fonts or emoji in chrome.",
-      "Do not reintroduce decorative sparkle control symbols, summon particles, guide-name sparks or a voice-off particle halo; retain semantic stars and purposeful contained voice feedback."
+      "Do not reintroduce decorative sparkle control symbols, summon particles, guide-name sparks or a voice-off particle halo; retain semantic stars and purposeful contained voice feedback.",
+      "Don't compress Bengali labels to fit English measurements or show both languages as a loading shortcut."
     ]
   }
 }

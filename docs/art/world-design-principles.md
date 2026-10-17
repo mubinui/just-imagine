@@ -6,7 +6,7 @@ The child is the author. Their requested form, pacing, cast and rules override t
 
 ## 1. Story first, scenery second
 
-Every world answers one question before any entity is placed: who is the hero, what do they want, and what is in the way. "A jelly dragon on a cloud" becomes "the dragon wants to reach the rainbow, the gap is too wide, and the child decides how to help". Props exist because the story needs them.
+For a requested story or adventure, decide the hero and their purpose before placing entities. For open play, stage the requested action directly. An obstacle is optional and only belongs when requested; every physical prop must serve an intended interaction. Do not turn a quiet toy into a rescue or challenge merely because it has a character.
 
 ## 2. One magnet, then layers
 
@@ -14,11 +14,11 @@ Give each world a single visual magnet that pulls the eye and the finger: the ca
 
 ## 3. The child is the hero
 
-The child's choice must visibly change the world within one second: a drop, a bounce, a splash, a door opening. Never build a world where the child only watches. Every world offers at least two meaningful choices with different outcomes, and neither is "wrong"; one is simply more surprising.
+The child's choice must visibly change the world within one second: a drop, a bounce, a splash, a door opening. Never build a world where the child only watches. The requested interactions should offer meaningful choices. Choosing different destinations already counts; do not invent extra targets or challenges to meet a checklist.
 
 ## 4. Discovery is staged, not dumped
 
-Hide one surprise that appears only after the first success, the way a ride saves its best scene for the turn. Reveal it with motion and sound, then let the friend explain the science of what just happened in one sentence.
+When the child requests an adventure or challenge, a surprise may follow success and invite a brief explanation. A quiet toy needs no surprise, goal or forced reveal.
 
 ## 5. Motion has a cause
 
@@ -26,7 +26,7 @@ Characters move to a chosen destination or in response to input. Use real stride
 
 ## 6. Scale tells the story
 
-Make the hero big enough to love and the obstacle big enough to matter. Exaggerate sizes for meaning (a giant friendly snail, a tiny brave ant) and say in the narration when real life is different.
+Stage the main playable or touchable character clearly on phones. Unless the child explicitly requests an exact scale, its longer body dimension should normally be 3–4 meters in the 16-meter-wide world (roughly70–90px on a390px phone), rather than a distant dot. A small real-life species still needs a readable illustrated presence. Keep character proportions, artwork and physics size aligned. Multiple actors may use a balanced smaller cast arrangement. Honor explicit child size requests and explain when storybook scale differs from real life. If an obstacle was requested, make it readable without blocking an unrelated action.
 
 ## 7. Characters, not objects
 
@@ -34,7 +34,7 @@ Anything the child touches has a face, a name or a personality where it fits: th
 
 ## 8. Play in three beats
 
-Every game has a setup the child understands in five seconds, a rising middle where difficulty grows in small steps, and a celebration that feels earned. Levels add one new idea each, never two.
+A requested story or finite challenge may have a clear setup, development and an earned ending. Open play remains ongoing; do not add levels, an ending or rising difficulty to a toy.
 
 ## 9. Respect the child's idea
 
@@ -42,7 +42,7 @@ Keep the child's own words in the title and the hero's name. If a wish is imposs
 
 ## 10. Plus it
 
-Before publishing, add one small extra that makes it delightful: a sparkle trail on the hero, a sound when a star is caught, a cloud that blushes when touched. One, not five.
+An optional small extra may strengthen the requested idea, while preserving its rules and exclusions. Never add a physical obstacle, particle template, score, timer or challenge merely for decoration.
 
 ## 11. Comfort and safety
 

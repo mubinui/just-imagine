@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText, uiError } from '../../lib/i18n/ui';
 import Link from 'next/link';
 
 export function PageHeading({
@@ -12,15 +14,16 @@ export function PageHeading({
   onRefresh?: () => void;
   busy?: boolean;
 }) {
+  useLanguage();
   return (
     <div className="adm-heading">
       <div>
-        <h1>{title}</h1>
-        {detail && <p className="adm-detail">{detail}</p>}
+        <h1>{uiText(title)}</h1>
+        {detail && <p className="adm-detail">{uiText(detail)}</p>}
       </div>
       {onRefresh && (
         <button type="button" className="adm-button" onClick={onRefresh} disabled={busy}>
-          {busy ? 'Refreshing…' : 'Refresh'}
+          {busy ? uiText('Refreshing…') : uiText('Refresh')}
         </button>
       )}
     </div>
@@ -28,14 +31,15 @@ export function PageHeading({
 }
 
 export function LoadError({ message }: { message: string }) {
+  useLanguage();
   if (!message) return null;
-  const signedOut = message.includes('Sign in again');
+  const signedOut = /sign in again|প্রবেশ করুন/i.test(message);
   return (
     <div className="adm-alert" role="alert">
-      <p>{message}</p>
+      <p>{uiError(message)}</p>
       {signedOut && (
         <Link className="adm-link" href="/admin/sign-in">
-          Go to operator sign-in
+          {uiText('Go to operator sign-in')}
         </Link>
       )}
     </div>
@@ -44,8 +48,9 @@ export function LoadError({ message }: { message: string }) {
 
 /** Placeholder rows shaped like the content they stand in for. */
 export function Skeleton({ rows = 4 }: { rows?: number }) {
+  useLanguage();
   return (
-    <div className="adm-skeleton" aria-busy="true" aria-label="Loading">
+    <div className="adm-skeleton" aria-busy="true" aria-label={uiText('Loading')}>
       {Array.from({ length: rows }, (_, i) => (
         <span key={i} />
       ))}
@@ -60,9 +65,10 @@ export function Status({ tone, children }: { tone: Tone; children: React.ReactNo
 }
 
 export function Empty({ title, children }: { title: string; children?: React.ReactNode }) {
+  useLanguage();
   return (
     <div className="adm-empty">
-      <p className="adm-empty-title">{title}</p>
+      <p className="adm-empty-title">{uiText(title)}</p>
       {children && <p>{children}</p>}
     </div>
   );
@@ -77,16 +83,17 @@ export function ReasonField({
   onChange: (value: string) => void;
   id: string;
 }) {
+  useLanguage();
   return (
     <label className="adm-reason" htmlFor={id}>
-      Reason
+      {uiText('Reason')}
       <input
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         minLength={3}
         maxLength={500}
-        placeholder="Recorded in the audit log"
+        placeholder={uiText('Recorded in the audit log')}
         autoComplete="off"
       />
     </label>

@@ -1,6 +1,6 @@
 /*
- * Bengali type for Just Imagine. Not imported yet: the layout step imports this file beside
- * globals.css and sets <html lang> from langAttr(). Latin keeps Baloo 2 and Nunito.
+ * Bangladeshi Bangla type for Just Imagine. Root layout imports this beside globals.css;
+ * LanguageRoot sets the selected lang attribute. Latin keeps Baloo 2 and Nunito.
  *
  * The files are the Google Fonts unicode-range subsets of the variable fonts, self-hosted
  * unchanged; the browser fetches only the ranges a page uses. Licences: public/fonts/NOTICE.md.
@@ -43,28 +43,44 @@
 }
 
 /* Body: Noto Sans Bengali, falling back to Nunito for anything it lacks. */
-[lang='bn'] {
+[lang|='bn'] {
   font-family: 'Noto Sans Bengali', Nunito, sans-serif;
 }
 
 /* Display: Baloo Da 2 wherever globals.css uses Baloo. Bengali ascenders need more leading. */
-[lang='bn'] h1,
-[lang='bn'] h2,
-[lang='bn'] h3,
-[lang='bn'] .brand,
-[lang='bn'] .wonder-window p,
-[lang='bn'] .profile strong,
-[lang='bn'] .world-tile-copy strong,
-[lang='bn'] .usage-number {
+[lang|='bn'] h1,
+[lang|='bn'] h2,
+[lang|='bn'] h3,
+[lang|='bn'] .brand,
+[lang|='bn'] .wonder-window p,
+[lang|='bn'] .profile strong,
+[lang|='bn'] .world-tile-copy strong,
+[lang|='bn'] .usage-number {
   font-family: 'Baloo Da 2', Baloo, serif;
   line-height: 1.3;
 }
 
 /* Child UI set to bn inside an English page (a caption, a card) gets the same treatment. */
-h1[lang='bn'],
-h2[lang='bn'],
-h3[lang='bn'],
-.brand[lang='bn'] {
+h1[lang|='bn'],
+h2[lang|='bn'],
+h3[lang|='bn'],
+.brand[lang|='bn'] {
   font-family: 'Baloo Da 2', Baloo, serif;
   line-height: 1.3;
+}
+
+/* Component-level Baloo/Nunito declarations also resolve Bengali glyphs deliberately. */
+@font-face {
+  font-family: Baloo;
+  src: url('/fonts/baloo-da-2-bengali.woff2') format('woff2');
+  font-weight: 400 800;
+  font-display: swap;
+  unicode-range: U+0980-09FF, U+200C-200D, U+25CC;
+}
+@font-face {
+  font-family: Nunito;
+  src: url('/fonts/noto-sans-bengali-bengali.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+  unicode-range: U+0980-09FF, U+200C-200D, U+25CC;
 }

@@ -30,6 +30,8 @@ export interface Stage {
   position(id: string): { x: number; y: number } | undefined;
   tap(id: string, at: { x: number; y: number }): void;
   flick(id: string, velocity: { x: number; y: number }): void;
+  drag?(id: string, at: { x: number; y: number }): void;
+  release?(id: string): void;
   dial(dial: Dial, value: string): void;
   apply(command: Command): void;
   dispose?(): void;
@@ -44,7 +46,19 @@ export interface DriveOptions {
   budgets?: Partial<Budgets>;
   /** Ticks and state pushes per simulated second. Default 20. */
   rate?: number;
+  /** Exact child input playback. Even an empty array disables synthetic input. */
+  playback?: TimedInput[];
+  /** Trusted host observer; never supplied as executable model output. */
+  onFrame?: (time: number, state: GameState, commands: readonly Command[]) => void;
 }
+
+export type TimedInput = { at: number } & (
+  | { type: 'tap'; target?: string; x?: number; y?: number }
+  | { type: 'drag'; target: string; x: number; y: number }
+  | { type: 'release'; target: string }
+  | { type: 'flick'; target: string; vx: number; vy: number }
+  | { type: 'answer'; choice: number }
+);
 
 export interface DriveStats {
   seconds: number;
@@ -113,23 +127,30 @@ export async function driveScript(
   };
 
   const check = checkScript(source);
-  if (!check.ok) return { ok: false, reason: 'static', detail: { errors: check.errors }, stats };
+  if (!check.ok) {
+    stage.dispose?.();
+    return { ok: false, reason: 'static', detail: { errors: check.errors }, stats };
+  }
   const calls = scanApiCalls(source);
-  if (options.requireGoal !== false && !calls.has('win') && !calls.has('score'))
+  if (options.requireGoal !== false && !calls.has('win') && !calls.has('score')) {
+    stage.dispose?.();
     return {
       ok: false,
       reason: 'no-goal',
       detail: { message: 'the script never calls game.win or game.score' },
       stats,
     };
+  }
 
   const errors: GameError[] = [];
   const breaches: BudgetBreach[] = [];
-  const pendingAsks: number[] = [];
+  const pendingAsks: { id: number; choices: number }[] = [];
+  const frameCommands: Command[] = [];
   const handle = createGameHost(
     source,
     {
       onCommand: (command) => {
+        if (options.onFrame) frameCommands.push(command);
         stats.commands[command.type] = (stats.commands[command.type] ?? 0) + 1;
         switch (command.type) {
           case 'spawn':
@@ -150,7 +171,7 @@ export async function driveScript(
           case 'ask':
             addString(command.question);
             for (const option of command.options) addString(option);
-            pendingAsks.push(command.id);
+            pendingAsks.push({ id: command.id, choices: command.options.length });
             break;
           case 'hud':
             if (command.label !== undefined) addString(command.label);
@@ -172,6 +193,39 @@ export async function driveScript(
   const dialAt = Math.round(SCRIPTED_INPUTS.dialAt * rate);
   const flickAt = Math.round(SCRIPTED_INPUTS.flickAt * rate);
   let tapIndex = 0;
+  const playback = [...(options.playback ?? [])].sort((a, b) => a.at - b.at);
+  let inputIndex = 0;
+
+  const play = (input: TimedInput) => {
+    if (input.type === 'answer') {
+      const question = pendingAsks.shift();
+      if (question === undefined) throw new Error('No question is waiting for the scripted answer');
+      if (input.choice < 0 || input.choice >= question.choices)
+        throw new Error('The scripted answer is outside the available choices');
+      handle.answer(question.id, input.choice);
+      return;
+    }
+    const position = input.target ? stage.position(input.target) : undefined;
+    if (input.target && !position) throw new Error(`Input target ${input.target} is missing`);
+    if (input.type === 'tap') {
+      const x = input.x ?? position?.x;
+      const y = input.y ?? position?.y;
+      if (x === undefined || y === undefined) throw new Error('A stage tap needs coordinates');
+      if (input.target) stage.tap(input.target, { x, y });
+      handle.pushEvent({ type: 'tap', ...(input.target ? { target: input.target } : {}), x, y });
+      stats.taps += 1;
+    } else if (input.type === 'drag') {
+      if (!stage.drag) throw new Error('Stage does not support dragging');
+      stage.drag(input.target, input);
+      handle.pushEvent({ type: 'drag', target: input.target, x: input.x, y: input.y });
+    } else if (input.type === 'release') {
+      if (!stage.release) throw new Error('Stage does not support drag release');
+      stage.release(input.target);
+    } else {
+      stage.flick(input.target, { x: input.vx, y: input.vy });
+      handle.pushEvent({ type: 'flick', target: input.target, vx: input.vx, vy: input.vy });
+    }
+  };
 
   try {
     for (let i = 1; i <= total; i++) {
@@ -181,7 +235,15 @@ export async function driveScript(
       handle.pushState(stage.state());
       for (const c of stage.collisions())
         handle.pushEvent({ type: 'collision', a: c.a, b: c.b, impulse: c.impulse });
-      if (i >= tapFrom && (i - tapFrom) % tapEvery === 0) {
+      if (options.playback !== undefined) {
+        while (inputIndex < playback.length && playback[inputIndex]!.at <= time + 1e-8) {
+          play(playback[inputIndex++]!);
+          // Let a question or scene change take effect before another input at this time.
+          await handle.drain();
+          handle.pushState(stage.state());
+        }
+      }
+      if (options.playback === undefined && i >= tapFrom && (i - tapFrom) % tapEvery === 0) {
         const targets = stage.tappable();
         if (targets.length > 0) {
           const id = targets[tapIndex % targets.length]!;
@@ -192,14 +254,14 @@ export async function driveScript(
           stats.taps += 1;
         }
       }
-      if (i === dialAt) {
+      if (options.playback === undefined && i === dialAt) {
         const d = stage.dials()[0];
         if (d) {
           stage.dial(d.dial, d.value);
           handle.pushEvent({ type: 'dial', dial: d.dial, value: d.value });
         }
       }
-      if (i === flickAt) {
+      if (options.playback === undefined && i === flickAt) {
         const id = stage.hero() ?? stage.tappable()[0];
         if (id && stage.position(id)) {
           const v = SCRIPTED_INPUTS.flickVelocity;
@@ -208,9 +270,11 @@ export async function driveScript(
         }
       }
       handle.pushEvent({ type: 'tick', time, dt });
-      for (const id of pendingAsks.splice(0)) handle.answer(id, 0);
+      if (options.playback === undefined)
+        for (const question of pendingAsks.splice(0)) handle.answer(question.id, 0);
       stats.ticks = i;
       await handle.drain();
+      options.onFrame?.(time, stage.state(), frameCommands.splice(0));
       if (errors.length > 0 || breaches.length > 0) break;
     }
   } finally {

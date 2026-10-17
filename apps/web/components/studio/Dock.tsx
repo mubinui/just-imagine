@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useState, useEffect } from 'react';
 import { UiIcon } from '../UiIcon';
 import { useLanguage } from '../../lib/i18n';
@@ -23,6 +24,7 @@ export function StageHeader({
   note?: string;
   center?: React.ReactNode;
 }) {
+  useLanguage();
   const building = Boolean(job && job !== 'ready' && job !== 'failed');
   const state = building ? 'building' : status;
   const label = building
@@ -30,14 +32,14 @@ export function StageHeader({
     : (s.statusLabels[status as keyof typeof s.statusLabels] ?? status);
   return (
     <header className="stage-header">
-      <h1 className="stage-title">{title}</h1>
+      <h1 className="stage-title">{uiText(title)}</h1>
       {center}
       <p className="stage-status" data-state={state} role="status">
         <span className="dot" aria-hidden="true" />
-        <span>{label}</span>
-        {note && <span className="note">{note}</span>}
+        <span>{uiText(label)}</span>
+        {note && <span className="note">{uiText(note)}</span>}
         <span className="sr-only">
-          {s.speak}: {status}
+          {s.speak}: {uiText(label)}
         </span>
       </p>
     </header>
@@ -101,14 +103,14 @@ export function Dock({
           <CharacterArt id={demonstrating} action="build" />
           <div>
             <strong>
-              {cast.find((c) => c.id === demonstrating)?.displayName} ·{' '}
-              {SPECIALISTS[demonstrating].role[lang]}
+              {uiText(cast.find((c) => c.id === demonstrating)?.displayName)} ·{uiText(' ')}
+              {uiText(SPECIALISTS[demonstrating].role[lang])}
             </strong>
-            <p>{SPECIALISTS[demonstrating].ability[lang]}</p>
+            <p>{uiText(SPECIALISTS[demonstrating].ability[lang])}</p>
           </div>
           <button
             type="button"
-            aria-label={lang ? 'বন্ধ করো' : 'Close introduction'}
+            aria-label={lang ? 'বন্ধ করো' : uiText('Close introduction')}
             onClick={() => setDemonstrating(undefined)}
           >
             ×
@@ -130,7 +132,7 @@ export function Dock({
                 .filter(Boolean)
                 .join(' ')}
               aria-pressed={isActive}
-              aria-label={c.displayName}
+              aria-label={uiText(c.displayName)}
               onClick={() => {
                 setDemonstrating(c.id);
                 onPick(c.id);
@@ -146,7 +148,7 @@ export function Dock({
                   <CharacterArt id={c.id} />
                 )}
               </span>
-              <span className="name">{c.displayName}</span>
+              <span className="name">{uiText(c.displayName)}</span>
             </button>
           );
         })}
@@ -167,7 +169,7 @@ export function Dock({
         ) : (
           <button type="button" className="talk" onClick={onTalk}>
             <UiIcon name="mic" />
-            <span>{s.talkTo.replace('{name}', talkName)}</span>
+            <span>{uiText(s.talkTo, { name: talkName })}</span>
           </button>
         )}
       </div>

@@ -4,6 +4,49 @@ import { paths, yyyymmdd } from '@just-imagine/protocol';
 import { FirestoreSessionStore } from '../src/store';
 import type { SessionRecord } from '../src/contracts';
 process.env['GOOGLE_CLOUD_PROJECT'] = 'demo-just-imagine';
+it('releases the old lease before summarization without removing a replacement call lease', async () => {
+  const child = {
+    firstName: 'Mira',
+    avatar: 'owl' as const,
+    ageBand: '8-10' as const,
+    tier: 'playground' as const,
+    labsUnlocked: false,
+    captions: true,
+    sessionTargetMinutes: 8,
+    loopsCompleted: 0,
+    createdAt: 1,
+  };
+  const previous: SessionRecord = {
+    id: 's_language_previous',
+    characterId: 'bhombol',
+    startedAt: Date.now(),
+    identity: {
+      uid: 'language_handoff',
+      childId: 'c_handoff',
+      child,
+      plan: 'free',
+      remaining: 900,
+    },
+  };
+  const next: SessionRecord = { ...previous, id: 's_language_next' };
+  await db().doc(paths.child('language_handoff', 'c_handoff')).set(child);
+  const store = new FirestoreSessionStore({
+    project: 'demo-just-imagine',
+    queue: 'test',
+    builderUrl: 'https://example.test',
+    serviceAccount: 'test@example.test',
+  });
+  await store.claim(previous);
+  expect(await store.meter(previous, 4)).toBe(896);
+  await store.release(previous);
+  await store.claim(next);
+  await store.release(previous);
+  expect(await store.meter(next, 3)).toBe(893);
+  await store.finish(previous, 'Previous call finished later.', 'ended');
+  expect(await store.meter(next, 4)).toBe(892);
+  await store.finish(next, 'Next call.', 'ended');
+});
+
 it('atomically meters monotonic checkpoints once and fences deleted accounts', async () => {
   const child = {
     firstName: 'Mira',

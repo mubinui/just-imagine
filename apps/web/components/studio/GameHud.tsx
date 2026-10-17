@@ -1,4 +1,7 @@
 'use client';
+import { useLanguage, formatNumber, currentLanguage } from '../../lib/i18n';
+import { uiNumber } from '../../lib/i18n/ui';
+import { copy as uiText } from '../../lib/i18n/ui';
 import { useEffect, useState } from 'react';
 import { s } from '../../lib/strings/en';
 import type { GameAsk, GameHud as GameHudState } from '../../lib/game-bridge';
@@ -10,7 +13,11 @@ export function formatTimer(seconds: number): string {
 }
 
 const fill = (template: string, values: Record<string, string | number>) =>
-  template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ''));
+  template.replace(/\{(\w+)\}/g, (_, key: string) =>
+    typeof values[key] === 'number'
+      ? formatNumber(values[key] as number, currentLanguage())
+      : uiText(String(values[key] ?? '')),
+  );
 
 const StarIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -79,12 +86,13 @@ function Sheet({
   children: React.ReactNode;
   tone?: 'won' | 'lost' | 'tangled' | 'ask';
 }) {
+  useLanguage();
   return (
     <div className="prediction-sheet game-sheet" data-tone={tone}>
       <div className="prediction-card" role="dialog" aria-modal="true" aria-labelledby={id}>
         {icon && <span className="game-sheet-icon">{icon}</span>}
-        <h2 id={id}>{title}</h2>
-        {text && <p className="game-sheet-text">{text}</p>}
+        <h2 id={id}>{uiText(title)}</h2>
+        {text && <p className="game-sheet-text">{uiText(text)}</p>}
         <div className="actions">{children}</div>
       </div>
     </div>
@@ -111,6 +119,7 @@ export function GameHud({
   onReplay: () => void;
   onRetry: () => void;
 }) {
+  useLanguage();
   const [banner, setBanner] = useState<number>();
   const level = hud?.level;
   useEffect(() => {
@@ -150,14 +159,14 @@ export function GameHud({
             <span className="game-chip-body">
               <span className="sr-only">{s.game.score}: </span>
               <strong key={hud.score} className="game-score-value">
-                {hud.score}
+                {uiNumber(hud.score)}
               </strong>
-              {hud.label && <span className="game-chip-label">{hud.label}</span>}
+              {hud.label && <span className="game-chip-label">{uiText(hud.label)}</span>}
             </span>
           </div>
         )}
         {hud.score === undefined && hud.label && (
-          <p className="game-chip game-chip-label">{hud.label}</p>
+          <p className="game-chip game-chip-label">{uiText(hud.label)}</p>
         )}
         <div className="game-hud-right">
           {hearts !== undefined && (
@@ -172,7 +181,7 @@ export function GameHud({
               ) : (
                 <>
                   <HeartIcon />
-                  <strong>{hearts}</strong>
+                  <strong>{uiNumber(hearts)}</strong>
                 </>
               )}
             </div>
@@ -180,24 +189,24 @@ export function GameHud({
           {hud.timer !== undefined && (
             <div
               className={urgent ? 'game-chip game-timer is-urgent' : 'game-chip game-timer'}
-              aria-label={`${s.game.timer}: ${formatTimer(hud.timer)}`}
+              aria-label={`${s.game.timer}: ${uiText(formatTimer(hud.timer))}`}
             >
               <ClockIcon />
-              <strong>{formatTimer(hud.timer)}</strong>
+              <strong>{uiText(formatTimer(hud.timer))}</strong>
             </div>
           )}
         </div>
       </div>
       {banner !== undefined && !hud.outcome && (
         <p className="game-level-banner" role="status" key={banner}>
-          {fill(s.game.level, { n: banner })}
+          {uiText(fill(s.game.level, { n: banner }))}
         </p>
       )}
       {ask && !hud.outcome && (
         <Sheet id="game-ask-title" tone="ask" title={ask.question}>
           {ask.options.map((option, index) => (
             <button type="button" key={`${index}:${option}`} onClick={() => onAnswer(index)}>
-              {option}
+              {uiText(option)}
             </button>
           ))}
         </Sheet>

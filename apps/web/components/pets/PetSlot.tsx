@@ -1,4 +1,5 @@
 'use client';
+import { copy as uiText } from '../../lib/i18n/ui';
 import '../../app/learn.css';
 import { useState } from 'react';
 import { useLanguage } from '../../lib/i18n';
@@ -32,7 +33,7 @@ export function PetSlot({ childId, state }: { childId?: string; state?: LearnSta
       <span className="art" key={hops}>
         <PetArt id={buddy} action={hops ? 'wave' : 'idle'} />
       </span>
-      <span className="name">{name}</span>
+      <span className="name">{uiText(name)}</span>
     </button>
   );
 }

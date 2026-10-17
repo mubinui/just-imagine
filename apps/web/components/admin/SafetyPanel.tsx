@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '../../lib/i18n';
+import { copy as uiText, uiError } from '../../lib/i18n/ui';
 import { useMemo, useState } from 'react';
 import type { AdminSafetyResponse, AdminSafetyWorld } from '@just-imagine/protocol';
 import { adminApi, useAdminResource } from './adminApi';
@@ -9,13 +11,13 @@ const loadSafety = () => adminApi<AdminSafetyResponse>('safety');
 
 function issues(world: AdminSafetyWorld, failed: Set<string>) {
   const list: string[] = [];
-  if (failed.has(world.worldId)) list.push('Build failed');
-  if (world.failedAssets)
-    list.push(`${world.failedAssets} image${world.failedAssets === 1 ? '' : 's'} rejected`);
-  return list.join(' · ') || 'Held for review';
+  if (failed.has(world.worldId)) list.push(uiText('Build failed'));
+  if (world.failedAssets) list.push(uiText('{v0} images rejected', { v0: world.failedAssets }));
+  return list.join(' · ') || uiText('Held for review');
 }
 
 export function SafetyPanel() {
+  useLanguage();
   const { data, error, loading, reload } = useAdminResource(loadSafety);
   const [selected, setSelected] = useState<string>('');
   const [reason, setReason] = useState('');
@@ -43,12 +45,19 @@ export function SafetyPanel() {
         body: { hidden, reason: reason.trim() },
       });
       setNotice(
-        `“${current.title}” is ${hidden ? 'hidden from its family' : 'visible to its family again'}. Recorded in the audit log.`,
+        uiText(
+          hidden
+            ? '“{v0}” is hidden from its family. Recorded in the audit log.'
+            : '“{v0}” is visible to its family again. Recorded in the audit log.',
+          { v0: current.title },
+        ),
       );
       setReason('');
       await reload();
     } catch (e) {
-      setFailure(e instanceof Error ? e.message : 'That change did not go through. Try again.');
+      setFailure(
+        e instanceof Error ? uiError(e) : uiText('That change did not go through. Try again.'),
+      );
     } finally {
       setBusy(false);
     }
@@ -57,8 +66,10 @@ export function SafetyPanel() {
   return (
     <>
       <PageHeading
-        title="Safety"
-        detail="Moderation outcomes and worlds that need a look. Transcripts are never stored or shown."
+        title={uiText('Safety')}
+        detail={uiText(
+          'Moderation outcomes and worlds that need a look. Transcripts are never stored or shown.',
+        )}
         onRefresh={() => void reload()}
         busy={loading}
       />
@@ -68,21 +79,22 @@ export function SafetyPanel() {
       ) : (
         <>
           <section className="adm-section" aria-labelledby="moderation">
-            <h2 id="moderation">Moderation log</h2>
+            <h2 id="moderation">{uiText('Moderation log')}</h2>
             {data.moderation.length === 0 ? (
-              <Empty title="No moderation events recorded.">
-                Blocked or redirected moments appear here with their category and session id, never
-                the words.
+              <Empty title={uiText('No moderation events recorded.')}>
+                {uiText(
+                  'Blocked or redirected moments appear here with their category and session id, never the words.',
+                )}
               </Empty>
             ) : (
               <div className="adm-table-wrap">
                 <table className="adm-table">
                   <thead>
                     <tr>
-                      <th scope="col">When</th>
-                      <th scope="col">Outcome</th>
-                      <th scope="col">Source</th>
-                      <th scope="col">Session</th>
+                      <th scope="col">{uiText('When')}</th>
+                      <th scope="col">{uiText('Outcome')}</th>
+                      <th scope="col">{uiText('Source')}</th>
+                      <th scope="col">{uiText('Session')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -91,19 +103,19 @@ export function SafetyPanel() {
                         <td className="adm-when">{formatWhen(entry.at)}</td>
                         <td>
                           {entry.category === 'block' ? (
-                            <Status tone="bad">Blocked</Status>
+                            <Status tone="bad">{uiText('Blocked')}</Status>
                           ) : (
-                            <Status tone="warn">Redirected</Status>
+                            <Status tone="warn">{uiText('Redirected')}</Status>
                           )}
                         </td>
                         <td>
                           {entry.source === 'session'
-                            ? 'Session ended by moderation'
+                            ? uiText('Session ended by moderation')
                             : entry.source === 'image'
-                              ? 'Image check'
-                              : 'Transcript check'}
+                              ? uiText('Image check')
+                              : uiText('Transcript check')}
                         </td>
-                        <td className="adm-id">{entry.sessionId}</td>
+                        <td className="adm-id">{uiText(entry.sessionId)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -113,11 +125,12 @@ export function SafetyPanel() {
           </section>
 
           <section className="adm-section" aria-labelledby="worlds-review">
-            <h2 id="worlds-review">Worlds to review</h2>
+            <h2 id="worlds-review">{uiText('Worlds to review')}</h2>
             {worlds.length === 0 ? (
-              <Empty title="No failed, rejected or hidden worlds.">
-                Worlds whose build failed validation, whose images failed the safety check, or that
-                you hid from a family appear here.
+              <Empty title={uiText('No failed, rejected or hidden worlds.')}>
+                {uiText(
+                  'Worlds whose build failed validation, whose images failed the safety check, or that you hid from a family appear here.',
+                )}
               </Empty>
             ) : (
               <>
@@ -129,7 +142,7 @@ export function SafetyPanel() {
                     disabled={!current || current.hidden || !reasonReady(reason) || busy}
                     onClick={() => void setHidden(true)}
                   >
-                    Hide from family
+                    {uiText('Hide from family')}
                   </button>
                   <button
                     type="button"
@@ -137,20 +150,20 @@ export function SafetyPanel() {
                     disabled={!current || !current.hidden || !reasonReady(reason) || busy}
                     onClick={() => void setHidden(false)}
                   >
-                    Show to family
+                    {uiText('Show to family')}
                   </button>
                 </div>
                 <p className="adm-detail">
                   {current
-                    ? `Selected: “${current.title}”.`
-                    : 'Select a world, write a reason, then hide or show it.'}
+                    ? uiText('Selected: “{v0}”.', { v0: String(current.title) })
+                    : uiText('Select a world, write a reason, then hide or show it.')}
                 </p>
                 <p className="adm-live" role="status">
-                  {notice}
+                  {uiText(notice)}
                 </p>
                 {failure && (
                   <p className="adm-alert" role="alert">
-                    {failure}
+                    {uiText(failure)}
                   </p>
                 )}
                 <div className="adm-table-wrap">
@@ -158,13 +171,13 @@ export function SafetyPanel() {
                     <thead>
                       <tr>
                         <th scope="col">
-                          <span className="adm-visually-hidden">Select</span>
+                          <span className="adm-visually-hidden">{uiText('Select')}</span>
                         </th>
-                        <th scope="col">World title</th>
-                        <th scope="col">Issue</th>
-                        <th scope="col">Family</th>
-                        <th scope="col">Visibility</th>
-                        <th scope="col">Updated</th>
+                        <th scope="col">{uiText('World title')}</th>
+                        <th scope="col">{uiText('Issue')}</th>
+                        <th scope="col">{uiText('Family')}</th>
+                        <th scope="col">{uiText('Visibility')}</th>
+                        <th scope="col">{uiText('Updated')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -178,17 +191,20 @@ export function SafetyPanel() {
                                 checked={w.worldId === selected}
                                 onChange={() => setSelected(w.worldId)}
                               />
-                              <span className="adm-visually-hidden">Select {w.title}</span>
+                              <span className="adm-visually-hidden">
+                                {uiText('Select')}
+                                {uiText(w.title)}
+                              </span>
                             </label>
                           </td>
-                          <th scope="row">{w.title || 'Untitled world'}</th>
-                          <td>{issues(w, failed)}</td>
-                          <td className="adm-id">{w.ownerUid}</td>
+                          <th scope="row">{uiText(w.title || uiText('Untitled world'))}</th>
+                          <td>{uiText(issues(w, failed))}</td>
+                          <td className="adm-id">{uiText(w.ownerUid)}</td>
                           <td>
                             {w.hidden ? (
-                              <Status tone="warn">Hidden</Status>
+                              <Status tone="warn">{uiText('Hidden')}</Status>
                             ) : (
-                              <Status tone="quiet">Visible</Status>
+                              <Status tone="quiet">{uiText('Visible')}</Status>
                             )}
                           </td>
                           <td className="adm-when">{formatWhen(w.updatedAt)}</td>

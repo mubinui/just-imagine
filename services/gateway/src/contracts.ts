@@ -23,7 +23,11 @@ export interface SessionRecord {
   characterId: CharacterId;
   worldId?: string;
   learningMode?: 'guided' | 'incidental';
-  story?: { book?: StoryDoc; reading?: { readId: string; scene: number; beat: number } };
+  story?: {
+    book?: StoryDoc;
+    asking?: boolean;
+    reading?: { readId: string; scene: number; beat: number };
+  };
   startedAt: number;
   stats?: Pick<SessionDoc, 'turns' | 'beats' | 'discoveries' | 'predictions'>;
   completedLoops?: number;
@@ -41,6 +45,8 @@ export interface PointsAward {
 export interface SessionStore {
   authorize(token: string, childId: string): Promise<Identity>;
   claim(record: SessionRecord): Promise<void>;
+  /** Stores with a distributed lease release it after final metering, before slow summarization. */
+  release?(record: SessionRecord): Promise<void>;
   meter(record: SessionRecord, totalSeconds: number): Promise<number>;
   finish(record: SessionRecord, summary: string, reason: ByeReason): Promise<void>;
   killSwitch(): Promise<boolean>;

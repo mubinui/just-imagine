@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db, localDevelopment } from '@just-imagine/server-core';
+import { db, localDevelopment, type ContentEditions } from '@just-imagine/server-core';
 import {
   ChildDocSchema,
   UserDocSchema,
@@ -17,6 +17,9 @@ import {
   DocumentIdSchema,
   type StoryDoc,
   type StoryBuildJob,
+  LanguageSchema,
+  contentTexts,
+  textUsesLanguage,
 } from '@just-imagine/protocol';
 import { ApiFault } from './errors';
 
@@ -239,20 +242,81 @@ export class FirestoreStoryStore {
       });
       tx.delete(db().doc(`stories/${id}`));
     });
+    await db().recursiveDelete(db().doc(`stories/${id}`));
   }
 }
-export function storyRoutes(app: FastifyInstance, store: FirestoreStoryStore) {
+export function storyRoutes(
+  app: FastifyInstance,
+  store: FirestoreStoryStore,
+  editions?: ContentEditions,
+) {
   const child = (p: unknown) => z.object({ childId: DocumentIdSchema }).parse(p).childId;
   const story = (p: unknown) => z.object({ storyId: DocumentIdSchema }).parse(p).storyId;
-  app.post('/v1/children/:childId/stories', (req) =>
-    store.create(req.parentUid, child(req.params), req.body),
+  const localize = async (uid: string, header: unknown, value: StoryDoc): Promise<StoryDoc> => {
+    if (header === undefined) return value;
+    const language = LanguageSchema.parse(header);
+    if (!editions) {
+      if (contentTexts('story', value).every((entry) => textUsesLanguage(entry.text, language)))
+        return { ...value, language };
+      throw new ApiFault(
+        503,
+        'INTERNAL',
+        'This language edition is not ready. Please try again shortly.',
+      );
+    }
+    try {
+      const translated = await editions.apply(
+        { uid, childId: value.childId, kind: 'story', path: `stories/${value.id}` },
+        language,
+        value,
+      );
+      return StoryDocSchema.parse({ ...translated, language });
+    } catch {
+      throw new ApiFault(
+        503,
+        'INTERNAL',
+        'This language edition is not ready. Please try again shortly.',
+      );
+    }
+  };
+  app.post('/v1/children/:childId/stories', async (req) =>
+    localize(
+      req.parentUid,
+      req.headers['x-app-language'],
+      await store.create(req.parentUid, child(req.params), req.body),
+    ),
   );
-  app.get('/v1/children/:childId/stories', (req) => store.list(req.parentUid, child(req.params)));
-  app.get('/v1/stories/:storyId', (req) => store.get(req.parentUid, story(req.params)));
-  app.patch('/v1/stories/:storyId', (req) =>
-    store.update(req.parentUid, story(req.params), req.body),
+  app.get('/v1/children/:childId/stories', async (req) => {
+    const result = await store.list(req.parentUid, child(req.params));
+    return {
+      stories: await Promise.all(
+        result.stories.map((value) =>
+          localize(req.parentUid, req.headers['x-app-language'], value),
+        ),
+      ),
+    };
+  });
+  app.get('/v1/stories/:storyId', async (req) =>
+    localize(
+      req.parentUid,
+      req.headers['x-app-language'],
+      await store.get(req.parentUid, story(req.params)),
+    ),
   );
-  app.post('/v1/stories/:storyId/retry', (req) => store.retry(req.parentUid, story(req.params)));
+  app.patch('/v1/stories/:storyId', async (req) =>
+    localize(
+      req.parentUid,
+      req.headers['x-app-language'],
+      await store.update(req.parentUid, story(req.params), req.body),
+    ),
+  );
+  app.post('/v1/stories/:storyId/retry', async (req) =>
+    localize(
+      req.parentUid,
+      req.headers['x-app-language'],
+      await store.retry(req.parentUid, story(req.params)),
+    ),
+  );
   app.delete('/v1/stories/:storyId', async (req, reply) => {
     await store.delete(req.parentUid, story(req.params));
     return reply.status(204).send();

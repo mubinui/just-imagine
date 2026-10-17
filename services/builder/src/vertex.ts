@@ -4,7 +4,9 @@ import {
   patchOpsJsonSchema,
   toGeminiJsonSchema,
 } from '@just-imagine/scene-schema';
-import type { GenerateJson } from './pipeline';
+import type { GenerateJson, ReviewScene } from './pipeline';
+import { CreationReviewSchema, creationReviewPrompt } from './creation-review';
+import { logEvent } from '@just-imagine/server-core';
 export const SAFETY_SETTINGS = [
   HarmCategory.HARM_CATEGORY_HARASSMENT,
   HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -32,6 +34,26 @@ export class VertexModels {
   // Bound session state so one model outage does not permanently downgrade every child.
   private failedSceneSessions = new Set<string>();
   private jsonModeModels = new Set<string>();
+  reviewScene: ReviewScene = async (doc, job, before) => {
+    const response = await this.client.models.generateContent({
+      model: this.config.fastModel,
+      contents: creationReviewPrompt(doc, job, before),
+      config: {
+        responseMimeType: 'application/json',
+        safetySettings: SAFETY_SETTINGS,
+        maxOutputTokens: 2048,
+        abortSignal: AbortSignal.timeout(20000),
+        httpOptions: { timeout: 15000, retryOptions: { attempts: 1 } },
+      },
+    });
+    const verdict = CreationReviewSchema.parse(JSON.parse(response.text ?? '{}'));
+    logEvent('scene_request_review', {
+      jobId: job.jobId,
+      success: verdict.approved,
+      count: verdict.issues.length,
+    });
+    return verdict.approved ? null : verdict.issues.join('\n');
+  };
   generate: GenerateJson = async (prompt, kind, sessionId) => {
     const preferred =
       kind === 'scene' && !(sessionId && this.failedSceneSessions.has(sessionId))
@@ -101,15 +123,33 @@ export class VertexModels {
     if (!response.text) throw new Error('No story returned');
     return JSON.parse(response.text) as unknown;
   }
-  async image(prompt: string, hero: boolean, backdrop = false, bounded = false): Promise<Buffer> {
+  async image(
+    prompt: string,
+    hero: boolean,
+    backdrop = false,
+    bounded = false,
+    options?: { imageSize?: '1K' | '2K'; reference?: Buffer },
+  ): Promise<Buffer> {
     const response = await this.client.models.generateContent({
       model: hero ? this.config.heroModel : this.config.propModel,
-      contents: prompt,
+      contents: options?.reference
+        ? [
+            {
+              role: 'user',
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: { mimeType: 'image/png', data: options.reference.toString('base64') },
+                },
+              ],
+            },
+          ]
+        : prompt,
       config: {
         responseModalities: ['IMAGE', 'TEXT'],
         imageConfig: backdrop
           ? { aspectRatio: '16:9', imageSize: '2K' }
-          : { aspectRatio: '1:1', imageSize: '1K' },
+          : { aspectRatio: '1:1', imageSize: options?.imageSize ?? '1K' },
         safetySettings: SAFETY_SETTINGS,
         ...(bounded ? { abortSignal: AbortSignal.timeout(65000) } : {}),
         httpOptions: { timeout: 60000, ...(bounded ? { retryOptions: { attempts: 1 } } : {}) },
@@ -138,7 +178,8 @@ export class VertexModels {
       config: {
         responseMimeType: 'application/json',
         safetySettings: SAFETY_SETTINGS,
-        httpOptions: { timeout: 15000 },
+        abortSignal: AbortSignal.timeout(20000),
+        httpOptions: { timeout: 15000, retryOptions: { attempts: 1 } },
       },
     });
     const verdict = JSON.parse(response.text ?? '{}') as { safe?: unknown; matches?: unknown };

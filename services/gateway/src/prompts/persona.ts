@@ -1,3 +1,4 @@
+import { languageInstruction } from '@just-imagine/protocol';
 import { personaInstruction } from '@just-imagine/learning-content';
 import { languageOf } from '@just-imagine/protocol';
 import type { SessionRecord } from '../contracts';
@@ -15,6 +16,7 @@ export function personaPromptV1(record: SessionRecord, summary: string): string 
   const { pack, character } = resolvePersona(persona.packId, persona.characterId);
   const language = languageOf(record.identity.child);
   return [
+    languageInstruction(record.identity.child),
     `Learning World prompt ${PERSONA_PROMPT_VERSION}.`,
     personaInstruction(pack, character.id, language),
     '',

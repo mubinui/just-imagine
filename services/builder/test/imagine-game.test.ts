@@ -241,3 +241,19 @@ describe('guardPatchedGame', () => {
     expect(before.game).toEqual(flies.game);
   });
 });
+
+it('does not compile or publish behavior for a scene whose requested route is repeatedly rejected', async () => {
+  const generateScript = vi.fn();
+  const reviewScene = vi.fn(async () => 'Unrequested solid scenery blocks the requested route.');
+  const generateScene = sceneModel();
+  await expect(
+    imagineGame(job('Let my fox run to each tapped spot with no obstacles.'), {
+      generateScene,
+      generateScript,
+      reviewScene,
+    }),
+  ).rejects.toThrow('three attempts');
+  expect(reviewScene).toHaveBeenCalledTimes(3);
+  expect(generateScene).toHaveBeenCalledTimes(3);
+  expect(generateScript).not.toHaveBeenCalled();
+});

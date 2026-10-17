@@ -23,7 +23,7 @@ export const DEFAULT_LANGUAGE: Language = 'en';
 
 /** The language a child profile or builder job speaks. Records written before the field existed are English. */
 export function languageOf(record: { language?: Language | null }): Language {
-  return record.language ?? DEFAULT_LANGUAGE;
+  return record.language === 'bn' ? 'bn' : DEFAULT_LANGUAGE;
 }
 
 export const UserDocSchema = z.object({

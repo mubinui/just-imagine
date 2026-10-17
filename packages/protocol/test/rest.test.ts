@@ -32,6 +32,7 @@ describe('ROUTES', () => {
       'updateChild',
       'updateStory',
       'usageToday',
+      'worldTextEdition',
     ]);
     for (const r of Object.values(ROUTES)) expect(r.path.startsWith('/v1/')).toBe(true);
   });

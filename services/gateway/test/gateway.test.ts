@@ -37,6 +37,9 @@ function harness(meterIntervalMs?: number) {
       records.set(record.id, record);
     },
     meter: async () => 900,
+    release: async (record: SessionRecord) => {
+      records.delete(record.id);
+    },
     finish: async (record: SessionRecord) => {
       records.delete(record.id);
     },
@@ -74,6 +77,40 @@ async function connect(gateway: ReturnType<typeof startGateway>) {
   return { socket, messages };
 }
 const hello = { type: 'hello', idToken: 'valid', childId: 'c_one', characterId: 'bhombol' };
+
+it('allows the next language call after bye while the previous summary is still pending', async () => {
+  const h = harness();
+  let resolveSummary!: (value: string) => void;
+  h.provider.summarize = vi.fn(
+    () =>
+      new Promise<string>((resolve) => {
+        resolveSummary = resolve;
+      }),
+  );
+  h.store.finish = vi.fn(h.store.finish);
+  const first = await connect(h.gateway);
+  let second: Awaited<ReturnType<typeof connect>> | undefined;
+  try {
+    first.socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(first.messages[0]).toMatchObject({ type: 'ready' }));
+    first.socket.send(JSON.stringify({ type: 'end' }));
+    await vi.waitFor(() => expect(first.messages).toContainEqual({ type: 'bye', reason: 'ended' }));
+    await vi.waitFor(() => expect(h.provider.summarize).toHaveBeenCalledOnce());
+    expect(h.store.finish).not.toHaveBeenCalled();
+    second = await connect(h.gateway);
+    second.socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(second!.messages[0]).toMatchObject({ type: 'ready' }));
+    h.provider.summarize = async () => 'Next conversation.';
+    resolveSummary('Previous conversation.');
+    await vi.waitFor(() => expect(h.store.finish).toHaveBeenCalledOnce());
+    expect(h.records.size).toBe(1);
+  } finally {
+    resolveSummary?.('Previous conversation.');
+    first.socket.terminate();
+    second?.socket.terminate();
+    await h.gateway.close();
+  }
+});
 
 it('does not offer or send lesson prediction overlays in incidental creative worlds', async () => {
   expect(
@@ -601,4 +638,162 @@ it('limits the storyteller to story topic, navigation and ending tools', () => {
   const names = toolDeclarationsFor({ story: {} }).map((t) => t.name);
   expect(names.sort()).toEqual(['end_session', 'navigate', 'story_topic']);
   expect(toolDeclarationsFor({}).map((t) => t.name)).not.toContain('story_topic');
+});
+
+it('starts narration with a fresh model after saved-book question mode, preserving normal passage continuation', async () => {
+  const { storyBook, manuscript } = await import('../../../packages/protocol/test/fixtures/story');
+  const h = harness(),
+    book = { ...storyBook(), childId: 'c_one', manuscript: manuscript() };
+  h.store.story = vi.fn(async () => book);
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    socket.send(JSON.stringify({ type: 'storySetup', storyId: book.id }));
+    await vi.waitFor(() => expect(h.provider.open).toHaveBeenCalledTimes(2));
+    const questionCallbacks = h.callbacks()!;
+    socket.send(
+      JSON.stringify({
+        type: 'storyRead',
+        storyId: book.id,
+        scene: 0,
+        beat: 0,
+        readId: 'read_after_question',
+      }),
+    );
+    await vi.waitFor(() => expect(h.provider.open).toHaveBeenCalledTimes(3));
+    // A stale interruption from the question model cannot cancel the new passage.
+    questionCallbacks.interrupted();
+    h.callbacks()!.turnComplete!();
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual(
+        expect.objectContaining({
+          type: 'storyCue',
+          readId: 'read_after_question',
+          status: 'finished',
+        }),
+      ),
+    );
+    socket.send(
+      JSON.stringify({
+        type: 'storyRead',
+        storyId: book.id,
+        scene: 0,
+        beat: 1,
+        readId: 'read_continue',
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(h.live.text).toHaveBeenCalledWith(
+        expect.stringContaining(book.manuscript.scenes[0]!.beats[1]!.text),
+      ),
+    );
+    expect(h.provider.open).toHaveBeenCalledTimes(3);
+  } finally {
+    socket.close();
+    await h.gateway.close();
+  }
+});
+
+it('keeps the typed child words and exclusions when a creation/edit tool summarizes them', async () => {
+  const h = harness();
+  h.store.enqueue = vi.fn(async () => {});
+  const { socket, messages } = await connect(h.gateway);
+  const wish = 'Fenn runs wherever I tap. No obstacles, scores, quizzes or endings.';
+  try {
+    socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    socket.send(JSON.stringify({ type: 'text', text: wish }));
+    await vi.waitFor(() => expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining(wish)));
+    h.callbacks()?.tool('t_original', 'build_world', {
+      description: 'A running forest fox',
+      concepts: ['speed'],
+    });
+    await vi.waitFor(() =>
+      expect(h.store.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'build',
+          description: 'A running forest fox',
+          childRequest: wish,
+        }),
+      ),
+    );
+    h.store.world = vi.fn(async () => ({ doc: minimalScene() }) as WorldDoc);
+    const edit = 'Make Fenn blue. Keep his scarf and every existing action.';
+    socket.send(JSON.stringify({ type: 'text', text: edit }));
+    await vi.waitFor(() => expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining(edit)));
+    h.callbacks()?.tool('t_exact_edit', 'modify_world', { instruction: 'Make the fox blue' });
+    await vi.waitFor(() =>
+      expect(h.store.enqueue).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          kind: 'patch',
+          instruction: 'Make the fox blue',
+          childRequest: edit,
+        }),
+      ),
+    );
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+
+it('waits for voice moderation before binding the verbatim request to its build', async () => {
+  const h = harness();
+  h.store.enqueue = vi.fn(async () => {});
+  let approved!: (value: 'safe') => void;
+  h.provider.moderate = vi.fn(
+    () =>
+      new Promise<'safe'>((resolve) => {
+        approved = resolve;
+      }),
+  );
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    const wish = 'A turtle who swims where I tap, with no timer or quiz.';
+    h.callbacks()?.transcript('child', wish, true);
+    h.callbacks()?.tool('t_spoken', 'build_world', {
+      description: 'An underwater turtle',
+      concepts: ['speed'],
+    });
+    await vi.waitFor(() => expect(h.provider.moderate).toHaveBeenCalled());
+    expect(h.store.enqueue).not.toHaveBeenCalled();
+    approved('safe');
+    await vi.waitFor(() =>
+      expect(h.store.enqueue).toHaveBeenCalledWith(expect.objectContaining({ childRequest: wish })),
+    );
+  } finally {
+    approved?.('safe');
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+
+it('does not execute a queued creation from a rejected voice turn', async () => {
+  const h = harness();
+  h.store.enqueue = vi.fn(async () => {});
+  h.provider.moderate = async () => 'block';
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    h.callbacks()?.transcript('child', 'A rejected request', true);
+    h.callbacks()?.tool('t_rejected', 'build_world', {
+      description: 'An unrelated safe summary',
+      concepts: [],
+    });
+    await vi.waitFor(() =>
+      expect(h.live.toolResult).toHaveBeenCalledWith(
+        't_rejected',
+        'build_world',
+        expect.objectContaining({ error: expect.stringContaining('friendly idea') }),
+      ),
+    );
+    expect(h.store.enqueue).not.toHaveBeenCalled();
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
 });
