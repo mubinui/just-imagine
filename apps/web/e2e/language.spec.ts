@@ -25,7 +25,9 @@ test('saved English/Bangla selection follows parent settings, shared navigation,
   ).toBeVisible();
   await page.getByRole('button', { name: /^লাইভ সহকারী:/ }).click();
   const assistant = page.getByRole('region', { name: 'লাইভ সহকারী', exact: true });
-  await expect(assistant.getByRole('heading', { name: /-এর সঙ্গে কথা বলো$/ })).toBeVisible();
+  await expect(
+    assistant.getByRole('heading', { name: 'ভোম্বলের সঙ্গে কথা বলো', exact: true }),
+  ).toBeVisible();
   await expect(assistant.getByRole('status')).toHaveText('নমুনা বন্ধু · ছুঁয়ে ঘুরে দেখো');
   await page.keyboard.press('Escape');
   await page.goto('/parent/settings');

@@ -34,12 +34,20 @@ test('plays the generated fixture game: answer its question, tap a fly, the scor
   const canvas = page.locator('.stage-world canvas');
   const box = (await canvas.boundingBox())!;
   const score = page.locator('.game-score-value');
-  for (let round = 0; round < 12 && (await score.textContent()) === '0'; round++) {
+  // Stop at the first catch: the HUD renders a catch a frame later, and clicking on past it can
+  // catch all five flies inside the first second, which ends the game before its timer ticks.
+  let caught = false;
+  for (let round = 0; round < 12 && !caught; round++) {
     for (const home of FLY_HOMES) {
       await page.mouse.click(box.x + (home.x / 16) * box.width, box.y + (home.y / 9) * box.height);
-      if ((await score.textContent()) !== '0') break;
+      caught = await expect(score)
+        .not.toHaveText('0', { timeout: 250 })
+        .then(
+          () => true,
+          () => false,
+        );
+      if (caught) break;
     }
-    await page.waitForTimeout(250);
   }
   await expect(score).not.toHaveText('0');
   expect(errors).toEqual([]);
