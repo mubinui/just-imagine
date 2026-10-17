@@ -73,6 +73,16 @@ const ACTIONS: Record<AdminAuditAction, string> = {
   'world.unhide': 'World shown',
   'killSwitch.set': 'Kill switch',
   'appearance.set': 'Theme changed',
+  'school.create': 'School created',
+  'school.update': 'School updated',
+  'school.suspend': 'School paused',
+  'school.reinstate': 'School reinstated',
+  'school.invite': 'Teacher invited',
+  'school.inviteRevoke': 'Invite revoked',
+  'catalog.publish': 'Catalog item published',
+  'catalog.retire': 'Catalog item retired',
+  'lesson.publish': 'Lesson published',
+  'lesson.archive': 'Lesson archived',
 };
 export const actionLabel = (action: AdminAuditAction) => ACTIONS[action];
 

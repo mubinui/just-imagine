@@ -76,6 +76,16 @@ export const AdminAuditActionSchema = z.enum([
   'world.unhide',
   'killSwitch.set',
   'appearance.set',
+  'school.create',
+  'school.update',
+  'school.suspend',
+  'school.reinstate',
+  'school.invite',
+  'school.inviteRevoke',
+  'catalog.publish',
+  'catalog.retire',
+  'lesson.publish',
+  'lesson.archive',
 ]);
 export type AdminAuditAction = z.infer<typeof AdminAuditActionSchema>;
 
@@ -83,7 +93,10 @@ export const AdminAuditDocSchema = z.object({
   actorUid: z.string(),
   actorEmail: z.string().nullable(),
   action: AdminAuditActionSchema,
-  target: z.object({ kind: z.enum(['family', 'world', 'system']), id: z.string() }),
+  target: z.object({
+    kind: z.enum(['family', 'world', 'system', 'school', 'catalog', 'lesson']),
+    id: z.string(),
+  }),
   before: z.record(z.string(), scalar).nullable(),
   after: z.record(z.string(), scalar).nullable(),
   reason: z.string(),
