@@ -1052,7 +1052,12 @@ export function startGateway(options: {
       session.record.worldId
     ) {
       const world = await options.store.world(session.record, session.record.worldId);
-      if (world.doc.entities.some((e) => e.id === message.entityId && e.character)) {
+      // In a game, tapping a character is play, not a request to talk: handing the call over on
+      // every tap would close the friend's voice mid-sentence. Games use "Talk to" instead.
+      if (
+        !world.doc.game &&
+        world.doc.entities.some((e) => e.id === message.entityId && e.character)
+      ) {
         await talkToWorldCharacter(session, message.entityId);
         return;
       }

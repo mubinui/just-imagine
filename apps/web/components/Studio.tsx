@@ -461,6 +461,7 @@ export function Studio() {
       if (
         event.type === 'tap' &&
         event.target &&
+        !worldRef.current?.doc.game &&
         worldRef.current?.doc.entities.some((e) => e.id === event.target && e.character)
       ) {
         meetCharacter(event.target);

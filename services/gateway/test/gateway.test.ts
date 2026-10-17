@@ -1060,3 +1060,58 @@ it.each(['learningPacks', 'world', 'claim'] as const)(
     }
   },
 );
+
+it('keeps the friend on the call when a game character is tapped during play', async () => {
+  const h = harness();
+  const scene = minimalScene();
+  scene.worldId = 'w_game';
+  scene.entities[1]!.id = 'hero';
+  scene.entities[1]!.character = {
+    name: 'Hero',
+    personality: 'Brave',
+    greeting: 'Let us play!',
+    topic: 'Jumping',
+  };
+  (scene as unknown as { game: unknown }).game = { api: 1 };
+  h.store.world = vi.fn(async () => ({ doc: scene }) as WorldDoc);
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify({ ...hello, worldId: 'w_game' }));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    for (let i = 0; i < 3; i++)
+      socket.send(JSON.stringify({ type: 'interaction', kind: 'tap', entityId: 'hero' }));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(messages.some((m) => (m as { type?: string }).type === 'worldCharacter')).toBe(false);
+    expect(h.provider.open).toHaveBeenCalledOnce();
+    expect([...h.records.values()][0]!.worldCharacter).toBeUndefined();
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+
+it('still introduces a world character when it is tapped in a world without a game', async () => {
+  const h = harness();
+  const scene = minimalScene();
+  scene.worldId = 'w_planets';
+  scene.entities[1]!.id = 'earth';
+  scene.entities[1]!.character = {
+    name: 'Earth',
+    personality: 'Warm and curious',
+    greeting: 'Hello, explorer!',
+    topic: 'Oceans and life',
+  };
+  h.store.world = vi.fn(async () => ({ doc: scene }) as WorldDoc);
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify({ ...hello, worldId: 'w_planets' }));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    socket.send(JSON.stringify({ type: 'interaction', kind: 'tap', entityId: 'earth' }));
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual({ type: 'worldCharacter', entityId: 'earth', name: 'Earth' }),
+    );
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
