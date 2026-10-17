@@ -1,4 +1,4 @@
-import { beforeEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   badgeState,
   clearBuild,
@@ -7,7 +7,17 @@ import {
   SLOW_BUILD_MS,
 } from '../lib/building';
 
-beforeEach(() => sessionStorage.clear());
+// Node only has Web Storage behind a flag on some versions; give each test its own store.
+beforeEach(() => {
+  const data = new Map<string, string>();
+  vi.stubGlobal('sessionStorage', {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => void data.set(key, String(value)),
+    removeItem: (key: string) => void data.delete(key),
+    clear: () => data.clear(),
+  });
+});
+afterEach(() => vi.unstubAllGlobals());
 
 it('remembers a world being made and keeps its first start time', () => {
   rememberBuild({ worldId: 'w_one', characterId: 'bhombol', startedAt: 100 });
