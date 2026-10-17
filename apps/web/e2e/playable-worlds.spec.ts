@@ -10,7 +10,9 @@ test('each preview world has a repeatable action backed by the real simulation',
   await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
   await page.getByRole('button', { name: 'bounce', exact: true }).click();
   await page.getByRole('button', { name: 'Bounce dragon', exact: true }).click();
+  // Other worlds live in the Studio's More menu.
   const choose = async (name: string) => {
+    await page.getByRole('button', { name: 'More', exact: true }).click();
     await page.getByRole('button', { name, exact: true }).click();
     await page.locator('.prediction-card .actions button').first().click();
   };

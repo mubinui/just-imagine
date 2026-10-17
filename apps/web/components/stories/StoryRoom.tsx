@@ -13,6 +13,7 @@ import { useChild } from '../learn/LearnMap';
 import { Actor } from '../acting/Actor';
 import { useStoryNarration } from './useStoryNarration';
 import { ThemePicker } from '../ThemePicker';
+import { UiIcon } from '../UiIcon';
 import '../../app/studio.css';
 import '../../app/stories.css';
 
@@ -47,6 +48,7 @@ export function StoryRoom() {
     bn = language === 'bn';
   const [opening, setOpening] = useState(true),
     [reload, setReload] = useState(0);
+  const [writing, setWriting] = useState(false);
   const [topic, setTopic] = useState(''),
     [books, setBooks] = useState<StoryDoc[]>([]),
     [book, setBook] = useState<StoryDoc>();
@@ -300,43 +302,66 @@ export function StoryRoom() {
                   ? 'কে থাকবে? কোথায় যাব? তুমি বলো, কথার গল্পে দেখা যাক।'
                   : uiText('Who will we meet? Where shall we go? Tell Katha what you imagine.')}
               </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void create();
-                }}
-              >
-                <label htmlFor="story-topic">
-                  {bn ? 'কী নিয়ে গল্প শুনবে?' : uiText('What shall our story be about?')}
-                </label>
-                <textarea
-                  id="story-topic"
-                  rows={3}
-                  maxLength={600}
-                  minLength={3}
-                  required
-                  value={topic}
-                  onChange={(e) => {
-                    setTopic(e.target.value);
-                    request.current = undefined;
+              <div className="story-room-actions story-start">
+                <button
+                  type="button"
+                  className="story-room-primary"
+                  onClick={() => void narration.ask()}
+                >
+                  <UiIcon name="mic" />
+                  {bn ? 'কথাকে বলো' : uiText('Tell Katha aloud')}
+                </button>
+                <button
+                  type="button"
+                  className="write-toggle"
+                  aria-expanded={writing}
+                  aria-controls="story-write"
+                  onClick={() => setWriting(!writing)}
+                >
+                  <UiIcon name="write" />
+                  <span>{uiText('Write')}</span>
+                </button>
+              </div>
+              {writing && (
+                <form
+                  id="story-write"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void create();
                   }}
-                  placeholder={bn ? 'যা খুশি ভাবো…' : uiText('Anything you imagine…')}
-                />
-                <div className="story-room-actions">
-                  <button className="story-room-primary" disabled={busy || topic.trim().length < 3}>
-                    {busy
-                      ? bn
-                        ? 'তৈরি হচ্ছে…'
-                        : uiText('Starting…')
-                      : bn
-                        ? 'আমার গল্প বানাও'
-                        : uiText('Make my story')}
-                  </button>
-                  <button type="button" onClick={() => void narration.ask()}>
-                    {bn ? 'কথাকে বলো' : uiText('Tell Katha aloud')}
-                  </button>
-                </div>
-              </form>
+                >
+                  <label htmlFor="story-topic">
+                    {bn ? 'কী নিয়ে গল্প শুনবে?' : uiText('What shall our story be about?')}
+                  </label>
+                  <textarea
+                    id="story-topic"
+                    rows={3}
+                    maxLength={600}
+                    minLength={3}
+                    required
+                    value={topic}
+                    onChange={(e) => {
+                      setTopic(e.target.value);
+                      request.current = undefined;
+                    }}
+                    placeholder={bn ? 'যা খুশি ভাবো…' : uiText('Anything you imagine…')}
+                  />
+                  <div className="story-room-actions">
+                    <button
+                      className="story-room-primary"
+                      disabled={busy || topic.trim().length < 3}
+                    >
+                      {busy
+                        ? bn
+                          ? 'তৈরি হচ্ছে…'
+                          : uiText('Starting…')
+                        : bn
+                          ? 'আমার গল্প বানাও'
+                          : uiText('Make my story')}
+                    </button>
+                  </div>
+                </form>
+              )}
               <p className="story-room-note">
                 {bn
                   ? 'তোমার বিষয়। তোমার সিদ্ধান্ত। নতুন ছবি আর শেখার আবিষ্কার নিয়ে গল্প।'
@@ -451,10 +476,7 @@ export function StoryRoom() {
                 aria-expanded={discovered}
                 onClick={() => setDiscovered((v) => !v)}
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="10" cy="10" r="6" />
-                  <path d="m15 15 6 6M7 10h6M10 7v6" />
-                </svg>
+                <UiIcon name="search" />
                 {uiText(scene.discovery.label)}
               </button>
               <div className="narrative-guide">

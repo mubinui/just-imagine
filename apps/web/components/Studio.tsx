@@ -60,6 +60,8 @@ import {
 } from './studio/parts';
 import { LabDrawer } from './studio/LabDrawer';
 import { Dock, StageHeader } from './studio/Dock';
+import { StudioMenu } from './studio/StudioMenu';
+import { UiIcon } from './UiIcon';
 import { PetFollower } from './pets/PetFollower';
 import { PetSlot } from './pets/PetSlot';
 import { GenerationShow } from './studio/GenerationShow';
@@ -776,21 +778,34 @@ export function Studio() {
         status={status}
         job={job}
         note={quota !== undefined ? quotaCopy(quota) : undefined}
-        center={
-          env.fake ? (
-            <Storybook worlds={FIXTURE_WORLDS} selected={fixture} onSelect={switchWorld} />
-          ) : child ? (
-            <PublishedWorlds
-              childId={child.id}
-              compact
-              onOpen={(id) => {
-                sessionStorage.setItem('ji-world', id);
-                selectWorldId(id);
-                if (hello.current) hello.current.worldId = id;
-                if (getVoice().session) getVoice().send({ type: 'openWorld', worldId: id });
-              }}
-            />
-          ) : undefined
+        leading={
+          <button type="button" className="stage-exit" onClick={finish}>
+            <UiIcon name="finish" />
+            <span>{language === 'bn' ? 'স্টুডিও থেকে বের হই' : 'Exit Studio'}</span>
+          </button>
+        }
+        menu={
+          <StudioMenu
+            captions={captions}
+            onRestart={resetWorld}
+            onCaptions={() => setCaptions(!captions)}
+            worlds={
+              env.fake ? (
+                <Storybook worlds={FIXTURE_WORLDS} selected={fixture} onSelect={switchWorld} />
+              ) : child ? (
+                <PublishedWorlds
+                  childId={child.id}
+                  compact
+                  onOpen={(id) => {
+                    sessionStorage.setItem('ji-world', id);
+                    selectWorldId(id);
+                    if (hello.current) hello.current.worldId = id;
+                    if (getVoice().session) getVoice().send({ type: 'openWorld', worldId: id });
+                  }}
+                />
+              ) : undefined
+            }
+          />
         }
       />
       <div className={world?.doc.variables ? 'stage-scene has-lab' : 'stage-scene'}>
@@ -907,13 +922,6 @@ export function Studio() {
             }
           />
         )}
-        <div className="caption-band">
-          {captions && caption && world && (
-            <p className="caption" aria-live="polite">
-              {uiText(caption)}
-            </p>
-          )}
-        </div>
       </div>
       {error && (
         <p className="stage-error" role="alert">
@@ -935,6 +943,7 @@ export function Studio() {
         status={status}
         captions={captions}
         talkName={personal?.name ?? CHARACTERS[character].displayName}
+        caption={world ? caption : undefined}
         onPick={(id) => {
           if (!live) {
             startVoice(id);
@@ -948,9 +957,6 @@ export function Studio() {
         onStop={stopVoice}
         onRetry={() => void connectVoice()}
         onNewGame={buildGame}
-        onRestart={resetWorld}
-        onCaptions={() => setCaptions(!captions)}
-        onFinish={finish}
         pet={child && <PetSlot childId={child.id} />}
       />
       {summoning && <SummonOverlay character={summoning} />}

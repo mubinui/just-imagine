@@ -32,6 +32,8 @@ test('Studio preserves canvas proportions and usable controls across viewport si
     const stage = await page.locator('.stage').boundingBox();
     expect(stage!.width).toBe(viewport.width);
     expect(stage!.x).toBe(0);
+    // Friends open from the stacked faces beside the talk portrait.
+    await page.getByRole('button', { name: 'Choose a friend', exact: true }).click();
     const names = ['Mishti', 'Bhombol', 'Chandni', 'Pori Apu', 'Onko Mama', 'Jadu Kaka'];
     for (const name of names) {
       const friend = page.getByRole('button', { name, exact: true });
@@ -42,6 +44,7 @@ test('Studio preserves canvas proportions and usable controls across viewport si
       expect(bounds!.width).toBeGreaterThanOrEqual(44);
       expect(bounds!.height).toBeGreaterThanOrEqual(44);
     }
+    await page.getByRole('button', { name: 'More', exact: true }).click();
     await page.getByRole('button', { name: 'Cannon and Cup', exact: true }).click();
     await page.getByRole('button', { name: 'higher', exact: true }).click();
     const slider = page.getByRole('slider').first();

@@ -7,14 +7,14 @@ import { s } from '../lib/strings/en';
 import { env } from '../lib/env';
 import { Mark } from './Mark';
 import { ThemePicker } from './ThemePicker';
+/** The wordmark is always the English "just imagine." in Baloo, in every app language. */
 export function Brand() {
-  useLanguage();
   return (
-    <Link className="brand" href="/">
+    <Link className="brand" href="/" lang="en">
       <span className="brand-mark" aria-hidden="true">
         <Mark size={32} />
       </span>
-      {s.brand}
+      just imagine
       <span className="brand-dot">.</span>
     </Link>
   );

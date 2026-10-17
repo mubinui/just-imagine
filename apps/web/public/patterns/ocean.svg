@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="640" height="640" viewBox="0 0 640 640">
+  <defs>
+    <path id="wave" d="M0 0C20-14 40-14 60 0S100 14 120 0 160-14 180 0" fill="none" stroke="#1d6276" stroke-width="2.4" stroke-linecap="round"/>
+    <g id="shell" fill="none" stroke="#1d6276" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M0 0C-26 0-34-34-14-50 0-58 14-58 28-50 48-34 40 0 14 0Z" fill="#1d6276" fill-opacity=".3"/>
+      <path d="M7 0V-56M-10-2-18-46M24-2 32-46"/>
+      <path d="M-4 0H18L14 8H0Z" fill="#1d6276" fill-opacity=".45"/>
+    </g>
+    <g id="fish">
+      <path d="M0 0C14-14 38-14 52 0 38 14 14 14 0 0Z" fill="#1d6276" fill-opacity=".45"/>
+      <path d="M52 0 68-12V12Z" fill="#1d6276" fill-opacity=".45"/>
+      <circle cx="14" cy="-2" r="2.4" fill="#f6fbfa"/>
+    </g>
+    <path id="star" d="M0-26 7-9 26-8 11 4 16 22 0 12-16 22-11 4-26-8-7-9Z" fill="#1d6276" fill-opacity=".35" stroke="#1d6276" stroke-width="1.6" stroke-linejoin="round"/>
+    <g id="bubbles" fill="none" stroke="#1d6276" stroke-width="1.8">
+      <circle cx="0" cy="0" r="8"/><circle cx="14" cy="-22" r="5"/><circle cx="4" cy="-40" r="3.5"/>
+    </g>
+  </defs>
+  <use xlink:href="#wave" transform="translate(30 80)"/>
+  <use xlink:href="#fish" transform="translate(330 120) scale(1.1)"/>
+  <use xlink:href="#bubbles" transform="translate(530 130)"/>
+  <use xlink:href="#shell" transform="translate(110 300)"/>
+  <use xlink:href="#wave" transform="translate(360 300) scale(.9)"/>
+  <use xlink:href="#star" transform="translate(560 380) rotate(18)"/>
+  <use xlink:href="#fish" transform="translate(210 470) scale(-.9 .9)"/>
+  <use xlink:href="#bubbles" transform="translate(80 520) scale(.9)"/>
+  <use xlink:href="#wave" transform="translate(300 600) scale(.8)"/>
+  <use xlink:href="#shell" transform="translate(480 560) rotate(-16) scale(.8)"/>
+  <use xlink:href="#star" transform="translate(250 220) rotate(-20) scale(.7)"/>
+</svg>

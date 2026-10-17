@@ -21,6 +21,7 @@ test('profile gesture unlocks audio, world renders, prediction and lab controls 
   await expect(page.getByRole('button', { name: 'bounce', exact: true })).toHaveCount(0);
   await page.getByLabel('gravity', { exact: true }).selectOption('moon');
   await page.screenshot({ path: 'test-results/studio-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'More', exact: true }).click();
   await page.getByRole('button', { name: 'Cannon and Cup', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Lab tools' })).toBeVisible();
   await page.getByRole('button', { name: 'Enter a number' }).first().click();
@@ -108,6 +109,7 @@ test('coalesces slider transport, preserves values during asset updates, and res
     .first()
     .click();
   await expect(page.locator('.stage-status')).toHaveAttribute('data-state', 'connected');
+  await page.getByRole('button', { name: 'More', exact: true }).click();
   await page.getByRole('button', { name: 'Cannon and Cup', exact: true }).click();
   const slider = page.getByRole('slider').first();
   await expect(slider).toBeVisible();
@@ -122,8 +124,10 @@ test('coalesces slider transport, preserves values during asset updates, and res
   expect(values.at(-1)).toBe(Number(selected));
   await page.waitForTimeout(2000);
   await expect(slider).toHaveValue(selected);
+  await page.getByRole('button', { name: 'More', exact: true }).click();
   await page.getByRole('button', { name: 'Start over', exact: true }).click();
   await expect(slider).toHaveValue(initial);
+  await page.getByRole('button', { name: 'More', exact: true }).click();
   await page.getByRole('button', { name: 'Cannon and Cup', exact: true }).click();
   await expect(page.locator('canvas')).toBeVisible();
   await expect(

@@ -729,3 +729,46 @@
   max-width: 34ch;
   margin: 0;
 }
+
+/* Talking first; Write opens the keyboard. */
+.story-start {
+  margin-top: 28px;
+}
+.story-room .story-start .story-room-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 26px 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--yellow) 78%, #fff) 0%,
+    var(--yellow) 48%,
+    color-mix(in srgb, var(--yellow) 88%, #b8860b) 100%
+  );
+  color: var(--ink);
+  font:
+    800 19px/1.1 Baloo,
+    sans-serif;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 70%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--yellow) 70%, #8a6400),
+    0 10px 26px -10px color-mix(in srgb, var(--yellow) 65%, transparent);
+}
+.story-start .story-room-primary svg {
+  width: 22px;
+  height: 22px;
+}
+.story-invitation #story-write {
+  margin-top: 4px;
+}
+.story-room .story-start .write-toggle {
+  background: color-mix(in srgb, var(--ground) 9%, transparent);
+  color: var(--ground);
+}
+.story-room .story-start .write-toggle[aria-expanded='true'] {
+  background: var(--ground);
+  color: var(--ink);
+}

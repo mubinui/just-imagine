@@ -1476,3 +1476,77 @@ textarea {
   white-space: nowrap;
   border: 0;
 }
+
+/* "Write": the keyboard stays closed until asked for (Studio builder, Story room). */
+.write-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 20px 0 8px;
+  border: 1.5px solid color-mix(in srgb, var(--ground) 18%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ground) 9%, transparent);
+  color: var(--ground);
+  font:
+    800 17px/1.1 Nunito,
+    sans-serif;
+  cursor: pointer;
+  transition: background var(--duration);
+}
+.write-toggle:hover {
+  background: color-mix(in srgb, var(--ground) 15%, transparent);
+}
+.write-toggle > svg {
+  box-sizing: content-box;
+  width: 22px;
+  height: 22px;
+  padding: 8px;
+  border-radius: 50%;
+  background: var(--ground);
+  color: var(--ink);
+}
+.write-toggle[aria-expanded='true'] {
+  background: var(--ground);
+  color: var(--ink);
+}
+.write-toggle[aria-expanded='true'] > svg {
+  background: var(--mint);
+}
+.write-toggle-hint {
+  font-weight: 600;
+  opacity: 0.78;
+}
+
+/* Theme art: faint vector motifs behind light pages (leaves and grass, sea life, clay and
+   succulents). Fixed and non-interactive; the full-screen child stages cover it. */
+[data-world='parent'] {
+  position: relative;
+  isolation: isolate;
+}
+body::before,
+[data-world='parent']::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/patterns/forest.svg') 0 0 / 640px 640px repeat;
+  opacity: 0.07;
+}
+:root[data-theme='ocean'] body::before,
+:root[data-theme='ocean'] [data-world='parent']::before {
+  background-image: url('/patterns/ocean.svg');
+  opacity: 0.075;
+}
+:root[data-theme='terracotta'] body::before,
+:root[data-theme='terracotta'] [data-world='parent']::before {
+  background-image: url('/patterns/terracotta.svg');
+  opacity: 0.07;
+}
+@media print {
+  body::before,
+  [data-world='parent']::before {
+    display: none;
+  }
+}

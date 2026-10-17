@@ -30,6 +30,7 @@ test('a chosen friend follows navigation and Exit Studio ends voice until anothe
     .click();
   await expect(page.locator('.stage-status')).toHaveAttribute('data-state', 'connected');
   await page.getByRole('button', { name: 'bounce', exact: true }).click();
+  await page.getByRole('button', { name: 'Choose a friend', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pip', exact: true })).toBeVisible();
   await expect(page.locator('.studio-dock').getByRole('link')).toHaveCount(0);
   await page.getByRole('button', { name: 'Exit Studio', exact: true }).click();

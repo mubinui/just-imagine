@@ -1,105 +1,335 @@
+/* The rest view after Exit Studio: the Studio's stage turned quiet, with the friend in a soft
+   spotlight and the next choices as large tiles. Uses the selected theme's ink and ground. */
 .page {
-  width: min(100%, 960px);
+  position: relative;
+  isolation: isolate;
+  width: 100%;
   max-width: none;
-  margin: 32px auto;
-  padding: 32px 24px;
+  min-height: 100dvh;
+  margin: 0;
+  padding: clamp(24px, 5vh, 56px) clamp(20px, 6vw, 88px);
   display: grid;
-  grid-template-columns: minmax(160px, 0.8fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(200px, 0.9fr) minmax(0, 1.1fr);
   align-items: center;
-  gap: 40px;
-  color: var(--ink);
+  align-content: center;
+  gap: clamp(28px, 5vw, 72px);
+  background:
+    radial-gradient(
+      ellipse 46% 60% at 26% 50%,
+      color-mix(in srgb, var(--ground) 12%, var(--ink)) 0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 120% 60% at 50% 120%,
+      color-mix(in srgb, #000 30%, var(--ink)) 0%,
+      transparent 62%
+    ),
+    var(--ink);
+  color: var(--ground);
 }
+/* faint storybook stars, the same sky as the Studio wings */
+.page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--ground) 45%, transparent) 0 1.2px,
+      transparent 1.7px
+    ),
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--yellow) 50%, transparent) 0 1.4px,
+      transparent 1.9px
+    );
+  background-size:
+    97px 89px,
+    173px 151px;
+  background-position:
+    13px 21px,
+    61px 47px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, #000 85%);
+}
+
 .portrait {
-  width: min(100%, 260px);
+  position: relative;
+  width: min(100%, 340px);
   aspect-ratio: 1;
   justify-self: center;
   --mouth-open: 0;
 }
+/* the friend's spotlight: a cream disc with a soft floor shadow */
+.portrait::before {
+  content: '';
+  position: absolute;
+  inset: 4% 2% 0;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 42%,
+    color-mix(in srgb, var(--ground) 92%, var(--peach)) 0%,
+    color-mix(in srgb, var(--ground) 70%, var(--ink)) 62%,
+    color-mix(in srgb, var(--ground) 18%, var(--ink)) 100%
+  );
+  box-shadow:
+    0 0 0 14px color-mix(in srgb, var(--ground) 6%, transparent),
+    0 0 0 32px color-mix(in srgb, var(--ground) 3%, transparent),
+    0 40px 60px -24px #000c;
+}
+.portrait::after {
+  content: '';
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: 9%;
+  height: 7%;
+  z-index: -1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  filter: blur(6px);
+}
 .portrait > svg,
 .portrait > span {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 86%;
+  height: 86%;
+  margin: 6% auto 0;
+  filter: drop-shadow(0 14px 14px #0005);
 }
+
 .content {
   min-width: 0;
+  max-width: 560px;
 }
 .content h1 {
-  font-size: 36px;
-  line-height: 1.15;
+  color: var(--ground);
+  font-size: clamp(34px, 4.4vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 .content h1:focus {
   outline: none;
 }
 .copy {
   margin-top: 16px;
-  max-width: 45ch;
+  max-width: 46ch;
+  color: color-mix(in srgb, var(--ground) 82%, var(--ink));
+  font-size: clamp(17px, 1.6vw, 19px);
+  line-height: 1.55;
 }
 .status {
   display: flex;
+  width: fit-content;
   align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 20px;
+  min-height: 40px;
+  padding: 0 16px 0 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ground) 11%, transparent);
+  color: var(--ground);
   font-size: 15px;
+  font-weight: 700;
 }
 .status svg {
   flex: none;
+  width: 20px;
+  height: 20px;
 }
+
+/* one clear way back: an opaque cream pill, the stage's "act in the world" weight */
 .return {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin-top: 24px;
-  min-height: 56px;
-  background: var(--accent);
-  color: var(--accent-ink);
+  gap: 12px;
+  margin-top: 28px;
+  min-height: 68px;
+  padding: 0 32px 0 26px;
   border: 0;
-  font-weight: 800;
+  border-radius: 999px;
+  background: var(--ground);
+  color: var(--ink);
+  font:
+    800 21px/1.1 Baloo,
+    sans-serif;
+  box-shadow:
+    0 6px 0 color-mix(in srgb, var(--ground) 62%, var(--ink)),
+    0 20px 30px -14px #000b;
+  cursor: pointer;
+  transition: transform var(--duration);
+}
+.return svg {
+  width: 24px;
+  height: 24px;
 }
 .return:hover {
-  background: color-mix(in srgb, var(--accent) 85%, var(--ink));
+  transform: translateY(-2px);
 }
+.return:active {
+  transform: translateY(3px);
+}
+
+/* the next adventures as three large tiles */
 .destinations {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: 24px;
-  row-gap: 4px;
-  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 32px;
 }
 .destinations a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  color: var(--accent);
-  font-weight: 800;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 112px;
+  padding: 16px 10px;
+  border: 1.5px solid color-mix(in srgb, var(--ground) 16%, transparent);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--ground) 8%, transparent);
+  color: var(--ground);
+  font:
+    800 18px/1.15 Baloo,
+    sans-serif;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    background var(--duration),
+    transform var(--duration);
+}
+.destinations a:hover {
+  background: color-mix(in srgb, var(--ground) 15%, transparent);
+  transform: translateY(-2px);
 }
 .destinations svg {
-  width: 20px;
-  height: 20px;
+  box-sizing: content-box;
+  width: 26px;
+  height: 26px;
+  padding: 12px;
+  border-radius: 50%;
+  background: var(--ground);
+  color: var(--ink);
 }
 .explorers {
   display: inline-flex;
   align-items: center;
   min-height: 48px;
-  margin-top: 12px;
-  color: var(--soft);
+  margin-top: 16px;
+  color: color-mix(in srgb, var(--ground) 76%, var(--ink));
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+.explorers:hover {
+  color: var(--ground);
+}
+
+/* tablets in portrait and phones: the friend above, everything centred */
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 20px;
+    text-align: center;
+    background:
+      radial-gradient(
+        ellipse 70% 40% at 50% 22%,
+        color-mix(in srgb, var(--ground) 12%, var(--ink)) 0%,
+        transparent 72%
+      ),
+      var(--ink);
+  }
+  .portrait {
+    width: min(56vw, 280px);
+  }
+  .content {
+    display: grid;
+    justify-items: center;
+  }
+  .destinations {
+    width: 100%;
+  }
 }
 @media (max-width: 600px) {
   .page {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    margin: 0 auto;
-    padding: 24px;
+    align-content: start;
+    padding: 28px 16px 24px;
   }
   .portrait {
-    width: 144px;
+    width: 168px;
   }
   .content h1 {
     font-size: 30px;
   }
+  .copy {
+    font-size: 16px;
+  }
   .return {
     width: 100%;
+    min-height: 60px;
+    font-size: 19px;
+  }
+  .destinations {
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .destinations a {
+    min-height: 96px;
+    padding: 12px 6px;
+    font-size: 16px;
+  }
+  .destinations svg {
+    width: 22px;
+    height: 22px;
+    padding: 10px;
+  }
+}
+/* landscape phones: side by side again, compact */
+@media (max-height: 520px) and (min-width: 600px) {
+  .page {
+    grid-template-columns: minmax(140px, 0.6fr) minmax(0, 1.4fr);
+    justify-items: stretch;
+    text-align: start;
+    padding-block: 16px;
+  }
+  .content {
+    justify-items: start;
+  }
+  .portrait {
+    width: min(100%, 200px);
+  }
+  .content h1 {
+    font-size: 28px;
+  }
+  .return {
+    margin-top: 16px;
+    min-height: 56px;
+  }
+  .destinations {
+    margin-top: 16px;
+  }
+  .destinations a {
+    min-height: 64px;
+    grid-auto-flow: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .copy {
+    margin-top: 8px;
+  }
+  .status {
+    margin-top: 12px;
+  }
+  .destinations svg {
+    padding: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .return,
+  .destinations a {
+    transition: none;
   }
 }

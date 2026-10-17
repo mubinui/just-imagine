@@ -14,7 +14,8 @@ test('saved English/Bangla selection follows parent settings, shared navigation,
   await form.locator('button[type=submit]').click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'bn-BD');
   await expect(page).toHaveTitle(/জাস্ট ইমাজিন/);
-  await expect(page.locator('.brand')).toHaveText('জাস্ট ইমাজিন.');
+  // The wordmark stays English in every language.
+  await expect(page.locator('.brand')).toHaveText('just imagine.');
   await expect(form.locator('h2')).toHaveText('অ্যাপ ও কথা বলার ভাষা');
   await page.reload();
   await expect(form.locator('select')).toHaveValue('bn');

@@ -19,6 +19,7 @@ test('plays the generated fixture game: answer its question, tap a fly, the scor
   await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
   await expect(page).toHaveURL(/studio/);
   await expect(page.locator('canvas')).toBeVisible();
+  await page.getByRole('button', { name: 'More', exact: true }).click();
   await page.getByRole('button', { name: 'Catch the Flies', exact: true }).click();
 
   const ask = page.getByRole('dialog', { name: 'How many flies can you catch?' });

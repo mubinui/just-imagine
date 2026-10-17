@@ -47,11 +47,11 @@
   font-family: 'Noto Sans Bengali', Nunito, sans-serif;
 }
 
-/* Display: Baloo Da 2 wherever globals.css uses Baloo. Bengali ascenders need more leading. */
+/* Display: Baloo Da 2 wherever globals.css uses Baloo, except the wordmark, which stays English
+   Baloo in every language (components/Shell.tsx Brand). Bengali ascenders need more leading. */
 [lang|='bn'] h1,
 [lang|='bn'] h2,
 [lang|='bn'] h3,
-[lang|='bn'] .brand,
 [lang|='bn'] .wonder-window p,
 [lang|='bn'] .profile strong,
 [lang|='bn'] .world-tile-copy strong,
@@ -60,11 +60,17 @@
   line-height: 1.3;
 }
 
+/* The landing headlines set a tight Latin line height later (app/welcome.css, globals.css);
+   Bengali vowel signs need room between the lines of a large display heading. */
+[lang|='bn'] .home-hero h1,
+[lang|='bn'] .hero h1 {
+  line-height: 1.38;
+}
+
 /* Child UI set to bn inside an English page (a caption, a card) gets the same treatment. */
 h1[lang|='bn'],
 h2[lang|='bn'],
-h3[lang|='bn'],
-.brand[lang|='bn'] {
+h3[lang|='bn'] {
   font-family: 'Baloo Da 2', Baloo, serif;
   line-height: 1.3;
 }

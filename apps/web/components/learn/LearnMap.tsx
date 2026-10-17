@@ -122,6 +122,27 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
   const [shelf, setShelf] = useState(false);
   const learn = state ?? { points: child?.points ?? 0, pets: child?.pets ?? [], progress: {} };
   const buddy = child ? buddyFor(learn, readBuddy(child.id)) : undefined;
+  const worlds = islands.map((island) => {
+    const challenges = [
+      ...new Set([
+        ...island.challengeIds,
+        ...catalog.packs
+          .filter((pack) => pack.section === island.section)
+          .flatMap((pack) => pack.challenges.map((challenge) => challenge.id)),
+      ]),
+    ];
+    const total = challenges.length;
+    const done = state && !failed ? doneIn(state, challenges) : 0;
+    const note = island.open
+      ? done > 0
+        ? t('learnWorlds.progress', { done, total })
+        : t('learnWorlds.challengeCount', { total })
+      : t('learnWorlds.comingSoon');
+    return { island, total, done, name: t(`learnWorlds.sections.${island.section}`), note };
+  });
+  // The first world the child has started but not finished carries the "Keep going" flag.
+  const resume = worlds.find(({ island, done, total }) => island.open && done > 0 && done < total)
+    ?.island.section;
   return (
     <main className={`stage learn-stage learn-map ${styles.map}`}>
       <StageHeader title={t('learnWorlds.tile')} status={getVoice().status} />
@@ -161,81 +182,93 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
             )}
           </div>
         )}
-        <section className={`islands ${styles.worlds}`} aria-label={t('learnWorlds.mapHint')}>
-          {islands.map((island) => {
-            const challenges = [
-              ...new Set([
-                ...island.challengeIds,
-                ...catalog.packs
-                  .filter((pack) => pack.section === island.section)
-                  .flatMap((pack) => pack.challenges.map((challenge) => challenge.id)),
-              ]),
-            ];
-            const total = challenges.length;
-            const done = state && !failed ? doneIn(state, challenges) : 0;
-            const name = t(`learnWorlds.sections.${island.section}`);
-            const note = island.open
-              ? done > 0
-                ? t('learnWorlds.progress', { done, total })
-                : t('learnWorlds.challengeCount', { total })
-              : t('learnWorlds.comingSoon');
-            const body = (
-              <>
-                <span
-                  className={styles.landscape}
-                  style={{
-                    backgroundImage: `url(/learn/cinematic/${WORLD_PAINTING[island.section]}.webp)`,
-                  }}
-                  aria-hidden="true"
-                >
-                  <span className={styles.character}>
-                    <LearnArt id={ISLAND_ART[island.section]} />
-                  </span>
-                </span>
-                <span className={styles.worldCopy}>
-                  <span className={styles.worldHeading}>
-                    <span className={`island-name ${styles.name}`}>{name}</span>
-                    {island.open && <UiIcon name="back" className={styles.arrow} />}
-                  </span>
-                  <span className={`island-note ${styles.note}`}>{note}</span>
-                  {island.open && done > 0 && (
-                    <span className={styles.progress} aria-hidden="true">
-                      <span style={{ width: `${Math.min(1, done / total) * 100}%` }} />
+        <div className={styles.chart}>
+          <svg
+            className={styles.route}
+            viewBox="0 0 100 50"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path d="M15 13.5 C 24 8, 33 7.5, 42 10 S 61 11, 70 13.5 S 92 28, 88 37 S 74 40, 65 37.5 S 51 35, 42 37.5" />
+          </svg>
+          <svg className={styles.compass} viewBox="0 0 64 64" aria-hidden="true">
+            <circle cx="32" cy="32" r="26" />
+            <path d="M32 8l5 24-5 24-5-24z" />
+            <path d="M8 32h48" />
+          </svg>
+          <section className={`islands ${styles.worlds}`} aria-label={t('learnWorlds.mapHint')}>
+            {worlds.map(({ island, total, done, name, note }) => {
+              const body = (
+                <>
+                  {island.section === resume && (
+                    <span className={styles.flag} aria-hidden="true">
+                      {uiText('Keep going')}
                     </span>
                   )}
-                </span>
-              </>
-            );
-            return island.open ? (
-              <Link
-                key={island.section}
-                href={`/learn/${island.section}`}
-                className={`island is-open ${styles.world}`}
-                aria-label={`${name}, ${note}`}
-              >
-                {body}
-              </Link>
-            ) : (
-              <div key={island.section} className={`island is-soon ${styles.world}`}>
-                {body}
-              </div>
-            );
-          })}
-        </section>
-        <Link href="/stories" className={`learn-story-room-link ${styles.story}`}>
-          <svg viewBox="0 0 100 100" aria-hidden="true">
-            <Actor id="katha" />
-          </svg>
-          <span>
-            <strong>{language === 'bn' ? 'কথার গল্পঘর' : uiText('Katha’s story room')}</strong>
-            <span>
-              {language === 'bn'
-                ? 'তোমার ভাবনা থেকে নতুন গল্প'
-                : uiText('A new story from your imagination')}
+                  <span
+                    className={styles.landscape}
+                    style={{
+                      backgroundImage: `url(/learn/cinematic/${WORLD_PAINTING[island.section]}.webp)`,
+                    }}
+                    aria-hidden="true"
+                  >
+                    <span className={styles.character}>
+                      <LearnArt id={ISLAND_ART[island.section]} />
+                    </span>
+                  </span>
+                  <span className={styles.worldCopy}>
+                    <span className={styles.worldHeading}>
+                      <span className={`island-name ${styles.name}`}>{name}</span>
+                      {island.open && <UiIcon name="back" className={styles.arrow} />}
+                    </span>
+                    <span className={`island-note ${styles.note}`}>{note}</span>
+                    {island.open && done > 0 && (
+                      <span className={styles.progress} aria-hidden="true">
+                        <span style={{ width: `${Math.min(1, done / total) * 100}%` }} />
+                      </span>
+                    )}
+                  </span>
+                </>
+              );
+              return island.open ? (
+                <Link
+                  key={island.section}
+                  href={`/learn/${island.section}`}
+                  className={`island is-open ${styles.world}`}
+                  data-section={island.section}
+                  aria-label={`${name}, ${note}`}
+                >
+                  {body}
+                </Link>
+              ) : (
+                <div
+                  key={island.section}
+                  className={`island is-soon ${styles.world}`}
+                  data-section={island.section}
+                >
+                  {body}
+                </div>
+              );
+            })}
+          </section>
+          <Link href="/stories" className={`learn-story-room-link ${styles.story}`}>
+            <span className={styles.storyRibbon} aria-hidden="true">
+              {language === 'bn' ? 'গল্পের সময়' : uiText('Story time')}
             </span>
-          </span>
-          <UiIcon name="back" className="learn-story-arrow" />
-        </Link>
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <Actor id="katha" />
+            </svg>
+            <span className={styles.storyCopy}>
+              <strong>{language === 'bn' ? 'কথার গল্পঘর' : uiText('Katha’s story room')}</strong>
+              <span>
+                {language === 'bn'
+                  ? 'তোমার ভাবনা থেকে নতুন গল্প'
+                  : uiText('A new story from your imagination')}
+              </span>
+            </span>
+            <UiIcon name="back" className="learn-story-arrow" />
+          </Link>
+        </div>
       </div>
       {shelf && child && (
         <PetShelf

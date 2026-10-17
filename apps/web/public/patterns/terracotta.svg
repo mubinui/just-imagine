@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="640" height="640" viewBox="0 0 640 640">
+  <defs>
+    <g id="pot" stroke="#8d4639" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M-14-60H14L10-48C30-40 34-12 22 0H-22C-34-12-30-40-10-48Z" fill="#8d4639" fill-opacity=".38"/>
+      <path d="M-24-24H24" fill="none"/>
+    </g>
+    <g id="succulent" stroke="#8d4639" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M0 0C-6-18-6-34 0-48 6-34 6-18 0 0Z" fill="#8d4639" fill-opacity=".42"/>
+      <path d="M0 0C-16-10-26-24-28-40-12-32-4-18 0 0Z" fill="#8d4639" fill-opacity=".32"/>
+      <path d="M0 0C16-10 26-24 28-40 12-32 4-18 0 0Z" fill="#8d4639" fill-opacity=".32"/>
+    </g>
+    <g id="pebbles" fill="#8d4639" fill-opacity=".35">
+      <ellipse cx="0" cy="0" rx="14" ry="8"/><ellipse cx="22" cy="4" rx="9" ry="6"/><ellipse cx="-16" cy="6" rx="7" ry="5"/>
+    </g>
+    <path id="dune" d="M0 0C40-26 90-26 130-6S210 10 250-4" fill="none" stroke="#8d4639" stroke-width="2.2" stroke-linecap="round"/>
+    <g id="sunDot" fill="none" stroke="#8d4639" stroke-width="2"><circle r="16" fill="#8d4639" fill-opacity=".25"/><circle r="26" stroke-dasharray="2 8" stroke-linecap="round"/></g>
+  </defs>
+  <use xlink:href="#pot" transform="translate(90 140)"/>
+  <use xlink:href="#sunDot" transform="translate(300 80)"/>
+  <use xlink:href="#succulent" transform="translate(500 170)"/>
+  <use xlink:href="#dune" transform="translate(40 300)"/>
+  <use xlink:href="#pebbles" transform="translate(380 280)"/>
+  <use xlink:href="#succulent" transform="translate(180 440) scale(1.2)"/>
+  <use xlink:href="#pot" transform="translate(470 460) scale(.85)"/>
+  <use xlink:href="#dune" transform="translate(330 600) scale(.8)"/>
+  <use xlink:href="#pebbles" transform="translate(70 560) scale(.9)"/>
+  <use xlink:href="#succulent" transform="translate(600 620) scale(.7)"/>
+</svg>

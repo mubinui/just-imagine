@@ -716,3 +716,8 @@ Object.assign(UI_BN, {
 });
 
 UI_BN['{v0} stories'] = '{v0}-এর গল্প';
+UI_BN['More'] = 'আরও';
+UI_BN['Keep going'] = 'চালিয়ে যাও';
+UI_BN['Choose a friend'] = 'একজন বন্ধু বেছে নাও';
+UI_BN['Story time'] = 'গল্পের সময়';
+UI_BN['Write'] = 'লিখি';

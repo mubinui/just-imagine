@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="640" height="640" viewBox="0 0 640 640">
+  <defs>
+    <g id="leaf">
+      <path d="M0 0C14-20 46-28 74-18 58 8 26 22 0 0Z" fill="#245e4e" fill-opacity=".55"/>
+      <path d="M0 0C24-6 46-12 70-16" fill="none" stroke="#245e4e" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <g id="round">
+      <path d="M0 0C-4-26 10-46 30-50 34-28 22-8 0 0Z" fill="#245e4e" fill-opacity=".45"/>
+      <path d="M0 0C10-16 18-30 28-46" fill="none" stroke="#245e4e" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+    <g id="grass" fill="none" stroke="#245e4e" stroke-width="2.4" stroke-linecap="round">
+      <path d="M0 0C-2-18-10-32-22-44"/>
+      <path d="M6 0C6-22 4-40 0-60"/>
+      <path d="M12 0C14-16 22-30 34-40"/>
+      <path d="M18 0C22-12 30-20 42-24"/>
+      <path d="M-6 0C-10-10-18-16-30-18"/>
+    </g>
+    <g id="sprig" fill="none" stroke="#245e4e" stroke-width="1.8" stroke-linecap="round">
+      <path d="M0 0C8-20 10-40 6-60"/>
+      <circle cx="6" cy="-64" r="5" fill="#245e4e" fill-opacity=".5" stroke="none"/>
+      <circle cx="-4" cy="-44" r="4" fill="#245e4e" fill-opacity=".5" stroke="none"/>
+      <circle cx="14" cy="-34" r="4" fill="#245e4e" fill-opacity=".5" stroke="none"/>
+    </g>
+  </defs>
+  <use xlink:href="#leaf" transform="translate(64 96) rotate(-18)"/>
+  <use xlink:href="#round" transform="translate(250 70) rotate(24)"/>
+  <use xlink:href="#leaf" transform="translate(470 150) rotate(150) scale(.85)"/>
+  <use xlink:href="#sprig" transform="translate(560 300) rotate(12)"/>
+  <use xlink:href="#round" transform="translate(130 330) rotate(-60) scale(1.1)"/>
+  <use xlink:href="#leaf" transform="translate(330 300) rotate(40) scale(1.2)"/>
+  <use xlink:href="#grass" transform="translate(60 560)"/>
+  <use xlink:href="#grass" transform="translate(380 600) scale(.8)"/>
+  <use xlink:href="#sprig" transform="translate(240 520) rotate(-14) scale(.9)"/>
+  <use xlink:href="#leaf" transform="translate(520 480) rotate(-120)"/>
+  <use xlink:href="#round" transform="translate(600 610) rotate(80) scale(.8)"/>
+  <use xlink:href="#grass" transform="translate(470 250) scale(.6)"/>
+</svg>

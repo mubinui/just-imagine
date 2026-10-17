@@ -162,16 +162,7 @@ export function GenerationShow({
         </div>
         <div className="show-easel" aria-hidden="true">
           <div className="show-canvas">
-            <span className={`show-layer show-sky ${paintedClass(1)}`} />
-            <span className={`show-layer show-hills ${paintedClass(1)}`} />
-            <span className={`show-layer show-ground ${paintedClass(1)}`} />
-            <span className={`show-stroke ${paintedClass(1)}`} />
-            <span className={`show-props ${paintedClass(2)}`}>
-              <i />
-              <i />
-              <i />
-            </span>
-            <span className={`show-hero ${paintedClass(3)}`} />
+            <PaintedScene paintedClass={paintedClass} />
             {beat === 'reveal' && (
               <span className="show-confetti">
                 {CONFETTI.map((bit, i) => (
@@ -214,5 +205,89 @@ export function GenerationShow({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * The friend's painting, layer by layer: a pencil sketch first (so the paper is never blank),
+ * then watercolour washes for sky and hills, then props, then a glowing spot for the hero.
+ * Purely decorative; the caption carries the meaning.
+ */
+function PaintedScene({ paintedClass }: { paintedClass: (level: number) => string }) {
+  return (
+    <svg className="show-scene" viewBox="0 0 400 300" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="show-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop className="sky-top" offset="0" />
+          <stop className="sky-bottom" offset="1" />
+        </linearGradient>
+        <radialGradient id="show-sun" cx="0.5" cy="0.5" r="0.5">
+          <stop className="sun-core" offset="0.35" />
+          <stop className="sun-edge" offset="1" />
+        </radialGradient>
+        <radialGradient id="show-glow" cx="0.5" cy="0.5" r="0.5">
+          <stop className="glow-core" offset="0" />
+          <stop className="glow-edge" offset="1" />
+        </radialGradient>
+        <filter id="show-watercolour" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" />
+          <feDisplacementMap in="SourceGraphic" scale="7" />
+        </filter>
+        <filter id="show-grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" />
+          <feColorMatrix values="0 0 0 0 0.3  0 0 0 0 0.25  0 0 0 0 0.18  0 0 0 0.55 0" />
+        </filter>
+      </defs>
+      <rect className="paper" width="400" height="300" />
+      <g className={`wash wash-sky ${paintedClass(1)}`} filter="url(#show-watercolour)">
+        <rect x="-8" y="-8" width="416" height="240" fill="url(#show-sky)" />
+        <circle cx="318" cy="70" r="40" fill="url(#show-sun)" />
+        <g className="cloud">
+          <ellipse cx="96" cy="74" rx="40" ry="14" />
+          <ellipse cx="122" cy="64" rx="26" ry="16" />
+          <ellipse cx="226" cy="44" rx="30" ry="10" />
+        </g>
+      </g>
+      <g className={`wash wash-hills ${paintedClass(1)}`} filter="url(#show-watercolour)">
+        <path
+          className="hill-back"
+          d="M-10 196C40 150 96 140 150 168S250 130 300 150 380 150 410 170V310H-10Z"
+        />
+        <path className="hill-front" d="M-10 226C60 196 130 204 200 222S330 206 410 214V310H-10Z" />
+      </g>
+      <g className={`props ${paintedClass(2)}`}>
+        <g className="prop tree">
+          <rect className="trunk" x="76" y="176" width="9" height="34" rx="3" />
+          <circle className="canopy" cx="80" cy="166" r="22" />
+          <circle className="canopy light" cx="72" cy="160" r="11" />
+        </g>
+        <g className="prop tree small">
+          <rect className="trunk" x="333" y="188" width="7" height="26" rx="3" />
+          <circle className="canopy" cx="336" cy="180" r="16" />
+        </g>
+        <ellipse className="prop pond" cx="140" cy="256" rx="46" ry="11" />
+        <g className="prop flowers">
+          <circle cx="262" cy="244" r="4.5" />
+          <circle cx="274" cy="250" r="4" />
+          <circle cx="252" cy="252" r="3.5" />
+          <circle cx="286" cy="242" r="3.5" />
+        </g>
+      </g>
+      <g className={`hero-spot ${paintedClass(3)}`}>
+        <ellipse className="hero-glow" cx="214" cy="214" rx="54" ry="40" fill="url(#show-glow)" />
+        <path
+          className="hero-star"
+          d="M214 186 220 206 240 212 220 218 214 238 208 218 188 212 208 206Z"
+        />
+      </g>
+      <g className="sketch">
+        <path pathLength={1} d="M-10 196C40 150 96 140 150 168S250 130 300 150 380 150 410 170" />
+        <path pathLength={1} d="M-10 226C60 196 130 204 200 222S330 206 410 214" />
+        <circle pathLength={1} cx="318" cy="70" r="24" />
+        <path pathLength={1} d="M80 210V176M58 166a22 22 0 1 0 44 0 22 22 0 1 0-44 0" />
+        <ellipse pathLength={1} cx="140" cy="256" rx="46" ry="11" />
+      </g>
+      <rect className="grain" width="400" height="300" filter="url(#show-grain)" />
+    </svg>
   );
 }
