@@ -15,6 +15,7 @@ export class BrowserAudio {
   private mouthListeners = new Set<(value: number) => void>();
   private mouthValue = 0;
   private drainId = 0;
+  private playbackGeneration = 0;
   private drains = new Map<
     number,
     { resolve: (finished: boolean) => void; timer: ReturnType<typeof setTimeout> }
@@ -29,7 +30,7 @@ export class BrowserAudio {
         resolve(false);
       }, 60000);
       this.drains.set(id, { resolve, timer });
-      this.playback!.port.postMessage({ barrier: id });
+      this.playback!.port.postMessage({ barrier: id, generation: this.playbackGeneration });
     });
   }
   private finishDrain(id: number, finished: boolean) {
@@ -72,8 +73,8 @@ export class BrowserAudio {
         process(inputs){const channel=inputs[0]?.[0];if(channel)for(const frame of this.capture.push(channel))this.port.postMessage(frame.buffer,[frame.buffer]);return true;}
       }
       class ImaginePlayback extends AudioWorkletProcessor {
-        constructor(){super();this.buffer=new PcmPlayback(sampleRate);this.elapsed=0;this.barriers=[];this.port.onmessage=e=>{if(e.data==='clear'){this.buffer.clear();this.barriers=[];}else if(e.data?.barrier)this.barriers.push(e.data.barrier);else if(!this.buffer.push(new Int16Array(e.data))){this.buffer.clear();this.port.postMessage('overflow');}};}
-        process(_inputs,outputs){const out=outputs[0]?.[0];if(out){this.buffer.readInto(out);if(this.buffer.queuedSamples===0&&this.barriers.length){for(const id of this.barriers)this.port.postMessage({idle:id});this.barriers=[];}this.elapsed+=out.length;if(this.elapsed>=sampleRate/30){this.elapsed=0;let sum=0;for(const x of out)sum+=x*x;this.port.postMessage(Math.sqrt(sum/out.length));}}return true;}
+        constructor(){super();this.buffer=new PcmPlayback(sampleRate);this.elapsed=0;this.generation=0;this.barriers=[];this.port.onmessage=e=>{const data=e.data;if(data.clear){this.generation=data.generation;this.buffer.clear();this.barriers=[];}else if(data.generation===this.generation){if(data.barrier)this.barriers.push(data.barrier);else if(!this.buffer.push(new Int16Array(data.frame))){this.buffer.clear();this.port.postMessage({overflow:true,generation:this.generation});}}};}
+        process(_inputs,outputs){const out=outputs[0]?.[0];if(out){this.buffer.readInto(out);if(this.buffer.queuedSamples===0&&this.barriers.length){for(const id of this.barriers)this.port.postMessage({idle:id,generation:this.generation});this.barriers=[];}this.elapsed+=out.length;if(this.elapsed>=sampleRate/30){this.elapsed=0;let sum=0;for(const x of out)sum+=x*x;this.port.postMessage({rms:Math.sqrt(sum/out.length),generation:this.generation});}}return true;}
       }
       registerProcessor('imagine-capture',ImagineCapture);registerProcessor('imagine-playback',ImaginePlayback);`;
     const url = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
@@ -85,12 +86,16 @@ export class BrowserAudio {
     if (this.disposed) return;
     this.playback = new AudioWorkletNode(context, 'imagine-playback', { outputChannelCount: [1] });
     this.playback.port.onmessage = (
-      event: MessageEvent<number | 'overflow' | { idle: number }>,
+      event: MessageEvent<
+        { generation: number } & ({ rms: number } | { overflow: true } | { idle: number })
+      >,
     ) => {
-      if (event.data === 'overflow') this.onPlaybackError();
-      else if (typeof event.data === 'object') this.finishDrain(event.data.idle, true);
-      else this.emitMouth(mouthOpen(event.data));
+      if (this.disposed || event.data.generation !== this.playbackGeneration) return;
+      if ('overflow' in event.data) this.onPlaybackError();
+      else if ('idle' in event.data) this.finishDrain(event.data.idle, true);
+      else this.emitMouth(mouthOpen(event.data.rms));
     };
+    this.playback.port.postMessage({ clear: true, generation: this.playbackGeneration });
     this.playback.connect(context.destination);
   }
   async startCapture() {
@@ -132,11 +137,13 @@ export class BrowserAudio {
     }
   }
   play(frame: ArrayBuffer) {
-    if (frame.byteLength % 2 === 0) this.playback?.port.postMessage(frame, [frame]);
+    if (!this.disposed && frame.byteLength % 2 === 0)
+      this.playback?.port.postMessage({ frame, generation: this.playbackGeneration }, [frame]);
   }
   flush() {
+    this.playbackGeneration++;
     for (const id of this.drains.keys()) this.finishDrain(id, false);
-    this.playback?.port.postMessage('clear');
+    this.playback?.port.postMessage({ clear: true, generation: this.playbackGeneration });
     this.emitMouth(0);
   }
   stopCapture() {

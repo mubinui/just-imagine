@@ -1,13 +1,14 @@
 import { it, expect, vi, afterEach } from 'vitest';
 import { VoiceClient } from '../src/voice-client';
 import type { BrowserAudio } from '../src/browser-audio';
-function harness(capture = false) {
+function harness(capture = false, getToken?: () => Promise<string>) {
   const sockets: Array<{
     readyState: number;
     bufferedAmount: number;
     sent: string[];
     onopen?: () => void;
     onclose?: () => void;
+    onerror?: () => void;
     onmessage?: (e: { data: unknown }) => void;
     send(data: string): void;
     close(): void;
@@ -26,6 +27,7 @@ function harness(capture = false) {
   const client = new VoiceClient({
     url: 'ws://localhost',
     capture,
+    getToken,
     audio: audio as unknown as BrowserAudio,
     socket: () => {
       const socket = {
@@ -50,6 +52,54 @@ const hello = {
   characterId: 'bhombol' as const,
 };
 afterEach(() => vi.useRealTimers());
+it('ignores a prior socket error after ending and redialling a new call', async () => {
+  const { client, audio, sockets } = harness(true);
+  await client.connect(hello);
+  const old = sockets[0]!;
+  client.end();
+  await client.connect(hello);
+  const current = sockets[1]!;
+  current.onmessage?.({
+    data: JSON.stringify({ type: 'ready', sessionId: 's_new', characterId: 'bhombol' }),
+  });
+  old.onerror?.();
+  expect(client.status).toBe('connected');
+  current.onmessage?.({ data: new ArrayBuffer(960) });
+  expect(audio.play).toHaveBeenCalledOnce();
+  const frame = new ArrayBuffer(640);
+  audio.onFrame(frame);
+  expect(current.sent).toContain(frame);
+  current.onerror?.();
+  expect(client.status).toBe('reconnecting');
+  client.end();
+});
+it('ignores an old token refresh rejection after ending and redialling', async () => {
+  vi.useFakeTimers();
+  let rejectOld!: (error: Error) => void;
+  const token = vi
+    .fn()
+    .mockImplementationOnce(
+      () =>
+        new Promise<string>((_resolve, reject) => {
+          rejectOld = reject;
+        }),
+    )
+    .mockResolvedValue('fresh-token');
+  const { client, sockets } = harness(false, token);
+  const old = client.connect(hello);
+  await Promise.resolve();
+  client.end();
+  await client.connect(hello);
+  sockets[0]?.onmessage?.({
+    data: JSON.stringify({ type: 'ready', sessionId: 's_fresh', characterId: 'bhombol' }),
+  });
+  rejectOld(new Error('Previous refresh cancelled'));
+  await old;
+  await vi.advanceTimersByTimeAsync(20000);
+  expect(client.status).toBe('connected');
+  expect(sockets).toHaveLength(1);
+  client.end();
+});
 it('ends an overloaded playback stream explicitly and allows a fresh retry', async () => {
   const { client, audio, sockets } = harness(true);
   await client.connect(hello);
@@ -344,5 +394,132 @@ it('reconciles a guest owner after a requested companion switch without reopenin
   receive({ type: 'interrupted' });
   receive({ type: 'ready', sessionId: 's_one', characterId: 'mishti' });
   expect(client.speakerId).toBe('mishti');
+  client.end();
+});
+
+it('silences superseded Sun audio and microphone frames until the latest Tooth persona is ready', async () => {
+  const { client, audio, sockets } = harness(true);
+  await client.connect(hello);
+  const socket = sockets[0]!;
+  const receive = (message: unknown) => socket.onmessage?.({ data: JSON.stringify(message) });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  socket.sent = [];
+  client.send({ type: 'summonPersona', packId: 'space', characterId: 'sun' });
+  client.send({ type: 'summonPersona', packId: 'body', characterId: 'tooth' });
+  client.send({ type: 'learningPlay', packId: 'body', characterId: 'tooth', kind: 'activity' });
+  audio.onFrame(new ArrayBuffer(640));
+  socket.onmessage?.({ data: new ArrayBuffer(960) });
+  expect(audio.play).not.toHaveBeenCalled();
+  expect(socket.sent.map((value) => JSON.parse(value))).toEqual([
+    { type: 'summonPersona', packId: 'space', characterId: 'sun' },
+  ]);
+  receive({ type: 'persona', packId: 'space', characterId: 'sun', name: 'Sun' });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  expect(client.selectionPending).toBe(true);
+  expect(client.status).toBe('reconnecting');
+  expect(socket.sent.map((value) => JSON.parse(value))).toEqual([
+    { type: 'summonPersona', packId: 'space', characterId: 'sun' },
+    { type: 'summonPersona', packId: 'body', characterId: 'tooth' },
+  ]);
+  socket.onmessage?.({ data: new ArrayBuffer(960) });
+  audio.onFrame(new ArrayBuffer(640));
+  expect(audio.play).not.toHaveBeenCalled();
+  receive({ type: 'persona', packId: 'body', characterId: 'tooth', name: 'Tooth' });
+  expect(client.status).toBe('reconnecting');
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  expect(client.speakerId).toBe('tooth');
+  expect(client.selectionPending).toBe(false);
+  expect(socket.sent.map((value) => JSON.parse(value))).toHaveLength(3);
+  socket.onmessage?.({ data: new ArrayBuffer(960) });
+  expect(audio.play).toHaveBeenCalledOnce();
+  const frame = new ArrayBuffer(640);
+  audio.onFrame(frame);
+  expect(socket.sent).toContain(frame);
+  client.end();
+});
+
+it('restores an acknowledged guest across reconnect without summoning it twice', async () => {
+  vi.useFakeTimers();
+  const { client, sockets } = harness();
+  await client.connect(hello);
+  const first = sockets[0]!;
+  first.onmessage?.({
+    data: JSON.stringify({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' }),
+  });
+  client.send({ type: 'summonPersona', packId: 'body', characterId: 'tooth' });
+  first.onmessage?.({
+    data: JSON.stringify({ type: 'persona', packId: 'body', characterId: 'tooth', name: 'Tooth' }),
+  });
+  first.onclose?.();
+  await vi.advanceTimersByTimeAsync(500);
+  const second = sockets[1]!;
+  second.onmessage?.({
+    data: JSON.stringify({ type: 'persona', packId: 'body', characterId: 'tooth', name: 'Tooth' }),
+  });
+  second.onmessage?.({
+    data: JSON.stringify({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' }),
+  });
+  expect(client.selectionPending).toBe(false);
+  expect(client.speakerId).toBe('tooth');
+  expect(second.sent).toEqual([]);
+  client.end();
+});
+
+it('can reject a guest selection or return to the companion without re-summoning a queued guest', async () => {
+  const { client, sockets } = harness();
+  await client.connect(hello);
+  const socket = sockets[0]!,
+    receive = (message: unknown) => socket.onmessage?.({ data: JSON.stringify(message) });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  socket.sent = [];
+  client.send({ type: 'summonPersona', packId: 'space', characterId: 'sun' });
+  receive({ type: 'error', code: 'INTERNAL', message: 'Unavailable' });
+  expect(client.selectionPending).toBe(false);
+  expect(client.status).toBe('connected');
+  client.send({ type: 'summonPersona', packId: 'space', characterId: 'sun' });
+  client.send({ type: 'summonPersona', packId: 'body', characterId: 'tooth' });
+  client.send({ type: 'hangUp' });
+  receive({ type: 'persona', packId: 'space', characterId: 'sun', name: 'Sun' });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  receive({ type: 'worldCharacter', entityId: null, name: 'Bhombol' });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  expect(
+    socket.sent.map((value) => JSON.parse(value)).filter((value) => value.type === 'summonPersona'),
+  ).toEqual([
+    { type: 'summonPersona', packId: 'space', characterId: 'sun' },
+    { type: 'summonPersona', packId: 'space', characterId: 'sun' },
+  ]);
+  expect(client.speakerId).toBe('bhombol');
+  expect(client.selectionPending).toBe(false);
+  client.end();
+});
+
+it('queues the latest connecting guest after gallery world and companion acknowledgements', async () => {
+  const { client, sockets } = harness();
+  await client.connect(hello);
+  const socket = sockets[0]!,
+    receive = (message: unknown) => socket.onmessage?.({ data: JSON.stringify(message) });
+  client.send({ type: 'summonPersona', packId: 'space', characterId: 'sun' });
+  client.send({ type: 'openWorld', worldId: 'w_gallery' });
+  client.send({ type: 'switchCharacter', characterId: 'chandni' });
+  client.send({ type: 'summonPersona', packId: 'space', characterId: 'sun' });
+  client.send({ type: 'summonPersona', packId: 'body', characterId: 'tooth' });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  expect(socket.sent.map((value) => JSON.parse(value))).toEqual([
+    { type: 'openWorld', worldId: 'w_gallery' },
+  ]);
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol', worldId: 'w_gallery' });
+  expect(JSON.parse(socket.sent[1]!)).toEqual({ type: 'switchCharacter', characterId: 'chandni' });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'chandni', worldId: 'w_gallery' });
+  expect(JSON.parse(socket.sent[2]!)).toEqual({
+    type: 'summonPersona',
+    packId: 'body',
+    characterId: 'tooth',
+  });
+  expect(socket.sent).toHaveLength(3);
+  receive({ type: 'persona', packId: 'body', characterId: 'tooth', name: 'Tooth' });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'chandni', worldId: 'w_gallery' });
+  expect(client.selectionPending).toBe(false);
+  expect(client.speakerId).toBe('tooth');
   client.end();
 });

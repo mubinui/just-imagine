@@ -990,3 +990,73 @@ it('does not execute a queued creation from a rejected voice turn', async () => 
     await h.gateway.close();
   }
 });
+
+it.each(['learningPacks', 'world', 'claim'] as const)(
+  'cancels startup during %s without opening Live or metering an abandoned call',
+  async (phase) => {
+    const h = harness(5);
+    let proceed!: () => void;
+    const wait = new Promise<void>((resolve) => {
+      proceed = resolve;
+    });
+    let resumed = false;
+    const pause = async () => {
+      await wait;
+      resumed = true;
+    };
+    h.store.release = vi.fn(h.store.release);
+    h.store.finish = vi.fn(h.store.finish);
+    h.store.meter = vi.fn(h.store.meter);
+    h.provider.summarize = vi.fn(h.provider.summarize);
+    const claim = h.store.claim;
+    h.store.claim = vi.fn(async (record) => {
+      if (phase === 'claim') await pause();
+      await claim(record);
+    });
+    if (phase === 'learningPacks')
+      h.store.learningPacks = vi.fn(async () => {
+        await pause();
+        return [];
+      });
+    if (phase === 'world')
+      h.store.world = vi.fn(async () => {
+        await pause();
+        return { doc: { learning: { mode: 'guided' } } } as WorldDoc;
+      });
+    const connection = await connect(h.gateway);
+    try {
+      connection.socket.send(
+        JSON.stringify({ ...hello, ...(phase === 'world' ? { worldId: 'w_cancelled' } : {}) }),
+      );
+      const pending =
+        phase === 'learningPacks'
+          ? h.store.learningPacks
+          : phase === 'world'
+            ? h.store.world
+            : h.store.claim;
+      await vi.waitFor(() => expect(pending).toHaveBeenCalledOnce());
+      connection.socket.close();
+      await once(connection.socket, 'close');
+      proceed();
+      await vi.waitFor(() => expect(resumed).toBe(true));
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      if (phase === 'claim') {
+        await vi.waitFor(() => expect(h.store.finish).toHaveBeenCalledOnce());
+        expect(h.store.release).toHaveBeenCalledOnce();
+        expect(h.store.finish).toHaveBeenCalledWith(expect.anything(), '', 'ended');
+      } else {
+        expect(h.store.claim).not.toHaveBeenCalled();
+        expect(h.store.release).not.toHaveBeenCalled();
+        expect(h.store.finish).not.toHaveBeenCalled();
+      }
+      expect(h.provider.open).not.toHaveBeenCalled();
+      expect(h.provider.summarize).not.toHaveBeenCalled();
+      expect(h.store.meter).not.toHaveBeenCalled();
+      expect(h.records.size).toBe(0);
+    } finally {
+      proceed();
+      connection.socket.terminate();
+      await h.gateway.close();
+    }
+  },
+);

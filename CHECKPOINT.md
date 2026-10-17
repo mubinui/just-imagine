@@ -1,3 +1,9 @@
+# Learning character call checkpoint — 2026-10-17
+
+Current work is on **`feat/family-schools-integration`**, `../just-imagine-integrated`, at **http://localhost:3300**. [Call ownership, animation and verification evidence](docs/handoff/learning-voice-call-quality.md).
+
+Learning End call stops microphone/playback and cancels pending starts instead of automatically returning to the companion. Latest guest selection gates audio, stale worklet/socket/token events are fenced, and cancelled gateway startup releases its lease before Live opens. Tooth uses one opaque original pose; Sun/shared speech holds poses and settles without rapid full-body chatter. Close-ups hide/inert the mounted underlying story, use matching speaker energy and preserve the original artwork. Call sounds abort cleanly. Web368 + characters39 + gateway76 tests, all30 source type/lint tasks and production builds passed. Final native Sun desktop and Tooth390×844 microphone calls, readable names, clean End/companion-off state and immediate connecting-redial cancellation passed after one correction batch. All16 changed source files match both running web/gateway images; HTTP health is200 and the final gateway session count is0. Original artwork is unchanged; API/builder/persistent emulators were retained. No push/cloud deployment.
+
 # School quality checkpoint — 2026-10-17
 
 On **`feat/family-schools-integration`**, `../just-imagine-integrated`, running at **http://localhost:3300**. [Quality assurance evidence, scope and limits](docs/handoff/school-quality-assurance.md).

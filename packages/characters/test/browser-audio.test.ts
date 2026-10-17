@@ -1,5 +1,6 @@
 import { it, expect, vi, afterEach } from 'vitest';
 import { BrowserAudio } from '../src/browser-audio';
+import { runInNewContext } from 'node:vm';
 afterEach(() => vi.unstubAllGlobals());
 it('deduplicates capture requests and stops a microphone granted after leaving', async () => {
   let grant: (stream: MediaStream) => void = () => {};
@@ -44,7 +45,9 @@ it('deduplicates capture requests and stops a microphone granted after leaving',
 });
 
 it('fans actual playback energy out to independent portraits and resets them on interruption', async () => {
-  let playback: { onmessage: ((event: { data: number }) => void) | null };
+  let playback: {
+    onmessage: ((event: { data: { rms: number; generation: number } }) => void) | null;
+  };
   vi.stubGlobal(
     'AudioContext',
     class {
@@ -74,7 +77,7 @@ it('fans actual playback energy out to independent portraits and resets them on 
   const offFirst = audio.subscribeMouth(first),
     offSecond = audio.subscribeMouth(second);
   await audio.unlock();
-  playback!.onmessage!({ data: 0.12 });
+  playback!.onmessage!({ data: { rms: 0.12, generation: 0 } });
   const energy = first.mock.lastCall![0];
   expect(energy).toBeGreaterThan(0);
   expect(second).toHaveBeenLastCalledWith(energy);
@@ -121,9 +124,104 @@ it('waits for a worklet drain acknowledgement and cancels pending advances on fl
   await Promise.resolve();
   expect(ended).toBe(false);
   const barrier = port!.postMessage.mock.lastCall![0].barrier;
-  port!.onmessage!({ data: { idle: barrier } });
+  port!.onmessage!({ data: { idle: barrier, generation: 0 } });
   expect(await first).toBe(true);
   const cancelled = audio.whenPlaybackIdle();
   audio.flush();
   expect(await cancelled).toBe(false);
+});
+
+it('versions actual worklet frames, energy, overflow and idle acknowledgements across flushes', async () => {
+  type Port = { onmessage?: (event: { data: unknown }) => void; postMessage(data: unknown): void };
+  type Processor = { port: Port; process(inputs: unknown[], outputs: Float32Array[][]): boolean };
+  let moduleBlob!: Blob;
+  const processors = new Map<string, new () => Processor>();
+  const replies: unknown[] = [];
+  let processor!: Processor;
+  let mainPort!: Port;
+  vi.stubGlobal('URL', {
+    createObjectURL: (blob: Blob) => {
+      moduleBlob = blob;
+      return 'blob:worklet-test';
+    },
+    revokeObjectURL: () => {},
+  });
+  vi.stubGlobal(
+    'AudioContext',
+    class {
+      state = 'running';
+      destination = {};
+      resume = async () => {};
+      close = async () => {};
+      audioWorklet = {
+        addModule: async () => {
+          runInNewContext(await moduleBlob.text(), {
+            sampleRate: 48000,
+            AudioWorkletProcessor: class {
+              port: Port = { postMessage: (data) => replies.push(data) };
+            },
+            registerProcessor: (name: string, constructor: new () => Processor) =>
+              processors.set(name, constructor),
+          });
+        },
+      };
+    },
+  );
+  vi.stubGlobal(
+    'AudioWorkletNode',
+    class {
+      port: Port;
+      constructor(_context: unknown, name: string) {
+        const Constructor = processors.get(name)!;
+        processor = new Constructor();
+        this.port = mainPort = { postMessage: (data) => processor.port.onmessage?.({ data }) };
+      }
+      connect() {}
+      disconnect() {}
+    },
+  );
+  const audio = new BrowserAudio(),
+    mouth = vi.fn(),
+    error = vi.fn();
+  audio.onMouth = mouth;
+  audio.onPlaybackError = error;
+  // A stop while worklet installation is pending must initialize the node to the current epoch.
+  const unlocking = audio.unlock();
+  audio.flush();
+  await unlocking;
+  const render = (blocks: number) => {
+    for (let i = 0; i < blocks; i++) processor.process([], [[new Float32Array(128)]]);
+  };
+  const deliver = () => {
+    for (const data of replies.splice(0)) mainPort.onmessage?.({ data });
+  };
+  audio.play(new Int16Array(2400).fill(12000).buffer);
+  render(14);
+  expect(replies.some((data) => (data as { rms?: number }).rms! > 0)).toBe(true);
+  // Overflow belongs to the same old playback epoch, even if its notification is delayed.
+  audio.play(new Int16Array(24000 * 30 + 1).buffer);
+  audio.flush();
+  deliver();
+  expect(mouth).toHaveBeenLastCalledWith(0);
+  expect(error).not.toHaveBeenCalled();
+  audio.play(new Int16Array(960).fill(12000).buffer);
+  let idle: boolean | undefined;
+  const drained = audio.whenPlaybackIdle().then((finished) => {
+    idle = finished;
+    return finished;
+  });
+  render(3);
+  deliver();
+  await Promise.resolve();
+  expect(idle).toBeUndefined();
+  render(100);
+  deliver();
+  expect(await drained).toBe(true);
+  expect(mouth.mock.calls.some(([value]) => value > 0)).toBe(true);
+  const cancelled = audio.whenPlaybackIdle();
+  render(1); // The acknowledgement is queued, but a subsequent flush must cancel it.
+  audio.flush();
+  deliver();
+  expect(await cancelled).toBe(false);
+  await audio.dispose();
 });

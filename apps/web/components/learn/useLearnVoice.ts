@@ -2,7 +2,7 @@
 import { uiError } from '../../lib/i18n/ui';
 import { useEffect, useRef, useState } from 'react';
 import type { ChildResponse, ServerMessage } from '@just-imagine/protocol';
-import { ensureChildVoice, getVoice } from '../../lib/voice';
+import { ensureChildVoice, getVoice, stopChildVoice } from '../../lib/voice';
 
 type Persona = Omit<Extract<ServerMessage, { type: 'persona' }>, 'type'>;
 type Quiz = Omit<Extract<ServerMessage, { type: 'quiz' }>, 'type'>;
@@ -19,11 +19,13 @@ export interface LearnVoiceEvents {
 /**
  * The shared voice session, pointed at Learning World characters. Starting a call opens the
  * child's session if needed (on the tap that asked for it, which also unlocks audio), then asks
- * the gateway to hand the session to the pack character; hanging up hands it back to the friend.
+ * the gateway to hand the session to the pack character. Ending a call also stops the microphone
+ * and playback; only another explicit call may start a new session.
  */
 export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoiceEvents) {
   const [status, setStatus] = useState(() => getVoice().status);
   const [persona, setPersona] = useState<Persona>();
+  const [calling, setCalling] = useState(false);
   const [caption, setCaption] = useState('');
   const [looks, setLooks] = useState<Record<string, LearningLook>>({});
   const [motion, setMotion] = useState<LearningAction & { nonce: number }>();
@@ -40,14 +42,29 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
   const pending = useRef<{ packId: string; characterId: string } | undefined>(undefined);
   const summoning = useRef<{ packId: string; characterId: string } | undefined>(undefined);
   const personaRef = useRef<Persona | undefined>(undefined);
+  const generation = useRef(0);
+  const ownsCall = useRef(false);
   const handlers = useRef(events);
   useEffect(() => {
     handlers.current = events;
   });
 
   useEffect(() => {
-    const voice = getVoice();
-    const offStatus = voice.subscribeStatus(setStatus);
+    const voice = getVoice(),
+      epoch = generation;
+    const offStatus = voice.subscribeStatus((next) => {
+      setStatus(next);
+      if ((next === 'closed' || next === 'error') && ownsCall.current) {
+        generation.current++;
+        ownsCall.current = false;
+        pending.current = summoning.current = undefined;
+        requested.current = undefined;
+        personaRef.current = undefined;
+        setCalling(false);
+        setPersona(undefined);
+        setCaption('');
+      }
+    });
     const off = voice.subscribe((message) => {
       switch (message.type) {
         case 'ready':
@@ -58,12 +75,21 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
           }
           break;
         case 'persona': {
+          if (!voice.session || voice.status === 'closed' || voice.status === 'error') break;
+          const wanted = summoning.current ?? pending.current;
+          if (
+            wanted &&
+            (wanted.packId !== message.packId || wanted.characterId !== message.characterId)
+          )
+            break;
           const next = {
             packId: message.packId,
             characterId: message.characterId,
             name: message.name,
           };
           personaRef.current = next;
+          ownsCall.current = true;
+          setCalling(true);
           summoning.current = undefined;
           if (
             pending.current?.packId === next.packId &&
@@ -116,6 +142,7 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
           break;
         case 'error':
           summoning.current = undefined;
+          pending.current = undefined;
           setError(uiError(message.message));
           break;
         case 'bye':
@@ -125,8 +152,15 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
       }
     });
     return () => {
+      epoch.current++;
+      pending.current = summoning.current = undefined;
+      requested.current = undefined;
       off();
       offStatus();
+      if (ownsCall.current) {
+        ownsCall.current = false;
+        stopChildVoice();
+      }
     };
   }, []);
 
@@ -136,11 +170,19 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
     if (summoning.current?.packId === packId && summoning.current.characterId === characterId)
       return;
     summoning.current = { packId, characterId };
+    const version = ++generation.current;
+    ownsCall.current = true;
     const voice = getVoice();
+    setCalling(true);
+    setPersona(undefined);
+    personaRef.current = undefined;
+    setCaption('');
+    setStatus(voice.status === 'connected' ? 'connected' : 'connecting');
     setError('');
     const unlocked = voice.audio.unlocked ? Promise.resolve() : voice.unlockAudio();
     void Promise.resolve(unlocked)
       .then(async () => {
+        if (generation.current !== version) return;
         if (voice.session?.childId === child.id && voice.status === 'connected') {
           voice.send({ type: 'summonPersona', packId, characterId });
           return;
@@ -149,18 +191,27 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
         await ensureChildVoice(child);
       })
       .catch((e: unknown) => {
+        if (generation.current !== version) return;
+        ownsCall.current = false;
         pending.current = undefined;
         summoning.current = undefined;
+        requested.current = undefined;
+        stopChildVoice();
+        setCalling(false);
+        setStatus('error');
         setError(uiError(e));
       });
   }
   function hangUp() {
+    generation.current++;
+    ownsCall.current = false;
     summoning.current = undefined;
     pending.current = undefined;
     requested.current = undefined;
-    if (personaRef.current) getVoice().send({ type: 'hangUp' });
+    stopChildVoice();
     personaRef.current = undefined;
     setPersona(undefined);
+    setCalling(false);
     setCaption('');
   }
   /** Preview only: the fake gateway offers tappable options because it has no microphone. */
@@ -187,7 +238,11 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
     }
   }
   function observe(packId: string, characterId: string, observation: string) {
-    if (getVoice().status === 'connected')
+    if (
+      personaRef.current?.packId === packId &&
+      personaRef.current.characterId === characterId &&
+      getVoice().status === 'connected'
+    )
       getVoice().send({ type: 'learningPlay', packId, characterId, kind: 'activity', observation });
   }
   function imagineOutfit() {
@@ -218,6 +273,7 @@ export function useLearnVoice(child: ChildResponse | undefined, events: LearnVoi
   const live = status === 'connected' || status === 'connecting' || status === 'reconnecting';
   return {
     status,
+    calling,
     live,
     persona,
     caption,

@@ -278,13 +278,16 @@ a.dock-tile {
 /* ---------- section stage ---------- */
 .learn-world {
   background: #16304a;
-  transition:
-    filter 300ms var(--ease-out),
-    transform 300ms var(--ease-out);
+  transition: opacity 180ms var(--ease-out);
 }
 .learn-section.is-close .learn-world {
-  filter: brightness(0.45) saturate(0.8) blur(6px);
-  transform: scale(0.985);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.learning-game-frame {
+  background-position: center;
+  background-size: cover;
 }
 .learn-layer {
   position: absolute;
@@ -404,6 +407,7 @@ a.dock-tile {
   gap: clamp(12px, 3cqw, 40px);
   padding: clamp(12px, 3cqh, 32px) clamp(16px, 4cqw, 56px);
   pointer-events: none;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
 }
 .comes-closer > * {
   pointer-events: auto;
@@ -430,7 +434,7 @@ a.dock-tile {
 }
 .closer-phone {
   position: absolute;
-  inset: -8% 6%;
+  inset: -8% 6% 0;
   border-radius: 38px;
   background: #c4553f;
   box-shadow:
@@ -447,8 +451,8 @@ a.dock-tile {
   opacity: 1;
   transform: none;
 }
-.comes-closer.is-ringing .closer-portrait {
-  animation: ring 0.42s ease-in-out infinite;
+.comes-closer.is-ringing .closer-phone {
+  animation: ring 0.42s ease-in-out 2;
 }
 .closer-figure h2 {
   margin: 0;
@@ -845,7 +849,7 @@ button.pet-card:hover {
   .island,
   .scenery,
   .pet-follower .char-art,
-  .comes-closer.is-ringing .closer-portrait,
+  .comes-closer.is-ringing .closer-phone,
   .learn-points[data-bump] .star,
   .pet-slot .art {
     animation: none !important;
@@ -1223,59 +1227,12 @@ button.pet-card:hover {
 }
 
 /* Tooth Town quality reference: actual acting poses, anchored in the game rather than bobbed as a whole. */
-.tooth-pose {
-  opacity: 0;
+.tooth-acting {
   pointer-events: none;
 }
-.tooth-pose.is-idle {
-  opacity: 1;
-}
-.tooth-pose.is-blink {
-  animation: tooth-blink 6.4s step-end infinite;
-}
-.tooth-pose.is-speaking {
-  opacity: clamp(0, calc(var(--mouth-open, 0) * 4), 1);
-}
-.tooth-acting.is-brush .is-idle,
-.tooth-acting.is-cheer .is-idle,
-.tooth-acting.is-wave .is-idle {
-  opacity: 0;
-}
-.tooth-acting.is-brush .is-brush-a {
-  opacity: 1;
-}
-.tooth-acting.is-brush .is-brush-b {
-  animation: tooth-brush 800ms steps(1) infinite;
-}
-.tooth-acting.is-cheer .is-cheer {
-  opacity: 1;
+.tooth-acting[data-acting-action='cheer'] {
   animation: tooth-arrive 500ms cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: 50% 94%;
-}
-.tooth-acting.is-wave .is-wave {
-  opacity: 1;
-}
-@keyframes tooth-blink {
-  0%,
-  46%,
-  49%,
-  100% {
-    opacity: 0;
-  }
-  47%,
-  48% {
-    opacity: 1;
-  }
-}
-@keyframes tooth-brush {
-  0%,
-  49% {
-    opacity: 0;
-  }
-  50%,
-  100% {
-    opacity: 1;
-  }
 }
 @keyframes tooth-arrive {
   from {
@@ -1663,9 +1620,7 @@ button.pet-card:hover {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tooth-pose.is-blink,
-  .tooth-acting.is-brush .is-brush-b,
-  .tooth-acting.is-cheer .is-cheer,
+  .tooth-acting[data-acting-action='cheer'],
   .clean-burst {
     animation: none;
   }
@@ -2285,14 +2240,6 @@ button.pet-card:hover {
 .story-friend .learn-art {
   width: 42px;
   height: 42px;
-}
-.story-guide.is-celebrating .tooth-pose.is-cheer {
-  opacity: 1;
-}
-.story-guide.is-celebrating .tooth-pose.is-idle,
-.story-guide.is-celebrating .tooth-pose.is-blink {
-  opacity: 0;
-  animation: none;
 }
 @media (max-width: 700px) {
   .story-friend {

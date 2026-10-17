@@ -13,7 +13,13 @@ import {
   type ChildResponse,
 } from '@just-imagine/protocol';
 import { CharacterArt } from '../studio/CharacterArt';
-import { getVoice, releaseVoice, ensureChildVoice, stopChildVoice } from '../../lib/voice';
+import {
+  getVoice,
+  releaseVoice,
+  ensureChildVoice,
+  stopChildVoice,
+  unlockChildVoice,
+} from '../../lib/voice';
 import { env } from '../../lib/env';
 import { watchActor } from '../acting/clock';
 import { avatarPresence } from './presence';
@@ -126,7 +132,13 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     };
     queueMicrotask(() => setStatus(voice.status));
     sendScreen();
-    const offStatus = voice.subscribeStatus(setStatus);
+    const offStatus = voice.subscribeStatus((next) => {
+      setStatus(next);
+      if (next === 'closed' || next === 'error') {
+        setSpeaking(false);
+        setCaption('');
+      }
+    });
     const offMouth = voice.audio.subscribeMouth((value) =>
       setSpeaking(
         value > 0.06 && voice.speakerId === (selected?.companion?.characterId ?? 'bhombol'),
@@ -135,11 +147,16 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     const off = voice.subscribe((message) => {
       if (message.type === 'ready') sendScreen();
       if (message.type === 'navigate') router.push(CHILD_DESTINATIONS[message.destination]);
-      if (message.type === 'characterState') setSpeaking(message.speaking);
+      if (message.type === 'characterState')
+        setSpeaking(
+          message.speaking && voice.speakerId === (selected?.companion?.characterId ?? 'bhombol'),
+        );
       if (message.type === 'interrupted' || message.type === 'bye') setSpeaking(false);
       if (message.type === 'bye') setCaption(uiText('See you next time.'));
       if (message.type === 'transcript' && message.role === 'character' && !env.fake)
-        setCaption(message.text);
+        setCaption(
+          voice.speakerId === (selected?.companion?.characterId ?? 'bhombol') ? message.text : '',
+        );
       if (message.type === 'error') setError(uiError(message.message));
     });
     return () => {
@@ -152,7 +169,8 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     if (!child) return;
     setError('');
     try {
-      await getVoice().unlockAudio();
+      setStatus('connecting');
+      if (!(await unlockChildVoice())) return;
       await ensureChildVoice(
         child,
         getVoice().session?.childId === child.id
@@ -294,8 +312,8 @@ export function CompanionMenu({ inline = false }: { inline?: boolean }) {
                     : uiText('Microphone off')}
             </span>
             {!env.fake &&
-              (status === 'connected' ? (
-                <button type="button" onClick={() => getVoice().end()}>
+              (status === 'connected' || status === 'connecting' || status === 'reconnecting' ? (
+                <button type="button" onClick={stopChildVoice}>
                   {uiText('Stop talking')}
                 </button>
               ) : (

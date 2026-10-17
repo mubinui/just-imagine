@@ -4,6 +4,7 @@ import { VoiceClient } from '@just-imagine/characters';
 import { env } from './env';
 import { currentIdToken } from './firebase';
 let voice: VoiceClient | undefined;
+let voiceGeneration = 0;
 export function getVoice() {
   return (voice ??= new VoiceClient({
     url: env.gatewayUrl,
@@ -12,13 +13,28 @@ export function getVoice() {
   }));
 }
 export function releaseVoice() {
+  voiceGeneration++;
   opening = undefined;
   voice?.dispose();
   voice = undefined;
 }
 export function stopChildVoice() {
+  voiceGeneration++;
   opening = undefined;
   voice?.end();
+}
+
+/** End also cancels a tap still waiting for the browser to unlock its audio context. */
+export async function unlockChildVoice() {
+  const client = getVoice(),
+    version = voiceGeneration;
+  try {
+    await client.unlockAudio();
+  } catch (error) {
+    if (voice !== client || version !== voiceGeneration) return false;
+    throw error;
+  }
+  return voice === client && version === voiceGeneration;
 }
 
 let opening:

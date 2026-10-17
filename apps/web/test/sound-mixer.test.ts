@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createMixer, DUCK_GAIN, DUCK_IN_SECONDS, DUCK_OUT_SECONDS } from '../lib/sound/mixer';
 import { MUSIC_LOOP_SECONDS, type CueName } from '../lib/sound/manifest';
 import { FakeAudioContext, fakeLoader, flush, gainsBetween, reaches } from './fake-audio';
@@ -184,6 +184,128 @@ describe('cues', () => {
     await flush();
     expect(ctx.sources.filter((s) => s.stoppedAt !== undefined)).toHaveLength(0);
     expect(ctx.playingSources).toHaveLength(6);
+  });
+});
+
+describe('individual clip cancellation', () => {
+  it('drops a pre-aborted clip without loading or creating a source', async () => {
+    const { ctx, loader, mixer } = await unlocked();
+    const controller = new AbortController();
+    controller.abort();
+    expect(await mixer.playClip('/learn/sounds/phone_ring', { signal: controller.signal })).toBe(0);
+    expect(loader.calls).toEqual([]);
+    expect(ctx.sources).toEqual([]);
+  });
+
+  it('does not start a clip cancelled while its asset is loading', async () => {
+    const ctx = new FakeAudioContext();
+    let finishLoading!: (data: ArrayBuffer) => void;
+    const loaded = new Promise<ArrayBuffer>((resolve) => {
+      finishLoading = resolve;
+    });
+    const mixer = createMixer(ctx as unknown as AudioContext, { load: () => loaded });
+    await mixer.unlock();
+    const controller = new AbortController();
+    const playback = mixer.playClip('/learn/sounds/phone_ring', { signal: controller.signal });
+    controller.abort();
+    finishLoading(new ArrayBuffer(44100));
+    expect(await playback).toBe(0);
+    expect(ctx.sources).toEqual([]);
+  });
+
+  it('returns zero after a cancelled decode without cancelling another request for the same buffer', async () => {
+    const { ctx, loader, mixer } = await unlocked();
+    const decode = ctx.decodeAudioData.bind(ctx);
+    let finishDecoding!: () => void;
+    const decoding = new Promise<void>((resolve) => {
+      finishDecoding = resolve;
+    });
+    const pendingDecode = vi.spyOn(ctx, 'decodeAudioData').mockImplementation(async (data) => {
+      await decoding;
+      return decode(data);
+    });
+    const controller = new AbortController();
+    const cancelled = mixer.playClip('/learn/sounds/cow', { signal: controller.signal });
+    const other = mixer.playClip('/learn/sounds/cow');
+    await flush();
+    expect(pendingDecode).toHaveBeenCalledTimes(1);
+    controller.abort();
+    finishDecoding();
+    expect(await cancelled).toBe(0);
+    expect(await other).toBe(0.5);
+    expect(loader.calls).toEqual(['/learn/sounds/cow.ogg']);
+    expect(ctx.playingSources).toHaveLength(1);
+    expect(await mixer.playClip('/learn/sounds/cow')).toBe(0.5);
+    expect(pendingDecode).toHaveBeenCalledTimes(1);
+    expect(ctx.playingSources).toHaveLength(2);
+  });
+
+  it('stops only the signalled clip immediately and disconnects its complete graph', async () => {
+    const { ctx, mixer } = await unlocked();
+    const controller = new AbortController();
+    await mixer.playClip('/learn/sounds/phone_ring', { signal: controller.signal, pan: 0.5 });
+    const ring = ctx.sources[0]!;
+    const ringGain = gainsBetween(ring, ctx.destination)[0]!;
+    mixer.playMusic('meadow');
+    mixer.playCue('tap');
+    await mixer.playClip('/learn/sounds/cow');
+    await flush();
+    expect(ctx.playingSources).toHaveLength(4);
+    ctx.advance(0.2);
+    controller.abort();
+    expect(ring.stoppedAt).toBe(0.2);
+    expect(ring.outputs.size).toBe(0);
+    expect(ringGain.outputs.size).toBe(0);
+    expect(ctx.panners[0]!.outputs.size).toBe(0);
+    expect(ring.onended).toBeNull();
+    expect(ctx.playingSources).toHaveLength(3);
+    expect(ctx.sources.slice(1).every((source) => source.stoppedAt === undefined)).toBe(true);
+  });
+
+  it('removes the abort listener and frees its voice on a natural end', async () => {
+    const { ctx, mixer } = await unlocked();
+    const controller = new AbortController();
+    const remove = vi.spyOn(controller.signal, 'removeEventListener');
+    await mixer.playClip('/learn/sounds/cow', { signal: controller.signal });
+    const clip = ctx.sources[0]!;
+    clip.end();
+    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
+    expect(clip.outputs.size).toBe(0);
+    expect(clip.onended).toBeNull();
+    controller.abort();
+    expect(clip.stoppedAt).toBeUndefined();
+    for (let i = 0; i < 6; i++) mixer.playCue('tap');
+    await flush();
+    expect(ctx.sources.every((source) => source.stoppedAt === undefined)).toBe(true);
+    expect(ctx.playingSources).toHaveLength(6);
+  });
+
+  it('cleans up clip listeners and nodes on disposal, including a stolen voice still fading', async () => {
+    const ctx = new FakeAudioContext();
+    const mixer = createMixer(ctx as unknown as AudioContext, {
+      load: fakeLoader().load,
+      maxVoices: 1,
+    });
+    await mixer.unlock();
+    const first = new AbortController(),
+      second = new AbortController();
+    const removeFirst = vi.spyOn(first.signal, 'removeEventListener');
+    const removeSecond = vi.spyOn(second.signal, 'removeEventListener');
+    await mixer.playClip('/learn/sounds/phone_ring', { signal: first.signal });
+    await mixer.playClip('/learn/sounds/cow', { signal: second.signal });
+    expect(ctx.sources[0]!.stoppedAt).toBe(0.02);
+    mixer.dispose();
+    expect(removeFirst).toHaveBeenCalledWith('abort', expect.any(Function));
+    expect(removeSecond).toHaveBeenCalledWith('abort', expect.any(Function));
+    expect(
+      ctx.sources.every(
+        (source) => source.stoppedAt === 0 && source.outputs.size === 0 && source.onended === null,
+      ),
+    ).toBe(true);
+    ctx.advance(1);
+    first.abort();
+    second.abort();
+    expect(ctx.sources.every((source) => source.stoppedAt === 0)).toBe(true);
   });
 });
 

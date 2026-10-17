@@ -41,8 +41,9 @@ export interface Mixer {
   /**
    * Plays a same-origin clip outside the cue pack (an animal's real call, the toy-phone ring),
    * given as a path without extension; resolves to its length in seconds, or 0 when silent.
+   * An optional signal cancels only this playback, including a pending decode.
    */
-  playClip(path: string, opts?: CueOptions): Promise<number>;
+  playClip(path: string, opts?: CueOptions & { signal?: AbortSignal }): Promise<number>;
   playMusic(theme: MusicTheme): void;
   stopMusic(): void;
   setSpeaking(speaking: boolean): void;
@@ -99,6 +100,7 @@ function defaultCreateContext() {
 interface Voice {
   source: AudioBufferSourceNode;
   gain: GainNode;
+  cleanup(): void;
 }
 
 interface Bed {
@@ -124,6 +126,8 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
   let loadingTheme: MusicTheme | undefined;
   let musicToken = 0;
   const voices: Voice[] = [];
+  // Includes stolen voices while their short fade is finishing, so dispose cleans them too.
+  const liveVoices = new Set<Voice>();
   const buffers = new Map<string, Promise<AudioBuffer | undefined>>();
 
   function ensureGraph() {
@@ -189,8 +193,8 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
     }
   }
 
-  function startCue(audio: AudioBuffer, opts: CueOptions) {
-    if (!ready() || muted) return;
+  function startCue(audio: AudioBuffer, opts: CueOptions, signal?: AbortSignal) {
+    if (!ready() || muted || signal?.aborted) return;
     while (voices.length >= maxVoices) stopVoice(voices.shift()!, CUE_STEAL_FADE);
     const source = ctx!.createBufferSource();
     source.buffer = audio;
@@ -207,16 +211,31 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
       tail = panner;
     }
     tail.connect(graph!.cueBus);
-    const voice: Voice = { source, gain };
-    voices.push(voice);
-    source.onended = () => {
+    const cleanup = () => {
+      if (!liveVoices.delete(voice)) return;
+      signal?.removeEventListener('abort', abort);
+      source.onended = null;
       const index = voices.indexOf(voice);
       if (index >= 0) voices.splice(index, 1);
       source.disconnect();
       gain.disconnect();
       if (tail !== gain) tail.disconnect();
     };
+    const abort = () => {
+      try {
+        source.stop(ctx!.currentTime);
+      } catch {
+        /* already stopped */
+      }
+      cleanup();
+    };
+    const voice: Voice = { source, gain, cleanup };
+    voices.push(voice);
+    liveVoices.add(voice);
+    source.onended = cleanup;
+    signal?.addEventListener('abort', abort, { once: true });
     source.start(ctx!.currentTime);
+    return voice;
   }
 
   function fadeOutBed(current: Bed, seconds: number) {
@@ -316,11 +335,18 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
       });
     },
     async playClip(path, opts = {}) {
-      if (!ready() || muted || !/^\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+$/.test(path)) return 0;
+      if (
+        !ready() ||
+        muted ||
+        opts.signal?.aborted ||
+        !/^\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+$/.test(path)
+      )
+        return 0;
       const audio = await buffer(`clip:${path}`, (formats) => formats.map((f) => `${path}.${f}`));
-      if (!audio || !ready() || muted) return 0;
-      startCue(audio, opts);
-      return audio.duration / clamp(opts.rate ?? 1, 0.25, 4, 1);
+      if (!audio || opts.signal?.aborted) return 0;
+      return startCue(audio, opts, opts.signal)
+        ? audio.duration / clamp(opts.rate ?? 1, 0.25, 4, 1)
+        : 0;
     },
     playMusic(theme) {
       pendingTheme = theme;
@@ -356,12 +382,13 @@ export function createMixer(context?: AudioContext, options: MixerOptions = {}):
       unlocked = false;
       musicToken++;
       if (ctx) {
-        for (const voice of voices.splice(0)) {
+        for (const voice of liveVoices) {
           try {
             voice.source.stop(ctx.currentTime);
           } catch {
             /* already stopped */
           }
+          voice.cleanup();
         }
         if (bed) {
           try {

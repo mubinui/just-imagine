@@ -84,15 +84,19 @@ function StoryBook({
   }, [chapter.characterId]);
   useEffect(() => {
     if (!live || !root.current) return;
-    const audio = getVoice().audio,
+    const voice = getVoice(),
       node = root.current;
-    const mouth = (value: number) => node.style.setProperty('--mouth-open', String(value));
-    const unsubscribeMouth = audio.subscribeMouth(mouth);
+    const mouth = (value: number) =>
+      node.style.setProperty(
+        '--mouth-open',
+        String(voice.speakerId === chapter.characterId ? value : 0),
+      );
+    const unsubscribeMouth = voice.audio.subscribeMouth(mouth);
     return () => {
       unsubscribeMouth();
       node.style.setProperty('--mouth-open', '0');
     };
-  }, [live]);
+  }, [live, chapter.characterId]);
   const currentPhase: StoryPhase =
     phase === 'ending' ? 'complete' : phase === 'opening' ? 'begin' : 'progress';
   const allDone = story.chapters.every((c) => book.done.includes(c.id));

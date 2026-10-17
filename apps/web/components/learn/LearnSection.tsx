@@ -30,10 +30,6 @@ import type { PublicPack } from './types';
 import { useFamilyCatalog } from '../../lib/catalog';
 import { CatalogAdventure, packPortrait } from './CatalogAdventure';
 
-function remainingClipMs(until: number) {
-  return Math.max(0, until - Date.now());
-}
-const RING_MS = 1700;
 const TOAST_MS = 2600;
 
 type Quiz = { challengeId: string; question: string; options?: string[] };
@@ -57,15 +53,14 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
   const [packId, setPackId] = useState(packs[0]!.id);
   const pack = packs.find((p) => p.id === packId) ?? packs[0]!;
   const [close, setClose] = useState<{ characterId: string; from?: DOMRect; hold: number }>();
-  const [call, setCall] = useState<'idle' | 'ringing' | 'connected'>('idle');
+  const [phoneCall, setPhoneCall] = useState(false);
   const [quiz, setQuiz] = useState<Quiz>();
   const [toast, setToast] = useState<{ delta: number; key: number }>();
   const [found, setFound] = useState<string[]>([]);
   const [shelf, setShelf] = useState(false);
-  const soundUntil = useRef(0);
   const pinnedStory = useRef<string | undefined>(undefined);
-  const callTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const ringTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const introSound = useRef<AbortController | undefined>(undefined);
+  const ringSound = useRef<AbortController | undefined>(undefined);
 
   const persist = useCallback(
     (update: (s: LearnState) => LearnState) =>
@@ -106,7 +101,8 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
       setClose((c) =>
         c?.characterId === persona.characterId ? c : { characterId: persona.characterId, hold: 0 },
       );
-    setCall((c) => (c === 'ringing' ? 'connected' : c));
+    introSound.current?.abort();
+    ringSound.current?.abort();
   }, [persona, packs]);
 
   useEffect(() => {
@@ -123,16 +119,11 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
     return () => window.removeEventListener('pointerdown', unlock);
   }, []);
 
-  // Leaving the section hands the call back to the friend.
-  const hangUpRef = useRef(voice.hangUp);
-  useEffect(() => {
-    hangUpRef.current = voice.hangUp;
-  });
+  // The voice hook ends its owned call; section sounds must stop on navigation too.
   useEffect(
     () => () => {
-      clearTimeout(ringTimer.current);
-      clearTimeout(callTimer.current);
-      hangUpRef.current();
+      introSound.current?.abort();
+      ringSound.current?.abort();
     },
     [],
   );
@@ -140,57 +131,69 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
   const character = close ? pack.characters.find((c) => c.id === close.characterId) : undefined;
   const closeName = character ? (language === 'bn' ? character.nameBn : character.name) : '';
   const onCallWith = persona && character && persona.characterId === character.id;
+  const call =
+    !phoneCall || (!voice.calling && !persona)
+      ? 'idle'
+      : onCallWith && voice.status === 'connected'
+        ? 'connected'
+        : 'ringing';
+
+  function stopSounds() {
+    introSound.current?.abort();
+    ringSound.current?.abort();
+  }
 
   function comeCloser(characterId: string, from?: DOMRect) {
     pinnedStory.current = undefined;
     if (close?.characterId === characterId) return;
-    if (persona && persona.characterId !== characterId) voice.hangUp();
-    clearTimeout(ringTimer.current);
-    clearTimeout(callTimer.current);
-    setCall('idle');
+    if (persona || voice.calling) voice.hangUp();
+    stopSounds();
+    setPhoneCall(false);
     setQuiz(undefined);
     const entity = pack.hotspots.find((h) => h.characterId === characterId)?.entityId;
     const clip = pack.sounds.find((s) => s.entityId === entity)?.clip;
     const mixer = getMixer();
     void mixer.unlock();
     setClose({ characterId, from, hold: clip ? 4000 : 0 });
-    if (clip)
-      void mixer.playClip(clip).then((duration) => {
-        soundUntil.current = Date.now() + duration * 1000;
+    if (clip) {
+      const request = new AbortController();
+      introSound.current = request;
+      void mixer.playClip(clip, { signal: request.signal }).then((duration) => {
+        if (request.signal.aborted) return;
         setClose((c) => (c?.characterId === characterId ? { ...c, hold: duration * 1000 } : c));
       });
-    else mixer.playCue('swoosh_up', { gain: 0.7 });
+    } else mixer.playCue('swoosh_up', { gain: 0.7 });
   }
   function closeUp() {
-    clearTimeout(ringTimer.current);
-    clearTimeout(callTimer.current);
+    stopSounds();
+    if (persona || voice.calling) voice.hangUp();
+    setPhoneCall(false);
     setQuiz(undefined);
     setClose(undefined);
   }
   function ask() {
     if (!character) return;
-    clearTimeout(callTimer.current);
-    const id = character.id;
-    callTimer.current = setTimeout(
-      () => voice.summon(pack.id, id),
-      remainingClipMs(soundUntil.current),
-    );
+    stopSounds();
+    setPhoneCall(false);
+    voice.summon(pack.id, character.id);
   }
   function phone() {
     if (!character || call !== 'idle') return;
     const mixer = getMixer();
-    void mixer.unlock().then(() => mixer.playClip('/learn/sounds/phone_ring'));
-    setCall('ringing');
-    const id = character.id;
-    ringTimer.current = setTimeout(
-      () => voice.summon(pack.id, id),
-      Math.max(RING_MS, remainingClipMs(soundUntil.current)),
-    );
+    stopSounds();
+    const request = new AbortController();
+    ringSound.current = request;
+    void mixer
+      .unlock()
+      .then(() => mixer.playClip('/learn/sounds/phone_ring', { signal: request.signal }));
+    setPhoneCall(true);
+    // Unlock microphone/playback in the tap, without an artificial ringtone delay.
+    voice.summon(pack.id, character.id);
   }
   function hangUp() {
-    clearTimeout(ringTimer.current);
+    stopSounds();
     voice.hangUp();
-    setCall('idle');
+    setPhoneCall(false);
     setQuiz(undefined);
     getMixer().playCue('close', { gain: 0.7 });
   }
@@ -215,8 +218,15 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
     >
       <StageHeader title={title} status={voice.status} />
       <div className="stage-scene learn-scene">
-        <div className="world-frame learning-game-frame">
-          <div className="stage-world learn-world">
+        <div
+          className="world-frame learning-game-frame"
+          style={{ backgroundImage: `url(${pack.scene.theme.backdrop?.url})` }}
+        >
+          <div
+            className="stage-world learn-world"
+            inert={Boolean(close)}
+            aria-hidden={Boolean(close)}
+          >
             {child &&
               (pack.id.startsWith('catalog_') ? (
                 <CatalogAdventure pack={pack} onMeet={(id) => comeCloser(id)} />
@@ -233,7 +243,9 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
                     voice.observe(pack.id, persona?.characterId ?? pack.characters[0]!.id, event)
                   }
                   onChapter={(id) => {
-                    if (persona && persona.characterId !== id) voice.hangUp();
+                    if ((persona && persona.characterId !== id) || (voice.calling && !persona))
+                      voice.hangUp();
+                    stopSounds();
                     pinnedStory.current = id;
                   }}
                   onStory={(chapter, phase) =>
@@ -371,7 +383,7 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
           />
         </div>
         <div className="dock-talk">
-          {persona ? (
+          {persona || voice.calling ? (
             <button type="button" className="talk is-live" onClick={hangUp}>
               <span className="talk-pulse" aria-hidden="true" />
               <LearnIcon name="hangUp" filled />
@@ -381,11 +393,12 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
             <button
               type="button"
               className="talk"
+              aria-label={t('learnWorlds.ask', { name: closeName })}
               onClick={ask}
               disabled={call === 'ringing' || (live && voice.status !== 'connected')}
             >
               <LearnIcon name="mic" />
-              <span>{t('learnWorlds.ask', { name: closeName })}</span>
+              <span>{t('learnWorlds.talkShort')}</span>
             </button>
           ) : null}
         </div>
@@ -395,17 +408,23 @@ export function LearnSection({ packs: authored }: { packs: PublicPack[] }) {
             <button
               type="button"
               className="dock-tile is-sunny"
+              aria-label={t('learnWorlds.call', { name: closeName })}
               onClick={phone}
               disabled={call === 'ringing'}
             >
               <LearnIcon name="phone" filled />
-              <span>{t('learnWorlds.call', { name: closeName })}</span>
+              <span>{t('learnWorlds.callShort')}</span>
             </button>
           )}
           {character ? (
-            <button type="button" className="dock-tile" onClick={closeUp}>
+            <button
+              type="button"
+              className="dock-tile"
+              aria-label={t('learnWorlds.back')}
+              onClick={closeUp}
+            >
               <LearnIcon name="back" />
-              <span>{t('learnWorlds.back')}</span>
+              <span>{t('back')}</span>
             </button>
           ) : (
             packs.length > 1 &&

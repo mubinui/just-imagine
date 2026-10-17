@@ -278,6 +278,8 @@ export const bn: StringTable = {
     tapHint: 'এই দুনিয়ার কোনো বন্ধুকে ট্যাপ করো',
     tapHintBusy: 'প্রশ্ন করো, ফোন করো, বা আরেক বন্ধুকে ট্যাপ করো',
     ask: '{name}-কে জিজ্ঞেস করো',
+    talkShort: 'কথা বলো',
+    callShort: 'ফোন করো',
     call: '{name}-কে ফোন করো',
     hangUp: 'ফোন রাখো',
     back: 'দুনিয়ায় ফিরে যাও',

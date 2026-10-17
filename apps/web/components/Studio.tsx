@@ -28,7 +28,13 @@ import {
   type PreviewKey as FixtureWorldKey,
 } from '../lib/preview-worlds';
 import type { Engine, EngineEvent } from '@just-imagine/engine';
-import { getVoice, releaseVoice, ensureChildVoice, stopChildVoice } from '../lib/voice';
+import {
+  getVoice,
+  releaseVoice,
+  ensureChildVoice,
+  stopChildVoice,
+  unlockChildVoice,
+} from '../lib/voice';
 import { getMixer, soundForEngineEvents } from '../lib/sound';
 import { musicThemeFor } from '../lib/sound/theme';
 import { gameTextEdition } from '../lib/content-voice-copy';
@@ -174,7 +180,8 @@ export function Studio() {
     if (!message) return;
     setError('');
     try {
-      await getVoice().unlockAudio();
+      setStatus('connecting');
+      if (!(await unlockChildVoice())) return;
       const selected = ChildResponseSchema.parse(
         JSON.parse(localStorage.getItem('ji-child') || 'null'),
       );

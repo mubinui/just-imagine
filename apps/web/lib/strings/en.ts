@@ -268,6 +268,8 @@ export const english = {
     tapHint: 'Tap a friend in this world',
     tapHintBusy: 'Ask, call, or tap another friend',
     ask: 'Ask {name}',
+    talkShort: 'Talk',
+    callShort: 'Call',
     call: 'Call {name}',
     hangUp: 'Hang up',
     back: 'Back to the world',

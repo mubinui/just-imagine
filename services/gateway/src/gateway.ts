@@ -1298,6 +1298,7 @@ export function startGateway(options: {
       controls = controls.then(async () => {
         try {
           if (await options.store.killSwitch()) throw new Error('KILL_SWITCH');
+          if (socket.readyState !== WebSocket.OPEN) return;
           const identity = await options.store.authorize(message.idToken, message.childId);
           if (socket.readyState !== 1) return;
           if (identity.remaining <= 0) throw new Error('QUOTA_EXHAUSTED');
@@ -1356,14 +1357,31 @@ export function startGateway(options: {
             };
             if (options.store.learningPacks) {
               const packs = await options.store.learningPacks(identity);
+              if (socket.readyState !== WebSocket.OPEN) return;
               if (packs.length)
                 record.catalogPacks = Object.fromEntries(packs.map((pack) => [pack.id, pack]));
             }
             if (record.worldId) {
               const world = await options.store.world(record, record.worldId);
+              if (socket.readyState !== WebSocket.OPEN) return;
               record.learningMode = world.doc.learning.mode ?? 'guided';
             }
             await options.store.claim(record);
+            if (socket.readyState !== WebSocket.OPEN) {
+              // Startup was cancelled while the lease was being claimed. No Live model or
+              // metering started; finish the claimed record directly, without a recap call.
+              try {
+                await options.store.release?.(record);
+              } catch {
+                logEvent('session_release_failed', { sessionId: record.id }, 'WARNING');
+              }
+              try {
+                await options.store.finish(record, '', 'ended');
+              } catch {
+                logEvent('session_finish_failed', { sessionId: record.id }, 'WARNING');
+              }
+              return;
+            }
             active = {
               record,
               socket,

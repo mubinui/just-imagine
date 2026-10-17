@@ -68,7 +68,18 @@ export function ComesCloser({
   // FLIP: measure the portrait's resting slot, start it on the hotspot, release it to the slot.
   useLayoutEffect(() => {
     const el = portrait.current;
-    if (!el || !from || typeof el.animate !== 'function') return;
+    if (!el || typeof el.animate !== 'function') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!from) {
+      const entrance = el.animate(
+        [
+          { transform: 'translateY(12px)', opacity: 0.85 },
+          { transform: 'none', opacity: 1 },
+        ],
+        { duration: 240, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+      );
+      return () => entrance.cancel();
+    }
     const to = el.getBoundingClientRect();
     const box = (r: DOMRect): Box => ({
       left: r.left,
@@ -77,15 +88,14 @@ export function ComesCloser({
       height: r.height,
     });
     const { x, y, scale } = flipFrom(box(from), box(to));
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    el.animate(
+    const entrance = el.animate(
       [
         { transform: `translate(${x}px, ${y}px) scale(${scale})`, opacity: 0.9 },
-        { transform: 'translate(0, -12px) scale(1.06)', opacity: 1, offset: 0.72 },
         { transform: 'none', opacity: 1 },
       ],
       { duration: ENTER_MS, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' },
     );
+    return () => entrance.cancel();
   }, [from, character.id]);
 
   // Facts arrive one at a time after the entrance (and after an animal's own call).
@@ -98,14 +108,15 @@ export function ComesCloser({
   useEffect(() => {
     const el = portrait.current;
     if (!live || !el) return;
-    const audio = getVoice().audio;
-    const mouth = (value: number) => el.style.setProperty('--mouth-open', String(value));
-    const unsubscribeMouth = audio.subscribeMouth(mouth);
+    const voice = getVoice();
+    const mouth = (value: number) =>
+      el.style.setProperty('--mouth-open', String(voice.speakerId === character.id ? value : 0));
+    const unsubscribeMouth = voice.audio.subscribeMouth(mouth);
     return () => {
       unsubscribeMouth();
       el.style.setProperty('--mouth-open', '0');
     };
-  }, [live]);
+  }, [live, character.id]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   connect: vi.fn(),
   send: vi.fn(),
   end: vi.fn(),
+  unlock: vi.fn(),
   session: undefined as { childId: string } | undefined,
 }));
 vi.mock('../lib/env', () => ({ env: { fake: false, gatewayUrl: 'ws://synthetic' } }));
@@ -21,10 +22,11 @@ vi.mock('@just-imagine/characters', () => ({
       mocks.end();
       mocks.session = undefined;
     };
+    unlockAudio = mocks.unlock;
     dispose = () => {};
   },
 }));
-import { ensureChildVoice, releaseVoice, stopChildVoice } from '../lib/voice';
+import { ensureChildVoice, releaseVoice, stopChildVoice, unlockChildVoice } from '../lib/voice';
 const child = {
   id: 'c_one',
   ageBand: '8-10',
@@ -35,6 +37,7 @@ beforeEach(() => {
   mocks.session = undefined;
   vi.clearAllMocks();
   mocks.token.mockResolvedValue('synthetic');
+  mocks.unlock.mockResolvedValue(undefined);
   mocks.connect.mockImplementation(async (hello) => {
     mocks.session = { childId: hello.childId };
   });
@@ -98,4 +101,38 @@ it('does not connect after a stop while token acquisition is still pending', asy
   resolve('synthetic');
   await pending;
   expect(mocks.connect).not.toHaveBeenCalled();
+});
+
+it('cancels a start awaiting audio unlock, while allowing an explicit later call', async () => {
+  let resolve!: () => void;
+  mocks.unlock.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)));
+  const start = async () => {
+    if (await unlockChildVoice()) await ensureChildVoice(child);
+  };
+  const pending = start();
+  stopChildVoice();
+  resolve();
+  await pending;
+  expect(mocks.connect).not.toHaveBeenCalled();
+  await start();
+  expect(mocks.connect).toHaveBeenCalledOnce();
+});
+
+it('discards a cancelled unlock rejection without reporting an error in a newer call', async () => {
+  let reject!: (error: Error) => void;
+  mocks.unlock.mockReturnValueOnce(new Promise<void>((_, r) => (reject = r)));
+  const pending = unlockChildVoice();
+  stopChildVoice();
+  expect(await unlockChildVoice()).toBe(true);
+  reject(new Error('Old audio context request failed'));
+  await expect(pending).resolves.toBe(false);
+});
+
+it('cancels audio unlock when the child layout disposes the voice client', async () => {
+  let resolve!: () => void;
+  mocks.unlock.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)));
+  const pending = unlockChildVoice();
+  releaseVoice();
+  resolve();
+  await expect(pending).resolves.toBe(false);
 });
