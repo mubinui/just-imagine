@@ -11,7 +11,8 @@ import { UiIcon } from '../UiIcon';
 
 const load = () => adminApi<Appearance>('appearance');
 export function AppearancePanel() {
-  useLanguage();
+  const { language } = useLanguage();
+  const bn = language === 'bn';
   const { data, error, loading, reload } = useAdminResource(load);
   const [draft, setDraft] = useState<ThemeId>(),
     [busy, setBusy] = useState(false),
@@ -34,9 +35,9 @@ export function AppearancePanel() {
       });
       publishAppearance({ theme: selected, revision: data.revision + 1 });
       setNotice(
-        uiText('{v0} is live. Open pages update within 30 seconds or when they regain focus.', {
-          v0: String(palette.name),
-        }),
+        bn
+          ? `${uiText(palette.name)} এখন অ্যাপের নির্ধারিত রং। এটি অনুসরণ করা পাতা ৩০ সেকেন্ডের মধ্যে বা ফিরে এলে বদলাবে। ডিভাইসের নিজস্ব পছন্দ রাখা থাকবে।`
+          : `${palette.name} is now the app default. Pages following it update within 30 seconds or on return. Personal choices stay selected.`,
       );
       await reload();
     } catch (e) {
@@ -51,7 +52,11 @@ export function AppearancePanel() {
     <>
       <PageHeading
         title={uiText('Appearance')}
-        detail={uiText('Choose the colours families see throughout Just Imagine.')}
+        detail={
+          bn
+            ? 'ডিভাইসের রং বেছে নেওয়া না থাকলে যে রং ব্যবহার হবে, তা নির্ধারণ করুন।'
+            : 'Choose the colors used by devices that follow the app default.'
+        }
         onRefresh={() => void reload()}
         busy={loading || busy}
       />
@@ -92,7 +97,7 @@ export function AppearancePanel() {
                     <span>
                       <strong>
                         {uiText(p.name)}
-                        {data.theme === id ? ` · ${uiText('Live')}` : ''}
+                        {data.theme === id ? ` · ${bn ? 'অ্যাপের নির্ধারিত' : 'App default'}` : ''}
                       </strong>
                       <small>{uiText(p.description)}</small>
                     </span>
@@ -107,7 +112,11 @@ export function AppearancePanel() {
                 disabled={busy || loading || !!error || selected === data.theme}
                 onClick={() => void save()}
               >
-                {busy ? uiText('Applying…') : uiText('Apply {v0}', { v0: String(palette.name) })}
+                {busy
+                  ? uiText('Applying…')
+                  : bn
+                    ? `${uiText(palette.name)} অ্যাপের নির্ধারিত রং করুন`
+                    : `Use ${palette.name} as app default`}
               </button>
               {selected !== data.theme && (
                 <button
@@ -124,12 +133,14 @@ export function AppearancePanel() {
               )}
             </div>
             <p className="adm-live" role="status">
-              {uiText(
-                notice ||
-                  (selected === data.theme
-                    ? uiText('{v0} is the published theme.', { v0: String(palette.name) })
-                    : uiText('Preview only. Apply when you are ready.')),
-              )}
+              {notice ||
+                (selected === data.theme
+                  ? bn
+                    ? `${uiText(palette.name)} অ্যাপের নির্ধারিত রং। নিজের ডিভাইসের পছন্দ আলাদা হতে পারে।`
+                    : `${palette.name} is the app default. Your device's choice can differ.`
+                  : bn
+                    ? 'এটি শুধু নমুনা। প্রস্তুত হলে অ্যাপের নির্ধারিত রং করুন।'
+                    : 'Preview only. Set as app default when ready.')}
             </p>
             {failure && (
               <p className="adm-alert" role="alert">

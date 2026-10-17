@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { signOut } from 'firebase/auth';
 import { Brand } from '../Shell';
 import { firebase } from '../../lib/firebase';
+import { ThemePicker } from '../ThemePicker';
 
 const PAGES = [
   ['/admin', 'Overview'],
@@ -34,6 +35,7 @@ export function AdminShell({ email, children }: { email: string; children: React
           {uiText('Operator console')}
           <span>{uiText(email)}</span>
         </p>
+        <ThemePicker compact />
       </header>
       <div className="parent-shell">
         <aside className="parent-nav">

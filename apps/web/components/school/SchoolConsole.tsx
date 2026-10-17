@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { previewRosterCsv } from '../../lib/school/csv';
 import { firstTryResult, quizCompletion, resultLessonChoices } from '../../lib/school/results';
-import type { AttemptDoc } from '@just-imagine/protocol';
+import type { AttemptDoc, QuizItem } from '@just-imagine/protocol';
 import { toDataURL } from 'qrcode';
 import Image from 'next/image';
 import { schoolRequest, useSchoolResource } from '../../lib/school/api';
@@ -12,6 +12,125 @@ import { useSchoolLanguage } from '../../lib/i18n/study';
 import { useSchoolSession } from './SchoolShell';
 import { Field, ErrorNotice, Loading, ActionNotice, useSchoolAction } from './shared';
 import { Leaderboard } from '../study/Leaderboard';
+
+export function ClassResults({
+  classId,
+  lessonId,
+  lesson,
+}: {
+  classId: string;
+  lessonId: string;
+  lesson?: Pick<Lesson, 'id' | 'revision' | 'steps'>;
+}) {
+  const { s, text, language } = useSchoolLanguage();
+  const results = useSchoolResource<{
+    lesson: Pick<Lesson, 'id' | 'title' | 'revision'> & { quizItemIds: string[] };
+    students: { student: Student; attempt: AttemptDoc | null }[];
+  }>(
+    `school/results?classId=${encodeURIComponent(classId)}&lessonId=${encodeURIComponent(lessonId)}`,
+  );
+  if (results.error) return <ErrorNotice error={results.error} retry={results.reload} />;
+  if (results.loading) return <Loading />;
+  if (!results.data) return null;
+  if (!results.data.students.length) return <p className="sch-empty">{s('noResults')}</p>;
+  const questions = new Map<
+    string,
+    { label: 'quizQuestion' | 'practiceQuestion'; number: number; prompt: QuizItem['prompt'] }
+  >();
+  if (lesson?.id === results.data.lesson.id && lesson.revision === results.data.lesson.revision) {
+    let quizNumber = 0;
+    let practiceNumber = 0;
+    for (const step of lesson.steps) {
+      if (step.kind === 'check')
+        questions.set(step.item.id, {
+          label: 'practiceQuestion',
+          number: ++practiceNumber,
+          prompt: step.item.prompt,
+        });
+      if (step.kind === 'quiz')
+        for (const item of step.items)
+          questions.set(item.id, {
+            label: 'quizQuestion',
+            number: ++quizNumber,
+            prompt: item.prompt,
+          });
+    }
+  }
+  const number = new Intl.NumberFormat(language === 'bn' ? 'bn-BD' : 'en');
+  return (
+    <div className="sch-table-wrap">
+      <table className="sch-results-table">
+        <caption>{text(results.data.lesson.title)}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{s('students')}</th>
+            <th scope="col">{s('completion')}</th>
+            <th scope="col" className="sch-number">
+              {s('points')}
+            </th>
+            <th scope="col" className="sch-number">
+              {s('firstTry')}
+            </th>
+            <th scope="col">{s('results')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {results.data.students.map(({ student, attempt }) => {
+            const firstTry = firstTryResult(results.data!.lesson.quizItemIds, attempt);
+            const completion = quizCompletion(results.data!.lesson.quizItemIds, attempt);
+            return (
+              <tr key={student.id}>
+                <th scope="row">{student.firstName}</th>
+                <td>
+                  {attempt?.completedAt
+                    ? s('completed')
+                    : completion
+                      ? `${completion.correct}/${completion.total}`
+                      : s('notStarted')}
+                </td>
+                <td className="sch-number">{attempt?.pointsAwarded ?? 0}</td>
+                <td
+                  className="sch-number"
+                  title={attempt && !firstTry ? s('firstTryUnavailable') : undefined}
+                >
+                  {firstTry
+                    ? `${firstTry.correct}/${firstTry.total}`
+                    : attempt
+                      ? s('historyUnavailable')
+                      : '—'}
+                </td>
+                <td className="sch-result-items">
+                  {attempt &&
+                    Object.entries(attempt.items).map(([id, r], index) => {
+                      const question = questions.get(id);
+                      const quizIndex = results.data!.lesson.quizItemIds.indexOf(id);
+                      const label =
+                        question?.label ?? (quizIndex >= 0 ? 'quizQuestion' : 'question');
+                      const ordinal =
+                        question?.number ?? (quizIndex >= 0 ? quizIndex + 1 : index + 1);
+                      return (
+                        <span key={id}>
+                          <strong>
+                            {s(label)} {number.format(ordinal)}
+                          </strong>
+                          {question && <> · {text(question.prompt)}</>}
+                          <br />
+                          {r.correct ? s('correct') : s('tryAgain')} · {s('attempts')}:{' '}
+                          {number.format(r.tries)}
+                          <br />
+                        </span>
+                      );
+                    })}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function PinSheet({
   cards,
   code,
@@ -84,17 +203,6 @@ export function SchoolConsole({
     [preview, setPreview] = useState(false),
     [classId, setClassId] = useState(''),
     [lessonId, setLessonId] = useState('');
-  const results = useSchoolResource<{
-    lesson: Pick<Lesson, 'id' | 'title' | 'revision'> & { quizItemIds: string[] };
-    students: {
-      student: Student;
-      attempt: AttemptDoc | null;
-    }[];
-  }>(
-    view === 'results' && classId && lessonId
-      ? `school/results?classId=${encodeURIComponent(classId)}&lessonId=${encodeURIComponent(lessonId)}`
-      : null,
-  );
   async function mutate(path: string, body?: unknown, method?: string) {
     await schoolRequest(path, body, method);
     classes.reload();
@@ -110,26 +218,43 @@ export function SchoolConsole({
     return (
       <>
         <h1>{s('leaderboard')}</h1>
-        <Field label={s('selectClass')}>
-          <select value={classId} onChange={(e) => setClassId(e.target.value)}>
-            <option value="">{s('schoolBoard')}</option>
-            {classes.data?.classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Leaderboard teacher classId={classId} />
+        <ErrorNotice error={classes.error} retry={classes.reload} />
+        <Leaderboard
+          teacher
+          classId={classId}
+          scopeLabel={classes.data?.classes.find((c) => c.id === classId)?.name ?? s('wholeSchool')}
+          scopeControl={
+            <Field label={s('leaderboardScope')}>
+              <select
+                value={classId}
+                disabled={classes.loading || Boolean(classes.error)}
+                onChange={(e) => setClassId(e.target.value)}
+              >
+                <option value="">{s('wholeSchool')}</option>
+                <optgroup label={s('classes')}>
+                  {classes.data?.classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </Field>
+          }
+        />
       </>
     );
   if (view === 'results')
     return (
       <>
         <h1>{s('results')}</h1>
-        <div className="sch-grid">
+        <div className="sch-filter-bar sch-results-filters">
           <Field label={s('classes')}>
-            <select value={classId} onChange={(e) => setClassId(e.target.value)}>
+            <select
+              value={classId}
+              disabled={classes.loading || Boolean(classes.error)}
+              onChange={(e) => setClassId(e.target.value)}
+            >
               <option value="">{s('selectClass')}</option>
               {classes.data?.classes.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -139,8 +264,16 @@ export function SchoolConsole({
             </select>
           </Field>
           <Field label={s('lessons')}>
-            <select value={lessonId} onChange={(e) => setLessonId(e.target.value)}>
-              <option value="">{s('lessons')}</option>
+            <select
+              value={lessonId}
+              disabled={
+                lessons.loading ||
+                globalLessons.loading ||
+                Boolean(lessons.error || globalLessons.error)
+              }
+              onChange={(e) => setLessonId(e.target.value)}
+            >
+              <option value="">{s('selectLesson')}</option>
               {resultsLessons.map((l) => (
                 <option key={l.id} value={l.id}>
                   {text(l.title)}
@@ -149,6 +282,7 @@ export function SchoolConsole({
             </select>
           </Field>
         </div>
+        <ErrorNotice error={classes.error} retry={classes.reload} />
         <ErrorNotice
           error={lessons.error || globalLessons.error}
           retry={() => {
@@ -156,55 +290,17 @@ export function SchoolConsole({
             globalLessons.reload();
           }}
         />
-        <ErrorNotice error={results.error} retry={results.reload} />
-        {results.data && (
-          <div className="sch-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{s('students')}</th>
-                  <th>{s('completion')}</th>
-                  <th>{s('points')}</th>
-                  <th>{s('firstTry')}</th>
-                  <th>{s('results')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.data.students.map(({ student, attempt }) => {
-                  const firstTry = firstTryResult(results.data!.lesson.quizItemIds, attempt);
-                  const completion = quizCompletion(results.data!.lesson.quizItemIds, attempt);
-                  return (
-                    <tr key={student.id}>
-                      <td>{student.firstName}</td>
-                      <td>
-                        {attempt?.completedAt
-                          ? s('completed')
-                          : completion
-                            ? `${completion.correct}/${completion.total}`
-                            : s('notStarted')}
-                      </td>
-                      <td>{attempt?.pointsAwarded ?? 0}</td>
-                      <td title={attempt && !firstTry ? s('firstTryUnavailable') : undefined}>
-                        {firstTry
-                          ? `${firstTry.correct}/${firstTry.total}`
-                          : attempt
-                            ? s('historyUnavailable')
-                            : '—'}
-                      </td>
-                      <td>
-                        {attempt &&
-                          Object.entries(attempt.items).map(([id, r]) => (
-                            <span key={id}>
-                              {id}: {r.correct ? s('correct') : s('tryAgain')} ({r.tries})<br />
-                            </span>
-                          ))}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        {classId && lessonId ? (
+          <ClassResults
+            key={`${classId}:${lessonId}`}
+            classId={classId}
+            lessonId={lessonId}
+            lesson={resultsLessons.find((candidate) => candidate.id === lessonId)}
+          />
+        ) : (
+          <p className="sch-empty" role="status">
+            {s('chooseResultsFilters')}
+          </p>
         )}
       </>
     );

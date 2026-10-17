@@ -4,6 +4,7 @@ import { uiNumber } from '../lib/i18n/ui';
 import { copy as uiText, uiError } from '../lib/i18n/ui';
 import { LanguagePreferencesForm } from './LanguagePreferencesForm';
 import { StoryPreferencesForm } from './StoryPreferencesForm';
+import { ThemePicker } from './ThemePicker';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -352,6 +353,7 @@ export function ParentPanel({
           )}
           {panel === 'settings' && (
             <>
+              <ThemePicker language={interfaceLanguage} />
               <LanguagePreferencesForm
                 key={
                   data.children.find((c) => c.id === readActiveChildId())?.id ??

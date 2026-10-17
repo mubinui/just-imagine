@@ -13,6 +13,7 @@ import { useChild } from '../learn/LearnMap';
 import { Actor } from '../acting/Actor';
 import { CompanionMenu } from '../companion/Companion';
 import { useStoryNarration } from './useStoryNarration';
+import { ThemePicker } from '../ThemePicker';
 import '../../app/studio.css';
 import '../../app/stories.css';
 
@@ -272,6 +273,7 @@ export function StoryRoom() {
         >
           {bn ? 'নতুন গল্প' : uiText('New story')}
         </button>
+        <ThemePicker compact language={language} />
       </header>
       {error && (
         <p className="story-room-error" role="alert">

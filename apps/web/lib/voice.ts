@@ -12,35 +12,68 @@ export function getVoice() {
   }));
 }
 export function releaseVoice() {
+  opening = undefined;
   voice?.dispose();
   voice = undefined;
 }
+export function stopChildVoice() {
+  opening = undefined;
+  voice?.end();
+}
 
-let opening: { client: VoiceClient; childId: string; promise: Promise<void> } | undefined;
+let opening:
+  | {
+      client: VoiceClient;
+      childId: string;
+      characterId?: CharacterId;
+      worldId?: string;
+      promise: Promise<void>;
+    }
+  | undefined;
 export async function ensureChildVoice(
   child: ChildResponse,
   worldId?: string,
   characterId?: CharacterId,
 ) {
   const client = getVoice();
-  if (opening?.client === client && opening.childId === child.id) return opening.promise;
-  if (client.session?.childId === child.id) return;
-  if (client.session) client.end();
+  const select = () => {
+    if (worldId) client.send({ type: 'openWorld', worldId });
+    if (characterId) client.send({ type: 'switchCharacter', characterId });
+  };
+  if (opening?.client === client && opening.childId === child.id) {
+    if (characterId) opening.characterId = characterId;
+    if (worldId) opening.worldId = worldId;
+    if (client.session?.childId === child.id) select();
+    return opening.promise;
+  }
+  if (client.session?.childId === child.id) {
+    select();
+    return;
+  }
+  if (client.session || opening?.client === client) client.end();
+  const request = {
+    client,
+    childId: child.id,
+    characterId,
+    worldId,
+    promise: Promise.resolve(),
+  };
+  opening = request;
   const promise = (async () => {
     const idToken = env.fake ? 'fixture-token' : await currentIdToken();
-    if (voice !== client) return;
+    if (voice !== client || opening !== request) return;
     await client.connect({
       type: 'hello',
       idToken,
       childId: child.id,
       characterId:
-        characterId ??
+        request.characterId ??
         child.companion?.characterId ??
         (child.ageBand === '11-13' ? 'pori' : 'bhombol'),
-      ...(worldId ? { worldId } : {}),
+      ...(request.worldId ? { worldId: request.worldId } : {}),
     });
   })();
-  opening = { client, childId: child.id, promise };
+  request.promise = promise;
   try {
     await promise;
   } finally {

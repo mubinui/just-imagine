@@ -9,6 +9,7 @@ import type { SchoolMe, StudyMe } from '../../lib/school/types';
 import { useSchoolLanguage, setSchoolLanguage } from '../../lib/i18n/study';
 import { Brand } from '../Shell';
 import { LanguageSwitch, ErrorNotice, Loading } from './shared';
+import { ThemePicker } from '../ThemePicker';
 import '../../app/school.css';
 const Session = createContext<SchoolMe | StudyMe | null>(null);
 export function useSchoolSession() {
@@ -95,6 +96,7 @@ export function SchoolShell({
         <div className="sch-header-end">
           <span>{language === 'bn' ? me?.school?.nameBn : me?.school?.name}</span>
           <LanguageSwitch student={student} />
+          <ThemePicker compact language={language} />
         </div>
       </header>
       <div className="sch-shell">

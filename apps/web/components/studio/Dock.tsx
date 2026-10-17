@@ -8,6 +8,7 @@ import { SPECIALISTS, CHARACTERS, type CharacterId, type Companion } from '@just
 import { s } from '../../lib/strings/en';
 import { CharacterArt } from './CharacterArt';
 import { CompanionArt } from '../companion/Companion';
+import { ThemePicker } from '../ThemePicker';
 import type { JobStatus, VoiceStatus } from './parts';
 
 /** Header: world title on the left, a single status indicator on the right. */
@@ -34,6 +35,7 @@ export function StageHeader({
     <header className="stage-header">
       <h1 className="stage-title">{uiText(title)}</h1>
       {center}
+      <ThemePicker compact />
       <p className="stage-status" data-state={state} role="status">
         <span className="dot" aria-hidden="true" />
         <span>{uiText(label)}</span>

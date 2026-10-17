@@ -106,7 +106,17 @@
 }
 .sch button,
 .sch select {
-  min-height: 44px;
+  min-height: 48px;
+}
+.sch input:not([type='checkbox']):not([type='radio']):not([type='range']),
+.sch select {
+  padding-block: 10px;
+  min-height: 48px;
+}
+.sch .sch-field {
+  text-align: start;
+  font-size: 16px;
+  line-height: 1.45;
 }
 .sch-primary {
   background: var(--accent);
@@ -161,6 +171,31 @@
   color: var(--soft);
   font-size: 14px;
 }
+.sch tbody th {
+  font-size: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.sch caption {
+  padding: 0 0 16px;
+  text-align: start;
+  font-weight: 800;
+}
+.sch .sch-number {
+  text-align: end;
+}
+.sch .sch-rank {
+  width: 72px;
+  text-align: start;
+}
+.sch-results-table {
+  min-width: 640px;
+}
+.sch-result-items {
+  max-width: 32ch;
+  overflow-wrap: anywhere;
+}
 .sch td > button {
   padding: 8px 12px;
 }
@@ -211,6 +246,53 @@
 .sch-tabs button[aria-pressed='true'] {
   background: var(--accent);
   color: var(--accent-ink);
+}
+.sch-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px 24px;
+  margin-bottom: 24px;
+}
+.sch-filter-bar > .sch-field {
+  flex: 1 1 240px;
+  max-width: 380px;
+}
+.sch-results-filters > .sch-field {
+  max-width: none;
+}
+.sch-filter-group {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.sch-filter-group legend {
+  padding: 0 0 8px;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.45;
+}
+.sch-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.sch-segments button {
+  min-height: 48px;
+  padding: 8px 16px;
+  border-radius: 10px;
+}
+.sch-segments button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.sch-board-table {
+  table-layout: fixed;
+}
+.sch-board-table .sch-number {
+  width: 100px;
 }
 .sch-panel {
   padding: 28px 0;
@@ -464,6 +546,26 @@ label.sch-option {
   }
   .sch-toolbar {
     align-items: stretch;
+  }
+  .sch-filter-bar {
+    gap: 16px;
+  }
+  .sch-filter-bar > .sch-field {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .sch-filter-group {
+    flex: 1 1 auto;
+  }
+  .sch-board-table .sch-rank {
+    width: 56px;
+  }
+  .sch-board-table .sch-number {
+    width: 80px;
+  }
+  .sch th,
+  .sch td {
+    padding: 12px 8px;
   }
   .sch-list-row {
     flex-wrap: wrap;

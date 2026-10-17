@@ -77,6 +77,7 @@ export class VertexLiveProvider implements LiveProvider {
         },
         callbacks: {
           onmessage: (message) => {
+            if (intentional) return;
             if (message.setupComplete) acceptSetup();
             const content = message.serverContent;
             if (content?.interrupted) {
@@ -142,10 +143,12 @@ export class VertexLiveProvider implements LiveProvider {
       }
       return {
         audio: (data: Uint8Array) =>
+          !intentional &&
           connected.sendRealtimeInput({
             audio: { data: Buffer.from(data).toString('base64'), mimeType: 'audio/pcm;rate=16000' },
           }),
         text: (text: string) =>
+          !intentional &&
           connected.sendClientContent({
             turns: [
               {
@@ -156,6 +159,7 @@ export class VertexLiveProvider implements LiveProvider {
             turnComplete: true,
           }),
         toolResult: (id: string, name: string, result: unknown) =>
+          !intentional &&
           connected.sendToolResponse({ functionResponses: [{ id, name, response: { result } }] }),
         close: () => {
           intentional = true;

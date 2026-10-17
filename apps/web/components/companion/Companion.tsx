@@ -13,7 +13,7 @@ import {
   type ChildResponse,
 } from '@just-imagine/protocol';
 import { CharacterArt } from '../studio/CharacterArt';
-import { getVoice, releaseVoice, ensureChildVoice } from '../../lib/voice';
+import { getVoice, releaseVoice, ensureChildVoice, stopChildVoice } from '../../lib/voice';
 import { env } from '../../lib/env';
 import { watchActor } from '../acting/clock';
 import { avatarPresence } from './presence';
@@ -92,7 +92,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
   const lastLanguage = useRef(language);
   useEffect(() => {
     if (lastLanguage.current !== language) {
-      getVoice().end();
+      stopChildVoice();
     }
     lastLanguage.current = language;
   }, [language]);
@@ -153,7 +153,12 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     setError('');
     try {
       await getVoice().unlockAudio();
-      await ensureChildVoice(child, sessionStorage.getItem('ji-world') ?? undefined);
+      await ensureChildVoice(
+        child,
+        getVoice().session?.childId === child.id
+          ? undefined
+          : (sessionStorage.getItem('ji-world') ?? undefined),
+      );
     } catch (e) {
       setError(
         e instanceof Error ? uiError(e) : uiText('Your friend could not connect. Try again.'),

@@ -20,7 +20,7 @@ function harness(capture = false) {
     flush: vi.fn(),
     play: vi.fn(),
     dispose: vi.fn(),
-    onFrame: () => {},
+    onFrame: (_frame: ArrayBuffer) => {},
     onPlaybackError: () => {},
   };
   const client = new VoiceClient({
@@ -200,4 +200,149 @@ it('keeps a guest as playback owner across ready messages and returns ownership 
   expect(client.speakerId).toBe('talking_fox');
   client.end();
   expect(client.speakerId).toBeUndefined();
+});
+
+it('keeps only the latest character selected while the first socket is connecting', async () => {
+  const { client, sockets } = harness();
+  await client.connect(hello);
+  const socket = sockets[0]!;
+  client.send({ type: 'switchCharacter', characterId: 'mishti' });
+  client.send({ type: 'switchCharacter', characterId: 'chandni' });
+  expect(socket.sent).toHaveLength(0);
+  socket.onmessage?.({
+    data: JSON.stringify({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' }),
+  });
+  expect(socket.sent.map((v) => JSON.parse(v))).toEqual([
+    { type: 'switchCharacter', characterId: 'chandni' },
+  ]);
+  expect(client.selectionPending).toBe(true);
+  socket.onmessage?.({
+    data: JSON.stringify({ type: 'ready', sessionId: 's_one', characterId: 'chandni' }),
+  });
+  expect(client.session?.characterId).toBe('chandni');
+  expect(client.selectionPending).toBe(false);
+  client.end();
+});
+
+it('orders latest gallery world, latest character and a queued wish after reconnect acknowledgments', async () => {
+  vi.useFakeTimers();
+  const { client, audio, sockets } = harness();
+  await client.connect({ ...hello, worldId: 'w_old' });
+  sockets[0]!.onmessage?.({
+    data: JSON.stringify({
+      type: 'ready',
+      sessionId: 's_one',
+      characterId: 'bhombol',
+      worldId: 'w_old',
+    }),
+  });
+  sockets[0]!.onclose?.();
+  client.send({ type: 'openWorld', worldId: 'w_discarded' });
+  client.send({ type: 'openWorld', worldId: 'w_latest' });
+  client.send({ type: 'switchCharacter', characterId: 'mishti' });
+  client.send({ type: 'switchCharacter', characterId: 'chandni' });
+  client.send({ type: 'text', text: 'Change this game.' });
+  await vi.advanceTimersByTimeAsync(500);
+  const socket = sockets[1]!;
+  const receive = (message: unknown) => socket.onmessage?.({ data: JSON.stringify(message) });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol', worldId: 'w_old' });
+  expect(socket.sent.map((v) => JSON.parse(v))).toEqual([
+    { type: 'openWorld', worldId: 'w_latest' },
+  ]);
+  audio.onFrame(new ArrayBuffer(640));
+  expect(socket.sent).toHaveLength(1);
+  socket.onmessage?.({ data: new ArrayBuffer(960) });
+  expect(audio.play).not.toHaveBeenCalled();
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol', worldId: 'w_latest' });
+  expect(JSON.parse(socket.sent[1]!)).toEqual({ type: 'switchCharacter', characterId: 'chandni' });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'chandni', worldId: 'w_latest' });
+  expect(JSON.parse(socket.sent[2]!)).toEqual({ type: 'text', text: 'Change this game.' });
+  expect(client.session).toMatchObject({ characterId: 'chandni', worldId: 'w_latest' });
+  socket.onmessage?.({ data: new ArrayBuffer(960) });
+  expect(audio.play).toHaveBeenCalledOnce();
+  client.end();
+});
+
+it('coalesces rapid picks while a prior switch is opening and preserves the latest pending target', async () => {
+  const { client, sockets } = harness();
+  await client.connect(hello);
+  const socket = sockets[0]!;
+  const receive = (message: unknown) => socket.onmessage?.({ data: JSON.stringify(message) });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  client.send({ type: 'switchCharacter', characterId: 'mishti' });
+  client.send({ type: 'switchCharacter', characterId: 'pori' });
+  client.send({ type: 'switchCharacter', characterId: 'chandni' });
+  receive({ type: 'characterState', characterId: 'mishti', emotion: 'thinking', speaking: false });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'mishti' });
+  expect(socket.sent.map((v) => JSON.parse(v))).toEqual([
+    { type: 'switchCharacter', characterId: 'mishti' },
+    { type: 'switchCharacter', characterId: 'chandni' },
+  ]);
+  expect(client.selectionPending).toBe(true);
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'chandni' });
+  expect(client.selectionPending).toBe(false);
+  client.end();
+});
+
+it('clears an old game before delivering a queued new-game wish', async () => {
+  const { client, sockets } = harness();
+  await client.connect({ ...hello, worldId: 'w_old' });
+  const socket = sockets[0]!;
+  client.send({ type: 'newGame' });
+  client.send({ type: 'text', text: 'My new idea' });
+  socket.onmessage?.({
+    data: JSON.stringify({
+      type: 'ready',
+      sessionId: 's_one',
+      characterId: 'bhombol',
+      worldId: 'w_old',
+    }),
+  });
+  expect(socket.sent.map((v) => JSON.parse(v))).toEqual([{ type: 'newGame' }]);
+  socket.onmessage?.({ data: JSON.stringify({ type: 'newGame' }) });
+  expect(socket.sent.map((v) => JSON.parse(v))).toEqual([
+    { type: 'newGame' },
+    { type: 'text', text: 'My new idea' },
+  ]);
+  expect(client.session?.worldId).toBeUndefined();
+  client.end();
+});
+
+it('escapes a rejected world selection without sending its queued wish into the old game', async () => {
+  const { client, sockets } = harness();
+  await client.connect({ ...hello, worldId: 'w_old' });
+  const socket = sockets[0]!;
+  socket.onmessage?.({
+    data: JSON.stringify({
+      type: 'ready',
+      sessionId: 's_one',
+      characterId: 'bhombol',
+      worldId: 'w_old',
+    }),
+  });
+  client.send({ type: 'openWorld', worldId: 'w_unavailable' });
+  client.send({ type: 'text', text: 'Change the unavailable game' });
+  socket.onmessage?.({
+    data: JSON.stringify({ type: 'error', code: 'INTERNAL', message: 'Unavailable' }),
+  });
+  expect(client.selectionPending).toBe(false);
+  expect(client.status).toBe('connected');
+  expect(client.session?.worldId).toBe('w_old');
+  expect(socket.sent.map((v) => JSON.parse(v))).toEqual([
+    { type: 'openWorld', worldId: 'w_unavailable' },
+  ]);
+  client.end();
+});
+
+it('reconciles a guest owner after a requested companion switch without reopening the old voice', async () => {
+  const { client, sockets } = harness();
+  await client.connect(hello);
+  const receive = (message: unknown) => sockets[0]!.onmessage?.({ data: JSON.stringify(message) });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'bhombol' });
+  receive({ type: 'persona', packId: 'space', characterId: 'saturn', name: 'Saturn' });
+  client.send({ type: 'switchCharacter', characterId: 'mishti' });
+  receive({ type: 'interrupted' });
+  receive({ type: 'ready', sessionId: 's_one', characterId: 'mishti' });
+  expect(client.speakerId).toBe('mishti');
+  client.end();
 });

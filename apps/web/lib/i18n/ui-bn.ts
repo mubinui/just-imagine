@@ -1,5 +1,7 @@
 /** Authored Bangladesh copy for interface literals not yet in the older typed table. */
 export const UI_BN: Record<string, string> = {
+  'Voice is still connecting. Please wait.': 'কথার সংযোগ এখনও হচ্ছে। একটু অপেক্ষা করো।',
+  'A teacher account is required.': 'শিক্ষক অ্যাকাউন্ট দিয়ে সাইন ইন করুন।',
   'School sign in': 'স্কুল সাইন ইন',
   'Teacher sign in': 'শিক্ষক সাইন ইন',
   'Student sign in': 'শিক্ষার্থী সাইন ইন',

@@ -20,10 +20,9 @@ export function systemInstruction(record: SessionRecord, summary: string): strin
   return `${speakerInstruction(record, summary)}\n${spokenLanguageRule(record.identity.child)}`;
 }
 
-/** Companions share the soothing Sulafat voice; guides and pack characters keep their own. */
+/** Preserve each selected character's authored voice identity. */
 export function voiceFor(record: SessionRecord): string {
   if (record.story || record.worldCharacter) return 'Sulafat';
   if (record.persona) return personaVoice(record);
-  const character = CHARACTERS[record.characterId];
-  return character.kind === 'companion' ? 'Sulafat' : character.voice;
+  return CHARACTERS[record.characterId].voice;
 }

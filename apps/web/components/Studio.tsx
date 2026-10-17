@@ -28,7 +28,7 @@ import {
   type PreviewKey as FixtureWorldKey,
 } from '../lib/preview-worlds';
 import type { Engine, EngineEvent } from '@just-imagine/engine';
-import { getVoice, releaseVoice, ensureChildVoice } from '../lib/voice';
+import { getVoice, releaseVoice, ensureChildVoice, stopChildVoice } from '../lib/voice';
 import { getMixer, soundForEngineEvents } from '../lib/sound';
 import { musicThemeFor } from '../lib/sound/theme';
 import { gameTextEdition } from '../lib/content-voice-copy';
@@ -142,6 +142,10 @@ export function Studio() {
     pendingVariables.current = {};
   };
   const selectWorldId = (id: string | undefined) => {
+    if (hello.current) {
+      if (id) hello.current.worldId = id;
+      else delete hello.current.worldId;
+    }
     if (selectedWorld.current !== id) {
       selectedWorld.current = id;
       clearPending();
@@ -174,7 +178,12 @@ export function Studio() {
       const selected = ChildResponseSchema.parse(
         JSON.parse(localStorage.getItem('ji-child') || 'null'),
       );
-      await ensureChildVoice(selected, message.worldId, message.characterId);
+      const continuing = getVoice().session?.childId === selected.id;
+      await ensureChildVoice(
+        selected,
+        continuing ? undefined : message.worldId,
+        continuing ? undefined : message.characterId,
+      );
       setStatus(getVoice().status);
     } catch (e) {
       setError(e instanceof Error ? uiError(e) : s.unavailable);
@@ -236,20 +245,24 @@ export function Studio() {
           setCaption('');
           break;
         case 'ready':
-          if (pendingCreative.current) {
-            const request = pendingCreative.current;
-            pendingCreative.current = undefined;
-            getVoice().send(request);
+          // Establish the new-game context before delivering a wish captured while connecting.
+          if (pendingIntent.current === 'newGame' && !env.fake) {
+            pendingIntent.current = undefined;
+            getVoice().send({ type: 'newGame' });
           }
           if (pendingCharacter.current) {
             getVoice().send({ type: 'talkToCharacter', entityId: pendingCharacter.current });
             pendingCharacter.current = undefined;
           }
-          if (message.worldId && !env.fake) selectWorldId(message.worldId);
-          setCharacter(message.characterId);
-          if (pendingIntent.current === 'newGame' && !env.fake) {
-            pendingIntent.current = undefined;
-            getVoice().send({ type: 'newGame' });
+          if (pendingCreative.current) {
+            const request = pendingCreative.current;
+            pendingCreative.current = undefined;
+            getVoice().send(request);
+          }
+          if (!getVoice().selectionPending) {
+            if (message.worldId && !env.fake) selectWorldId(message.worldId);
+            setCharacter(message.characterId);
+            if (hello.current) hello.current.characterId = message.characterId;
           }
           break;
         case 'newGame':
@@ -297,6 +310,7 @@ export function Studio() {
           if (!env.fake) setDiscovery(message);
           break;
         case 'summon':
+          if (getVoice().selectionPending) break;
           if (
             castFor(c.ageBand, c.companion?.characterId).some((f) => f.id === message.characterId)
           ) {
@@ -306,6 +320,7 @@ export function Studio() {
           }
           break;
         case 'characterState':
+          if (getVoice().selectionPending) break;
           if (
             castFor(c.ageBand, c.companion?.characterId).some((f) => f.id === message.characterId)
           ) {
@@ -339,6 +354,14 @@ export function Studio() {
           break;
         case 'error':
           setError(uiError(message.message));
+          if (!getVoice().selectionPending) {
+            const confirmed = getVoice().session;
+            if (confirmed) {
+              setCharacter(confirmed.characterId);
+              if (hello.current) hello.current.characterId = confirmed.characterId;
+              if (!env.fake) selectWorldId(confirmed.worldId);
+            }
+          }
           break;
         case 'bye':
           clearPending();
@@ -665,7 +688,7 @@ export function Studio() {
   }
   function finish() {
     clearPending();
-    getVoice().end();
+    stopChildVoice();
     setEnded(true);
   }
   const live = status === 'connected' || status === 'connecting' || status === 'reconnecting';
@@ -676,14 +699,16 @@ export function Studio() {
     if (id) {
       setCharacter(id);
       if (hello.current) hello.current.characterId = id;
+      if (getVoice().session) getVoice().send({ type: 'switchCharacter', characterId: id });
     }
     void connectVoice();
   }
   function stopVoice() {
     pendingCreative.current = undefined;
     pendingIntent.current = undefined;
+    pendingCharacter.current = undefined;
     clearPending();
-    getVoice().end();
+    stopChildVoice();
     setSpeaking(false);
   }
   function buildGame() {
@@ -901,6 +926,7 @@ export function Studio() {
             return;
           }
           setCharacter(id);
+          if (hello.current) hello.current.characterId = id;
           send({ type: 'switchCharacter', characterId: id });
         }}
         onTalk={() => startVoice()}

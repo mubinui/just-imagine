@@ -6,6 +6,11 @@ import {
 } from '@just-imagine/protocol';
 import { BrowserAudio } from './browser-audio';
 type Hello = Extract<ClientMessage, { type: 'hello' }>;
+type Control = Exclude<ClientMessage, { type: 'hello' }>;
+type WorldIntent = Extract<Control, { type: 'openWorld' | 'newGame' }>;
+type Selection =
+  | { type: 'character'; characterId: Hello['characterId'] }
+  | { type: 'world'; message: WorldIntent };
 export type VoiceStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'closed' | 'error';
 export interface VoiceOptions {
   url: string;
@@ -24,6 +29,10 @@ export class VoiceClient {
   private generation = 0;
   private connecting = false;
   private personaId?: string;
+  private wantedCharacter?: Hello['characterId'];
+  private wantedWorld?: { message: WorldIntent; sent: boolean };
+  private selecting?: Selection;
+  private waiting: Control[] = [];
   private listeners = new Set<(message: ServerMessage) => void>();
   private statusListeners = new Set<(status: VoiceStatus) => void>();
   status: VoiceStatus = 'idle';
@@ -35,6 +44,48 @@ export class VoiceClient {
     if (this.ended || !this.hello) return undefined;
     const { childId, characterId, worldId, sessionId } = this.hello;
     return { childId, characterId, worldId, sessionId };
+  }
+  /** Selection controls are acknowledged before a queued creative turn reaches the model. */
+  get selectionPending() {
+    return Boolean(this.selecting || this.wantedCharacter || this.wantedWorld);
+  }
+  private sameWorld(a: WorldIntent, b: WorldIntent) {
+    return a.type === b.type && (a.type === 'newGame' || a.worldId === (b as typeof a).worldId);
+  }
+  private resetControls() {
+    this.wantedCharacter = undefined;
+    this.wantedWorld = undefined;
+    this.selecting = undefined;
+    this.waiting = [];
+  }
+  private flushControls() {
+    if (
+      this.ended ||
+      this.status !== 'connected' ||
+      this.socket?.readyState !== 1 ||
+      this.selecting
+    )
+      return;
+    if (this.wantedWorld) {
+      const message = this.wantedWorld.message;
+      this.selecting = { type: 'world', message };
+      this.wantedWorld.sent = true;
+      this.socket.send(JSON.stringify(message));
+      this.setStatus('reconnecting');
+      return;
+    }
+    if (this.wantedCharacter) {
+      const characterId = this.wantedCharacter;
+      if (characterId === this.hello?.characterId && !this.personaId) {
+        this.wantedCharacter = undefined;
+      } else {
+        this.selecting = { type: 'character', characterId };
+        this.socket.send(JSON.stringify({ type: 'switchCharacter', characterId }));
+        this.setStatus('reconnecting');
+        return;
+      }
+    }
+    for (const message of this.waiting.splice(0)) this.socket.send(JSON.stringify(message));
   }
   subscribeStatus(listener: (status: VoiceStatus) => void) {
     this.statusListeners.add(listener);
@@ -55,7 +106,12 @@ export class VoiceClient {
       this.setStatus('error');
     };
     this.audio.onFrame = (frame) => {
-      if (this.socket?.readyState === 1 && this.socket.bufferedAmount < 640 * 10)
+      if (
+        this.status === 'connected' &&
+        !this.selectionPending &&
+        this.socket?.readyState === 1 &&
+        this.socket.bufferedAmount < 640 * 10
+      )
         this.socket.send(frame);
     };
   }
@@ -71,6 +127,7 @@ export class VoiceClient {
   async connect(hello: Hello) {
     if (!this.audio.unlocked) throw new Error('Audio must be unlocked by the profile tap');
     if (this.socket || this.connecting) throw new Error('Voice client already connected');
+    this.resetControls();
     this.hello = ClientMessageSchema.parse(hello) as Hello;
     this.personaId = undefined;
     this.ended = false;
@@ -110,7 +167,7 @@ export class VoiceClient {
       socket.onmessage = (event) => {
         if (this.ended || generation !== this.generation) return;
         if (event.data instanceof ArrayBuffer) {
-          this.audio.play(event.data);
+          if (this.status === 'connected' && !this.selectionPending) this.audio.play(event.data);
           return;
         }
         try {
@@ -120,6 +177,21 @@ export class VoiceClient {
           if (message.type === 'persona') this.personaId = message.characterId;
           if (message.type === 'worldCharacter') this.personaId = message.entityId ?? undefined;
           if (message.type === 'summon') this.personaId = undefined;
+          if (message.type === 'error' && this.selecting) {
+            const rejected = this.selecting;
+            if (rejected.type === 'character' && this.wantedCharacter === rejected.characterId)
+              this.wantedCharacter = undefined;
+            if (
+              rejected.type === 'world' &&
+              this.wantedWorld &&
+              this.sameWorld(this.wantedWorld.message, rejected.message)
+            )
+              this.wantedWorld = undefined;
+            this.selecting = undefined;
+            // A wish waiting for a rejected world must never be delivered into the previous one.
+            this.waiting = [];
+            this.setStatus('connected');
+          }
           if (
             message.type === 'error' &&
             [
@@ -131,6 +203,7 @@ export class VoiceClient {
             ].includes(message.code)
           ) {
             this.ended = true;
+            this.resetControls();
             clearTimeout(this.timer);
             this.audio.stopCapture();
             this.audio.flush();
@@ -142,20 +215,68 @@ export class VoiceClient {
             this.hello!.sessionId = message.sessionId;
             this.hello!.characterId = message.characterId;
             if (message.worldId) this.hello!.worldId = message.worldId;
+            else delete this.hello!.worldId;
+            if (
+              this.selecting?.type === 'character' &&
+              this.selecting.characterId === message.characterId
+            ) {
+              if (this.wantedCharacter === message.characterId) this.wantedCharacter = undefined;
+              this.personaId = undefined;
+              this.selecting = undefined;
+            }
+            if (
+              this.wantedCharacter === message.characterId &&
+              !this.personaId &&
+              this.selecting?.type !== 'character'
+            )
+              this.wantedCharacter = undefined;
+            const world = this.wantedWorld;
+            if (
+              world &&
+              ((world.message.type === 'openWorld' && world.message.worldId === message.worldId) ||
+                (world.message.type === 'newGame' && world.sent && !message.worldId))
+            )
+              this.wantedWorld = undefined;
+            if (
+              this.selecting?.type === 'world' &&
+              ((this.selecting.message.type === 'openWorld' &&
+                this.selecting.message.worldId === message.worldId) ||
+                (this.selecting.message.type === 'newGame' && !message.worldId))
+            )
+              this.selecting = undefined;
             this.setStatus('connected');
+            this.flushControls();
           }
           if (message.type === 'characterState' || message.type === 'summon')
             this.hello!.characterId = message.characterId;
-          if (message.type === 'newGame') delete this.hello!.worldId;
+          if (message.type === 'characterState' && message.emotion === 'thinking') {
+            this.audio.flush();
+            this.setStatus('reconnecting');
+          }
+          if (message.type === 'newGame') {
+            delete this.hello!.worldId;
+            if (this.selecting?.type === 'world' && this.selecting.message.type === 'newGame') {
+              if (
+                this.wantedWorld &&
+                this.sameWorld(this.wantedWorld.message, this.selecting.message)
+              )
+                this.wantedWorld = undefined;
+              this.selecting = undefined;
+              this.setStatus('connected');
+              this.flushControls();
+            }
+          }
           if (message.type === 'worldJob') this.hello!.worldId = message.worldId;
           if (message.type === 'interrupted') this.audio.flush();
           if (message.type === 'bye') {
+            this.resetControls();
             this.ended = true;
             this.audio.stopCapture();
             this.audio.flush();
             socket.close();
             this.setStatus('closed');
           }
+          if (message.type === 'error' && !this.ended) this.flushControls();
           for (const listener of this.listeners) listener(message);
         } catch {
           this.setStatus('error');
@@ -167,6 +288,7 @@ export class VoiceClient {
       socket.onclose = () => {
         if (generation === this.generation) {
           this.socket = undefined;
+          this.selecting = undefined;
           this.scheduleReconnect();
         }
       };
@@ -186,13 +308,37 @@ export class VoiceClient {
     this.setStatus('reconnecting');
     this.timer = setTimeout(() => void this.open(), 500 * 2 ** this.retry++);
   }
-  send(message: Exclude<ClientMessage, { type: 'hello' }>) {
+  send(message: Control) {
     const parsed = ClientMessageSchema.parse(message);
+    if (parsed.type === 'switchCharacter' && !this.ended && this.hello) {
+      this.wantedCharacter = parsed.characterId;
+      this.audio.flush();
+      this.flushControls();
+      return;
+    }
+    if ((parsed.type === 'openWorld' || parsed.type === 'newGame') && !this.ended && this.hello) {
+      if (!this.wantedWorld || !this.sameWorld(this.wantedWorld.message, parsed))
+        this.wantedWorld = { message: parsed, sent: false };
+      this.audio.flush();
+      this.flushControls();
+      return;
+    }
+    if (
+      ['text', 'undoWorld', 'talkToCharacter'].includes(parsed.type) &&
+      !this.ended &&
+      this.hello &&
+      (this.status !== 'connected' || this.selectionPending || this.socket?.readyState !== 1)
+    ) {
+      if (this.waiting.length >= 16) throw new Error('Voice is still connecting. Please wait.');
+      this.waiting.push(parsed as Control);
+      return;
+    }
     if (this.socket?.readyState === 1) this.socket.send(JSON.stringify(parsed));
   }
   end() {
     this.send({ type: 'end' });
     this.ended = true;
+    this.resetControls();
     clearTimeout(this.timer);
     this.generation++;
     this.connecting = false;

@@ -40,7 +40,7 @@ import {
   studentLesson,
   studentLessons,
 } from './lessons';
-import { draftLesson, translateLesson } from './authoring';
+import { assistLessonText, draftLesson, translateLesson } from './authoring';
 import { grade, boards, results, hint, teacherBoards } from './grading';
 import { react } from './chemistry';
 import type { SchoolModel } from './ai';
@@ -208,6 +208,9 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
         : listLessons(schoolActor(req)),
     );
     routes.post('/v1/school/lessons', (req) => saveLesson(schoolActor(req), req.body));
+    routes.post('/v1/school/lesson-text/assist', (req) =>
+      assistLessonText(schoolActor(req), req.body, options.model),
+    );
     routes.get('/v1/school/lessons/:id', (req) => authorLesson(schoolActor(req), id(req.params)));
     routes.patch('/v1/school/lessons/:id', (req) =>
       saveLesson(schoolActor(req), req.body, id(req.params)),

@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import type { LiveCallbacks, SessionRecord } from '../src/contracts';
 import type * as GenAI from '@google/genai';
+import { CHARACTERS, type CharacterId } from '@just-imagine/protocol';
 const mocks = vi.hoisted(() => ({ connect: vi.fn() }));
 vi.mock('@google/genai', async (original) => ({
   ...(await original<typeof GenAI>()),
@@ -53,7 +54,7 @@ it('accepts setup, delivers padded PCM tails, and closes intentionally without r
     events = cb;
     expect(config).not.toHaveProperty('proactivity');
     expect(config).not.toHaveProperty('safetySettings');
-    expect(config.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe('Sulafat');
+    expect(config.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe('Puck');
     expect(config.systemInstruction).toContain('calm conversational pace');
     queueMicrotask(() => cb.onmessage({ setupComplete: {} }));
     return {
@@ -85,6 +86,74 @@ it('accepts setup, delivers padded PCM tails, and closes intentionally without r
   live.close();
   expect(close).toHaveBeenCalledOnce();
   expect(cb.closed).not.toHaveBeenCalled();
+});
+
+it.each(Object.keys(CHARACTERS) as CharacterId[])(
+  'opens %s using its authored voice identity',
+  async (characterId) => {
+    mocks.connect.mockImplementation(async ({ callbacks: cb, config }) => {
+      expect(config.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe(
+        CHARACTERS[characterId].voice,
+      );
+      queueMicrotask(() => cb.onmessage({ setupComplete: {} }));
+      return {
+        close: vi.fn(),
+        sendClientContent: vi.fn(),
+        sendRealtimeInput: vi.fn(),
+        sendToolResponse: vi.fn(),
+      };
+    });
+    const live = await provider().open({ ...record, characterId }, '', undefined, callbacks());
+    live.close();
+  },
+);
+
+it('ignores late model callbacks and outbound microphone frames after intentional close', async () => {
+  let events!: { onmessage: (message: unknown) => void };
+  const realtime = vi.fn(),
+    content = vi.fn(),
+    tool = vi.fn();
+  mocks.connect.mockImplementation(async ({ callbacks: cb }) => {
+    events = cb;
+    queueMicrotask(() => cb.onmessage({ setupComplete: {} }));
+    return {
+      close: vi.fn(),
+      sendClientContent: content,
+      sendRealtimeInput: realtime,
+      sendToolResponse: tool,
+    };
+  });
+  const cb = callbacks();
+  const live = await provider().open(record, '', undefined, cb);
+  live.close();
+  events.onmessage({
+    serverContent: {
+      modelTurn: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'audio/pcm;rate=24000',
+              data: Buffer.alloc(960).toString('base64'),
+            },
+          },
+        ],
+      },
+      outputTranscription: { text: 'Synthetic late output', finished: true },
+      turnComplete: true,
+    },
+    toolCall: {
+      functionCalls: [{ id: 'late', name: 'switch_character', args: { characterId: 'mishti' } }],
+    },
+  });
+  live.audio(Buffer.alloc(640));
+  live.text('Synthetic late input');
+  live.toolResult('late', 'switch_character', {});
+  expect(cb.audio).not.toHaveBeenCalled();
+  expect(cb.transcript).not.toHaveBeenCalled();
+  expect(cb.tool).not.toHaveBeenCalled();
+  expect(realtime).not.toHaveBeenCalled();
+  expect(content).not.toHaveBeenCalled();
+  expect(tool).not.toHaveBeenCalled();
 });
 
 it('appends the selected parent language to every native-audio text turn', async () => {

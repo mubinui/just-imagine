@@ -1,0 +1,108 @@
+.field {
+  min-width: 0;
+  flex: 1;
+}
+.field > input {
+  width: 100%;
+}
+div.choice {
+  align-items: flex-start;
+}
+div.choice > input[type='radio'] {
+  margin-top: 12px;
+}
+.assist {
+  margin: 8px 0 20px;
+  color: var(--ink);
+  font-size: 15px;
+}
+.assist > summary,
+.wholeTools > summary {
+  cursor: pointer;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 0;
+  font-weight: 800;
+  color: var(--accent);
+}
+.assist > summary:focus-visible,
+.wholeTools > summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.body {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.body p {
+  color: var(--soft);
+  max-width: 65ch;
+}
+.body label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.body select,
+.body textarea {
+  width: 100%;
+  font-size: 16px;
+}
+.body textarea {
+  min-height: 80px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.actions button {
+  min-height: 44px;
+  white-space: normal;
+}
+.proposal {
+  min-width: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+}
+.proposal h3 {
+  font-size: 21px;
+  color: var(--ink);
+}
+.proposal .proposedText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.65;
+}
+.wholeTools {
+  padding: 16px 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.wholeTools > summary {
+  font-size: 21px;
+}
+.wholeTools p {
+  max-width: 65ch;
+  margin: 8px 0 16px;
+}
+@media (max-width: 600px) {
+  .body {
+    padding: 12px;
+  }
+  .body select {
+    max-width: 100%;
+  }
+}

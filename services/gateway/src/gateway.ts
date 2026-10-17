@@ -185,10 +185,64 @@ export function startGateway(options: {
       logEvent('session_ended', { sessionId: session.record.id, count: sessions.size });
     }
   }
+  function closeLive(session: Active, announceOpening = true) {
+    const generation = ++session.generation;
+    clearTimeout(session.reconnect);
+    session.reconnect = undefined;
+    const previous = session.live;
+    session.live = undefined;
+    session.handle = undefined;
+    session.retries = 0;
+    session.freshAttempted = false;
+    previous?.close();
+    send(session, { type: 'interrupted' });
+    if (announceOpening)
+      send(session, {
+        type: 'characterState',
+        characterId: session.record.characterId,
+        emotion: 'thinking',
+        speaking: false,
+      });
+    return generation;
+  }
+  async function handoffSummary(session: Active) {
+    if (!session.transcript.length) return '';
+    try {
+      return await options.provider.summarize([...session.transcript]);
+    } catch (error) {
+      logEvent(
+        'handoff_summary_unavailable',
+        { sessionId: session.record.id, ...liveErrorDetails(error) },
+        'WARNING',
+      );
+      return '';
+    }
+  }
+  function clearGuest(
+    session: Active,
+    characterId = session.record.characterId,
+    notifyFriend = true,
+  ) {
+    if (session.record.story) send(session, { type: 'storyVoice', active: false });
+    delete session.record.story;
+    delete session.record.persona;
+    delete session.record.worldCharacter;
+    if (notifyFriend)
+      send(session, {
+        type: 'worldCharacter',
+        entityId: null,
+        name:
+          session.record.identity.child.companion?.characterId === characterId
+            ? session.record.identity.child.companion.name
+            : CHARACTERS[characterId].displayName,
+      });
+  }
   async function openLive(session: Active, summary = '', resume = true) {
     if (session.ended) return;
     const generation = ++session.generation;
-    session.live?.close();
+    const previous = session.live;
+    session.live = undefined;
+    previous?.close();
     const isCurrent = () => !session.ended && generation === session.generation;
     const retry = () => {
       if (!isCurrent() || session.reconnect) return;
@@ -210,7 +264,7 @@ export function startGateway(options: {
             }
             session.freshAttempted = true;
             session.handle = undefined;
-            const summary = await options.provider.summarize(session.transcript);
+            const summary = await handoffSummary(session);
             await openLive(session, summary, false);
           } else await openLive(session, '', true);
         });
@@ -293,6 +347,7 @@ export function startGateway(options: {
           tool: (id, name, args) => {
             if (isCurrent())
               serial(session, async () => {
+                if (!isCurrent()) return;
                 try {
                   const connection = session.live;
                   const terminal =
@@ -376,23 +431,17 @@ export function startGateway(options: {
       id !== session.record.identity.child.companion?.characterId
     )
       throw new Error('Character unavailable');
-    if (session.record.worldCharacter) {
-      delete session.record.worldCharacter;
-      send(session, {
-        type: 'worldCharacter',
-        entityId: null,
-        name:
-          session.record.identity.child.companion?.characterId === id
-            ? session.record.identity.child.companion.name
-            : CHARACTERS[id].displayName,
-      });
-    }
-    send(session, { type: 'interrupted' });
-    session.live?.close();
-    session.handle = undefined;
-    const summary = await options.provider.summarize(session.transcript);
-    if (session.ended) return;
+    const generation = closeLive(session);
+    clearGuest(session, id);
     session.record.characterId = id;
+    send(session, {
+      type: 'characterState',
+      characterId: id,
+      emotion: 'thinking',
+      speaking: false,
+    });
+    const summary = await handoffSummary(session);
+    if (session.ended || session.generation !== generation) return;
     if (CHARACTERS[id].kind === 'guide')
       send(session, { type: 'summon', characterId: id as 'pori' | 'onkomama' | 'jadukaka' });
     await openLive(session, summary, false);
@@ -401,13 +450,10 @@ export function startGateway(options: {
   // record's characterId, so `ready` keeps naming the friend and hanging up returns to them.
   async function summonPersona(session: Active, packId: string, characterId: string) {
     const { character } = resolvePersona(packId, characterId, session.record);
-    send(session, { type: 'interrupted' });
-    session.live?.close();
-    session.handle = undefined;
-    const summary = session.transcript.length
-      ? await options.provider.summarize(session.transcript)
-      : '';
-    if (session.ended) return;
+    const generation = closeLive(session);
+    clearGuest(session, session.record.characterId, false);
+    const summary = await handoffSummary(session);
+    if (session.ended || session.generation !== generation) return;
     delete session.record.worldCharacter;
     session.record.persona = { packId, characterId };
     send(session, {
@@ -433,13 +479,10 @@ export function startGateway(options: {
       JSON.stringify(session.record.worldCharacter.character) === JSON.stringify(entity.character)
     )
       return;
-    send(session, { type: 'interrupted' });
-    session.live?.close();
-    session.handle = undefined;
-    const summary = session.transcript.length
-      ? await options.provider.summarize(session.transcript)
-      : '';
-    if (session.ended) return;
+    const generation = closeLive(session);
+    clearGuest(session, session.record.characterId, false);
+    const summary = await handoffSummary(session);
+    if (session.ended || session.generation !== generation) return;
     delete session.record.persona;
     session.record.worldCharacter = { worldId, entityId, character: entity.character };
     send(session, { type: 'worldCharacter', entityId, name: entity.character.name });
@@ -448,33 +491,23 @@ export function startGateway(options: {
       'The child selected you in their world. Introduce yourself briefly in character and invite them to speak.',
     );
   }
-  async function hangUp(session: Active) {
-    const wasStory = Boolean(session.record.story);
-    if (wasStory) send(session, { type: 'storyVoice', active: false });
-    delete session.record.story;
-    if (!wasStory && !session.record.persona && !session.record.worldCharacter) return;
-    send(session, { type: 'interrupted' });
-    session.live?.close();
-    session.handle = undefined;
-    const summary = session.transcript.length
-      ? await options.provider.summarize(session.transcript)
-      : '';
-    if (session.ended) return;
-    delete session.record.persona;
-    delete session.record.worldCharacter;
-    send(session, {
-      type: 'worldCharacter',
-      entityId: null,
-      name:
-        session.record.identity.child.companion?.name ??
-        CHARACTERS[session.record.characterId].displayName,
-    });
+  async function hangUp(session: Active, beforeOpen?: () => void) {
+    if (!session.record.story && !session.record.persona && !session.record.worldCharacter) {
+      beforeOpen?.();
+      return;
+    }
+    const generation = closeLive(session);
+    clearGuest(session);
+    beforeOpen?.();
+    const summary = await handoffSummary(session);
+    if (session.ended || session.generation !== generation) return;
     await openLive(session, summary, false);
   }
   function watch(session: Active, worldId: string, jobId?: string) {
     if (session.ended) return;
     session.stopWorld?.();
     session.record.worldId = worldId;
+    let stopped = false;
     let milestone = '',
       outcome = '',
       context = '',
@@ -490,7 +523,8 @@ export function startGateway(options: {
       watchedJob = id;
       outcome = '';
       stopJob = options.store.watchJob?.(id, (status) => {
-        if (session.ended || watchedJob !== id) return;
+        if (session.ended || stopped || session.record.worldId !== worldId || watchedJob !== id)
+          return;
         if (['running', 'complete'].includes(status)) {
           if (outcome) {
             outcome = '';
@@ -515,6 +549,8 @@ export function startGateway(options: {
     const stopWorld = options.store.watchWorld(worldId, (world) => {
       if (
         session.ended ||
+        stopped ||
+        session.record.worldId !== worldId ||
         world.ownerUid !== session.record.identity.uid ||
         world.childId !== session.record.identity.childId ||
         (jobId !== undefined && world.jobId !== jobId)
@@ -551,6 +587,7 @@ export function startGateway(options: {
       }
     });
     session.stopWorld = () => {
+      stopped = true;
       stopWorld();
       stopJob?.();
     };
@@ -934,11 +971,7 @@ export function startGateway(options: {
       throw new Error('Tutor messages require a separate student session.');
     if (message.type === 'storyPause') {
       if (session.record.story) delete session.record.story.reading;
-      send(session, { type: 'interrupted' });
-      session.generation++;
-      session.live?.close();
-      session.live = undefined;
-      session.handle = undefined;
+      closeLive(session, false);
       return;
     }
     if (message.type === 'storySetup' || message.type === 'storyRead') {
@@ -952,9 +985,7 @@ export function startGateway(options: {
         !session.live ||
         (message.type === 'storyRead' && session.record.story.asking === true);
       if (needsOpen) {
-        send(session, { type: 'interrupted' });
-        session.live?.close();
-        session.handle = undefined;
+        closeLive(session);
         delete session.record.persona;
         delete session.record.worldCharacter;
         session.record.story = { ...(book ? { book } : {}) };
@@ -1028,14 +1059,15 @@ export function startGateway(options: {
     }
     if (message.type === 'newGame') {
       session.childRequests.length = 0;
-      if (session.record.worldCharacter) await hangUp(session);
       await meter(session);
-      session.stopWorld?.();
-      session.stopWorld = undefined;
-      delete session.record.worldId;
-      delete session.record.learningMode;
-      session.worldContext = undefined;
-      session.prediction = undefined;
+      await hangUp(session, () => {
+        session.stopWorld?.();
+        session.stopWorld = undefined;
+        delete session.record.worldId;
+        delete session.record.learningMode;
+        session.worldContext = undefined;
+        session.prediction = undefined;
+      });
       send(session, { type: 'newGame' });
       session.live?.text(
         'The child chose Build a game. Their previous world remains saved in the gallery. We are now imagining a NEW game with no current world. Ask one short, playful question about what they want to make, then use build_world when their idea is clear. Do not modify the previous world.',
@@ -1043,10 +1075,8 @@ export function startGateway(options: {
       return;
     }
     if (message.type === 'openWorld') {
-      if (session.record.worldCharacter) await hangUp(session);
       await options.store.world(session.record, message.worldId);
-      session.record.worldId = message.worldId;
-      watch(session, message.worldId);
+      await hangUp(session, () => watch(session, message.worldId));
       send(session, {
         type: 'ready',
         sessionId: session.record.id,
@@ -1056,21 +1086,10 @@ export function startGateway(options: {
       return;
     }
     if (message.type === 'switchCharacter') {
-      delete session.record.story;
-      delete session.record.persona;
-      if (session.record.worldCharacter) {
-        delete session.record.worldCharacter;
-        send(session, {
-          type: 'worldCharacter',
-          entityId: null,
-          name: CHARACTERS[message.characterId].displayName,
-        });
-      }
       await handoff(session, message.characterId);
       return;
     }
     if (message.type === 'summonPersona') {
-      delete session.record.story;
       try {
         resolvePersona(message.packId, message.characterId, session.record);
       } catch {
@@ -1298,6 +1317,27 @@ export function startGateway(options: {
             active = existing;
             clearTimeout(existing.grace);
             existing.socket = socket;
+            // A handoff can finish while the browser socket is detached. Restore its owner too.
+            if (existing.record.story) send(existing, { type: 'storyVoice', active: true });
+            else if (existing.record.worldCharacter)
+              send(existing, {
+                type: 'worldCharacter',
+                entityId: existing.record.worldCharacter.entityId,
+                name: existing.record.worldCharacter.character.name,
+              });
+            else if (existing.record.persona) {
+              const persona = existing.record.persona;
+              const { character } = resolvePersona(
+                persona.packId,
+                persona.characterId,
+                existing.record,
+              );
+              send(existing, {
+                type: 'persona',
+                ...persona,
+                name: personaName(existing.record, character),
+              });
+            } else clearGuest(existing);
             send(existing, {
               type: 'ready',
               sessionId: existing.record.id,

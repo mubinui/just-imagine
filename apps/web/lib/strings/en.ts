@@ -238,6 +238,10 @@ export const english = {
     tile: 'Learn',
     mapTitle: 'Where shall we learn today?',
     mapHint: 'Tap an island to visit it.',
+    mapIntro: 'Choose a world, meet its friends, and learn through play.',
+    challengeCount: '{total} challenges to discover',
+    progressLoading: 'Loading your progress…',
+    progressUnavailable: 'Your progress could not load. You can still explore.',
     sections: {
       space: 'Space',
       animals: 'Animals',

@@ -29,6 +29,13 @@ const app = createApi({
   store: new Proxy({}, { get: () => async () => ({}) }) as ApiStore,
   verifyToken: requireParent,
   origins: [],
+  school: {
+    model: async (prompt) => {
+      if (!prompt.startsWith('Help a teacher write one short classroom passage'))
+        throw new Error('Unexpected model call in text-assist route acceptance.');
+      return { text: 'A force can change an object’s speed or direction.' };
+    },
+  },
 });
 let operator: string,
   teacher: string,
@@ -124,6 +131,66 @@ beforeAll(async () => {
 });
 afterAll(() => app.close());
 describe('school role-to-role backend', () => {
+  it('authorizes unsaved AI text assistance, reserves normal quota and leaves stored lessons untouched', async () => {
+    const input = {
+      subject: 'physics',
+      grade: 9,
+      chapterId: 'physics-3',
+      title: { en: 'Force', bn: 'বল' },
+      field: 'explanation',
+      language: 'en',
+      text: 'Force changes motion.',
+      instruction: 'Make this clearer',
+      context: 'A virtual cart.',
+    };
+    const original = (
+      await db()
+        .doc('lessons/' + lessonId)
+        .get()
+    ).data();
+    const usage = () => db().collection('schoolUsageDaily').where('schoolId', '==', sid).get();
+    const before = (await usage()).docs.reduce(
+      (sum, doc) => sum + Number(doc.get('aiDrafts') ?? 0),
+      0,
+    );
+    expect((await call('POST', '/v1/school/lesson-text/assist', undefined, input)).statusCode).toBe(
+      401,
+    );
+    expect((await call('POST', '/v1/school/lesson-text/assist', pupil, input)).statusCode).toBe(
+      403,
+    );
+    const result = await call('POST', '/v1/school/lesson-text/assist', teacher, input);
+    expect(result.statusCode).toBe(200);
+    expect(result.json()).toEqual({ text: 'A force can change an object’s speed or direction.' });
+    expect(
+      (
+        await db()
+          .doc('lessons/' + lessonId)
+          .get()
+      ).data(),
+    ).toEqual(original);
+    const after = (await usage()).docs.reduce(
+      (sum, doc) => sum + Number(doc.get('aiDrafts') ?? 0),
+      0,
+    );
+    expect(after).toBe(before + 1);
+    expect(
+      (
+        await call('POST', '/v1/school/lesson-text/assist', teacher, {
+          ...input,
+          chapterId: 'math-1',
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await call('POST', '/v1/admin/lesson-text/assist', teacher, {
+          ...input,
+          reason: 'Test writing assistant',
+        })
+      ).statusCode,
+    ).toBe(403);
+  });
   it('keeps school identities out of families, including pre-claim teacher tokens', async () => {
     expect((await call('GET', '/v1/me', teacher)).statusCode).toBe(401);
     const stale = await token('school_system_teacher');

@@ -326,9 +326,202 @@ it('reconnects a detached socket with the same session and without another Live 
   await once(a.socket, 'close');
   const b = await connect(h.gateway);
   b.socket.send(JSON.stringify({ ...hello, sessionId }));
-  await vi.waitFor(() => expect(b.messages[0]).toMatchObject({ type: 'ready', sessionId }));
+  await vi.waitFor(() =>
+    expect(b.messages).toContainEqual(expect.objectContaining({ type: 'ready', sessionId })),
+  );
   expect(h.provider.open).toHaveBeenCalledOnce();
   await h.gateway.close();
+});
+
+it('invalidates old callbacks and microphone routing before a slow character summary', async () => {
+  const h = harness();
+  let release!: (summary: string) => void;
+  h.provider.summarize = vi.fn(
+    () =>
+      new Promise<string>((resolve) => {
+        release = resolve;
+      }),
+  );
+  h.store.enqueue = vi.fn(async () => {});
+  const { socket, messages } = await connect(h.gateway);
+  let binary = 0;
+  socket.on('message', (_data, isBinary) => {
+    if (isBinary) binary++;
+  });
+  try {
+    socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    const old = h.callbacks()!;
+    old.transcript('character', 'Synthetic context', true);
+    old.tool('switch', 'switch_character', { characterId: 'mishti' });
+    // Both callbacks enter the old generation's serial queue before the handoff starts.
+    old.tool('obsolete', 'build_world', {
+      description: 'Synthetic obsolete request',
+      concepts: ['force'],
+    });
+    await vi.waitFor(() => expect(h.provider.summarize).toHaveBeenCalledOnce());
+    old.audio(Buffer.alloc(960));
+    old.resume('obsolete-handle');
+    socket.send(Buffer.alloc(640));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(binary).toBe(0);
+    expect(h.live.audio).not.toHaveBeenCalled();
+    release('Synthetic summary');
+    await vi.waitFor(() => expect(h.provider.open).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual(
+        expect.objectContaining({ type: 'ready', characterId: 'mishti' }),
+      ),
+    );
+    expect(h.store.enqueue).not.toHaveBeenCalled();
+    expect(h.provider.open).toHaveBeenLastCalledWith(
+      expect.objectContaining({ characterId: 'mishti' }),
+      'Synthetic summary',
+      undefined,
+      expect.any(Object),
+    );
+  } finally {
+    release?.('Synthetic summary');
+    h.provider.summarize = async () => 'Synthetic end';
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+
+it('opens the selected voice even when optional handoff summarization fails', async () => {
+  const h = harness();
+  h.provider.summarize = vi.fn(async () => {
+    throw new Error('Synthetic summary outage');
+  });
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    h.callbacks()!.transcript('character', 'Synthetic context', true);
+    socket.send(JSON.stringify({ type: 'switchCharacter', characterId: 'chandni' }));
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual(
+        expect.objectContaining({ type: 'ready', characterId: 'chandni' }),
+      ),
+    );
+    expect(h.provider.open).toHaveBeenCalledTimes(2);
+    expect(h.provider.open).toHaveBeenLastCalledWith(
+      expect.objectContaining({ characterId: 'chandni' }),
+      '',
+      undefined,
+      expect.any(Object),
+    );
+    expect(messages.some((m) => (m as { type: string }).type === 'bye')).toBe(false);
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+
+it('binds gallery selection to the new game before returning from a guest and ignores old-world callbacks', async () => {
+  const h = harness();
+  const updates = new Map<string, (world: WorldDoc) => void>();
+  const worlds = Object.fromEntries(
+    ['w_old', 'w_latest'].map((id) => {
+      const doc = minimalScene();
+      doc.worldId = id;
+      doc.learning.mode = 'incidental';
+      return [
+        id,
+        {
+          ownerUid: 'parent',
+          childId: 'c_one',
+          title: id,
+          status: 'ready',
+          jobId: `j_${id}`,
+          doc,
+          assets: {},
+          concepts: ['force'],
+        } as unknown as WorldDoc,
+      ];
+    }),
+  );
+  h.store.world = vi.fn(async (_record, id) => worlds[id]!);
+  h.store.watchWorld = (id, callback) => {
+    updates.set(id, callback);
+    callback(worlds[id]!);
+    return () => {};
+  };
+  h.store.enqueue = vi.fn(async () => {});
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify({ ...hello, worldId: 'w_old' }));
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual(expect.objectContaining({ type: 'ready', worldId: 'w_old' })),
+    );
+    const record = [...h.records.values()][0]!;
+    record.persona = { packId: 'space', characterId: 'saturn' };
+    h.live.text.mockClear();
+    socket.send(JSON.stringify({ type: 'openWorld', worldId: 'w_latest' }));
+    await vi.waitFor(() =>
+      expect(messages).toContainEqual(
+        expect.objectContaining({ type: 'ready', worldId: 'w_latest' }),
+      ),
+    );
+    expect(record.persona).toBeUndefined();
+    expect(h.live.text).not.toHaveBeenCalledWith(expect.stringContaining('"worldId":"w_old"'));
+    expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining('"worldId":"w_latest"'));
+    h.live.text.mockClear();
+    updates.get('w_old')!(worlds.w_old!);
+    expect(h.live.text).not.toHaveBeenCalled();
+    h.callbacks()!.tool('edit-current', 'modify_world', {
+      instruction: 'Synthetic current-game edit',
+    });
+    await vi.waitFor(() =>
+      expect(h.store.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({ worldId: 'w_latest', kind: 'patch' }),
+      ),
+    );
+    socket.send(JSON.stringify({ type: 'newGame' }));
+    await vi.waitFor(() => expect(messages).toContainEqual({ type: 'newGame' }));
+    expect(record.worldId).toBeUndefined();
+    h.live.text.mockClear();
+    updates.get('w_latest')!(worlds.w_latest!);
+    expect(h.live.text).not.toHaveBeenCalled();
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+});
+
+it('restores the actual companion playback owner when reconnecting after a detached guest switch', async () => {
+  const h = harness();
+  const first = await connect(h.gateway);
+  let second: Awaited<ReturnType<typeof connect>> | undefined;
+  try {
+    first.socket.send(JSON.stringify(hello));
+    await vi.waitFor(() => expect(first.messages[0]).toMatchObject({ type: 'ready' }));
+    const record = [...h.records.values()][0]!;
+    record.characterId = 'mishti';
+    first.socket.close();
+    await once(first.socket, 'close');
+    second = await connect(h.gateway);
+    second.socket.send(JSON.stringify({ ...hello, sessionId: record.id }));
+    await vi.waitFor(() =>
+      expect(second!.messages).toContainEqual({
+        type: 'worldCharacter',
+        entityId: null,
+        name: 'Mishti',
+      }),
+    );
+    expect(second.messages).toContainEqual(
+      expect.objectContaining({
+        type: 'ready',
+        characterId: 'mishti',
+        sessionId: record.id,
+      }),
+    );
+    expect(h.provider.open).toHaveBeenCalledOnce();
+  } finally {
+    first.socket.terminate();
+    second?.socket.terminate();
+    await h.gateway.close();
+  }
 });
 it('rejects invalid tokens without opening a model session', async () => {
   const h = harness();

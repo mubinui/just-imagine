@@ -18,6 +18,13 @@ import {
   LanguageSwitch,
 } from './shared';
 import { SimView, SIM_DEFAULTS, PARAMS } from '../stem/SimView';
+import {
+  LessonTextAssist,
+  LessonTextAssistProvider,
+  lessonTextAssistCopy,
+} from './LessonTextAssist';
+import { invalidateTextApprovals, type LessonTextField } from '../../lib/school/text-assist';
+import assistStyles from './LessonTextAssist.module.css';
 import '../../app/school.css';
 type Text = { en: string; bn: string };
 const empty = (): Text => ({ en: '', bn: '' });
@@ -61,20 +68,46 @@ function TextField({
   value,
   onChange,
   language,
+  assistField,
+  context = '',
+  singleLine = false,
 }: {
   label: string;
   value: Text;
   onChange: (v: Text) => void;
   language: 'en' | 'bn';
+  assistField: LessonTextField;
+  context?: string;
+  singleLine?: boolean;
 }) {
   return (
-    <Field label={label}>
-      <textarea
-        lang={language === 'bn' ? 'bn-BD' : 'en'}
-        value={value[language]}
-        onChange={(e) => onChange({ ...value, [language]: e.target.value })}
+    <div className={assistStyles.field}>
+      {singleLine ? (
+        <input
+          aria-label={label}
+          lang={language === 'bn' ? 'bn-BD' : 'en'}
+          value={value[language]}
+          maxLength={4000}
+          onChange={(e) => onChange({ ...value, [language]: e.target.value })}
+        />
+      ) : (
+        <Field label={label}>
+          <textarea
+            lang={language === 'bn' ? 'bn-BD' : 'en'}
+            value={value[language]}
+            maxLength={4000}
+            onChange={(e) => onChange({ ...value, [language]: e.target.value })}
+          />
+        </Field>
+      )}
+      <LessonTextAssist
+        field={assistField}
+        value={value}
+        language={language}
+        context={context}
+        onChange={onChange}
       />
-    </Field>
+    </div>
   );
 }
 export function LessonLibrary({ admin = false }: { admin?: boolean }) {
@@ -293,402 +326,445 @@ export function LessonEditor({ id, admin = false }: { id: string; admin?: boolea
     }
   }
   if (id !== 'new' && r.loading) return <Loading />;
+  const aiCopy = lessonTextAssistCopy(language);
   return (
-    <div className="sch sch-panel">
-      <div className="sch-toolbar">
-        <h1>{s(id === 'new' ? 'newLesson' : 'edit')}</h1>
-        <Link href={admin ? '/admin/lessons' : '/school/lessons'}>{s('lessons')}</Link>
-      </div>
-      <ErrorNotice error={r.error} retry={r.reload} />
-      <ActionNotice action={action} />
-      {admin && (
-        <Field label={s('reason')}>
-          <input
-            value={reason}
-            minLength={3}
-            required
-            onChange={(e) => setReason(e.target.value)}
-          />
-        </Field>
-      )}
-      <div className="sch-tabs sch-editor-tabs">
-        {(['en', 'bn'] as const).map((lang) => (
-          <button key={lang} aria-pressed={editLang === lang} onClick={() => setEditLang(lang)}>
-            {lang === 'bn' ? 'বাংলা' : 'English'} {lesson.approved[lang] ? '✓' : ''}
-          </button>
-        ))}
-        <button
-          className="sch-primary"
-          disabled={action.busy}
-          onClick={() => void action.run(save, s('saved'))}
-        >
-          {s('save')}
-          {dirty ? ' *' : ''}
-        </button>
-      </div>
-      <div className="sch-grid">
-        <TextField
-          label={s('title')}
-          value={lesson.title}
-          onChange={(title) => change({ ...lesson, title })}
-          language={editLang}
-        />
-        <div className="sch-form">
-          <Field label={s('subject')}>
-            <select
-              value={lesson.subject}
-              onChange={(e) => {
-                const subject = e.target.value as Lesson['subject'];
-                change({
-                  ...lesson,
-                  subject,
-                  chapterId: CHAPTERS.find((c) => c.subject === subject)!.id,
-                });
-              }}
-            >
-              {['physics', 'chemistry', 'math'].map((v) => (
-                <option key={v} value={v}>
-                  {s(v as 'physics')}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={s('grade')}>
-            <select
-              value={lesson.grade}
-              onChange={(e) => change({ ...lesson, grade: Number(e.target.value) as 9 | 10 })}
-            >
-              <option>9</option>
-              <option>10</option>
-            </select>
-          </Field>
-          <Field label={s('chapter')}>
-            <select
-              value={lesson.chapterId}
-              onChange={(e) => change({ ...lesson, chapterId: e.target.value })}
-            >
-              {CHAPTERS.filter((c) => c.subject === lesson.subject).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {text(c.title)} ({c.book})
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={s('sourceLanguage')}>
-            <select
-              value={lesson.sourceLanguage}
-              onChange={(e) => change({ ...lesson, sourceLanguage: e.target.value as 'en' | 'bn' })}
-            >
-              <option value="en">English</option>
-              <option value="bn">বাংলা</option>
-            </select>
-          </Field>
+    <LessonTextAssistProvider
+      value={{
+        base: {
+          subject: lesson.subject,
+          grade: lesson.grade,
+          chapterId: lesson.chapterId,
+          title: lesson.title,
+        },
+        admin,
+        reason,
+        onApplied: () => {
+          setLesson(invalidateTextApprovals);
+          setDirty(true);
+        },
+      }}
+    >
+      <div className="sch sch-panel">
+        <div className="sch-toolbar">
+          <h1>{s(id === 'new' ? 'newLesson' : 'edit')}</h1>
+          <Link href={admin ? '/admin/lessons' : '/school/lessons'}>{s('lessons')}</Link>
         </div>
-      </div>
-      <h2>{s('steps')}</h2>
-      {lesson.steps.map((step, index) => (
-        <section className="sch-step" key={index}>
+        <ErrorNotice error={r.error} retry={r.reload} />
+        <ActionNotice action={action} />
+        {admin && (
+          <Field label={s('reason')}>
+            <input
+              value={reason}
+              minLength={3}
+              required
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Field>
+        )}
+        <details className={assistStyles.wholeTools}>
+          <summary>{aiCopy.wholeTitle}</summary>
+          <p>{aiCopy.wholeHelp}</p>
+          <Field label={s('notes')}>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </Field>
+          {(id === 'new' || dirty) && <p>{aiCopy.wholeSave}</p>}
           <div className="sch-toolbar">
-            <h2>
-              {index + 1}. {s(step.kind)}
-            </h2>
             <button
-              disabled={index === 0}
-              aria-label={s('moveUp')}
-              onClick={() => {
-                const steps = [...lesson.steps];
-                [steps[index - 1], steps[index]] = [steps[index]!, steps[index - 1]!];
-                change({ ...lesson, steps });
-              }}
-            >
-              ↑
-            </button>
-            <button
-              disabled={index === lesson.steps.length - 1}
-              aria-label={s('moveDown')}
-              onClick={() => {
-                const steps = [...lesson.steps];
-                [steps[index], steps[index + 1]] = [steps[index + 1]!, steps[index]!];
-                change({ ...lesson, steps });
-              }}
-            >
-              ↓
-            </button>
-            <button
-              disabled={lesson.steps.length <= 1}
+              type="button"
+              disabled={id === 'new' || action.busy || dirty}
               onClick={() =>
-                change({ ...lesson, steps: lesson.steps.filter((_, i) => i !== index) })
+                void action.run(
+                  () => remote('draft', { notes, sourceLanguage: lesson.sourceLanguage }),
+                  s('reviewDraft'),
+                )
               }
             >
-              {s('delete')}
+              {s('draftAi')}
+            </button>
+            <button
+              type="button"
+              disabled={id === 'new' || action.busy || dirty}
+              onClick={() =>
+                void action.run(
+                  () => remote('translate', { targetLanguage: editLang === 'en' ? 'bn' : 'en' }),
+                  s('reviewDraft'),
+                )
+              }
+            >
+              {s('translate')}
             </button>
           </div>
-          {step.kind === 'intro' ? (
-            <TextField
-              label={s('body')}
-              value={step.body}
-              onChange={(body) => updateStep(index, { ...step, body })}
-              language={editLang}
-            />
-          ) : step.kind === 'explore' ? (
-            <>
-              <Field label={s('explore')}>
-                <select
-                  value={step.simId}
-                  onChange={(e) =>
-                    updateStep(index, {
-                      ...step,
-                      simId: e.target.value,
-                      params: { ...SIM_DEFAULTS[e.target.value as SimId] },
-                      lockedParams: [],
-                    })
-                  }
-                >
-                  {SIM_IDS.map((sim) => (
-                    <option key={sim}>{sim}</option>
-                  ))}
-                </select>
-              </Field>
-              <SimView
-                id={step.simId as SimId}
-                value={step.params}
-                onChange={(params) => updateStep(index, { ...step, params })}
-              />
-              <div className="sch-checks">
-                {[
-                  ...PARAMS[step.simId as SimId].map((p) => p.id),
-                  ...(step.simId === 'ohms-circuit' ? ['topology', 'resistors'] : []),
-                ].map((key) => (
-                  <label key={key}>
-                    <input
-                      type="checkbox"
-                      checked={step.lockedParams.includes(key)}
-                      onChange={(e) =>
-                        updateStep(index, {
-                          ...step,
-                          lockedParams: e.target.checked
-                            ? [...step.lockedParams, key]
-                            : step.lockedParams.filter((k) => k !== key),
-                        })
-                      }
-                    />
-                    {s('locked')}: {key}
-                  </label>
-                ))}
-              </div>
-              {step.prompts.map((prompt, i) => (
-                <TextField
-                  key={i}
-                  label={s('prompts')}
-                  value={prompt}
-                  language={editLang}
-                  onChange={(v) =>
-                    updateStep(index, {
-                      ...step,
-                      prompts: step.prompts.map((p, j) => (i === j ? v : p)),
-                    })
-                  }
-                />
-              ))}
-              <button
-                disabled={step.prompts.length >= 6}
-                onClick={() => updateStep(index, { ...step, prompts: [...step.prompts, empty()] })}
-              >
-                + {s('prompts')}
-              </button>
-            </>
-          ) : step.kind === 'lab' ? (
-            <>
-              <TextField
-                label={s('body')}
-                value={step.goal ?? empty()}
-                onChange={(goal) => updateStep(index, { ...step, goal })}
-                language={editLang}
-              />
-              <Field label={s('chooseReagents')}>
-                <input
-                  value={step.reagentIds.join(', ')}
-                  onChange={(e) =>
-                    updateStep(index, {
-                      ...step,
-                      reagentIds: e.target.value
-                        .split(',')
-                        .map((v) => v.trim())
-                        .filter(Boolean),
-                    })
-                  }
-                />
-              </Field>
-            </>
-          ) : (
-            <>
-              {(step.kind === 'check' ? [step.item] : step.items).map((item, i) => (
-                <QuestionEditor
-                  key={item.id}
-                  item={item}
-                  itemKey={keys.items[item.id]?.key ?? newKey(item.kind)}
-                  hints={keys.items[item.id]?.hints ?? []}
-                  language={editLang}
-                  onItem={(next) => {
-                    if (next.kind !== item.kind) updateItemKey(next, newKey(next.kind));
-                    if (step.kind === 'check') updateStep(index, { ...step, item: next });
-                    else
-                      updateStep(index, {
-                        ...step,
-                        items: step.items.map((v, j) => (i === j ? next : v)),
-                      });
-                  }}
-                  onKey={(key) => updateItemKey(item, key)}
-                  onHints={(hints) => {
-                    setKeys((k) => ({
-                      ...k,
-                      items: {
-                        ...k.items,
-                        [item.id]: { key: k.items[item.id]?.key ?? newKey(item.kind), hints },
-                      },
-                    }));
-                    setDirty(true);
-                  }}
-                />
-              ))}
-              {step.kind === 'quiz' && (
-                <button
-                  disabled={step.items.length >= 10}
-                  onClick={() => updateStep(index, { ...step, items: [...step.items, newItem()] })}
-                >
-                  + {s('question')}
-                </button>
-              )}
-            </>
-          )}
-        </section>
-      ))}
-      <div className="sch-toolbar">
-        {(['intro', 'explore', 'check', 'quiz', 'lab'] as const).map((kind) => (
+        </details>
+        <div className="sch-tabs sch-editor-tabs">
+          {(['en', 'bn'] as const).map((lang) => (
+            <button key={lang} aria-pressed={editLang === lang} onClick={() => setEditLang(lang)}>
+              {lang === 'bn' ? 'বাংলা' : 'English'} {lesson.approved[lang] ? '✓' : ''}
+            </button>
+          ))}
           <button
-            key={kind}
-            disabled={lesson.steps.length >= 20}
-            onClick={() => change({ ...lesson, steps: [...lesson.steps, newStep(kind)] })}
+            className="sch-primary"
+            disabled={action.busy}
+            onClick={() => void action.run(save, s('saved'))}
           >
-            + {s(kind)}
+            {s('save')}
+            {dirty ? ' *' : ''}
           </button>
-        ))}
-      </div>
-      {id !== 'new' && (
-        <>
-          <section className="sch-section">
-            <Field label={s('notes')}>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+        <div className="sch-grid">
+          <TextField
+            assistField="title"
+            label={s('title')}
+            value={lesson.title}
+            onChange={(title) => change({ ...lesson, title })}
+            language={editLang}
+          />
+          <div className="sch-form">
+            <Field label={s('subject')}>
+              <select
+                value={lesson.subject}
+                onChange={(e) => {
+                  const subject = e.target.value as Lesson['subject'];
+                  change({
+                    ...lesson,
+                    subject,
+                    chapterId: CHAPTERS.find((c) => c.subject === subject)!.id,
+                  });
+                }}
+              >
+                {['physics', 'chemistry', 'math'].map((v) => (
+                  <option key={v} value={v}>
+                    {s(v as 'physics')}
+                  </option>
+                ))}
+              </select>
             </Field>
+            <Field label={s('grade')}>
+              <select
+                value={lesson.grade}
+                onChange={(e) => change({ ...lesson, grade: Number(e.target.value) as 9 | 10 })}
+              >
+                <option>9</option>
+                <option>10</option>
+              </select>
+            </Field>
+            <Field label={s('chapter')}>
+              <select
+                value={lesson.chapterId}
+                onChange={(e) => change({ ...lesson, chapterId: e.target.value })}
+              >
+                {CHAPTERS.filter((c) => c.subject === lesson.subject).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {text(c.title)} ({c.book})
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={s('sourceLanguage')}>
+              <select
+                value={lesson.sourceLanguage}
+                onChange={(e) =>
+                  change({ ...lesson, sourceLanguage: e.target.value as 'en' | 'bn' })
+                }
+              >
+                <option value="en">English</option>
+                <option value="bn">বাংলা</option>
+              </select>
+            </Field>
+          </div>
+        </div>
+        <h2>{s('steps')}</h2>
+        {lesson.steps.map((step, index) => (
+          <section className="sch-step" key={index}>
             <div className="sch-toolbar">
+              <h2>
+                {index + 1}. {s(step.kind)}
+              </h2>
               <button
-                disabled={action.busy || dirty}
-                onClick={() =>
-                  void action.run(
-                    () => remote('draft', { notes, sourceLanguage: lesson.sourceLanguage }),
-                    s('reviewDraft'),
-                  )
-                }
+                disabled={index === 0}
+                aria-label={s('moveUp')}
+                onClick={() => {
+                  const steps = [...lesson.steps];
+                  [steps[index - 1], steps[index]] = [steps[index]!, steps[index - 1]!];
+                  change({ ...lesson, steps });
+                }}
               >
-                {s('draftAi')}
+                ↑
               </button>
               <button
-                disabled={action.busy || dirty}
-                onClick={() =>
-                  void action.run(
-                    () => remote('translate', { targetLanguage: editLang === 'en' ? 'bn' : 'en' }),
-                    s('reviewDraft'),
-                  )
-                }
+                disabled={index === lesson.steps.length - 1}
+                aria-label={s('moveDown')}
+                onClick={() => {
+                  const steps = [...lesson.steps];
+                  [steps[index], steps[index + 1]] = [steps[index + 1]!, steps[index]!];
+                  change({ ...lesson, steps });
+                }}
               >
-                {s('translate')}
+                ↓
               </button>
               <button
-                disabled={action.busy || dirty || lesson.approved[editLang]}
+                disabled={lesson.steps.length <= 1}
                 onClick={() =>
-                  void action.run(
-                    () =>
-                      remote('approve', { language: editLang, expectedRevision: lesson.revision }),
-                    s('saved'),
-                  )
+                  change({ ...lesson, steps: lesson.steps.filter((_, i) => i !== index) })
                 }
               >
-                {s('approve')} · {editLang}
+                {s('delete')}
               </button>
             </div>
-          </section>
-          {!admin && (
-            <section className="sch-section">
-              <Field label={s('scope')}>
-                <select
-                  value={lesson.scope}
-                  onChange={(e) =>
-                    change({
-                      ...lesson,
-                      scope: e.target.value as 'school' | 'class',
-                      classIds: e.target.value === 'school' ? [] : lesson.classIds,
-                    })
-                  }
-                >
-                  <option value="school">{s('wholeSchool')}</option>
-                  <option value="class">{s('chosenClasses')}</option>
-                </select>
-              </Field>
-              {lesson.scope === 'class' && (
+            {step.kind === 'intro' ? (
+              <TextField
+                assistField="explanation"
+                context={JSON.stringify({ stepIndex: index, step })}
+                label={s('body')}
+                value={step.body}
+                onChange={(body) => updateStep(index, { ...step, body })}
+                language={editLang}
+              />
+            ) : step.kind === 'explore' ? (
+              <>
+                <Field label={s('explore')}>
+                  <select
+                    value={step.simId}
+                    onChange={(e) =>
+                      updateStep(index, {
+                        ...step,
+                        simId: e.target.value,
+                        params: { ...SIM_DEFAULTS[e.target.value as SimId] },
+                        lockedParams: [],
+                      })
+                    }
+                  >
+                    {SIM_IDS.map((sim) => (
+                      <option key={sim}>{sim}</option>
+                    ))}
+                  </select>
+                </Field>
+                <SimView
+                  id={step.simId as SimId}
+                  value={step.params}
+                  onChange={(params) => updateStep(index, { ...step, params })}
+                />
                 <div className="sch-checks">
-                  {classes.data?.classes.map((c) => (
-                    <label key={c.id}>
+                  {[
+                    ...PARAMS[step.simId as SimId].map((p) => p.id),
+                    ...(step.simId === 'ohms-circuit' ? ['topology', 'resistors'] : []),
+                  ].map((key) => (
+                    <label key={key}>
                       <input
                         type="checkbox"
-                        checked={lesson.classIds.includes(c.id)}
+                        checked={step.lockedParams.includes(key)}
                         onChange={(e) =>
-                          change({
-                            ...lesson,
-                            classIds: e.target.checked
-                              ? [...lesson.classIds, c.id]
-                              : lesson.classIds.filter((v) => v !== c.id),
+                          updateStep(index, {
+                            ...step,
+                            lockedParams: e.target.checked
+                              ? [...step.lockedParams, key]
+                              : step.lockedParams.filter((k) => k !== key),
                           })
                         }
                       />
-                      {c.name}
+                      {s('locked')}: {key}
                     </label>
                   ))}
                 </div>
-              )}
+                {step.prompts.map((prompt, i) => (
+                  <TextField
+                    key={i}
+                    assistField="instruction"
+                    context={JSON.stringify({ stepIndex: index, promptIndex: i, step })}
+                    label={s('prompts')}
+                    value={prompt}
+                    language={editLang}
+                    onChange={(v) =>
+                      updateStep(index, {
+                        ...step,
+                        prompts: step.prompts.map((p, j) => (i === j ? v : p)),
+                      })
+                    }
+                  />
+                ))}
+                <button
+                  disabled={step.prompts.length >= 6}
+                  onClick={() =>
+                    updateStep(index, { ...step, prompts: [...step.prompts, empty()] })
+                  }
+                >
+                  + {s('prompts')}
+                </button>
+              </>
+            ) : step.kind === 'lab' ? (
+              <>
+                <TextField
+                  assistField="goal"
+                  context={JSON.stringify({ stepIndex: index, step })}
+                  label={s('body')}
+                  value={step.goal ?? empty()}
+                  onChange={(goal) => updateStep(index, { ...step, goal })}
+                  language={editLang}
+                />
+                <Field label={s('chooseReagents')}>
+                  <input
+                    value={step.reagentIds.join(', ')}
+                    onChange={(e) =>
+                      updateStep(index, {
+                        ...step,
+                        reagentIds: e.target.value
+                          .split(',')
+                          .map((v) => v.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                </Field>
+              </>
+            ) : (
+              <>
+                {(step.kind === 'check' ? [step.item] : step.items).map((item, i) => (
+                  <QuestionEditor
+                    key={item.id}
+                    item={item}
+                    itemKey={keys.items[item.id]?.key ?? newKey(item.kind)}
+                    hints={keys.items[item.id]?.hints ?? []}
+                    language={editLang}
+                    onItem={(next) => {
+                      if (next.kind !== item.kind) updateItemKey(next, newKey(next.kind));
+                      if (step.kind === 'check') updateStep(index, { ...step, item: next });
+                      else
+                        updateStep(index, {
+                          ...step,
+                          items: step.items.map((v, j) => (i === j ? next : v)),
+                        });
+                    }}
+                    onKey={(key) => updateItemKey(item, key)}
+                    onHints={(hints) => {
+                      setKeys((k) => ({
+                        ...k,
+                        items: {
+                          ...k.items,
+                          [item.id]: { key: k.items[item.id]?.key ?? newKey(item.kind), hints },
+                        },
+                      }));
+                      setDirty(true);
+                    }}
+                  />
+                ))}
+                {step.kind === 'quiz' && (
+                  <button
+                    disabled={step.items.length >= 10}
+                    onClick={() =>
+                      updateStep(index, { ...step, items: [...step.items, newItem()] })
+                    }
+                  >
+                    + {s('question')}
+                  </button>
+                )}
+              </>
+            )}
+          </section>
+        ))}
+        <div className="sch-toolbar">
+          {(['intro', 'explore', 'check', 'quiz', 'lab'] as const).map((kind) => (
+            <button
+              key={kind}
+              disabled={lesson.steps.length >= 20}
+              onClick={() => change({ ...lesson, steps: [...lesson.steps, newStep(kind)] })}
+            >
+              + {s(kind)}
+            </button>
+          ))}
+        </div>
+        {id !== 'new' && (
+          <>
+            <section className="sch-section">
+              <div className="sch-toolbar">
+                <button
+                  disabled={action.busy || dirty || lesson.approved[editLang]}
+                  onClick={() =>
+                    void action.run(
+                      () =>
+                        remote('approve', {
+                          language: editLang,
+                          expectedRevision: lesson.revision,
+                        }),
+                      s('saved'),
+                    )
+                  }
+                >
+                  {s('approve')} · {editLang}
+                </button>
+              </div>
             </section>
-          )}
-          <div className="sch-toolbar">
-            <span>
-              {s(lesson.approved.en ? 'approved' : 'draft')}: English ·{' '}
-              {s(lesson.approved.bn ? 'approved' : 'draft')}: বাংলা
-            </span>
-            <button
-              className="sch-primary"
-              disabled={dirty || action.busy || !lesson.approved.en || !lesson.approved.bn}
-              onClick={() =>
-                void action.run(
-                  () => remote('publish', { expectedRevision: lesson.revision }),
-                  s('published'),
-                )
-              }
-            >
-              {s('publish')}
-            </button>
-            <button
-              disabled={dirty || action.busy}
-              onClick={() =>
-                void action.run(
-                  () => remote('archive', { expectedRevision: lesson.revision }),
-                  s('archived'),
-                )
-              }
-            >
-              {s('archiveLesson')}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+            {!admin && (
+              <section className="sch-section">
+                <Field label={s('scope')}>
+                  <select
+                    value={lesson.scope}
+                    onChange={(e) =>
+                      change({
+                        ...lesson,
+                        scope: e.target.value as 'school' | 'class',
+                        classIds: e.target.value === 'school' ? [] : lesson.classIds,
+                      })
+                    }
+                  >
+                    <option value="school">{s('wholeSchool')}</option>
+                    <option value="class">{s('chosenClasses')}</option>
+                  </select>
+                </Field>
+                {lesson.scope === 'class' && (
+                  <div className="sch-checks">
+                    {classes.data?.classes.map((c) => (
+                      <label key={c.id}>
+                        <input
+                          type="checkbox"
+                          checked={lesson.classIds.includes(c.id)}
+                          onChange={(e) =>
+                            change({
+                              ...lesson,
+                              classIds: e.target.checked
+                                ? [...lesson.classIds, c.id]
+                                : lesson.classIds.filter((v) => v !== c.id),
+                            })
+                          }
+                        />
+                        {c.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+            <div className="sch-toolbar">
+              <span>
+                {s(lesson.approved.en ? 'approved' : 'draft')}: English ·{' '}
+                {s(lesson.approved.bn ? 'approved' : 'draft')}: বাংলা
+              </span>
+              <button
+                className="sch-primary"
+                disabled={dirty || action.busy || !lesson.approved.en || !lesson.approved.bn}
+                onClick={() =>
+                  void action.run(
+                    () => remote('publish', { expectedRevision: lesson.revision }),
+                    s('published'),
+                  )
+                }
+              >
+                {s('publish')}
+              </button>
+              <button
+                disabled={dirty || action.busy}
+                onClick={() =>
+                  void action.run(
+                    () => remote('archive', { expectedRevision: lesson.revision }),
+                    s('archived'),
+                  )
+                }
+              >
+                {s('archiveLesson')}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </LessonTextAssistProvider>
   );
 }
 function QuestionEditor({
@@ -743,6 +819,8 @@ function QuestionEditor({
         </Field>
       </div>
       <TextField
+        assistField="question"
+        context={JSON.stringify({ item, itemKey })}
         label={s('question')}
         value={item.prompt}
         language={language}
@@ -751,22 +829,24 @@ function QuestionEditor({
       {item.kind === 'mcq' && itemKey.kind === 'mcq' && (
         <>
           {item.options.map((option, i) => (
-            <div className="sch-option" key={i}>
+            <div className={'sch-option ' + assistStyles.choice} key={i}>
               <input
                 type="radio"
                 aria-label={s('correct') + ' ' + (i + 1)}
                 checked={itemKey.answer === i}
                 onChange={() => onKey({ kind: 'mcq', answer: i })}
               />
-              <input
-                aria-label={s('options') + ' ' + (i + 1)}
-                value={option[language]}
-                onChange={(e) =>
+              <TextField
+                singleLine
+                assistField="option"
+                label={s('options') + ' ' + (i + 1)}
+                value={option}
+                language={language}
+                context={JSON.stringify({ item, itemKey, optionIndex: i })}
+                onChange={(next) =>
                   onItem({
                     ...item,
-                    options: item.options.map((v, j) =>
-                      i === j ? { ...v, [language]: e.target.value } : v,
-                    ),
+                    options: item.options.map((v, j) => (i === j ? next : v)),
                   })
                 }
               />
@@ -940,6 +1020,8 @@ function QuestionEditor({
       )}
       {hints.map((h, i) => (
         <TextField
+          assistField="hint"
+          context={JSON.stringify({ item, itemKey, hintIndex: i })}
           label={s('hints')}
           key={i}
           value={h}

@@ -34,6 +34,24 @@ export const BilingualTextSchema = z.strictObject({
 });
 export type BilingualText = z.infer<typeof BilingualTextSchema>;
 
+/** Text proposals only: applying, saving and approving remain explicit teacher actions. */
+export const LessonTextAssistRequestSchema = z.object({
+  subject: SchoolSubjectSchema,
+  grade: SchoolGradeSchema,
+  chapterId: ChapterIdSchema,
+  title: BilingualTextSchema,
+  field: z.enum(['title', 'explanation', 'instruction', 'goal', 'question', 'option', 'hint']),
+  language: LanguageSchema,
+  text: z.string().max(4000),
+  instruction: z.string().trim().max(800).default(''),
+  context: z.string().max(4000).default(''),
+});
+export type LessonTextAssistRequest = z.infer<typeof LessonTextAssistRequestSchema>;
+export const LessonTextAssistResponseSchema = z.object({
+  text: z.string().trim().min(1).max(4000),
+});
+export type LessonTextAssistResponse = z.infer<typeof LessonTextAssistResponseSchema>;
+
 export const SchoolAdminClaimsSchema = z.object({
   role: z.literal('schoolAdmin'),
   schoolId: DocumentIdSchema,

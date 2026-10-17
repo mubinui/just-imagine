@@ -1,5 +1,5 @@
 ---
-version: 5
+version: 6
 slug: 'learn'
 primary_target: 'app/(child)/learn/page.tsx'
 related_targets:
@@ -21,6 +21,14 @@ related_targets:
 # Surface brief: Learning Worlds (`/learn`, `/learn/[pack]`)
 
 Mode: Experience. The child aged 6 to 13 visits a story world, helps its characters through direct play, sees a consequence and may talk to a guide. The warm cream-and-forest theatre remains the default shell; the authorized global Ocean and Terracotta interface presets preserve its structure and original subject artwork. Landscape tablet is the primary composition; phones preserve playable space with scrolling. The child uses taps, drags, choices and voice, never free text. Server components strip private quiz answer keys, accepted answers and hints. English and Bangla remain equal routes through the experience.
+
+## Current map arrangement — 2026-10-17
+
+This extension supersedes the older four-row map spacing below. The short Learn/শিখি header contains the shared personal theme selector; the invitation and explanatory sentence lead one keyboard-focusable content region. The six existing island destinations and Katha's story link share that region's vertical scroll. Only the compact points/pets/Studio dock stays outside it. Katha no longer occupies a permanently pinned row above the footer.
+
+Destinations use three columns on desktop and two at or below 760px, with content-sized rows and full-link focus targets. Figures are at most 136px desktop and 112px phone, with a 240:220 footprint that reserves real headroom; progress rings use 66% width and 20% bottom placement within it. Existing subject art, palettes, acting and island bases are preserved. Bangla retains 1.45 line-height. The region has bottom padding and a separate safe-area-aware footer; short windows retain this one content scroller.
+
+Counts explicitly describe quiz challenges, separate from adventure/chapter bookmarks. A loading map never displays demo points: it uses the selected explorer's known totals while real progress loads. Failed progress has a visible retry action, and child-keyed state prevents another explorer's totals from appearing. A zero-progress destination states its available challenge count; actual positive progress keeps its arc and answered-challenge count. Personal themes follow the shared ThemePicker contract and never recolor character pixels.
 
 ## Direction contract
 
