@@ -58,6 +58,7 @@ it('asks the scene model for structured {kind, source} JSON with safety settings
   expect(request.config.thinkingConfig).toEqual({ thinkingLevel: 'HIGH' });
   expect(request.config.httpOptions.retryOptions.attempts).toBe(1);
   expect(request.config.abortSignal).toBeInstanceOf(AbortSignal);
+  expect(request.config.httpOptions.timeout).toBe(180000);
 });
 
 it('rejects an empty response', async () => {
@@ -98,6 +99,7 @@ it('retries a rejected nested plan schema as JSON on the same model and retains 
   expect(requests[1].contents).toContain('Exact JSON contract');
   expect(requests[1].config.safetySettings).toHaveLength(4);
   expect(requests[1].config.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
+  expect(requests.every((request) => request.config.httpOptions.timeout === 90000)).toBe(true);
 });
 
 it('does not use a format retry to hide planner authentication or quota failure', async () => {

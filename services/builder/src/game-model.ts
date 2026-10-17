@@ -30,6 +30,7 @@ export class GameScriptModel {
     schema?: Record<string, unknown>,
     purpose: 'script' | 'plan' = 'script',
   ): Promise<unknown> {
+    const timeoutMs = purpose === 'script' ? 180000 : 90000;
     const response = await traced(`game_${purpose}_model`, { milestone: this.config.model }, () =>
       this.client.models.generateContent({
         model: this.config.model,
@@ -46,8 +47,8 @@ export class GameScriptModel {
                 },
               }
             : {}),
-          abortSignal: AbortSignal.timeout(100000),
-          httpOptions: { timeout: 90000, retryOptions: { attempts: 1 } },
+          abortSignal: AbortSignal.timeout(timeoutMs + 10000),
+          httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
         },
       }),
     );
