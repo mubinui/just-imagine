@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { validateScene, SceneCharacterSchema } from '../src/index';
+import { validateScene, SceneCharacterSchema, LIVE_VOICES } from '../src/index';
 import { minimalScene } from './helpers';
 
 it('allows an incidental creative world without a compulsory ground or teaching rule', () => {
@@ -56,4 +56,12 @@ it('validates character bounds and screens all character instructions as content
       (i) => i.code === 'BLOCKED_CATEGORY' && i.path.includes('character.personality'),
     ),
   ).toBe(true);
+});
+
+it('lets the builder give a world character one of the Live voices, optionally', () => {
+  const base = { name: 'Leo', personality: 'A brave lion', greeting: 'Roar!', topic: 'courage' };
+  expect(SceneCharacterSchema.safeParse(base).success).toBe(true);
+  expect(SceneCharacterSchema.safeParse({ ...base, voice: 'Charon' }).success).toBe(true);
+  expect(LIVE_VOICES).toContain('Sulafat');
+  expect(SceneCharacterSchema.safeParse({ ...base, voice: 'Robot9000' }).success).toBe(false);
 });

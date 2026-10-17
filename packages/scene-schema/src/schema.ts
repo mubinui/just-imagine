@@ -108,12 +108,48 @@ export type Body = z.infer<typeof BodySchema>;
 
 export const EntityKindSchema = z.enum(['sprite', 'ground', 'water', 'particle']);
 
+/** Gemini Live prebuilt voices a speaking character may use. */
+export const LIVE_VOICES = [
+  'Achernar',
+  'Achird',
+  'Algenib',
+  'Algieba',
+  'Alnilam',
+  'Aoede',
+  'Autonoe',
+  'Callirrhoe',
+  'Charon',
+  'Despina',
+  'Enceladus',
+  'Erinome',
+  'Fenrir',
+  'Gacrux',
+  'Iapetus',
+  'Kore',
+  'Laomedeia',
+  'Leda',
+  'Orus',
+  'Puck',
+  'Pulcherrima',
+  'Rasalgethi',
+  'Sadachbia',
+  'Sadaltager',
+  'Schedar',
+  'Sulafat',
+  'Umbriel',
+  'Vindemiatrix',
+  'Zephyr',
+  'Zubenelgenubi',
+] as const;
+
 /** A character created for this world, rather than a fixed member of the app's cast. */
 export const SceneCharacterSchema = z.object({
   name: z.string().trim().min(1).max(40),
   personality: z.string().trim().min(1).max(240),
   greeting: z.string().trim().min(1).max(160),
   topic: z.string().trim().min(1).max(160),
+  /** Chosen by the builder to suit the character; older worlds have none. */
+  voice: z.enum(LIVE_VOICES).optional(),
 });
 export type SceneCharacter = z.infer<typeof SceneCharacterSchema>;
 

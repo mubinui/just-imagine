@@ -1,40 +1,10 @@
 import { z } from 'zod';
-import { IdSchema, SceneDocSchema, validateScene } from '@just-imagine/scene-schema';
+import { IdSchema, LIVE_VOICES, SceneDocSchema, validateScene } from '@just-imagine/scene-schema';
+
+export { LIVE_VOICES };
 
 // Prebuilt Gemini Live voice names (native-audio set). The gateway passes `voice` straight through
 // as `voiceName`, so a typo here would only surface at session start; the enum catches it at build.
-export const LIVE_VOICES = [
-  'Achernar',
-  'Achird',
-  'Algenib',
-  'Algieba',
-  'Alnilam',
-  'Aoede',
-  'Autonoe',
-  'Callirrhoe',
-  'Charon',
-  'Despina',
-  'Enceladus',
-  'Erinome',
-  'Fenrir',
-  'Gacrux',
-  'Iapetus',
-  'Kore',
-  'Laomedeia',
-  'Leda',
-  'Orus',
-  'Puck',
-  'Pulcherrima',
-  'Rasalgethi',
-  'Sadachbia',
-  'Sadaltager',
-  'Schedar',
-  'Sulafat',
-  'Umbriel',
-  'Vindemiatrix',
-  'Zephyr',
-  'Zubenelgenubi',
-] as const;
 export const VoiceSchema = z.enum(LIVE_VOICES);
 export type LiveVoice = z.infer<typeof VoiceSchema>;
 

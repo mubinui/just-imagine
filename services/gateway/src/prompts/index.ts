@@ -20,9 +20,40 @@ export function systemInstruction(record: SessionRecord, summary: string): strin
   return `${speakerInstruction(record, summary)}\n${spokenLanguageRule(record.identity.child)}`;
 }
 
+/** Voices an unvoiced world character may be given; distinct and clear for children. */
+const WORLD_VOICES = [
+  'Sulafat',
+  'Charon',
+  'Kore',
+  'Fenrir',
+  'Aoede',
+  'Leda',
+  'Orus',
+  'Zephyr',
+  'Puck',
+  'Achird',
+  'Umbriel',
+  'Schedar',
+] as const;
+
+/**
+ * A world character speaks in the voice the builder chose for it, never in the friend's own
+ * voice (two speakers must sound different). Older worlds without a choice get a stable voice
+ * derived from the character's name.
+ */
+function worldCharacterVoice(record: SessionRecord): string {
+  const friend = CHARACTERS[record.characterId].voice;
+  const character = record.worldCharacter!.character;
+  if (character.voice && character.voice !== friend) return character.voice;
+  const pool = WORLD_VOICES.filter((voice) => voice !== friend);
+  const seed = [...character.name].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7);
+  return pool[seed % pool.length]!;
+}
+
 /** Preserve each selected character's authored voice identity. */
 export function voiceFor(record: SessionRecord): string {
-  if (record.story || record.worldCharacter) return 'Sulafat';
+  if (record.worldCharacter) return worldCharacterVoice(record);
+  if (record.story) return 'Sulafat';
   if (record.persona) return personaVoice(record);
   return CHARACTERS[record.characterId].voice;
 }
