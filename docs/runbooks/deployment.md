@@ -2,6 +2,8 @@
 
 Use this guide for local operations and a reviewed staging/cloud release. Run commands from the repository root unless noted. The repository contains deployment source; it does not prove that any cloud project, trigger, secret, domain or monitoring channel has been configured. Current acceptance limits are in [CHECKPOINT.md](../../CHECKPOINT.md).
 
+For a first cloud deployment, follow the ordered, step-by-step [Google Cloud guidebook](google-cloud-guidebook.md). This page remains the reference.
+
 ## Local development
 
 1. Install Node 22.12+, pnpm 10.34.7 and Docker Desktop/Engine with Compose. Java 21 is needed only for host emulator tests; the local image includes Java.
