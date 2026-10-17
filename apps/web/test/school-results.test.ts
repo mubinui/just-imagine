@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AttemptDoc } from '@just-imagine/protocol';
-import { firstTryResult } from '../lib/school/results';
+import type { Lesson } from '../lib/school/types';
+import { firstTryResult, quizCompletion, resultLessonChoices } from '../lib/school/results';
 
 const quizItemIds = ['q1', 'q2', 'q3'];
 const answered = (firstCorrectTry: number, tries: number) => ({
@@ -8,6 +9,45 @@ const answered = (firstCorrectTry: number, tries: number) => ({
   tries,
   firstCorrectAt: 100,
   firstCorrectTry,
+});
+
+describe('teacher results coverage', () => {
+  it('does not show a completed practice item as a completed quiz', () => {
+    expect(quizCompletion(quizItemIds, { items: { practice: answered(1, 1) } })).toEqual({
+      correct: 0,
+      total: 3,
+    });
+  });
+
+  it('uses all current quiz IDs as the denominator and ignores stale or practice records', () => {
+    expect(
+      quizCompletion(quizItemIds, {
+        items: {
+          practice: answered(1, 1),
+          staleQuiz: answered(1, 1),
+          q1: answered(2, 2),
+          q2: { correct: false, tries: 1, firstCorrectAt: null },
+        },
+      }),
+    ).toEqual({ correct: 1, total: 3 });
+    expect(quizCompletion(quizItemIds, null)).toBeNull();
+  });
+
+  it('includes published global results choices once while retaining school history', () => {
+    const school: Pick<Lesson, 'id' | 'scope' | 'status'> = {
+      id: 'school',
+      scope: 'school',
+      status: 'archived',
+    };
+    const shared = { id: 'shared', scope: 'global', status: 'published' } as const;
+    const globalDraft = { id: 'draft', scope: 'global', status: 'draft' } as const;
+    const globalArchived = { id: 'old', scope: 'global', status: 'archived' } as const;
+    const wrongScope = { id: 'other-school', scope: 'school', status: 'published' } as const;
+    expect(
+      resultLessonChoices([school], [shared, shared, globalDraft, globalArchived, wrongScope]),
+    ).toEqual([school, shared]);
+    expect(resultLessonChoices([shared], [shared])).toEqual([shared]);
+  });
 });
 
 describe('teacher first-try results', () => {

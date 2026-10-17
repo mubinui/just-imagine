@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { previewRosterCsv } from '../../lib/school/csv';
-import { firstTryResult } from '../../lib/school/results';
+import { firstTryResult, quizCompletion, resultLessonChoices } from '../../lib/school/results';
 import type { AttemptDoc } from '@just-imagine/protocol';
 import { toDataURL } from 'qrcode';
 import Image from 'next/image';
@@ -70,7 +70,14 @@ export function SchoolConsole({
     action = useSchoolAction();
   const classes = useSchoolResource<{ classes: SchoolClass[] }>('school/classes'),
     students = useSchoolResource<{ students: Student[] }>('school/students'),
-    lessons = useSchoolResource<{ lessons: Lesson[] }>('school/lessons');
+    lessons = useSchoolResource<{ lessons: Lesson[] }>('school/lessons'),
+    globalLessons = useSchoolResource<{ lessons: Lesson[] }>(
+      view === 'results' ? 'school/lessons?scope=global' : null,
+    );
+  const resultsLessons = resultLessonChoices(
+    lessons.data?.lessons ?? [],
+    globalLessons.data?.lessons ?? [],
+  );
   const [editing, setEditing] = useState<Student>(),
     [pins, setPins] = useState<PinCard[]>([]),
     [csv, setCsv] = useState(''),
@@ -134,7 +141,7 @@ export function SchoolConsole({
           <Field label={s('lessons')}>
             <select value={lessonId} onChange={(e) => setLessonId(e.target.value)}>
               <option value="">{s('lessons')}</option>
-              {lessons.data?.lessons.map((l) => (
+              {resultsLessons.map((l) => (
                 <option key={l.id} value={l.id}>
                   {text(l.title)}
                 </option>
@@ -142,6 +149,13 @@ export function SchoolConsole({
             </select>
           </Field>
         </div>
+        <ErrorNotice
+          error={lessons.error || globalLessons.error}
+          retry={() => {
+            lessons.reload();
+            globalLessons.reload();
+          }}
+        />
         <ErrorNotice error={results.error} retry={results.reload} />
         {results.data && (
           <div className="sch-table-wrap">
@@ -158,15 +172,16 @@ export function SchoolConsole({
               <tbody>
                 {results.data.students.map(({ student, attempt }) => {
                   const firstTry = firstTryResult(results.data!.lesson.quizItemIds, attempt);
+                  const completion = quizCompletion(results.data!.lesson.quizItemIds, attempt);
                   return (
                     <tr key={student.id}>
                       <td>{student.firstName}</td>
                       <td>
-                        {attempt
-                          ? attempt.completedAt
-                            ? s('completed')
-                            : `${Object.values(attempt.items).filter((i) => i.correct).length}/${Object.keys(attempt.items).length}`
-                          : s('notStarted')}
+                        {attempt?.completedAt
+                          ? s('completed')
+                          : completion
+                            ? `${completion.correct}/${completion.total}`
+                            : s('notStarted')}
                       </td>
                       <td>{attempt?.pointsAwarded ?? 0}</td>
                       <td title={attempt && !firstTry ? s('firstTryUnavailable') : undefined}>
