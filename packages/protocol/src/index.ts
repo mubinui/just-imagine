@@ -10,6 +10,7 @@ export * from './concept-bank';
 export * from './primitives';
 export * from './learn';
 export * from './admin';
+export * from './school';
 
 export * from './stories';
 export * from './specialists';
