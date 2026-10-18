@@ -44,3 +44,27 @@ variable "models" {
 
 }
 
+
+variable "firestore_location" {
+  type        = string
+  default     = "us-central1"
+  description = "Permanent Firestore location; single region is the cheapest option."
+}
+
+variable "gateway_min_instances" {
+  type        = number
+  default     = 0
+  description = "0 scales the voice gateway to zero; 1 keeps one warm instance (about $50/month)."
+}
+
+variable "web_image" {
+  type        = string
+  default     = ""
+  description = "Web image digest; empty skips the Cloud Run web service."
+}
+
+variable "web_min_instances" {
+  type        = number
+  default     = 1
+  description = "1 keeps one idle web instance warm so pages load instantly (about $13/month); 0 scales to zero."
+}

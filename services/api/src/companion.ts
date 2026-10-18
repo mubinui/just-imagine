@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
-import { db, transaction } from '@just-imagine/server-core';
+import { db, transaction, vertexModelLocation } from '@just-imagine/server-core';
 import {
   ChildDocSchema,
   ChildResponseSchema,
@@ -64,7 +64,7 @@ export class GeminiCompanionGenerator implements CompanionGenerator {
     this.client = new GoogleGenAI(
       config.apiKey
         ? { apiKey: config.apiKey }
-        : { vertexai: true, project: config.project, location: 'us-central1' },
+        : { vertexai: true, project: config.project, location: vertexModelLocation() },
     );
   }
   async generate(photo: Buffer) {

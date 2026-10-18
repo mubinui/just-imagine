@@ -6,7 +6,7 @@ import {
 } from '@just-imagine/scene-schema';
 import type { GenerateJson, ReviewScene } from './pipeline';
 import { CreationReviewSchema, creationReviewPrompt } from './creation-review';
-import { logEvent } from '@just-imagine/server-core';
+import { logEvent, vertexModelLocation } from '@just-imagine/server-core';
 export const SAFETY_SETTINGS = [
   HarmCategory.HARM_CATEGORY_HARASSMENT,
   HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -28,7 +28,7 @@ export class VertexModels {
     this.client = new GoogleGenAI(
       config.apiKey
         ? { apiKey: config.apiKey }
-        : { vertexai: true, project: config.project, location: 'us-central1' },
+        : { vertexai: true, project: config.project, location: vertexModelLocation() },
     );
   }
   // Bound session state so one model outage does not permanently downgrade every child.

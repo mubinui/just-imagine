@@ -3,11 +3,11 @@ locals {
   apis = toset(["run.googleapis.com", "firestore.googleapis.com", "identitytoolkit.googleapis.com", "firebase.googleapis.com", "iam.googleapis.com", "iamcredentials.googleapis.com", "cloudtasks.googleapis.com", "cloudscheduler.googleapis.com", "aiplatform.googleapis.com", "artifactregistry.googleapis.com", "secretmanager.googleapis.com", "monitoring.googleapis.com", "logging.googleapis.com", "cloudbuild.googleapis.com", "cloudtrace.googleapis.com"])
   services = {
     gateway = {
-      min = 1, max = 50, concurrency = 80, cpu = "1", memory = "1Gi", timeout = "3600s"
+      min = var.gateway_min_instances, max = 3, concurrency = 80, cpu = "1", memory = "1Gi", timeout = "3600s"
       }, api = {
-      min = 0, max = 20, concurrency = 80, cpu = "1", memory = "512Mi", timeout = "300s"
+      min = 0, max = 3, concurrency = 80, cpu = "1", memory = "512Mi", timeout = "300s"
       }, builder = {
-      min = 0, max = 20, concurrency = 4, cpu = "2", memory = "2Gi", timeout = "300s"
+      min = 0, max = 3, concurrency = 4, cpu = "2", memory = "2Gi", timeout = "300s"
     }
 
   }
@@ -27,14 +27,28 @@ resource "google_artifact_registry_repository" "images" {
   location      = "us-central1"
   repository_id = "just-imagine"
   format        = "DOCKER"
-  depends_on    = [google_project_service.apis]
+  cleanup_policies {
+    id     = "keep-recent"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 5
+    }
+  }
+  cleanup_policies {
+    id     = "delete-old"
+    action = "DELETE"
+    condition {
+      older_than = "604800s"
+    }
+  }
+  depends_on = [google_project_service.apis]
 
 }
 
 resource "google_firestore_database" "default" {
 
   name            = "(default)"
-  location_id     = "nam5"
+  location_id     = var.firestore_location
   type            = "FIRESTORE_NATIVE"
   deletion_policy = "PREVENT_DESTROY"
   depends_on      = [google_project_service.apis]
@@ -44,7 +58,7 @@ resource "google_firestore_database" "default" {
 resource "google_storage_bucket" "assets" {
 
   name                        = var.asset_bucket
-  location                    = "US"
+  location                    = "US-CENTRAL1"
   uniform_bucket_level_access = true
   force_destroy               = false
   cors {
@@ -218,7 +232,8 @@ resource "google_cloud_run_v2_service" "service" {
           cpu = each.value.cpu, memory = each.value.memory
         }
 
-        cpu_idle = each.key != "gateway"
+        cpu_idle          = each.value.min == 0
+        startup_cpu_boost = true
 
       }
 

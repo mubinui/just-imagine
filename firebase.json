@@ -14,5 +14,32 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "infra/hosting/public",
+    "ignore": ["**/.*"],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "imagine-web",
+          "region": "us-central1"
+        }
+      }
+    ],
+    "predeploy": [
+      "rsync -a --delete --exclude .gitkeep \"$PROJECT_DIR/apps/web/public/\" \"$PROJECT_DIR/infra/hosting/public/\""
+    ],
+    "headers": [
+      {
+        "source": "/@(characters|learn|worlds|sound|music|fonts|icons|patterns)/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800"
+          }
+        ]
+      }
+    ]
   }
 }

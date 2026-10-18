@@ -1,0 +1,29 @@
+# Next.js web app for Cloud Run. Public values are compiled into the bundle at build time.
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
+RUN corepack enable
+COPY . .
+RUN pnpm install --frozen-lockfile
+ARG NEXT_PUBLIC_FIREBASE_API_KEY
+ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
+ARG NEXT_PUBLIC_FIREBASE_APP_ID
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_GATEWAY_URL
+ENV NEXT_PUBLIC_FAKE=0 \
+    NEXT_PUBLIC_FIREBASE_EMULATOR=0 \
+    NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN \
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID \
+    NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID \
+    NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_GATEWAY_URL=$NEXT_PUBLIC_GATEWAY_URL
+RUN pnpm --filter @just-imagine/web build
+FROM node:22-bookworm-slim
+ENV NODE_ENV=production
+WORKDIR /app
+RUN corepack enable
+COPY --from=build --chown=node:node /app /app
+USER node
+EXPOSE 8080
+CMD ["pnpm", "--filter", "@just-imagine/web", "start", "--port", "8080", "--hostname", "0.0.0.0"]

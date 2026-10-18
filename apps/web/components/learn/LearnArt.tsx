@@ -1066,7 +1066,7 @@ export function hasLearnArt(id: string): boolean {
 }
 
 /** The art for a pack character, a piece of scenery or a teaser; nothing when none is authored. */
-export function LearnArt({ id, title }: { id: string; title?: string }) {
+export function LearnArt({ id, title, thumb }: { id: string; title?: string; thumb?: boolean }) {
   const cinematic = hasCinematicArt(id);
   const art = Object.hasOwn(ART, id) ? ART[id] : undefined;
   if (!art && !cinematic) return null;
@@ -1081,7 +1081,7 @@ export function LearnArt({ id, title }: { id: string; title?: string }) {
       aria-hidden={title ? undefined : true}
       focusable="false"
     >
-      {cinematic ? <CinematicActor id={id} /> : Draw ? <Draw /> : null}
+      {cinematic ? <CinematicActor id={id} thumb={thumb} /> : Draw ? <Draw /> : null}
     </svg>
   );
 }
