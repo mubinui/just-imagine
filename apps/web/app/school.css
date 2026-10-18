@@ -8,7 +8,8 @@
  */
 .sch {
   color: var(--ink);
-  background: var(--ground);
+  /* The page body already paints --ground; a solid fill here would hide the theme art. */
+  background: transparent;
   min-height: 100dvh;
 }
 /* An embedded school screen never adds a second page height or background. */
