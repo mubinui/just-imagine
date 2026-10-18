@@ -155,6 +155,7 @@ export const UI_BN: Record<string, string> = {
   'aged 11–13': '১১–১৩ বছর',
   'Paying Family plans': 'মূল্য পরিশোধ করা ফ্যামিলি প্ল্যান',
   'Comped Family plans': 'বিশেষ সুবিধায় দেওয়া ফ্যামিলি প্ল্যান',
+  'School plan changed': 'স্কুলের প্ল্যান বদলানো হয়েছে',
   'Family plans without payment': 'পেমেন্ট ছাড়া ফ্যামিলি প্ল্যান',
   'Free plan': 'বিনামূল্যের প্ল্যান',
   Activity: 'কার্যক্রম',

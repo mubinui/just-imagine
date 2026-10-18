@@ -179,6 +179,7 @@ const ACTIONS: Record<AdminAuditAction, string> = {
   'school.reinstate': 'School reinstated',
   'school.invite': 'Teacher invited',
   'school.inviteRevoke': 'Invite revoked',
+  'school.plan': 'School plan changed',
   'catalog.create': 'Catalog draft added',
   'catalog.update': 'Catalog item updated',
   'catalog.publish': 'Catalog item published',

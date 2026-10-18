@@ -32,6 +32,7 @@ import { useSchoolSession } from './SchoolShell';
 import { ActionNotice, EmptyState, ErrorNotice, Field, Loading, useSchoolAction } from './shared';
 import { UiIcon, type UiIconName } from '../UiIcon';
 import { Leaderboard } from '../study/Leaderboard';
+import { SchoolPlans } from './SchoolPlans';
 
 type View = 'home' | 'classes' | 'students' | 'results' | 'leaderboard';
 type Copy = ReturnType<typeof useConsoleCopy>;
@@ -555,6 +556,7 @@ function Overview({ me }: { me: SchoolMe }) {
           )}
         </div>
       </div>
+      <SchoolPlans me={me} />
     </>
   );
 }
