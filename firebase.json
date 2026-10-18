@@ -14,5 +14,18 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "infra/hosting/public",
+    "ignore": ["**/.*"],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "imagine-web",
+          "region": "us-central1"
+        }
+      }
+    ]
   }
 }

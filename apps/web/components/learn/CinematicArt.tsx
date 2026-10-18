@@ -96,8 +96,8 @@ export function ActingFrame({ sheet, index }: { sheet: Sheet; index: number }) {
   );
 }
 
-export function CinematicActor({ id }: { id: string }) {
-  return <Actor id={id} />;
+export function CinematicActor({ id, thumb }: { id: string; thumb?: boolean }) {
+  return <Actor id={id} thumb={thumb} />;
 }
 
 export function CoachPose({ pose, complete = false }: { pose: number; complete?: boolean }) {
