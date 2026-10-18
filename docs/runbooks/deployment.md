@@ -4,6 +4,12 @@ Use this guide for local operations and a reviewed staging/cloud release. Run co
 
 For a first cloud deployment, follow the ordered, step-by-step [Google Cloud guidebook](google-cloud-guidebook.md). This page remains the reference.
 
+## Branches
+
+- **`main` is the production source.** Cloud Build, App Hosting and every staging or production release build from `main` only. It holds no demo-only code.
+- **`demo` holds the public UI demo.** It is `main` plus the static GitHub Pages build (`scripts/build-pages-demo.mjs`). Never deploy from `demo`; update it by merging `main` into it.
+- **Sample mode never ships.** `NEXT_PUBLIC_FAKE=1` serves authored sample worlds with no sign-in, voice or payments, for local development, CI browser tests and the UI demo. A production web build in sample mode fails unless it sets `JUST_IMAGINE_SAMPLE_BUILD=1`, which only CI and the demo build do. App Hosting sets `NEXT_PUBLIC_FAKE=0` (`apps/web/apphosting.yaml`).
+
 ## Local development
 
 1. Install Node 22.12+, pnpm 10.34.7 and Docker Desktop/Engine with Compose. Java 21 is needed only for host emulator tests; the local image includes Java.
@@ -38,7 +44,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 env -u FIRESTORE_EMULATOR_HOST -u FIREBASE_AUTH_EMULATOR_HOST pnpm test
-NEXT_PUBLIC_FAKE=1 pnpm build
+NEXT_PUBLIC_FAKE=1 JUST_IMAGINE_SAMPLE_BUILD=1 pnpm build
 ```
 
 For one targeted backend command, without touching the saved demo:

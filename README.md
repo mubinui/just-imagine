@@ -2,7 +2,7 @@
 
 A bilingual imagination and learning app built with Gemini, Firebase and Google Cloud.
 
-**[Open the UI demo](https://mubinui.github.io/just-imagine/demo/)** (sample content, no microphone, sign-in or payments) · **[Deploy on Google Cloud](https://mubinui.github.io/just-imagine/google-cloud/)**
+**[Open the UI demo](https://mubinui.github.io/just-imagine/demo/)** (sample content, no microphone, sign-in or payments; built from the [`demo` branch](https://github.com/mubinui/just-imagine/tree/demo)) · **[Deploy on Google Cloud](https://mubinui.github.io/just-imagine/google-cloud/)**
 
 Families with children aged 6–13 can meet a play friend, explore illustrated learning worlds, play story adventures and collect their own creations. A separate school workspace serves class 9/10 STEM lessons, teachers and students.
 
