@@ -314,7 +314,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
-NEXT_PUBLIC_FAKE=1 pnpm build
+NEXT_PUBLIC_FAKE=1 JUST_IMAGINE_SAMPLE_BUILD=1 pnpm build
 ```
 
 If pnpm is absent, use `npm exec --yes --offline --cache .npm-cache --package pnpm@10.34.7 -- pnpm`. Target Node22.12+, pnpm10.34.7, Java21. Local Java21: `.tools/amazon-corretto-21.jdk/Contents/Home`. Emulator suites run sequentially through `scripts/test-emulators.mjs`; avoid starting two runs on the same ports. Public web env changes require rebuilding. Port3000 belongs to an unrelated app: do not stop it.

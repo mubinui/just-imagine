@@ -70,7 +70,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 env -u FIRESTORE_EMULATOR_HOST -u FIREBASE_AUTH_EMULATOR_HOST pnpm test
-NEXT_PUBLIC_FAKE=1 pnpm build
+NEXT_PUBLIC_FAKE=1 JUST_IMAGINE_SAMPLE_BUILD=1 pnpm build
 ```
 
 The `ci` workflow on `main` runs the same checks plus the browser suite. A green run is the minimum bar; it does not prove microphone, model or production behaviour.

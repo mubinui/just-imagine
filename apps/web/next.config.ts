@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 const config: NextConfig = {
   // Lets a second build (for example an isolated end-to-end run) use its own output directory.
   distDir: process.env['NEXT_DIST_DIR'] || '.next',
@@ -15,4 +16,21 @@ const config: NextConfig = {
   ],
   serverExternalPackages: ['firebase-admin'],
 };
-export default config;
+
+/**
+ * Sample mode (NEXT_PUBLIC_FAKE=1) serves authored sample worlds with no sign-in, voice or payments.
+ * It exists for local development, CI browser tests and the UI demo, never for a deployment, so a
+ * production build in sample mode fails unless the build opts in with JUST_IMAGINE_SAMPLE_BUILD=1.
+ */
+export default function nextConfig(phase: string): NextConfig {
+  if (
+    phase === PHASE_PRODUCTION_BUILD &&
+    process.env['NEXT_PUBLIC_FAKE'] === '1' &&
+    process.env['JUST_IMAGINE_SAMPLE_BUILD'] !== '1'
+  )
+    throw new Error(
+      'Refusing a production build in sample mode (NEXT_PUBLIC_FAKE=1). Deployments must set ' +
+        'NEXT_PUBLIC_FAKE=0. For CI or the UI demo, also set JUST_IMAGINE_SAMPLE_BUILD=1.',
+    );
+  return config;
+}

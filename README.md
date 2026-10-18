@@ -114,7 +114,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
-NEXT_PUBLIC_FAKE=1 pnpm build
+NEXT_PUBLIC_FAKE=1 JUST_IMAGINE_SAMPLE_BUILD=1 pnpm build
 ```
 
 `pnpm test` includes an isolated emulator run on 8085/9095. Do not point tests at the saved local demo on 8080/9099. Preview browser-test commands are in the [web README](apps/web/README.md).

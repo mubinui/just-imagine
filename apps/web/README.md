@@ -34,7 +34,7 @@ Server-rendered parent pages use Admin ADC and revocation-checked session cookie
 pnpm --filter @just-imagine/web test
 pnpm --filter @just-imagine/web typecheck
 pnpm --filter @just-imagine/web lint
-NEXT_PUBLIC_FAKE=1 pnpm --filter @just-imagine/web build
+NEXT_PUBLIC_FAKE=1 JUST_IMAGINE_SAMPLE_BUILD=1 pnpm --filter @just-imagine/web build
 ```
 
 For preview browser tests, first install Chromium, then keep the fixture gateway and built preview server running in separate terminals:

@@ -30,6 +30,8 @@ jobs:
       - run: pnpm build
         env:
           NEXT_PUBLIC_FAKE: '1'
+          # The browser tests need a sample-mode build; deployments never set this.
+          JUST_IMAGINE_SAMPLE_BUILD: '1'
       - run: pnpm --filter @just-imagine/web exec playwright install --with-deps chromium
       - name: Browser integration
         shell: bash
