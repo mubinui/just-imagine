@@ -181,7 +181,7 @@ describe('admin reads', () => {
     expect(o.families).toBe(2);
     expect(o.children).toBe(3);
     expect(o.childrenByAgeBand).toEqual({ '6-7': 1, '8-10': 2, '11-13': 0 });
-    expect(o.subscriptions).toEqual({ family: 1, comped: 0, free: 1 });
+    expect(o.subscriptions).toEqual({ family: 1, comped: 0, free: 1, noPayment: 0 });
     expect(o.voiceMinutes.today).toBe(10);
     expect(o.worldsBuilt.last7).toBe(2);
     expect(o.images.last30).toBe(10);

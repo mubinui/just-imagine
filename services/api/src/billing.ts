@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import Stripe from 'stripe';
 import { SubscriptionDocSchema, UserDocSchema, paths } from '@just-imagine/protocol';
-import { db, readDoc } from '@just-imagine/server-core';
+import { db, readDoc, transaction } from '@just-imagine/server-core';
 import { ApiFault } from './errors';
 import type { Billing } from './app';
 export class StripeBilling implements Billing {
+  readonly mode = 'stripe' as const;
   private stripe: Stripe;
   constructor(
     private config: { secretKey: string; webhookSecret: string; priceId: string; webUrl: string },
@@ -17,7 +18,7 @@ export class StripeBilling implements Billing {
   private async serialized<T>(uid: string, run: (lease: string) => Promise<T>): Promise<T> {
     const ref = db().doc(`billingLocks/${uid}`),
       lease = randomUUID();
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const snap = await tx.get(ref);
       if ((snap.data()?.['expiresAt'] ?? 0) > Date.now())
         throw new ApiFault(503, 'INTERNAL', 'A payment update is in progress. Please retry.');
@@ -26,7 +27,7 @@ export class StripeBilling implements Billing {
     try {
       return await run(lease);
     } finally {
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         if ((await tx.get(ref)).data()?.['lease'] === lease) tx.delete(ref);
       });
     }
@@ -41,7 +42,7 @@ export class StripeBilling implements Billing {
       { email: user.email, metadata: { uid } },
       { idempotencyKey: `parent-${uid}` },
     );
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const ref = db().doc(paths.user(uid));
       const [snap, deleting] = await Promise.all([
         tx.get(ref),
@@ -169,7 +170,7 @@ export class StripeBilling implements Billing {
         ? effective.status
         : 'canceled';
       const tier = status === 'active' || status === 'trialing' ? 'family' : 'free';
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const userRef = db().doc(paths.user(uid));
         const [seen, userSnap, lock, deleting] = await Promise.all([
           tx.get(eventRef),

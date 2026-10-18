@@ -16,7 +16,8 @@ export async function api<T>(
     method: contract.method,
     headers: {
       Authorization: `Bearer ${await currentIdToken()}`,
-      'Content-Type': 'application/json',
+      // A JSON content type with no body is refused by the API, so it is sent only with a body.
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       'X-App-Language': currentLanguage(),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

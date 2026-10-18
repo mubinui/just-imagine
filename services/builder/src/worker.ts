@@ -15,7 +15,14 @@ import {
   type BuilderJob,
   type WorldDoc,
 } from '@just-imagine/protocol';
-import { db, isKillSwitchOn, addImages, logEvent, traced } from '@just-imagine/server-core';
+import {
+  db,
+  isKillSwitchOn,
+  addImages,
+  logEvent,
+  traced,
+  transaction,
+} from '@just-imagine/server-core';
 import { buildScene, patchScene, STYLE_BIBLE } from './pipeline';
 import { assetKey, processSprite, processMotionAtlas, MotionRegistrationError } from './assets';
 import type { VertexModels } from './vertex';
@@ -51,7 +58,7 @@ export class BuilderWorker {
     try {
       return await this.runJob(job);
     } catch (error) {
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const ref = db().doc(`builderJobs/${job.jobId}`),
           prior = await tx.get(ref);
         const fences = await Promise.all([
@@ -88,7 +95,7 @@ export class BuilderWorker {
     const lease = randomUUID(),
       jobRef = db().doc(`builderJobs/${job.jobId}`),
       lockRef = db().doc(`worldLocks/${job.worldId}`);
-    const claim = await db().runTransaction(async (tx) => {
+    const claim = await transaction(async (tx) => {
       const [prior, lock, userSnap, childSnap, userDeletion, childDeletion, worldDeletion] =
         await Promise.all([
           tx.get(jobRef),
@@ -279,7 +286,7 @@ export class BuilderWorker {
         world = { ...world, status: 'ready' };
         await this.publish(job, lease, world);
       }
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const [lock, ...fences] = await Promise.all([
           tx.get(lockRef),
           tx.get(db().doc(`deletionLocks/${job.uid}`)),
@@ -316,7 +323,7 @@ export class BuilderWorker {
         { jobId: job.jobId, worldId: job.worldId, success: false },
         'ERROR',
       );
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const [lock, world, parentDelete, childDelete, worldDelete] = await Promise.all([
           tx.get(lockRef),
           tx.get(db().doc(paths.world(job.worldId))),
@@ -345,7 +352,7 @@ export class BuilderWorker {
     }
   }
   private async publish(job: BuilderJob, lease: string, world: WorldDoc) {
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const [lock, userDelete, childDelete, worldDelete] = await Promise.all([
         tx.get(db().doc(`worldLocks/${job.worldId}`)),
         tx.get(db().doc(`deletionLocks/${job.uid}`)),
@@ -540,7 +547,7 @@ export class BuilderWorker {
     patch: PatchOp[] | null,
   ) {
     const ref = db().doc(paths.world(job.worldId));
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const lockRef = db().doc(`worldLocks/${job.worldId}`);
       const [lock, parentDelete, childDelete, worldDelete, current] = await Promise.all([
         tx.get(lockRef),

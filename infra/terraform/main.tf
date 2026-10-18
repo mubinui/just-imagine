@@ -225,7 +225,12 @@ resource "google_cloud_run_v2_service" "service" {
       dynamic "env" {
         for_each = merge(var.models, {
           OTEL_ENABLED = "1", GOOGLE_CLOUD_PROJECT = var.project_id, WEB_URL = var.web_url, BUILDER_URL = local.urls.builder, BUILDER_AUDIENCE = local.urls.builder, API_AUDIENCE = local.urls.api, TASK_SERVICE_ACCOUNT = google_service_account.service["tasks"].email, ASSET_BUCKET = var.asset_bucket, ASSET_BASE_URL = var.asset_domain == "" ? "https://storage.googleapis.com/${var.asset_bucket}" : "https://${var.asset_domain}", STRIPE_PRICE_ID = var.stripe_price_id
-          }, each.key == "api" ? { COMPANION_VERTEX = "1" } : {}
+          }, each.key == "api" ? {
+          COMPANION_VERTEX = "1",
+          SUBSCRIPTIONS_WITHOUT_PAYMENT = var.subscriptions_without_payment && !var.enable_billing ? "1" : "0",
+          # The operator System page probes these; the builder answers 403 (private) and the gateway 426, both "up".
+          ADMIN_HEALTH_TARGETS = "builder=${local.urls.builder}/health,gateway=${local.urls.gateway}/"
+          } : {}
         )
         content {
           name  = env.key

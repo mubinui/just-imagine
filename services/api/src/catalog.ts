@@ -11,7 +11,7 @@ import {
   languageOf,
   paths,
 } from '@just-imagine/protocol';
-import { db, newId } from '@just-imagine/server-core';
+import { db, newId, transaction } from '@just-imagine/server-core';
 import { ApiFault } from './errors';
 
 const unavailable = () =>
@@ -80,7 +80,7 @@ export class FirestoreCatalogStore {
   }
   async open(uid: string, childId: string, entryId: string) {
     const worldId = newId('w');
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const [user, child, lock, childLock, published, previous] = await Promise.all([
         tx.get(db().doc(paths.user(uid))),
         tx.get(db().doc(paths.child(uid, childId))),

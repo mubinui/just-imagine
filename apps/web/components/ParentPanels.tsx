@@ -75,6 +75,7 @@ export function ParentPanel({
   useEffect(() => {
     queueMicrotask(() => void load());
   }, [interfaceLanguage]);
+  const [planNotice, setPlanNotice] = useState('');
   async function action(fn: () => Promise<unknown>) {
     setError('');
     setBusy(true);
@@ -316,6 +317,7 @@ export function ParentPanel({
                 {s.plan}: {data.user.plan === 'family' ? s.family : s.free}
               </h2>
               <p>{s.billingInfo}</p>
+              {data.billing === 'no-payment' && <p className="billing-note">{s.noPaymentInfo}</p>}
               <div className="plan-cards">
                 {planOffers('family').map((plan) => {
                   const bn = interfaceLanguage === 'bn';
@@ -375,32 +377,60 @@ export function ParentPanel({
                   </p>
                 ))}
               </div>
-              <div className="actions">
-                <button
-                  disabled={busy || env.fake}
-                  className="button primary"
-                  onClick={() =>
-                    void action(async () => {
-                      const r = await api<{ url: string }>('checkout', {}, { tier: 'family' });
-                      window.location.assign(r.url);
-                    })
-                  }
-                >
-                  {s.checkout}
-                </button>
-                <button
-                  disabled={busy || env.fake || !data.subscription}
-                  className="button secondary"
-                  onClick={() =>
-                    void action(async () => {
-                      const r = await api<{ url: string }>('portal');
-                      window.location.assign(r.url);
-                    })
-                  }
-                >
-                  {s.portal}
-                </button>
-              </div>
+              {data.billing === 'no-payment' ? (
+                <div className="actions">
+                  {data.user.plan === 'family' ? (
+                    <button
+                      disabled={busy || env.fake}
+                      className="button secondary"
+                      onClick={() => void action(() => api('cancelPlan'))}
+                    >
+                      {s.cancelPlan}
+                    </button>
+                  ) : (
+                    <button
+                      disabled={busy || env.fake}
+                      className="button primary"
+                      onClick={() =>
+                        void action(async () => {
+                          await api('checkout', {}, { tier: 'family' });
+                          setPlanNotice(s.planStarted);
+                        })
+                      }
+                    >
+                      {s.startFamily}
+                    </button>
+                  )}
+                  {planNotice && data.user.plan === 'family' && <p role="status">{planNotice}</p>}
+                </div>
+              ) : (
+                <div className="actions">
+                  <button
+                    disabled={busy || env.fake}
+                    className="button primary"
+                    onClick={() =>
+                      void action(async () => {
+                        const r = await api<{ url: string }>('checkout', {}, { tier: 'family' });
+                        window.location.assign(r.url);
+                      })
+                    }
+                  >
+                    {s.checkout}
+                  </button>
+                  <button
+                    disabled={busy || env.fake || !data.subscription}
+                    className="button secondary"
+                    onClick={() =>
+                      void action(async () => {
+                        const r = await api<{ url: string }>('portal');
+                        window.location.assign(r.url);
+                      })
+                    }
+                  >
+                    {s.portal}
+                  </button>
+                </div>
+              )}
             </section>
           )}
           {panel === 'settings' && (

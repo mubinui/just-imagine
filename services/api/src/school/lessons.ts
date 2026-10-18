@@ -24,6 +24,7 @@ import {
 } from '@just-imagine/stem-sims';
 import { CHAPTERS, REAGENTS, REACTIONS } from '@just-imagine/stem-content';
 import type { SchoolAdminActor, StudentActor } from '@just-imagine/server-core';
+import { transaction } from '@just-imagine/server-core';
 import { db, newId, read, schoolId, visible, fail } from './common';
 export type LessonWithId = LessonDoc & { id: string };
 export const itemsOf = (l: LessonDoc): QuizItem[] =>
@@ -214,7 +215,7 @@ export async function saveLesson(
   }
   const keys = LessonKeysDocSchema.parse({ ...body.keys, revision: lesson.revision });
   validateLesson(lesson, keys);
-  await db().runTransaction(async (tx) => {
+  await transaction(async (tx) => {
     const ref = db().doc(schoolPaths.lesson(nextId)),
       snap = await tx.get(ref);
     if (
@@ -271,7 +272,7 @@ async function mutateLesson(
   const { lesson } = await authorLesson(actor, id);
   if (lesson.revision !== expected)
     return fail(409, 'This lesson changed. Reload it before continuing.');
-  return db().runTransaction(async (tx) => {
+  return transaction(async (tx) => {
     const ref = db().doc(schoolPaths.lesson(id)),
       snap = await tx.get(ref);
     const current = LessonDocSchema.parse(snap.data());

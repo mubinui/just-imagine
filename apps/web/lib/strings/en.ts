@@ -117,6 +117,11 @@ export const english = {
   previewBilling: 'Billing is unavailable in the local preview. No payment has been taken.',
   checkout: 'Explore Family',
   portal: 'Manage subscription',
+  noPaymentInfo:
+    'Payments are switched off for now, so the Family plan is free: no card or payment needed.',
+  startFamily: 'Start the Family plan',
+  cancelPlan: 'Return to the free plan',
+  planStarted: 'The Family plan is on. No payment was taken.',
   empty: 'Nothing here yet. The next adventure starts in the Studio.',
   load: 'Opening your family space…',
   disconnected: 'Voice is reconnecting. You can keep exploring your world.',

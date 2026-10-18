@@ -28,6 +28,12 @@ variable "enable_billing" {
 
 }
 
+variable "subscriptions_without_payment" {
+  type        = bool
+  default     = true
+  description = "Parents can start the Family plan without paying while Stripe billing is off. Ignored when enable_billing is true."
+}
+
 variable "models" {
 
   type = map(string)

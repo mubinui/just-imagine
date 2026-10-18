@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db, localDevelopment, type ContentEditions } from '@just-imagine/server-core';
+import { db, localDevelopment, type ContentEditions, transaction } from '@just-imagine/server-core';
 import {
   ChildDocSchema,
   UserDocSchema,
@@ -22,13 +22,12 @@ import {
   textUsesLanguage,
 } from '@just-imagine/protocol';
 import { ApiFault } from './errors';
-import { retryClosedTransaction } from './transaction';
 
 const missing = () => new ApiFault(404, 'NOT_FOUND', 'This story is no longer available.');
 export class FirestoreStoryStore {
   constructor(private deliver?: (job: StoryBuildJob) => Promise<void>) {}
   private async owned(uid: string, storyId: string) {
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const ref = db().doc(`stories/${DocumentIdSchema.parse(storyId)}`);
       const story = await tx.get(ref);
       if (!story.exists || story.data()?.['ownerUid'] !== uid) throw missing();
@@ -74,63 +73,61 @@ export class FirestoreStoryStore {
       .digest('hex')
       .slice(0, 40)}`;
     const job: StoryBuildJob = { kind: 'story', jobId: `${id}_0`, storyId: id, uid, childId };
-    const value = await retryClosedTransaction(() =>
-      db().runTransaction(async (tx) => {
-        const { user, child } = await this.family(tx, uid, childId);
-        const ref = db().doc(`stories/${id}`);
-        const [old, deleted] = await tx.getAll(ref, db().doc(`storyDeletionLocks/${id}`));
-        if (deleted!.exists) throw missing();
-        if (old!.exists) {
-          const previous = StoryDocSchema.parse(old!.data());
-          if (previous.topic !== body.topic)
-            throw new ApiFault(400, 'INVALID_ARGUMENT', 'Use a new request for a different topic.');
-          return previous;
-        }
-        const date = yyyymmdd(new Date()),
-          usageRef = db().doc(paths.usageDaily(uid, date));
-        // Keep the query after the document read: a contended transaction must
-        // surface its original abort before another RPC tries its closed ID.
-        const usage = await tx.get(usageRef);
-        const books = await tx.get(db().collection('stories').where('ownerUid', '==', uid));
-        const used = UsageDailyDocSchema.parse(
-          usage.exists ? usage.data() : { uid, date, voiceSeconds: 0, worlds: 0, images: 0 },
+    const value = await transaction(async (tx) => {
+      const { user, child } = await this.family(tx, uid, childId);
+      const ref = db().doc(`stories/${id}`);
+      const [old, deleted] = await tx.getAll(ref, db().doc(`storyDeletionLocks/${id}`));
+      if (deleted!.exists) throw missing();
+      if (old!.exists) {
+        const previous = StoryDocSchema.parse(old!.data());
+        if (previous.topic !== body.topic)
+          throw new ApiFault(400, 'INVALID_ARGUMENT', 'Use a new request for a different topic.');
+        return previous;
+      }
+      const date = yyyymmdd(new Date()),
+        usageRef = db().doc(paths.usageDaily(uid, date));
+      // Keep the query after the document read: a contended transaction must
+      // surface its original abort before another RPC tries its closed ID.
+      const usage = await tx.get(usageRef);
+      const books = await tx.get(db().collection('stories').where('ownerUid', '==', uid));
+      const used = UsageDailyDocSchema.parse(
+        usage.exists ? usage.data() : { uid, date, voiceSeconds: 0, worlds: 0, images: 0 },
+      );
+      const limits = PLAN_LIMITS[user.plan];
+      if (used.worlds >= limits.worldsPerDay || books.size >= limits.savedWorlds)
+        throw new ApiFault(
+          429,
+          'QUOTA_EXHAUSTED',
+          'Your family’s creation allowance is used. Try another day or read a saved story.',
         );
-        const limits = PLAN_LIMITS[user.plan];
-        if (used.worlds >= limits.worldsPerDay || books.size >= limits.savedWorlds)
-          throw new ApiFault(
-            429,
-            'QUOTA_EXHAUSTED',
-            'Your family’s creation allowance is used. Try another day or read a saved story.',
-          );
-        const next = StoryDocSchema.parse({
-          id,
-          ownerUid: uid,
-          childId,
-          topic: body.topic,
-          generationId: job.jobId,
-          language: languageOf(child),
-          ageBand: child.ageBand,
-          preferences: storyPreferencesOf(child),
-          status: 'queued',
-          manuscript: null,
-          images: {},
-          progress: { scene: 0, beat: 0, choices: {}, completed: false },
-          revision: 0,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-        tx.create(ref, next);
-        tx.set(usageRef, { ...used, worlds: used.worlds + 1 });
-        if (localDevelopment()) tx.create(db().doc(`localBuildTasks/${job.jobId}`), this.task(job));
-        return next;
-      }),
-    );
+      const next = StoryDocSchema.parse({
+        id,
+        ownerUid: uid,
+        childId,
+        topic: body.topic,
+        generationId: job.jobId,
+        language: languageOf(child),
+        ageBand: child.ageBand,
+        preferences: storyPreferencesOf(child),
+        status: 'queued',
+        manuscript: null,
+        images: {},
+        progress: { scene: 0, beat: 0, choices: {}, completed: false },
+        revision: 0,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      tx.create(ref, next);
+      tx.set(usageRef, { ...used, worlds: used.worlds + 1 });
+      if (localDevelopment()) tx.create(db().doc(`localBuildTasks/${job.jobId}`), this.task(job));
+      return next;
+    });
     if (!localDevelopment() && value.status === 'queued') await this.deliver!(job);
     return value;
   }
   get = (uid: string, id: string) => this.owned(uid, id);
   async list(uid: string, childId: string) {
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       await this.family(tx, uid, childId);
       const all = await tx.get(
         db().collection('stories').where('ownerUid', '==', uid).where('childId', '==', childId),
@@ -144,7 +141,7 @@ export class FirestoreStoryStore {
   }
   async update(uid: string, id: string, raw: unknown) {
     const body = UpdateStoryProgressSchema.parse(raw);
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const ref = db().doc(`stories/${id}`),
         snap = await tx.get(ref);
       if (!snap.exists || snap.data()?.['ownerUid'] !== uid) throw missing();
@@ -184,7 +181,7 @@ export class FirestoreStoryStore {
     });
   }
   async retry(uid: string, id: string) {
-    const job = await db().runTransaction(async (tx) => {
+    const job = await transaction(async (tx) => {
       const ref = db().doc(`stories/${id}`),
         snap = await tx.get(ref);
       if (!snap.exists || snap.data()?.['ownerUid'] !== uid) throw missing();
@@ -232,7 +229,7 @@ export class FirestoreStoryStore {
   }
   async delete(uid: string, id: string) {
     const book = await this.owned(uid, id);
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       await this.family(tx, uid, book.childId);
       // A permanent tombstone fences late image/text writes and redelivery.
       tx.set(db().doc(`storyDeletionLocks/${id}`), {

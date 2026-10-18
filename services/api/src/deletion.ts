@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { paths } from '@just-imagine/protocol';
-import { db, adminAuth } from '@just-imagine/server-core';
+import { db, adminAuth, transaction } from '@just-imagine/server-core';
 const Job = z.object({
   uid: z.string(),
   childId: z.string().nullable(),
@@ -19,7 +19,7 @@ export async function requestDeletion(
   const id = createHash('sha256')
     .update(JSON.stringify([uid, childId, worldId]))
     .digest('hex');
-  await db().runTransaction(async (tx) => {
+  await transaction(async (tx) => {
     const ref = db().doc(`deletionJobs/${id}`);
     const existing = await tx.get(ref);
     if (existing.exists) return;
@@ -48,7 +48,7 @@ export async function processDeletion(
         .parse(id)}`,
     ),
     lease = randomUUID();
-  const job = await db().runTransaction(async (tx) => {
+  const job = await transaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) return null;
     const data = Job.parse(snap.data());
@@ -71,7 +71,7 @@ export async function processDeletion(
             .get()
         ).docs)
           await db().recursiveDelete(doc.ref);
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         if ((await tx.get(ref)).data()?.['lease'] !== lease) throw new Error('Deletion lease lost');
         tx.update(ref, { status: 'complete', finishedAt: Date.now() });
       });
@@ -114,12 +114,12 @@ export async function processDeletion(
       }
       await db().recursiveDelete(db().doc(paths.user(job.uid)));
     }
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       if ((await tx.get(ref)).data()?.['lease'] !== lease) throw new Error('Deletion lease lost');
       tx.update(ref, { status: 'complete', finishedAt: Date.now() });
     });
   } catch (error) {
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       if ((await tx.get(ref)).data()?.['lease'] === lease)
         tx.update(ref, { status: 'queued', expiresAt: 0 });
     });

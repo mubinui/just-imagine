@@ -81,6 +81,40 @@ describe('API boundaries', () => {
     expect(res.statusCode).toBe(503);
     await app.close();
   });
+  it('tells the parent page how this deployment takes subscriptions', async () => {
+    const { app } = harness();
+    const off = await app.inject({ url: '/v1/me', headers: { authorization: 'Bearer valid' } });
+    expect(off.json()).toMatchObject({ uid: 'parent', billing: 'off' });
+    await app.close();
+  });
+  it('cancels a plan started without payment, and only that kind', async () => {
+    const cancelled: string[] = [];
+    const billing = (mode: 'stripe' | 'no-payment') => ({
+      mode,
+      checkout: async () => ({ url: 'x' }),
+      portal: async () => ({ url: 'x' }),
+      webhook: async () => {},
+      cancel: async (uid: string) => void cancelled.push(uid),
+    });
+    for (const mode of ['no-payment', 'stripe'] as const) {
+      const app = createApi({
+        store: { me: async (uid: string) => ({ uid }) } as unknown as ApiStore,
+        verifyToken: async () => ({ uid: 'parent' }),
+        origins: [],
+        billing: billing(mode),
+      });
+      const me = await app.inject({ url: '/v1/me', headers: { authorization: 'Bearer valid' } });
+      expect(me.json().billing).toBe(mode);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/billing/cancel',
+        headers: { authorization: 'Bearer valid' },
+      });
+      expect(res.statusCode).toBe(mode === 'no-payment' ? 200 : 409);
+      await app.close();
+    }
+    expect(cancelled).toEqual(['parent']);
+  });
 });
 it('requires a signed-in parent and explicit photo permission before drawing a companion', async () => {
   const app = createApi({

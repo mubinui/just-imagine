@@ -21,6 +21,7 @@ import {
   type LessonDoc,
 } from '@just-imagine/protocol';
 import type { StudentActor, SchoolAdminActor } from '@just-imagine/server-core';
+import { transaction } from '@just-imagine/server-core';
 import { db, read, fail, schoolId, visible } from './common';
 import { studentLesson, itemsOf } from './lessons';
 export function correct(item: QuizItem, key: QuizKey, answer: unknown): boolean {
@@ -118,7 +119,7 @@ export async function grade(actor: StudentActor, id: string, input: unknown, qui
   });
   const now = Date.now(),
     weekKey = weekKeyDhaka(now);
-  return db().runTransaction(async (tx) => {
+  return transaction(async (tx) => {
     const attemptRef = db().doc(schoolPaths.attempt(actor.schoolId, actor.studentId, id)),
       profileRef = db().doc(schoolPaths.student(actor.schoolId, actor.studentId)),
       lessonRef = db().doc(schoolPaths.lesson(id));

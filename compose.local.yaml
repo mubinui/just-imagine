@@ -55,6 +55,7 @@ services:
       <<: *server-env
       PORT: '3301'
       COMPANION_IMAGE_MODEL: ${COMPANION_IMAGE_MODEL:-gemini-nano-banana-2.1}
+      SUBSCRIPTIONS_WITHOUT_PAYMENT: ${SUBSCRIPTIONS_WITHOUT_PAYMENT:-1}
     ports: ['127.0.0.1:3301:3301']
     depends_on:
       emulators: { condition: service_healthy }

@@ -11,6 +11,7 @@ import { WorldPackSchema, PACKS } from '@just-imagine/learning-content';
 import { adminActor } from './admin-schools';
 import { db, newId, read, fail, reasonSchema } from './school/common';
 import { ApiFault } from './errors';
+import { transaction } from '@just-imagine/server-core';
 /** The audited view of an entry: scalar fields only, so the log can show what changed. */
 function audited(entry: z.infer<typeof CatalogEntryDocSchema>) {
   return {
@@ -111,7 +112,7 @@ export function registerAdminCatalogRoutes(app: FastifyInstance) {
         publishedAt: null,
         updatedAt: Date.now(),
       });
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const reserved = db().doc('catalogPackIds/' + pack.id);
         if ((await tx.get(reserved)).exists) return fail(409, 'That pack id is already reserved.');
         tx.create(reserved, { entryId: id });
@@ -141,7 +142,7 @@ export function registerAdminCatalogRoutes(app: FastifyInstance) {
           })
           .parse(req.body),
         actor = await adminActor(req);
-      return db().runTransaction(async (tx) => {
+      return transaction(async (tx) => {
         const ref = db().doc(path(id)),
           snap = await tx.get(ref);
         if (!snap.exists) return fail(404, 'Catalog entry not found.');

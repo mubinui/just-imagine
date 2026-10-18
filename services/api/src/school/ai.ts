@@ -1,7 +1,7 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { z } from 'zod';
 import { SchoolDocSchema, SchoolUsageDailyDocSchema, schoolPaths } from '@just-imagine/protocol';
-import { isKillSwitchOn, logEvent } from '@just-imagine/server-core';
+import { isKillSwitchOn, logEvent, transaction } from '@just-imagine/server-core';
 import { db, read, dateKey, fail } from './common';
 export type SchoolModel = (prompt: string, schema?: Record<string, unknown>) => Promise<unknown>;
 type SchoolJsonTransport = (
@@ -87,7 +87,7 @@ export async function reserveAi(sid: string, kind: 'aiDrafts' | 'aiReactions') {
   if (school.status !== 'active') return fail(403, 'This school is paused.');
   const date = dateKey(),
     ref = db().doc(schoolPaths.usageDaily(sid, date));
-  await db().runTransaction(async (tx) => {
+  await transaction(async (tx) => {
     const active = await tx.get(db().doc(schoolPaths.school(sid)));
     if (SchoolDocSchema.parse(active.data()).status !== 'active')
       return fail(403, 'This school is paused.');

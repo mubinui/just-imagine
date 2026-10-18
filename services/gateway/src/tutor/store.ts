@@ -7,7 +7,7 @@ import {
   StudentDocSchema,
   schoolPaths,
 } from '@just-imagine/protocol';
-import { db, newId, requireStudent } from '@just-imagine/server-core';
+import { db, newId, requireStudent, transaction } from '@just-imagine/server-core';
 import type { TutorRecord, TutorStore } from './contracts';
 
 export function tutorDate(now = Date.now()): string {
@@ -31,7 +31,7 @@ export class FirestoreTutorStore implements TutorStore {
   async authorize(token: string, lessonId: string, stepIndex: number): Promise<TutorRecord> {
     const actor = await requireStudent(token);
     const id = newId('s');
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const date = tutorDate(),
         usageRef = db().doc(schoolPaths.usageDaily(actor.schoolId, date)),
         leaseRef = this.lease(actor.uid);
@@ -98,7 +98,7 @@ export class FirestoreTutorStore implements TutorStore {
     )
       throw new Error('FORBIDDEN');
     const date = tutorDate();
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const usageRef = db().doc(schoolPaths.usageDaily(record.schoolId, date));
       const checkpointRef = db().doc(`schoolTutorMeters/${record.id}`);
       const leaseRef = this.lease(record.uid);
@@ -143,7 +143,7 @@ export class FirestoreTutorStore implements TutorStore {
     });
   }
   async release(record: TutorRecord, totalSeconds: number): Promise<void> {
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const leaseRef = this.lease(record.uid),
         usageRef = db().doc(schoolPaths.usageDaily(record.schoolId, tutorDate())),
         checkpointRef = db().doc(`schoolTutorMeters/${record.id}`);

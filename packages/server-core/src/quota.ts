@@ -8,6 +8,7 @@ import {
   type UsageDailyDoc,
 } from '@just-imagine/protocol';
 import { db } from './firebase';
+import { transaction } from './transaction';
 
 export class QuotaExceeded extends Error {
   constructor(
@@ -45,7 +46,7 @@ async function bump(
 ): Promise<UsageDailyDoc> {
   const date = yyyymmdd(now);
   const ref = db().doc(paths.usageDaily(uid, date));
-  return db().runTransaction(async (tx) => {
+  return transaction(async (tx) => {
     const snap = await tx.get(ref);
     if ((await tx.get(db().doc(`deletionLocks/${uid}`))).exists)
       throw new Error('Account deletion is in progress');

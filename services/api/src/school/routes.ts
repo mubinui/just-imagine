@@ -17,6 +17,7 @@ import {
   SchoolRoleRequiredError,
   type SchoolAdminActor,
   type StudentActor,
+  transaction,
 } from '@just-imagine/server-core';
 import { ApiFault } from '../errors';
 import { db, newId, read, schoolId, fail } from './common';
@@ -136,7 +137,7 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
           ...ClassBodySchema.parse(req.body),
           createdAt: Date.now(),
         });
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         if (
           SchoolDocSchema.parse((await tx.get(db().doc(schoolPaths.school(sid)))).data()).status !==
           'active'
@@ -150,7 +151,7 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
       const sid = await schoolId(schoolActor(req)),
         cid = id(req.params),
         body = ClassBodySchema.partial().parse(req.body);
-      return db().runTransaction(async (tx) => {
+      return transaction(async (tx) => {
         const ref = db().doc(schoolPaths.schoolClass(sid, cid));
         const [snap, school] = await Promise.all([
           tx.get(ref),
@@ -167,7 +168,7 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
     routes.delete('/v1/school/classes/:id', async (req) => {
       const sid = await schoolId(schoolActor(req)),
         cid = id(req.params);
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const [students, school] = await Promise.all([
           tx.get(db().collection(schoolPaths.students(sid)).where('classId', '==', cid)),
           tx.get(db().doc(schoolPaths.school(sid))),
@@ -308,7 +309,7 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
     routes.patch('/v1/study/me', async (req) => {
       const actor = studentActor(req),
         body = z.object({ language: LanguageSchema }).parse(req.body);
-      return db().runTransaction(async (tx) => {
+      return transaction(async (tx) => {
         const ref = db().doc(schoolPaths.student(actor.schoolId, actor.studentId));
         const [snap, school] = await Promise.all([
           tx.get(ref),

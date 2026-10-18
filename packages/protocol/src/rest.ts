@@ -39,6 +39,8 @@ export const MeResponseSchema = z.object({
   user: UserDocSchema,
   children: z.array(ChildResponseSchema),
   subscription: SubscriptionDocSchema.nullable(),
+  /** How this deployment takes subscriptions: Stripe, without payment, or not at all. */
+  billing: z.enum(['stripe', 'no-payment', 'off']).optional(),
 });
 export type MeResponse = z.infer<typeof MeResponseSchema>;
 
@@ -120,6 +122,7 @@ export const ROUTES = {
   usageToday: { method: 'GET', path: '/v1/usage/today' },
   checkout: { method: 'POST', path: '/v1/billing/checkout' },
   portal: { method: 'POST', path: '/v1/billing/portal' },
+  cancelPlan: { method: 'POST', path: '/v1/billing/cancel' },
   stripeWebhook: { method: 'POST', path: '/v1/billing/webhook' },
 } as const satisfies Record<string, { method: 'GET' | 'POST' | 'PATCH' | 'DELETE'; path: string }>;
 export type RouteKey = keyof typeof ROUTES;

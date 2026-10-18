@@ -7,3 +7,4 @@ export * from './kill-switch';
 export * from './telemetry';
 export * from './local';
 export * from './content-editions';
+export * from './transaction';
