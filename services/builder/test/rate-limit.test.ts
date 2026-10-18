@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { concurrencyLimit, isRateLimited, withBackoff } from '../src/rate-limit';
+import {
+  concurrencyLimit,
+  isRateLimited,
+  isTransientProviderError,
+  withBackoff,
+} from '../src/rate-limit';
 
 const limited = () => Object.assign(new Error('Resource has been exhausted'), { status: 429 });
 
@@ -105,5 +110,19 @@ describe('concurrencyLimit', () => {
     const run = concurrencyLimit(1);
     await expect(run(async () => Promise.reject(new Error('boom')))).rejects.toThrow('boom');
     expect(await run(async () => 'next')).toBe('next');
+  });
+});
+
+describe('isTransientProviderError', () => {
+  it('accepts rate limits, timeouts and server errors but not rejections', () => {
+    expect(isTransientProviderError(limited())).toBe(true);
+    expect(isTransientProviderError({ status: 500 })).toBe(true);
+    expect(isTransientProviderError({ status: 408 })).toBe(true);
+    expect(isTransientProviderError(Object.assign(new Error('x'), { name: 'TimeoutError' }))).toBe(
+      true,
+    );
+    expect(isTransientProviderError(new Error('request timed out'))).toBe(true);
+    expect(isTransientProviderError(Object.assign(new Error('bad'), { status: 400 }))).toBe(false);
+    expect(isTransientProviderError(new Error('unavailable'))).toBe(false);
   });
 });

@@ -104,7 +104,12 @@ it('retries a rejected nested plan schema as JSON on the same model and retains 
 
 it('does not use a format retry to hide planner authentication or quota failure', async () => {
   mockGenerate.mockRejectedValue(Object.assign(new Error('quota'), { status: 429 }));
-  const model = new GameScriptModel({ project: 'test', model: 'gemini-4-argon' });
+  // Rate-limit backoff is covered in rate-limit.test.ts; here only the format retry is under test.
+  const model = new GameScriptModel({
+    project: 'test',
+    model: 'gemini-4-argon',
+    rateLimitDeadlineMs: 0,
+  });
   await expect(model.plan(FIXTURE_WORLDS.moonBounce, job)).rejects.toThrow('quota');
   expect(mockGenerate).toHaveBeenCalledTimes(1);
 });

@@ -58,3 +58,17 @@ export function concurrencyLimit(limit: number) {
     }
   };
 }
+
+/** Worth one more try: a rate limit, a timeout, or a server-side failure (408, 429, 5xx). */
+export function isTransientProviderError(error: unknown): boolean {
+  if (isRateLimited(error)) return true;
+  const status =
+    error && typeof error === 'object' && 'status' in error ? Number(error.status) : undefined;
+  if (status === 408 || (status !== undefined && status >= 500)) return true;
+  if (!(error instanceof Error)) return false;
+  return (
+    error.name === 'TimeoutError' ||
+    error.name === 'AbortError' ||
+    /timed? ?out|aborted/i.test(error.message)
+  );
+}

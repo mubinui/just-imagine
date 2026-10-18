@@ -5,6 +5,7 @@ import { SAFETY_SETTINGS } from './vertex';
 import { GameScriptOutputSchema, type GenerateScript } from './imagine-game';
 import { GameplayPlanSchema, gameplayPlanPrompt, type PlanGame } from './game-playtest';
 import { traced } from '@just-imagine/server-core';
+import { withBackoff } from './rate-limit';
 
 const OUTPUT_JSON_SCHEMA = toGeminiJsonSchema(
   z.toJSONSchema(GameScriptOutputSchema, { target: 'draft-7' }) as Record<string, unknown>,
@@ -17,7 +18,14 @@ const OUTPUT_JSON_SCHEMA = toGeminiJsonSchema(
 export class GameScriptModel {
   private client: GoogleGenAI;
   constructor(
-    private config: { project: string; model: string; apiKey?: string; location?: string },
+    private config: {
+      project: string;
+      model: string;
+      apiKey?: string;
+      location?: string;
+      /** How long to keep backing off on rate limits before failing; 0 never retries. */
+      rateLimitDeadlineMs?: number;
+    },
   ) {
     this.client = new GoogleGenAI(
       config.apiKey
@@ -31,28 +39,33 @@ export class GameScriptModel {
     purpose: 'script' | 'plan' = 'script',
   ): Promise<unknown> {
     const timeoutMs = purpose === 'script' ? 180000 : 90000;
-    const response = await traced(`game_${purpose}_model`, { milestone: this.config.model }, () =>
-      this.client.models.generateContent({
-        model: this.config.model,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          ...(schema ? { responseJsonSchema: schema } : {}),
-          safetySettings: SAFETY_SETTINGS,
-          maxOutputTokens: purpose === 'plan' ? 12288 : 24000,
-          ...(this.config.model.startsWith('gemini-4-')
-            ? {
-                thinkingConfig: {
-                  // The programmer receives an independently validated acceptance plan.
-                  // Bound reasoning latency; full static/physics/causality gates still decide publication.
-                  thinkingLevel: ThinkingLevel.MEDIUM,
-                },
-              }
-            : {}),
-          abortSignal: AbortSignal.timeout(timeoutMs + 10000),
-          httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
-        },
-      }),
+    const response = await withBackoff(
+      () =>
+        traced(`game_${purpose}_model`, { milestone: this.config.model }, () =>
+          this.client.models.generateContent({
+            model: this.config.model,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              ...(schema ? { responseJsonSchema: schema } : {}),
+              safetySettings: SAFETY_SETTINGS,
+              maxOutputTokens: purpose === 'plan' ? 12288 : 24000,
+              ...(this.config.model.startsWith('gemini-4-')
+                ? {
+                    thinkingConfig: {
+                      // The programmer receives an independently validated acceptance plan.
+                      // Bound reasoning latency; full static/physics/causality gates still decide publication.
+                      thinkingLevel: ThinkingLevel.MEDIUM,
+                    },
+                  }
+                : {}),
+              abortSignal: AbortSignal.timeout(timeoutMs + 10000),
+              httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
+            },
+          }),
+        ),
+      // Rate limits come back at once; waiting briefly beats failing the world.
+      { deadlineMs: this.config.rateLimitDeadlineMs ?? 30000 },
     );
     if (!response.text) throw new Error('Model returned no structured response');
     return JSON.parse(response.text) as unknown;
