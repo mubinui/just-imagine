@@ -186,7 +186,12 @@ export function SchoolAuth({
           {action.busy ? s('connect') : s(signup ? 'createAccount' : 'signIn')}
         </button>
       </form>
-      <button type="button" disabled={action.busy} onClick={() => void teacher(null)}>
+      <button
+        type="button"
+        className="sch-auth-google"
+        disabled={action.busy}
+        onClick={() => void teacher(null)}
+      >
         {s('google')}
       </button>
       {join && (
