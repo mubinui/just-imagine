@@ -3,11 +3,11 @@ locals {
   apis = toset(["run.googleapis.com", "firestore.googleapis.com", "identitytoolkit.googleapis.com", "firebase.googleapis.com", "iam.googleapis.com", "iamcredentials.googleapis.com", "cloudtasks.googleapis.com", "cloudscheduler.googleapis.com", "aiplatform.googleapis.com", "artifactregistry.googleapis.com", "secretmanager.googleapis.com", "monitoring.googleapis.com", "logging.googleapis.com", "cloudbuild.googleapis.com", "cloudtrace.googleapis.com"])
   services = {
     gateway = {
-      min = 1, max = 50, concurrency = 80, cpu = "1", memory = "1Gi", timeout = "3600s"
+      min = var.gateway_min_instances, max = 3, concurrency = 80, cpu = "1", memory = "1Gi", timeout = "3600s"
       }, api = {
-      min = 0, max = 20, concurrency = 80, cpu = "1", memory = "512Mi", timeout = "300s"
+      min = 0, max = 3, concurrency = 80, cpu = "1", memory = "512Mi", timeout = "300s"
       }, builder = {
-      min = 0, max = 20, concurrency = 4, cpu = "2", memory = "2Gi", timeout = "300s"
+      min = 0, max = 3, concurrency = 4, cpu = "2", memory = "2Gi", timeout = "300s"
     }
 
   }
@@ -27,14 +27,28 @@ resource "google_artifact_registry_repository" "images" {
   location      = "us-central1"
   repository_id = "just-imagine"
   format        = "DOCKER"
-  depends_on    = [google_project_service.apis]
+  cleanup_policies {
+    id     = "keep-recent"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 5
+    }
+  }
+  cleanup_policies {
+    id     = "delete-old"
+    action = "DELETE"
+    condition {
+      older_than = "604800s"
+    }
+  }
+  depends_on = [google_project_service.apis]
 
 }
 
 resource "google_firestore_database" "default" {
 
   name            = "(default)"
-  location_id     = "nam5"
+  location_id     = var.firestore_location
   type            = "FIRESTORE_NATIVE"
   deletion_policy = "PREVENT_DESTROY"
   depends_on      = [google_project_service.apis]
@@ -44,7 +58,7 @@ resource "google_firestore_database" "default" {
 resource "google_storage_bucket" "assets" {
 
   name                        = var.asset_bucket
-  location                    = "US"
+  location                    = "US-CENTRAL1"
   uniform_bucket_level_access = true
   force_destroy               = false
   cors {
@@ -218,7 +232,8 @@ resource "google_cloud_run_v2_service" "service" {
           cpu = each.value.cpu, memory = each.value.memory
         }
 
-        cpu_idle = each.key != "gateway"
+        cpu_idle          = each.value.min == 0
+        startup_cpu_boost = true
 
       }
 
@@ -226,7 +241,7 @@ resource "google_cloud_run_v2_service" "service" {
         for_each = merge(var.models, {
           OTEL_ENABLED = "1", GOOGLE_CLOUD_PROJECT = var.project_id, WEB_URL = var.web_url, BUILDER_URL = local.urls.builder, BUILDER_AUDIENCE = local.urls.builder, API_AUDIENCE = local.urls.api, TASK_SERVICE_ACCOUNT = google_service_account.service["tasks"].email, ASSET_BUCKET = var.asset_bucket, ASSET_BASE_URL = var.asset_domain == "" ? "https://storage.googleapis.com/${var.asset_bucket}" : "https://${var.asset_domain}", STRIPE_PRICE_ID = var.stripe_price_id
           }, each.key == "api" ? {
-          COMPANION_VERTEX = "1",
+          COMPANION_VERTEX              = "1",
           SUBSCRIPTIONS_WITHOUT_PAYMENT = var.subscriptions_without_payment && !var.enable_billing ? "1" : "0",
           # The operator System page probes these; the builder answers 403 (private) and the gateway 426, both "up".
           ADMIN_HEALTH_TARGETS = "builder=${local.urls.builder}/health,gateway=${local.urls.gateway}/"
@@ -265,6 +280,19 @@ resource "google_cloud_run_v2_service" "service" {
 
       }
 
+      dynamic "env" {
+        for_each = var.use_gemini_api_key ? { GEMINI_API_KEY = "gemini-api-key" } : {}
+        content {
+          name = env.key
+          value_source {
+            secret_key_ref {
+              secret  = env.value
+              version = "latest"
+            }
+          }
+        }
+      }
+
       startup_probe {
         tcp_socket {
           port = 8080
@@ -281,7 +309,7 @@ resource "google_cloud_run_v2_service" "service" {
 
   }
 
-  depends_on = [google_project_service.apis, google_project_iam_member.firestore, google_project_iam_member.vertex, google_secret_manager_secret_iam_member.api_secrets, google_service_account_iam_member.api_custom_token_signer]
+  depends_on = [google_project_service.apis, google_project_iam_member.firestore, google_project_iam_member.vertex, google_secret_manager_secret_iam_member.api_secrets, google_service_account_iam_member.api_custom_token_signer, google_secret_manager_secret_iam_member.gemini]
 
 }
 
