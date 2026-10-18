@@ -159,7 +159,7 @@ export class FirestoreAdminStore {
         db()
           .collection('subscriptions')
           .where('status', 'in', ACTIVE_STATUSES)
-          .select('tier')
+          .select('tier', 'source')
           .get(),
         db().collection('usageDaily').where('date', '>=', dateKey(start30)).get(),
         db()
@@ -226,7 +226,12 @@ export class FirestoreAdminStore {
       children: children.size,
       childrenByAgeBand: bands,
       subscriptions: {
-        family: subs.docs.filter((d) => d.get('tier') === 'family').length,
+        family: subs.docs.filter(
+          (d) => d.get('tier') === 'family' && d.get('source') !== 'no-payment',
+        ).length,
+        noPayment: subs.docs.filter(
+          (d) => d.get('tier') === 'family' && d.get('source') === 'no-payment',
+        ).length,
         comped: comped.data().count,
         free: free.data().count,
       },

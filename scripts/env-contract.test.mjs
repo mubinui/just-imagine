@@ -33,7 +33,10 @@ test('the deployed API opts into its existing Vertex adapters and has the scoped
   assert.ok(vertex);
   assert.match(vertex, /for_each = toset\(\[[^\]]*"api"[^\]]*\]\)/);
   assert.match(vertex, /role\s*= "roles\/aiplatform\.user"/);
-  assert.match(terraform, /each\.key == "api" \? \{ COMPANION_VERTEX = "1" \} : \{\}/);
+  assert.match(
+    terraform,
+    /each\.key == "api" \? \{[^}]*COMPANION_VERTEX = "1",[^}]*SUBSCRIPTIONS_WITHOUT_PAYMENT = var\.subscriptions_without_payment && !var\.enable_billing \? "1" : "0",[^}]*ADMIN_HEALTH_TARGETS = "builder=\$\{local\.urls\.builder\}\/health,gateway=\$\{local\.urls\.gateway\}\/"\s*\} : \{\}/,
+  );
   assert.doesNotMatch(terraform, /GEMINI_API_KEY\s*=/);
 });
 

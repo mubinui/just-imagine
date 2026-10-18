@@ -5,6 +5,7 @@ import { db, readDoc, transaction } from '@just-imagine/server-core';
 import { ApiFault } from './errors';
 import type { Billing } from './app';
 export class StripeBilling implements Billing {
+  readonly mode = 'stripe' as const;
   private stripe: Stripe;
   constructor(
     private config: { secretKey: string; webhookSecret: string; priceId: string; webUrl: string },

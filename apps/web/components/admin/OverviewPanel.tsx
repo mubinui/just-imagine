@@ -61,6 +61,12 @@ export function OverviewPanel() {
                 <dt>{uiText('Comped Family plans')}</dt>
                 <dd>{formatCount(data.subscriptions.comped)}</dd>
               </div>
+              {data.subscriptions.noPayment !== undefined && (
+                <div>
+                  <dt>{uiText('Family plans without payment')}</dt>
+                  <dd>{formatCount(data.subscriptions.noPayment)}</dd>
+                </div>
+              )}
               <div>
                 <dt>{uiText('Free plan')}</dt>
                 <dd>{formatCount(data.subscriptions.free)}</dd>

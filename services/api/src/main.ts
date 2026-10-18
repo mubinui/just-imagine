@@ -7,6 +7,7 @@ import { FirestoreCompanionService, GeminiCompanionGenerator } from './companion
 import { createApi } from './app';
 import { FirestoreApiStore } from './store';
 import { StripeBilling } from './billing';
+import { NoPaymentBilling } from './no-payment-billing';
 import { FirestoreStoryStore } from './stories';
 import { deletionQueue, storyQueue } from './tasks';
 import { processDeletion, retryDeletions } from './deletion';
@@ -31,6 +32,7 @@ const env = z
     BUILDER_QUEUE: z.string().default('world-builds'),
     TASK_SERVICE_ACCOUNT: z.email().optional(),
     DELETION_QUEUE: z.string().default('deletions'),
+    SUBSCRIPTIONS_WITHOUT_PAYMENT: z.enum(['0', '1']).default('0'),
   })
   .parse(process.env);
 const billing =
@@ -41,7 +43,9 @@ const billing =
         priceId: env.STRIPE_PRICE_ID,
         webUrl: env.WEB_URL,
       })
-    : undefined;
+    : env.SUBSCRIPTIONS_WITHOUT_PAYMENT === '1'
+      ? new NoPaymentBilling({ webUrl: env.WEB_URL })
+      : undefined;
 const local = localDevelopment();
 const queue =
   !local && env.GOOGLE_CLOUD_PROJECT && env.API_AUDIENCE && env.TASK_SERVICE_ACCOUNT

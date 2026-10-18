@@ -11,6 +11,7 @@ describe('ROUTES', () => {
   it('declares every endpoint from the spec under /v1', () => {
     const keys = Object.keys(ROUTES).sort();
     expect(keys).toEqual([
+      'cancelPlan',
       'checkout',
       'createChild',
       'createCompanion',

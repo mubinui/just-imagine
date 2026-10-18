@@ -150,6 +150,8 @@ export type UsageDailyDoc = z.infer<typeof UsageDailyDocSchema>;
 
 export const SubscriptionDocSchema = z.object({
   stripeSubscriptionId: z.string(),
+  /** `no-payment`: started without a payment while the deployment takes no payments. */
+  source: z.enum(['stripe', 'no-payment']).optional(),
   status: z.enum(['active', 'past_due', 'canceled', 'trialing', 'incomplete']),
   tier: PlanTierSchema,
   currentPeriodEnd: epochMs,

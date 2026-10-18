@@ -147,7 +147,12 @@ export const AdminOverviewResponseSchema = z.object({
   children: count,
   childrenByAgeBand: z.record(AgeBandSchema, count),
   /** family: paying Stripe subscriptions (active or trialing); comped: admin comps; free: everyone else. */
-  subscriptions: z.object({ family: count, comped: count, free: count }),
+  subscriptions: z.object({
+    family: count,
+    comped: count,
+    free: count,
+    noPayment: count.optional(),
+  }),
   sessions: AdminWindowSchema,
   voiceMinutes: AdminWindowSchema,
   worldsBuilt: AdminWindowSchema,

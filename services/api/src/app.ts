@@ -30,6 +30,8 @@ import { registerAdminLessonRoutes } from './admin-lessons';
 import { catalogRoutes } from './catalog';
 
 export interface Billing {
+  /** `stripe` takes real (test-mode) payments; `no-payment` starts plans without one. */
+  readonly mode: 'stripe' | 'no-payment';
   checkout(uid: string): Promise<{ url: string }>;
   portal(uid: string): Promise<{ url: string }>;
   webhook(raw: Buffer, signature: string): Promise<void>;
@@ -125,7 +127,10 @@ export function createApi(options: ApiOptions) {
     });
     const id = (params: unknown, key: string) =>
       DocumentIdSchema.parse(z.record(z.string(), z.unknown()).parse(params)[key]);
-    routes.get('/v1/me', (req) => options.store.me(req.parentUid));
+    routes.get('/v1/me', async (req) => ({
+      ...(await options.store.me(req.parentUid)),
+      billing: options.billing?.mode ?? 'off',
+    }));
     routes.post('/v1/children', async (req, reply) =>
       reply
         .status(201)
@@ -318,6 +323,12 @@ export function createApi(options: ApiOptions) {
     routes.post('/v1/billing/portal', async (req) => {
       if (!options.billing) throw new ApiFault(503, 'INTERNAL', 'Billing is not configured yet.');
       return options.billing.portal(req.parentUid);
+    });
+    routes.post('/v1/billing/cancel', async (req) => {
+      if (options.billing?.mode !== 'no-payment')
+        throw new ApiFault(409, 'PLAN_LIMIT', 'Manage your subscription in billing.');
+      await options.billing.cancel(req.parentUid);
+      return { plan: 'free' as const };
     });
   });
   return app;
