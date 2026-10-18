@@ -7,6 +7,7 @@ import {
 import type { GenerateJson, ReviewScene } from './pipeline';
 import { CreationReviewSchema, creationReviewPrompt } from './creation-review';
 import { logEvent, vertexModelLocation } from '@just-imagine/server-core';
+import { concurrencyLimit, isRateLimited, withBackoff } from './rate-limit';
 export const SAFETY_SETTINGS = [
   HarmCategory.HARM_CATEGORY_HARASSMENT,
   HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -33,6 +34,8 @@ export class VertexModels {
   }
   // Bound session state so one model outage does not permanently downgrade every child.
   private failedSceneSessions = new Set<string>();
+  /** A world asks for several images at once; Vertex rate-limits bursts, so they share two slots. */
+  private imageSlots = concurrencyLimit(2);
   private jsonModeModels = new Set<string>();
   reviewScene: ReviewScene = async (doc, job, before) => {
     const response = await this.client.models.generateContent({
@@ -130,30 +133,53 @@ export class VertexModels {
     bounded = false,
     options?: { imageSize?: '1K' | '2K'; reference?: Buffer },
   ): Promise<Buffer> {
-    const response = await this.client.models.generateContent({
-      model: hero ? this.config.heroModel : this.config.propModel,
-      contents: options?.reference
-        ? [
-            {
-              role: 'user',
-              parts: [
-                { text: prompt },
-                {
-                  inlineData: { mimeType: 'image/png', data: options.reference.toString('base64') },
-                },
-              ],
+    const generate = (model: string) =>
+      withBackoff(
+        () =>
+          this.client.models.generateContent({
+            model,
+            contents: options?.reference
+              ? [
+                  {
+                    role: 'user',
+                    parts: [
+                      { text: prompt },
+                      {
+                        inlineData: {
+                          mimeType: 'image/png',
+                          data: options.reference.toString('base64'),
+                        },
+                      },
+                    ],
+                  },
+                ]
+              : prompt,
+            config: {
+              responseModalities: ['IMAGE', 'TEXT'],
+              imageConfig: backdrop
+                ? { aspectRatio: '16:9', imageSize: '2K' }
+                : { aspectRatio: '1:1', imageSize: options?.imageSize ?? '1K' },
+              safetySettings: SAFETY_SETTINGS,
+              ...(bounded ? { abortSignal: AbortSignal.timeout(65000) } : {}),
+              httpOptions: {
+                timeout: 60000,
+                ...(bounded ? { retryOptions: { attempts: 1 } } : {}),
+              },
             },
-          ]
-        : prompt,
-      config: {
-        responseModalities: ['IMAGE', 'TEXT'],
-        imageConfig: backdrop
-          ? { aspectRatio: '16:9', imageSize: '2K' }
-          : { aspectRatio: '1:1', imageSize: options?.imageSize ?? '1K' },
-        safetySettings: SAFETY_SETTINGS,
-        ...(bounded ? { abortSignal: AbortSignal.timeout(65000) } : {}),
-        httpOptions: { timeout: 60000, ...(bounded ? { retryOptions: { attempts: 1 } } : {}) },
-      },
+          }),
+        { deadlineMs: bounded ? 20000 : 45000 },
+      );
+    // The hero model has far less shared capacity than the prop model; when it stays rate
+    // limited, a simpler picture from the prop model beats a failed world.
+    const response = await this.imageSlots(async () => {
+      if (!hero) return generate(this.config.propModel);
+      try {
+        return await generate(this.config.heroModel);
+      } catch (error) {
+        if (!isRateLimited(error)) throw error;
+        logEvent('image_model_fallback', { milestone: 'HERO_RATE_LIMITED' }, 'WARNING');
+        return generate(this.config.propModel);
+      }
     });
     const image = response.candidates
       ?.flatMap((c) => c.content?.parts ?? [])
@@ -162,26 +188,30 @@ export class VertexModels {
     return Buffer.from(image.data, 'base64');
   }
   async safeImage(data: Buffer, description: string): Promise<boolean> {
-    const response = await this.client.models.generateContent({
-      model: this.config.fastModel,
-      contents: [
-        {
-          role: 'user',
-          parts: [
+    const response = await withBackoff(
+      () =>
+        this.client.models.generateContent({
+          model: this.config.fastModel,
+          contents: [
             {
-              text: `Is this appropriate for a six-year-old and does it match this description? ${JSON.stringify(description)}. Return {"safe":boolean,"matches":boolean}.`,
+              role: 'user',
+              parts: [
+                {
+                  text: `Is this appropriate for a six-year-old and does it match this description? ${JSON.stringify(description)}. Return {"safe":boolean,"matches":boolean}.`,
+                },
+                { inlineData: { mimeType: 'image/webp', data: data.toString('base64') } },
+              ],
             },
-            { inlineData: { mimeType: 'image/webp', data: data.toString('base64') } },
           ],
-        },
-      ],
-      config: {
-        responseMimeType: 'application/json',
-        safetySettings: SAFETY_SETTINGS,
-        abortSignal: AbortSignal.timeout(20000),
-        httpOptions: { timeout: 15000, retryOptions: { attempts: 1 } },
-      },
-    });
+          config: {
+            responseMimeType: 'application/json',
+            safetySettings: SAFETY_SETTINGS,
+            abortSignal: AbortSignal.timeout(20000),
+            httpOptions: { timeout: 15000, retryOptions: { attempts: 1 } },
+          },
+        }),
+      { deadlineMs: 15000 },
+    );
     const verdict = JSON.parse(response.text ?? '{}') as { safe?: unknown; matches?: unknown };
     return verdict.safe === true && verdict.matches === true;
   }
