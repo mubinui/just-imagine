@@ -118,8 +118,11 @@ export const english = {
   checkout: 'Explore Family',
   portal: 'Manage subscription',
   noPaymentInfo:
-    'Payments are switched off for now, so the Family plan is free: no card or payment needed.',
+    'Payments are switched off for now, so every plan is a free promotion: no card or payment needed.',
   startFamily: 'Start the Family plan',
+  startPromo: 'Start free for now',
+  switchPlan: 'Switch to this plan',
+  promoBadge: 'Free promotion',
   cancelPlan: 'Return to the free plan',
   planStarted: 'The Family plan is on. No payment was taken.',
   empty: 'Nothing here yet. The next adventure starts in the Studio.',

@@ -97,7 +97,13 @@ export const UsageTodayResponseSchema = z.object({
 });
 export type UsageTodayResponse = z.infer<typeof UsageTodayResponseSchema>;
 
-export const CheckoutBodySchema = z.strictObject({ tier: z.literal('family') });
+export const FamilyPlanIdSchema = z.enum(['family-month', 'family-year']);
+export type FamilyPlanId = z.infer<typeof FamilyPlanIdSchema>;
+export const CheckoutBodySchema = z.strictObject({
+  tier: z.literal('family'),
+  /** Which Family offer; Stripe uses its configured price, plans without payment record it. */
+  planId: FamilyPlanIdSchema.optional(),
+});
 export const CheckoutResponseSchema = z.object({ url: z.string() });
 export const PortalResponseSchema = z.object({ url: z.string() });
 export type CheckoutBody = z.infer<typeof CheckoutBodySchema>;
