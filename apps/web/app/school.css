@@ -8,7 +8,8 @@
  */
 .sch {
   color: var(--ink);
-  background: var(--ground);
+  /* The page body already paints --ground; a solid fill here would hide the theme art. */
+  background: transparent;
   min-height: 100dvh;
 }
 /* An embedded school screen never adds a second page height or background. */
@@ -475,6 +476,12 @@
 }
 .sch-auth section > button {
   margin: 0 10px 12px 0;
+}
+/* Google sign-in spans the form, like the sign-in button above it and the parent page. */
+.sch-auth section > button.sch-auth-google {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
 }
 .sch-empty {
   padding: 40px 0;
