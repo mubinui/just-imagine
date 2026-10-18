@@ -179,6 +179,10 @@ export const english = {
   previewSignIn: 'Open sample family',
   agePrefix: 'Ages',
   consentRequired: 'Please confirm parental consent to create an account.',
+  newAccountConsent:
+    'This account is new to Just Imagine. Confirm parental consent to create your family account.',
+  createFamilyAccount: 'Create my family account',
+  signInAgain: 'Please sign in again to continue.',
   useEmail: 'Use email and password',
   daily: 'Daily allowance',
   worldSaved: 'Sample worlds',

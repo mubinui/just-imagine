@@ -2,6 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, db } from '@just-imagine/server-core';
 import { UserDocSchema, paths } from '@just-imagine/protocol';
+const CONSENT_REQUIRED = 'Parental consent is required to create your account';
 function sameOrigin(req: NextRequest) {
   const publicOrigin = process.env.WEB_URL
     ? new URL(process.env.WEB_URL).origin
@@ -30,8 +31,7 @@ export async function POST(req: NextRequest) {
         throw new Error('A school account cannot become a family account');
       const existing = await tx.get(ref);
       if (!existing.exists) {
-        if (body.consent !== true)
-          throw new Error('Parental consent is required to create your account');
+        if (body.consent !== true) throw new Error(CONSENT_REQUIRED);
         tx.create(
           ref,
           UserDocSchema.parse({
@@ -58,6 +58,9 @@ export async function POST(req: NextRequest) {
     });
     return response;
   } catch (error) {
+    if (error instanceof Error && error.message === CONSENT_REQUIRED)
+      // A new account only: returning parents never reach this. The page asks for consent once.
+      return NextResponse.json({ error: error.message, code: 'CONSENT_REQUIRED' }, { status: 403 });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Authentication failed' },
       {
