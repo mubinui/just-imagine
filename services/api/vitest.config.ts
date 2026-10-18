@@ -12,6 +12,7 @@ export default defineConfig({
           'test/demo-lesson-quality.test.ts',
           'test/school-grading.test.ts',
           'test/school-chemistry.test.ts',
+          'test/transaction.test.ts',
         ],
     environment: 'node',
     fileParallelism: false,

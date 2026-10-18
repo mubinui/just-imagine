@@ -22,6 +22,7 @@ import {
   textUsesLanguage,
 } from '@just-imagine/protocol';
 import { ApiFault } from './errors';
+import { retryClosedTransaction } from './transaction';
 
 const missing = () => new ApiFault(404, 'NOT_FOUND', 'This story is no longer available.');
 export class FirestoreStoryStore {
@@ -73,55 +74,57 @@ export class FirestoreStoryStore {
       .digest('hex')
       .slice(0, 40)}`;
     const job: StoryBuildJob = { kind: 'story', jobId: `${id}_0`, storyId: id, uid, childId };
-    const value = await db().runTransaction(async (tx) => {
-      const { user, child } = await this.family(tx, uid, childId);
-      const ref = db().doc(`stories/${id}`);
-      const [old, deleted] = await tx.getAll(ref, db().doc(`storyDeletionLocks/${id}`));
-      if (deleted!.exists) throw missing();
-      if (old!.exists) {
-        const previous = StoryDocSchema.parse(old!.data());
-        if (previous.topic !== body.topic)
-          throw new ApiFault(400, 'INVALID_ARGUMENT', 'Use a new request for a different topic.');
-        return previous;
-      }
-      const date = yyyymmdd(new Date()),
-        usageRef = db().doc(paths.usageDaily(uid, date));
-      // Keep the query after the document read: a contended transaction must
-      // surface its original abort before another RPC tries its closed ID.
-      const usage = await tx.get(usageRef);
-      const books = await tx.get(db().collection('stories').where('ownerUid', '==', uid));
-      const used = UsageDailyDocSchema.parse(
-        usage.exists ? usage.data() : { uid, date, voiceSeconds: 0, worlds: 0, images: 0 },
-      );
-      const limits = PLAN_LIMITS[user.plan];
-      if (used.worlds >= limits.worldsPerDay || books.size >= limits.savedWorlds)
-        throw new ApiFault(
-          429,
-          'QUOTA_EXHAUSTED',
-          'Your family’s creation allowance is used. Try another day or read a saved story.',
+    const value = await retryClosedTransaction(() =>
+      db().runTransaction(async (tx) => {
+        const { user, child } = await this.family(tx, uid, childId);
+        const ref = db().doc(`stories/${id}`);
+        const [old, deleted] = await tx.getAll(ref, db().doc(`storyDeletionLocks/${id}`));
+        if (deleted!.exists) throw missing();
+        if (old!.exists) {
+          const previous = StoryDocSchema.parse(old!.data());
+          if (previous.topic !== body.topic)
+            throw new ApiFault(400, 'INVALID_ARGUMENT', 'Use a new request for a different topic.');
+          return previous;
+        }
+        const date = yyyymmdd(new Date()),
+          usageRef = db().doc(paths.usageDaily(uid, date));
+        // Keep the query after the document read: a contended transaction must
+        // surface its original abort before another RPC tries its closed ID.
+        const usage = await tx.get(usageRef);
+        const books = await tx.get(db().collection('stories').where('ownerUid', '==', uid));
+        const used = UsageDailyDocSchema.parse(
+          usage.exists ? usage.data() : { uid, date, voiceSeconds: 0, worlds: 0, images: 0 },
         );
-      const next = StoryDocSchema.parse({
-        id,
-        ownerUid: uid,
-        childId,
-        topic: body.topic,
-        generationId: job.jobId,
-        language: languageOf(child),
-        ageBand: child.ageBand,
-        preferences: storyPreferencesOf(child),
-        status: 'queued',
-        manuscript: null,
-        images: {},
-        progress: { scene: 0, beat: 0, choices: {}, completed: false },
-        revision: 0,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-      tx.create(ref, next);
-      tx.set(usageRef, { ...used, worlds: used.worlds + 1 });
-      if (localDevelopment()) tx.create(db().doc(`localBuildTasks/${job.jobId}`), this.task(job));
-      return next;
-    });
+        const limits = PLAN_LIMITS[user.plan];
+        if (used.worlds >= limits.worldsPerDay || books.size >= limits.savedWorlds)
+          throw new ApiFault(
+            429,
+            'QUOTA_EXHAUSTED',
+            'Your family’s creation allowance is used. Try another day or read a saved story.',
+          );
+        const next = StoryDocSchema.parse({
+          id,
+          ownerUid: uid,
+          childId,
+          topic: body.topic,
+          generationId: job.jobId,
+          language: languageOf(child),
+          ageBand: child.ageBand,
+          preferences: storyPreferencesOf(child),
+          status: 'queued',
+          manuscript: null,
+          images: {},
+          progress: { scene: 0, beat: 0, choices: {}, completed: false },
+          revision: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        tx.create(ref, next);
+        tx.set(usageRef, { ...used, worlds: used.worlds + 1 });
+        if (localDevelopment()) tx.create(db().doc(`localBuildTasks/${job.jobId}`), this.task(job));
+        return next;
+      }),
+    );
     if (!localDevelopment() && value.status === 'queued') await this.deliver!(job);
     return value;
   }
