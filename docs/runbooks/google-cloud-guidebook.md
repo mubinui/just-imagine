@@ -628,6 +628,7 @@ Tick every line before calling an environment done.
 
 - [ ] `apphosting.<env>.yaml` has all nine variables, with `wss://` for the gateway.
 - [ ] Backend live branch is `main` and its environment name matches the file.
+- [ ] The newest web rollout and the Cloud Run image tag are both the released `main` commit (see [Verify what is deployed](#testing-guide)).
 - [ ] App Hosting runtime identity has `roles/datastore.user` and `roles/firebaseauth.admin` (or the custom role).
 
 **Every role signs in**
@@ -720,6 +721,27 @@ The `ci` workflow runs all of this on every push to `main`. Deploy only a commit
 
 ### After deploying (staging, then production)
 
+**Verify what is deployed first.** The web app and the backend are built separately, so check both against the `main` commit you meant to release:
+
+```sh
+export RELEASE="$(git rev-parse origin/main)"     # the commit you meant to deploy
+git log -1 --oneline "$RELEASE"
+
+# Web: App Hosting's newest rollout must be from branch main at $RELEASE.
+#   Firebase console → App Hosting → <backend> → Rollouts (commit and branch per rollout)
+#   Firebase console → App Hosting → <backend> → Settings → Deployment → Live branch = main
+
+# Backend: the image every service runs, and the commit it was built from.
+for s in api gateway builder; do
+  gcloud run services describe "imagine-$s" --region "$REGION" --project "$PROJECT_ID" \
+    --format='value(spec.template.spec.containers[0].image)'
+done
+gcloud artifacts docker tags list "$REGION-docker.pkg.dev/$PROJECT_ID/just-imagine/services" \
+  --project "$PROJECT_ID" --format='table(tag,version)'
+```
+
+All three services must run the same `@sha256:` digest, and that digest's tag in the list must be `$RELEASE`. If the web rollout or the image tag is an older commit or another branch, you are looking at old code: set the live branch to `main` and roll out again, or rebuild the image from a clean `main` checkout (steps 6b to 6d). Only `main` (and `demo`, which is never deployed) carries the current app; older `feat/*` branches on GitHub have the previous UI.
+
 **Smoke checks** (one minute):
 
 ```sh
@@ -770,23 +792,24 @@ Repeat for `imagine-gateway` and `imagine-builder` as needed, and roll the web a
 
 ## Troubleshooting
 
-| Symptom                                                           | Check first                                                                                                       |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Cloud Build cannot push the image                                 | Step 6a ran; the build service account has `roles/artifactregistry.writer`                                        |
-| Terraform says Firestore already exists                           | Import it (step 2) instead of creating a second database                                                          |
-| Web build fails with "Refusing a production build in sample mode" | Something set `NEXT_PUBLIC_FAKE=1`; deployments must use `0`                                                      |
-| Browser shows CORS or origin errors                               | `web_url` in tfvars, `WEB_URL` in App Hosting and the address bar are the exact same origin                       |
-| Sign-in popup fails                                               | The web host is an authorized domain; Google is enabled; the Browser key allows the web and auth domains          |
-| Parent session fails after sign-in                                | The runtime identity has the step 8c roles; `GOOGLE_CLOUD_PROJECT` and the Firebase config belong to this project |
-| Web calls the wrong API or gateway                                | Fix `apphosting.<env>.yaml` and roll out again; public URLs are fixed at build time                               |
-| Voice never connects                                              | Gateway URL uses `wss://`; `WEB_URL` matches the page origin; the gateway revision is ready                       |
-| Worlds stay "building"                                            | `world-builds` queue, the `imagine-tasks` invoker grant on the builder, builder logs for the job ID               |
-| AI unavailable or timing out                                      | Vertex AI model access and quota in `us-central1` (and `global` for the game model); the error category in logs   |
-| Checkout says billing is unavailable                              | `enable_billing = true` was applied, both secrets have a version, and the key starts with `sk_test_`              |
-| Stripe webhook returns 400                                        | The endpoint's signing secret matches `stripe-webhook-secret`; the event is from test mode                        |
-| Deletion stays pending                                            | `deletions` queue, the Scheduler job's runs, `/internal/deletions` logs on the API                                |
-| System page shows a service unconfigured                          | The API revision predates `ADMIN_HEALTH_TARGETS`; apply Terraform again                                           |
-| No alerts arrive                                                  | `notification_channels` is set and Terraform was applied after setting it                                         |
-| Nightly evaluation fails at its configuration check               | The five GitHub `staging` environment variables exist                                                             |
+| Symptom                                                           | Check first                                                                                                                                                                                  |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cloud Build cannot push the image                                 | Step 6a ran; the build service account has `roles/artifactregistry.writer`                                                                                                                   |
+| Terraform says Firestore already exists                           | Import it (step 2) instead of creating a second database                                                                                                                                     |
+| Web build fails with "Refusing a production build in sample mode" | Something set `NEXT_PUBLIC_FAKE=1`; deployments must use `0`                                                                                                                                 |
+| Browser shows CORS or origin errors                               | `web_url` in tfvars, `WEB_URL` in App Hosting and the address bar are the exact same origin                                                                                                  |
+| Sign-in popup fails                                               | The web host is an authorized domain; Google is enabled; the Browser key allows the web and auth domains                                                                                     |
+| Parent session fails after sign-in                                | The runtime identity has the step 8c roles; `GOOGLE_CLOUD_PROJECT` and the Firebase config belong to this project                                                                            |
+| Old screens after a deploy                                        | The web rollout's branch and commit, and the Cloud Run image tag, match the released `main` commit (Testing guide → verify what is deployed); then reload on the device or use a private tab |
+| Web calls the wrong API or gateway                                | Fix `apphosting.<env>.yaml` and roll out again; public URLs are fixed at build time                                                                                                          |
+| Voice never connects                                              | Gateway URL uses `wss://`; `WEB_URL` matches the page origin; the gateway revision is ready                                                                                                  |
+| Worlds stay "building"                                            | `world-builds` queue, the `imagine-tasks` invoker grant on the builder, builder logs for the job ID                                                                                          |
+| AI unavailable or timing out                                      | Vertex AI model access and quota in `us-central1` (and `global` for the game model); the error category in logs                                                                              |
+| Checkout says billing is unavailable                              | `enable_billing = true` was applied, both secrets have a version, and the key starts with `sk_test_`                                                                                         |
+| Stripe webhook returns 400                                        | The endpoint's signing secret matches `stripe-webhook-secret`; the event is from test mode                                                                                                   |
+| Deletion stays pending                                            | `deletions` queue, the Scheduler job's runs, `/internal/deletions` logs on the API                                                                                                           |
+| System page shows a service unconfigured                          | The API revision predates `ADMIN_HEALTH_TARGETS`; apply Terraform again                                                                                                                      |
+| No alerts arrive                                                  | `notification_channels` is set and Terraform was applied after setting it                                                                                                                    |
+| Nightly evaluation fails at its configuration check               | The five GitHub `staging` environment variables exist                                                                                                                                        |
 
 When collecting evidence for an incident, keep job IDs, error categories and timings. Never copy keys, tokens, transcripts, child photos or audio into logs or tickets.

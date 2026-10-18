@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { openParentSpace } from './parent-space';
 
 test('saved English/Bangla selection follows parent settings, shared navigation, reload and profile choice', async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/parent/settings');
+  await openParentSpace(page, '/parent/settings');
   const form = page.locator('.language-preferences');
   await expect(form).toBeVisible();
   await expect(form.locator('option')).toHaveCount(2);
@@ -31,7 +32,7 @@ test('saved English/Bangla selection follows parent settings, shared navigation,
   ).toBeVisible();
   await expect(assistant.getByRole('status')).toHaveText('নমুনা বন্ধু · ছুঁয়ে ঘুরে দেখো');
   await page.keyboard.press('Escape');
-  await page.goto('/parent/settings');
+  await openParentSpace(page, '/parent/settings');
   await form.locator('select').selectOption('en');
   await form.locator('button[type=submit]').click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');

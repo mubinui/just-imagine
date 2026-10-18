@@ -311,3 +311,17 @@
   font-size: 12px;
   font-weight: 700;
 }
+/* Promotional plans: a start button at the foot of each paid card and a small promotion tag. */
+.plan-card .plan-start {
+  width: 100%;
+  margin-top: 6px;
+}
+.plan-promo {
+  justify-self: start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--yellow) 55%, var(--ground));
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}

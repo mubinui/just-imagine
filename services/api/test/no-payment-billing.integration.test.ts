@@ -30,6 +30,22 @@ describe('subscriptions without payment', () => {
     });
   });
 
+  it('records which promotional plan the family chose and lets them switch', async () => {
+    await parent('nopay_choose');
+    await billing.checkout('nopay_choose', 'family-year');
+    expect(await readDoc(paths.subscription('nopay_choose'), SubscriptionDocSchema)).toMatchObject({
+      planId: 'family-year',
+      status: 'active',
+    });
+    await billing.checkout('nopay_choose', 'family-month');
+    expect((await readDoc(paths.subscription('nopay_choose'), SubscriptionDocSchema))?.planId).toBe(
+      'family-month',
+    );
+    await expect(billing.checkout('nopay_choose', 'family-month')).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+
   it('refuses a second start while the plan is active', async () => {
     await parent('nopay_twice');
     await billing.checkout('nopay_twice');

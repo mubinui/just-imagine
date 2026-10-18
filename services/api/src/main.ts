@@ -94,6 +94,7 @@ const app = createApi({
       : undefined,
   ),
   origins: [env.WEB_URL],
+  school: { promotions: billing?.mode === 'no-payment' },
 });
 const auth = new OAuth2Client();
 app.register(async (internal) => {

@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import { onIdTokenChanged } from 'firebase/auth';
 import { firebase } from '../lib/firebase';
 import { env } from '../lib/env';
+import { lockParentArea } from '../lib/parent-gate';
 import { s } from '../lib/strings/en';
 export function ChildGuard({ children }: { children: React.ReactNode }) {
   useLanguage();
   const [ready, setReady] = useState(env.fake);
   const [failed, setFailed] = useState(false);
   const router = useRouter();
+  // Any child screen locks the parent space: getting back in needs the grown-up to sign in again.
+  useEffect(lockParentArea, []);
   useEffect(() => {
     if (env.fake) return;
     let version = 0;

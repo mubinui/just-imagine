@@ -110,3 +110,34 @@
     line-height: 1.5;
   }
 }
+
+/* Parent space lock: the sign-in layout, asking the grown-up already on this device. */
+.parent-gate .auth-character-layout h1 {
+  margin-bottom: 12px;
+}
+.parent-gate-lead {
+  margin: 0 0 10px;
+  max-width: 44ch;
+  color: var(--soft);
+  font-weight: 700;
+  line-height: 1.55;
+}
+.parent-gate-account {
+  margin: 0 0 26px;
+  color: var(--soft);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.parent-gate .auth-panel > .parent-gate-other {
+  margin-top: 4px;
+  padding: 10px 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--soft);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}

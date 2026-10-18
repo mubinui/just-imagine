@@ -9,7 +9,7 @@ import {
   signOut,
   GoogleAuthProvider,
 } from 'firebase/auth';
-import { firebase } from '../../lib/firebase';
+import { firebase, prepareSignIn } from '../../lib/firebase';
 import { schoolRequest } from '../../lib/school/api';
 import { useSchoolLanguage } from '../../lib/i18n/study';
 import { Brand } from '../Shell';
@@ -41,6 +41,10 @@ export function SchoolAuth({
     action = useSchoolAction();
   const [signup, setSignup] = useState(join);
   const [invite, setInvite] = useState<InviteState>({ state: 'checking' });
+  // Ready Google sign-in before the first tap, so phones open its popup on that tap.
+  useEffect(() => {
+    if (!student) prepareSignIn();
+  }, [student]);
   const bn = language === 'bn';
   // The invitation is checked before any account is created or signed in.
   useEffect(() => {

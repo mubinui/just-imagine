@@ -57,12 +57,13 @@ describe('teacher scope', () => {
     const app = harness();
     const me = await get(app, '/v1/school/me', 'teacher');
     expect(me.statusCode).toBe(200);
-    expect(me.json()).toEqual({ uid: 't1', schoolId: 's1', superAdmin: false });
+    expect(me.json()).toEqual({ uid: 't1', schoolId: 's1', superAdmin: false, promotions: false });
     expect((await get(app, '/v1/school/me?schoolId=s2', 'teacher')).statusCode).toBe(403);
     expect((await get(app, '/v1/school/me?schoolId=s9', 'admin')).json()).toEqual({
       uid: 'ops',
       schoolId: 's9',
       superAdmin: true,
+      promotions: false,
     });
     expect((await get(app, '/v1/school/me?schoolId=a%2Fb', 'admin')).statusCode).toBe(400);
     await app.close();

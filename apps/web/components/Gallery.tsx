@@ -79,11 +79,16 @@ export function Gallery() {
       <div className="world-grid">
         {worlds.map((world, index) => (
           <button
-            className={`world-tile world-${index % 4}`}
+            className={`world-tile world-${index % 4}${world.thumbnailUrl ? ' has-art' : ''}`}
             key={world.id}
             onClick={() => open(world.id)}
           >
-            <span className="world-shape" aria-hidden="true" />
+            {world.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- world art comes from the asset bucket
+              <img className="world-thumb" src={world.thumbnailUrl} alt="" loading="lazy" />
+            ) : (
+              <span className="world-shape" aria-hidden="true" />
+            )}
             <span className="world-tile-copy">
               <strong>{uiText(world.title)}</strong>
               <span>{world.concepts.map((c) => conceptCard(c, language).title).join(' · ')}</span>

@@ -67,7 +67,7 @@ export function ProfilePicker() {
       </div>
       {error && <p role="alert">{uiText(error)}</p>}
       {data?.children.length === 0 && <p>{s.empty}</p>}
-      <Link href="/parent/children" className="text-link">
+      <Link prefetch={false} href="/parent/children" className="text-link">
         {s.add} ↗
       </Link>
       <Link href="/gallery" className="button secondary">
