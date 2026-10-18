@@ -40,7 +40,8 @@ export function writeStarterContent(
         styleVersion: 'starter',
         assets: {},
         concepts: doc.learning.concepts,
-        thumbnailUrl: doc.theme.backdrop?.url ?? null,
+        // The game has no painted backdrop of its own; the meadow scene stands in for its card.
+        thumbnailUrl: doc.theme.backdrop?.url || new URL('/worlds/meadow.webp', origin).href,
         jobId: `starter_${key}`,
         // Oldest first, so the explorer's own creations appear above the starter shelf.
         createdAt: now - (STARTER_WORLD_KEYS.length - index) * 1000,
