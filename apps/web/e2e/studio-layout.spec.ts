@@ -62,3 +62,43 @@ test('Studio preserves canvas proportions and usable controls across viewport si
   }
   expect(errors).toEqual([]);
 });
+
+test('On a short phone the Studio dock sits at the bottom of the screen', async ({ page }) => {
+  // Phone Safari leaves well under 700 CSS px once its toolbars show. When the stage content is
+  // shorter than that (the "Tap a friend to start" invitation before any world), the dock must
+  // still end at the bottom edge instead of stopping halfway up with empty stage below it; when
+  // the content is taller (a world with its controls), the dock is the last thing to scroll to.
+  const dockEnd = () =>
+    page.locator('.studio-stage').evaluate((stage) => {
+      const dockBox = stage.querySelector('.studio-dock')!.getBoundingClientRect();
+      return {
+        dockEnd: dockBox.bottom + stage.scrollTop,
+        stageEnd: Math.max(stage.scrollHeight, stage.clientHeight),
+        viewport: stage.clientHeight,
+      };
+    });
+  for (const viewport of [
+    { width: 390, height: 664 },
+    { width: 360, height: 640 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/play');
+    await page.evaluate(() => sessionStorage.removeItem('ji-fixture'));
+    await page.getByRole('button', { name: 'Ari Ages 8-10' }).click();
+    await expect(page.locator('.studio-dock')).toBeVisible();
+    // A world taller than the screen: the dock ends the scroll.
+    const tall = await dockEnd();
+    expect(Math.abs(tall.dockEnd - tall.stageEnd)).toBeLessThanOrEqual(1);
+    // Content shorter than the screen (sample mode always opens a world, so shorten the scene
+    // to the invitation's size): the dock sits on the bottom edge.
+    await page.locator('.stage-scene').evaluate((scene) => {
+      for (const child of Array.from(scene.children)) (child as HTMLElement).style.display = 'none';
+      const stand = document.createElement('div');
+      stand.style.height = '320px';
+      scene.append(stand);
+    });
+    const short = await dockEnd();
+    expect(short.stageEnd).toBe(short.viewport);
+    expect(Math.abs(short.dockEnd - short.viewport)).toBeLessThanOrEqual(1);
+  }
+});

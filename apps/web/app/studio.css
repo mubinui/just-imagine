@@ -1379,12 +1379,20 @@
     height: 60px;
   }
 }
+/* Short phones (Safari with its toolbars is under 700px): the stage scrolls as one column
+   when its content is taller than the screen. The scene keeps its natural height and takes any
+   spare height, so the dock stays on the bottom edge instead of stopping halfway up. */
 @media (max-width: 760px) and (max-height: 700px) {
   .stage {
     overflow-y: auto;
-    display: block;
+    display: flex;
+    flex-direction: column;
+  }
+  .stage > * {
+    flex-shrink: 0;
   }
   .stage-scene {
+    flex: 1 0 auto;
     overflow: visible;
   }
   .stage-scene.has-lab {
