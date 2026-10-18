@@ -1,19 +1,38 @@
 # Just Imagine
 
-A bilingual imagination and learning app built with Gemini, Firebase and Google Cloud.
+**A bilingual (English and Bangla) imagination and learning app that turns screen time into talk time.** Children talk with friendly characters, build playable worlds and stories, and learn through play; schools run interactive STEM lessons. Built with Gemini on Google Cloud.
 
-**[Open the live app](https://justimagine.mymentor.bd)** · **[Open the UI demo](https://mubinui.github.io/just-imagine/demo/)** (sample content, no microphone, sign-in or payments; built from the [`demo` branch](https://github.com/mubinui/just-imagine/tree/demo)) · **[Deploy on Google Cloud](https://mubinui.github.io/just-imagine/google-cloud/)**
+[![Watch the Just Imagine demo video](https://img.youtube.com/vi/ZwjqJ2DGuAA/maxresdefault.jpg)](https://youtu.be/ZwjqJ2DGuAA)
 
-Families with children aged 6–13 can meet a play friend, explore illustrated learning worlds, play story adventures and collect their own creations. A separate school workspace serves class 9/10 STEM lessons, teachers and students.
+| Resource                                                                       | What it is                                                                                                                                |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Live app](https://justimagine.mymentor.bd)**                                | The deployed app at justimagine.mymentor.bd                                                                                               |
+| **[Demo video](https://youtu.be/ZwjqJ2DGuAA)**                                 | A four-minute walkthrough of the problem, the product and the architecture                                                                |
+| **[UI demo](https://mubinui.github.io/just-imagine/demo/)**                    | Sample content with no microphone, sign-in or payments, built from the [`demo` branch](https://github.com/mubinui/just-imagine/tree/demo) |
+| **[Google Cloud guide](https://mubinui.github.io/just-imagine/google-cloud/)** | Every credential, variable, run and test step for deploying on Google Cloud                                                               |
 
-## What is included
+## Overview
+
+Families with children aged 6–13 can meet a play friend, explore illustrated learning worlds, play story adventures and collect their own creations, while parents choose what their child learns and avoids. A separate school workspace serves class 9/10 STEM lessons, teachers and students.
+
+Built by Team Bare Metal (Mubin and Sanzar) for the Google Cloud AI Builder Cup 2026, theme Media, Content & Digital Experiences.
+
+## Features
 
 - **Families:** parent signup and consent, explorer profiles, character voice calls, English/Bangla, illustrated stories, Learn activities, Studio and gallery.
 - **Schools:** teacher invitations, classes, CSV rosters and student PINs; bilingual lesson authoring, AI text proposals, language approval and publication checks.
 - **Students:** deterministic physics/maths simulations and a virtual chemistry bench, practice, section-based quizzes, progressive hints, results, leaderboards and printable notes/worksheets.
 - **Operators:** separate admin access for school management, shared content, moderation, appearance and audited controls.
 
-This is a working local prototype with test and browser evidence, **not a production deployment**. Fresh generated-world acceptance remains blocked: the latest five recorded creation requests failed before artwork/publication. Existing authored games and school workflows are separate verified paths. See [current status](CHECKPOINT.md) and [generation evidence](docs/handoff/generated-world-runtime-acceptance.md).
+## Built with
+
+| Layer     | Technology                                                                                                                                                       |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Models    | Gemini through Vertex AI (`us-central1`): Gemini Live voice, Gemini 4 Argon world building, Gemini Flash moderation, Nano Banana and Gemini image models for art |
+| Backend   | Cloud Run services (API, voice gateway, world builder), Firebase App Hosting (web), Cloud Tasks, Cloud Storage, Secret Manager                                   |
+| Data      | Firebase Authentication and Firestore                                                                                                                            |
+| Client    | Next.js, PixiJS rendering and Rapier2D physics                                                                                                                   |
+| Contracts | TypeScript, Zod-validated declarative Scene DSL: generated worlds are data, never executed code                                                                  |
 
 ## Project screenshots
 
@@ -135,4 +154,8 @@ NEXT_PUBLIC_FAKE=1 JUST_IMAGINE_SAMPLE_BUILD=1 pnpm build
 
 WebSockets carry control messages and PCM; worlds and persistent progress use Firestore. Raw voice audio is not stored. Transcripts are bounded gateway memory; summaries, learning records and generated content are persisted. Server credentials and private student answer keys are not bundled into public client assets.
 
-For operations, environment boundaries, staging, deployment and rollback, use the [DevOps guide](docs/runbooks/deployment.md). [CHECKPOINT.md](CHECKPOINT.md) records the latest acceptance results and remaining limits.
+## Project status
+
+The app is deployed at [justimagine.mymentor.bd](https://justimagine.mymentor.bd) and verified by unit, emulator and browser tests. Fresh generated-world creation is still being hardened: the latest five recorded creation requests failed before artwork or publication. Authored games and school workflows are separately verified paths. See [current status](CHECKPOINT.md) and [generation evidence](docs/handoff/generated-world-runtime-acceptance.md).
+
+For operations, environment boundaries, staging, deployment and rollback, use the [DevOps guide](docs/runbooks/deployment.md).
