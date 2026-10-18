@@ -208,12 +208,12 @@ export function LearnMap({ islands }: { islands: LearnIsland[] }) {
                   <span
                     className={styles.landscape}
                     style={{
-                      backgroundImage: `url(/learn/cinematic/${WORLD_PAINTING[island.section]}.webp)`,
+                      backgroundImage: `url(/learn/thumbs/${WORLD_PAINTING[island.section]}.webp)`,
                     }}
                     aria-hidden="true"
                   >
                     <span className={styles.character}>
-                      <LearnArt id={ISLAND_ART[island.section]} />
+                      <LearnArt id={ISLAND_ART[island.section]} thumb />
                     </span>
                   </span>
                   <span className={styles.worldCopy}>

@@ -5,8 +5,12 @@ import { ACTING } from './catalog';
 import { actorOffset, actingFrame, advanceSpeech, restingSpeech } from './model';
 import { watchActor } from './clock';
 
+/** The acting atlas; `thumb` picks the half-size copy drawn at the same 800-unit width. */
+const atlas = (file: string, thumb?: boolean) =>
+  `/characters/acting/${thumb ? 'thumbs/' : ''}${file}-acting-v2.webp`;
+
 /** One opaque pose at a time, registered to the same optical frame. */
-export function Actor({ id, action }: { id: string; action?: string }) {
+export function Actor({ id, action, thumb }: { id: string; action?: string; thumb?: boolean }) {
   const root = useRef<SVGGElement>(null),
     image = useRef<SVGImageElement>(null);
   const sheet = ACTING[id];
@@ -69,7 +73,7 @@ export function Actor({ id, action }: { id: string; action?: string }) {
           ? '/characters/specialists/katha-v1.webp'
           : swimming
             ? '/learn/cinematic/animals-ocean-locomotion-v2.webp'
-            : `/characters/acting/${sheet!.file}-acting-v2.webp`;
+            : atlas(sheet!.file, thumb);
       if (frame === previous && asset === previousAsset) return;
       if (asset !== previousAsset) {
         previousAsset = asset;
@@ -90,18 +94,14 @@ export function Actor({ id, action }: { id: string; action?: string }) {
       node.setAttribute('data-acting-cycle', specialist ? 'build' : swimming ? 'swim' : 'gesture');
       bitmap.setAttribute('x', String(-frame * 100));
     });
-  }, [id, action, sheet]);
+  }, [id, action, sheet, thumb]);
   if (!sheet) return null;
   return (
     <g ref={root} data-acting-id={id} data-acting-frame="0">
       <svg width="100" height="100" viewBox="0 0 100 100" overflow="hidden">
         <image
           ref={image}
-          href={
-            id === 'katha'
-              ? '/characters/specialists/katha-v1.webp'
-              : `/characters/acting/${sheet.file}-acting-v2.webp`
-          }
+          href={id === 'katha' ? '/characters/specialists/katha-v1.webp' : atlas(sheet.file, thumb)}
           x="0"
           y={-sheet.row * 100}
           width="800"

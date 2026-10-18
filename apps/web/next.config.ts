@@ -15,6 +15,22 @@ const config: NextConfig = {
     '@just-imagine/server-core',
   ],
   serverExternalPackages: ['firebase-admin'],
+  // Static art, sound and fonts: browsers keep them a day, a CDN a week, so repeat screens
+  // stop revalidating every image. Names are mostly versioned (-v1, -v2); a changed file
+  // reaches browsers within a day.
+  async headers() {
+    return ['characters', 'learn', 'worlds', 'sound', 'music', 'fonts', 'icons', 'patterns'].map(
+      (folder) => ({
+        source: `/${folder}/:path*`,
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800',
+          },
+        ],
+      }),
+    );
+  },
 };
 
 /**
