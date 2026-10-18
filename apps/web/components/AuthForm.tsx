@@ -1,6 +1,7 @@
 'use client';
 import { useLanguage } from '../lib/i18n';
-import { copy as uiText, uiError } from '../lib/i18n/ui';
+import { copy as uiText } from '../lib/i18n/ui';
+import { signInError } from '../lib/sign-in-error';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -12,6 +13,7 @@ import {
 } from 'firebase/auth';
 import { firebase, prepareSignIn } from '../lib/firebase';
 import { env } from '../lib/env';
+import { unlockParentArea } from '../lib/parent-gate';
 import { s } from '../lib/strings/en';
 import { Brand, Preview } from './Shell';
 import { AuthCompanion } from './AuthCompanion';
@@ -60,7 +62,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
     try {
       await openSession(await user.getIdToken());
     } catch (e) {
-      setError(e instanceof Error ? uiError(e) : s.unavailable);
+      setError(e instanceof Error ? signInError(e) : s.unavailable);
     } finally {
       setBusy(false);
     }
@@ -77,6 +79,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
     try {
       if (env.fake) {
         localStorage.setItem('ji-preview-auth', '1');
+        if (signup) await unlockParentArea();
         router.push(signup ? '/parent/children' : '/play');
         return;
       }
@@ -96,7 +99,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
         : await signInWithPopup(auth, new GoogleAuthProvider());
       await openSession(await result.user.getIdToken());
     } catch (e) {
-      setError(e instanceof Error ? uiError(e) : s.unavailable);
+      setError(e instanceof Error ? signInError(e) : s.unavailable);
     } finally {
       setBusy(false);
     }

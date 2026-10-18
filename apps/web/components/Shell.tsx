@@ -41,7 +41,9 @@ export function Header() {
       ) : (
         <nav>
           <Link href="/play">{s.play}</Link>
-          <Link href="/parent/dashboard">{s.parent}</Link>
+          <Link prefetch={false} href="/parent/dashboard">
+            {s.parent}
+          </Link>
         </nav>
       )}
       {welcome ? (
