@@ -102,3 +102,20 @@ it('fails closed on invalid or unavailable planning before any script or art is 
     ).rejects.toThrow(/valid gameplay acceptance plan/);
   expect(generateScript).not.toHaveBeenCalled();
 });
+
+it('gives a timed-out or rate-limited planner one more attempt, then plans as usual', async () => {
+  for (const transient of [
+    Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' }),
+    Object.assign(new Error('Resource has been exhausted'), { status: 429 }),
+  ]) {
+    const planGame = vi.fn().mockRejectedValueOnce(transient).mockResolvedValueOnce(plan);
+    const generateScript = vi.fn(async () => ({ kind: 'game', source }));
+    const result = await compileBehavior(doc, job, {
+      planGame,
+      generateScript,
+      generateScene: vi.fn(),
+    });
+    expect(planGame).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ fallback: false, doc: { game: { script: { source } } } });
+  }
+});

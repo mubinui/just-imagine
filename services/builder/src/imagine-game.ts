@@ -19,6 +19,7 @@ import {
 } from './game-playtest';
 import { logEvent } from '@just-imagine/server-core';
 import { providerFailure, type GameFailureDiagnostic } from './game-diagnostics';
+import { isTransientProviderError } from './rate-limit';
 
 /** Calls the script model with a prompt; resolves with its parsed JSON output. */
 export type GenerateScript = (prompt: string, sessionId?: string) => Promise<unknown>;
@@ -195,7 +196,16 @@ export async function compileBehavior(
           planFeedback === undefined
             ? await deps.planGame(doc, job, previous?.source)
             : await deps.planGame(doc, job, previous?.source, planFeedback);
-      } catch {
+      } catch (error) {
+        // A slow or rate-limited planner gets one more attempt; anything else fails closed.
+        if (planAttempt === 1 && isTransientProviderError(error)) {
+          logEvent('game_plan_provider_retry', {
+            jobId: job.jobId,
+            worldId: job.worldId,
+            count: planAttempt,
+          });
+          continue;
+        }
         throw new GameGenerationError(
           'Could not establish a valid gameplay acceptance plan because the planner is unavailable; no replacement world was published.',
           { code: 'PLAN_PROVIDER', attempt: planAttempt },
