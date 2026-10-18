@@ -1,6 +1,6 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { z } from 'zod';
-import { ContentEditions, logEvent } from '@just-imagine/server-core';
+import { ContentEditions, logEvent, vertexModelLocation } from '@just-imagine/server-core';
 import {
   languageInstruction,
   textUsesLanguage,
@@ -12,7 +12,7 @@ export function geminiEditions(config: { apiKey?: string; project?: string; mode
   const client = new GoogleGenAI(
     config.apiKey
       ? { apiKey: config.apiKey }
-      : { vertexai: true, project: config.project, location: 'us-central1' },
+      : { vertexai: true, project: config.project, location: vertexModelLocation() },
   );
   // Share the limit across families/resources, not just chunks within one book.
   let activeRequests = 0;

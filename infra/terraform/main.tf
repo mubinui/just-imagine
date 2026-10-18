@@ -280,19 +280,6 @@ resource "google_cloud_run_v2_service" "service" {
 
       }
 
-      dynamic "env" {
-        for_each = var.use_gemini_api_key ? { GEMINI_API_KEY = "gemini-api-key" } : {}
-        content {
-          name = env.key
-          value_source {
-            secret_key_ref {
-              secret  = env.value
-              version = "latest"
-            }
-          }
-        }
-      }
-
       startup_probe {
         tcp_socket {
           port = 8080
@@ -309,7 +296,7 @@ resource "google_cloud_run_v2_service" "service" {
 
   }
 
-  depends_on = [google_project_service.apis, google_project_iam_member.firestore, google_project_iam_member.vertex, google_secret_manager_secret_iam_member.api_secrets, google_service_account_iam_member.api_custom_token_signer, google_secret_manager_secret_iam_member.gemini]
+  depends_on = [google_project_service.apis, google_project_iam_member.firestore, google_project_iam_member.vertex, google_secret_manager_secret_iam_member.api_secrets, google_service_account_iam_member.api_custom_token_signer]
 
 }
 

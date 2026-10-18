@@ -8,20 +8,20 @@ The source files are the final word if anything here disagrees with them: [`infr
 
 ## What you are deploying
 
-| Piece                               | Runs on                                                     | Created by                        |
-| ----------------------------------- | ----------------------------------------------------------- | --------------------------------- |
-| Web app (Next.js, `apps/web`)       | Firebase App Hosting                                        | You, in step 8                    |
-| `imagine-api`                       | Cloud Run, public                                           | Terraform                         |
-| `imagine-gateway` (voice WebSocket) | Cloud Run, public, at least 1 instance, session affinity    | Terraform                         |
-| `imagine-builder` (world builder)   | Cloud Run, private, invoked only by Cloud Tasks             | Terraform                         |
-| Database                            | Firestore Native, `(default)`, location `nam5`              | Terraform                         |
-| Generated assets                    | Cloud Storage bucket, public read, optional Cloud CDN       | Terraform                         |
-| Job queues                          | Cloud Tasks `world-builds` and `deletions`                  | Terraform                         |
-| Deletion retries                    | Cloud Scheduler job `imagine-retry-deletions`, every 5 min  | Terraform                         |
-| AI models                           | Vertex AI, `us-central1` (the game model on `global`)       | Terraform enables the API         |
-| Stripe secrets                      | Secret Manager `stripe-secret-key`, `stripe-webhook-secret` | Terraform creates, you add values |
-| Alerts, dashboard, uptime checks    | Cloud Monitoring                                            | Terraform                         |
-| Sign-in                             | Firebase Authentication (email/password and Google)         | You, in step 3                    |
+| Piece                               | Runs on                                                      | Created by                        |
+| ----------------------------------- | ------------------------------------------------------------ | --------------------------------- |
+| Web app (Next.js, `apps/web`)       | Firebase App Hosting                                         | You, in step 8                    |
+| `imagine-api`                       | Cloud Run, public                                            | Terraform                         |
+| `imagine-gateway` (voice WebSocket) | Cloud Run, public, at least 1 instance, session affinity     | Terraform                         |
+| `imagine-builder` (world builder)   | Cloud Run, private, invoked only by Cloud Tasks              | Terraform                         |
+| Database                            | Firestore Native, `(default)`, location `nam5`               | Terraform                         |
+| Generated assets                    | Cloud Storage bucket, public read, optional Cloud CDN        | Terraform                         |
+| Job queues                          | Cloud Tasks `world-builds` and `deletions`                   | Terraform                         |
+| Deletion retries                    | Cloud Scheduler job `imagine-retry-deletions`, every 5 min   | Terraform                         |
+| AI models                           | Vertex AI: Live voice on `us-central1`, the rest on `global` | Terraform enables the API         |
+| Stripe secrets                      | Secret Manager `stripe-secret-key`, `stripe-webhook-secret`  | Terraform creates, you add values |
+| Alerts, dashboard, uptime checks    | Cloud Monitoring                                             | Terraform                         |
+| Sign-in                             | Firebase Authentication (email/password and Google)          | You, in step 3                    |
 
 The three backend services share **one container image** built from the root [`Dockerfile`](../../Dockerfile); Cloud Run starts `services/<name>/dist/main.js` for each. Everything runs in `us-central1`. Each service signs in to Google as its own service account through Application Default Credentials: **there are no API keys anywhere in the cloud**, including for Gemini.
 
@@ -163,16 +163,18 @@ Model IDs are settings, not a guarantee that a project can call them. Before ste
 
 | Setting                 | Default                       | Used for                                            | Location              |
 | ----------------------- | ----------------------------- | --------------------------------------------------- | --------------------- |
-| `LIVE_MODEL`            | `gemini-3.8-live`             | Live voice                                          | `us-central1`         |
-| `SCENE_MODEL`           | `gemini-4-argon`              | World builder                                       | `us-central1`         |
-| `FAST_MODEL`            | `gemini-3.8-flash`            | Patches, summaries, moderation, lesson writing help | `us-central1`         |
-| `HERO_MODEL`            | `gemini-nano-banana-2.1`      | Hero sprites and backdrops                          | `us-central1`         |
-| `PROP_MODEL`            | `gemini-3.1-flash-lite-image` | Props                                               | `us-central1`         |
+| `LIVE_MODEL`            | `gemini-3.8-live`             | Live voice                                          | `LIVE_MODEL_LOCATION` |
+| `SCENE_MODEL`           | `gemini-4-argon`              | World builder                                       | `MODEL_LOCATION`      |
+| `FAST_MODEL`            | `gemini-3.8-flash`            | Patches, summaries, moderation, lesson writing help | `MODEL_LOCATION`      |
+| `HERO_MODEL`            | `gemini-nano-banana-2.1`      | Hero sprites and backdrops                          | `MODEL_LOCATION`      |
+| `PROP_MODEL`            | `gemini-3.1-flash-lite-image` | Props                                               | `MODEL_LOCATION`      |
 | `GAME_MODEL`            | `gemini-4-argon`              | Generated games                                     | `GAME_MODEL_LOCATION` |
 | `GAME_MODEL_LOCATION`   | `global`                      | Location for the game model                         |                       |
-| `COMPANION_IMAGE_MODEL` | `gemini-nano-banana-2.1`      | Companion portraits                                 | `us-central1`         |
+| `LIVE_MODEL_LOCATION`   | `us-central1`                 | Location for the Live voice model                   |                       |
+| `MODEL_LOCATION`        | `global`                      | Location for every other model                      |                       |
+| `COMPANION_IMAGE_MODEL` | `gemini-nano-banana-2.1`      | Companion portraits                                 | `MODEL_LOCATION`      |
 
-The first five are set by Terraform. The last three use the defaults built into the services; to change any of them, add the key to `models` in the tfvars, for example `models = { …the five defaults…, GAME_MODEL_LOCATION = "us-central1" }`. Include all five defaults when you override `models`, because the map replaces the default.
+The first five are set by Terraform. The rest use the defaults built into the services; to change any of them, add the key to `models` in the tfvars, for example `models = { …the five defaults…, GAME_MODEL_LOCATION = "us-central1" }`. Include all five defaults when you override `models`, because the map replaces the default.
 
 ### Web app (App Hosting)
 

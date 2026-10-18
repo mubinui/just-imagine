@@ -1,7 +1,12 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { z } from 'zod';
 import { SchoolDocSchema, SchoolUsageDailyDocSchema, schoolPaths } from '@just-imagine/protocol';
-import { isKillSwitchOn, logEvent, transaction } from '@just-imagine/server-core';
+import {
+  isKillSwitchOn,
+  logEvent,
+  transaction,
+  vertexModelLocation,
+} from '@just-imagine/server-core';
 import { db, read, dateKey, fail } from './common';
 export type SchoolModel = (prompt: string, schema?: Record<string, unknown>) => Promise<unknown>;
 type SchoolJsonTransport = (
@@ -56,7 +61,11 @@ export const vertexSchoolModel: SchoolModel = async (prompt, schema) => {
   const client = new GoogleGenAI(
     localKey
       ? { apiKey: localKey }
-      : { vertexai: true, project: process.env['GOOGLE_CLOUD_PROJECT'], location: 'us-central1' },
+      : {
+          vertexai: true,
+          project: process.env['GOOGLE_CLOUD_PROJECT'],
+          location: vertexModelLocation(),
+        },
   );
   return requestSchoolJson(
     async (requestPrompt, requestSchema) =>

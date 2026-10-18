@@ -8,3 +8,4 @@ export * from './telemetry';
 export * from './local';
 export * from './content-editions';
 export * from './transaction';
+export * from './vertex';
