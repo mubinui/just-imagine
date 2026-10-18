@@ -1,3 +1,10 @@
+import type {
+  Transaction,
+  ReadOnlyTransactionOptions,
+  ReadWriteTransactionOptions,
+} from 'firebase-admin/firestore';
+import { db } from './firebase';
+
 /**
  * The Firestore emulator ends the losing side of two contending transactions by answering its next
  * request with INVALID_ARGUMENT "Transaction is invalid or closed", which the SDK does not retry.
@@ -20,4 +27,12 @@ export async function retryClosedTransaction<T>(run: () => Promise<T>): Promise<
       if (attempt >= ATTEMPTS || !isClosedTransaction(error)) throw error;
     }
   }
+}
+
+/** `db().runTransaction` with the retry above. Use it for every Firestore transaction. */
+export function transaction<T>(
+  update: (tx: Transaction) => Promise<T>,
+  options?: ReadWriteTransactionOptions | ReadOnlyTransactionOptions,
+): Promise<T> {
+  return retryClosedTransaction(() => db().runTransaction(update, options));
 }

@@ -20,7 +20,7 @@ import {
   type UsageTodayResponse,
   UsageDailyDocSchema,
 } from '@just-imagine/protocol';
-import { db, newId, readDoc } from '@just-imagine/server-core';
+import { db, newId, readDoc, transaction } from '@just-imagine/server-core';
 import { ApiFault } from './errors';
 import { requestDeletion, processDeletion } from './deletion';
 
@@ -69,7 +69,7 @@ export class FirestoreApiStore implements ApiStore {
   }
   async createChild(uid: string, body: CreateChildBody): Promise<ChildResponse> {
     const id = newId('c');
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const userRef = db().doc(paths.user(uid));
       const userSnap = await tx.get(userRef);
       if ((await tx.get(db().doc(`deletionLocks/${uid}`))).exists) throw forbidden();
@@ -95,7 +95,7 @@ export class FirestoreApiStore implements ApiStore {
   }
   async updateChild(uid: string, id: string, body: UpdateChildBody): Promise<ChildResponse> {
     await this.user(uid);
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const ref = db().doc(paths.child(uid, id));
       const snap = await tx.get(ref);
       if (

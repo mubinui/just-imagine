@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { timingSafeEqual } from 'node:crypto';
-import { adminAuth } from '@just-imagine/server-core';
+import { adminAuth, transaction } from '@just-imagine/server-core';
 import {
   SchoolCodeSchema,
   StudentUsernameSchema,
@@ -41,7 +41,7 @@ export async function login(input: unknown) {
     limitRef = db().doc('schoolLoginLimits/' + sid),
     userRef = db().doc('schoolLoginUsers/' + loginKey);
   // Check the shared lock before using a crypto worker; reserve a bounded request budget too.
-  await db().runTransaction(async (tx) => {
+  await transaction(async (tx) => {
     const [s, u] = await Promise.all([tx.get(limitRef), tx.get(userRef)]);
     const now = Date.now(),
       data = s.data();
@@ -66,7 +66,7 @@ export async function login(input: unknown) {
         ),
       )
     : (await matches(body.pin, await dummy)) && false;
-  await db().runTransaction(async (tx) => {
+  await transaction(async (tx) => {
     const [schoolLimit, userLimit] = await Promise.all([tx.get(limitRef), tx.get(userRef)]);
     const now = Date.now(),
       schoolData = schoolLimit.data(),
@@ -154,7 +154,7 @@ export async function acceptInvite(token: string, idToken: string) {
     await adminAuth().setCustomUserClaims(decoded.uid, { role: 'schoolAdmin', schoolId: sid });
     return { schoolId: sid };
   }
-  await db().runTransaction(async (tx) => {
+  await transaction(async (tx) => {
     const [snap, members, school, family] = await Promise.all([
       tx.get(ref),
       tx.get(db().collection(schoolPaths.members(sid))),

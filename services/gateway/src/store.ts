@@ -36,6 +36,7 @@ import {
   voiceSecondsLeft,
   reserveWorld,
   isKillSwitchOn,
+  transaction,
 } from '@just-imagine/server-core';
 import type { SessionStore, SessionRecord, Identity, PointsAward } from './contracts';
 import { petsUnlocked, ToolRefusal } from './learn';
@@ -94,7 +95,7 @@ export class FirestoreSessionStore implements SessionStore {
   }
   async claim(record: SessionRecord) {
     const { uid, childId } = record.identity;
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const [lock, userDelete, childDelete, child] = await Promise.all([
         tx.get(this.lock(record)),
         tx.get(db().doc(`deletionLocks/${uid}`)),
@@ -136,7 +137,7 @@ export class FirestoreSessionStore implements SessionStore {
     const { uid, childId } = record.identity,
       date = yyyymmdd(new Date()),
       usageRef = db().doc(paths.usageDaily(uid, date));
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const [lock, userDelete, childDelete, session, usageSnap] = await Promise.all([
         tx.get(this.lock(record)),
         tx.get(db().doc(`deletionLocks/${uid}`)),
@@ -171,7 +172,7 @@ export class FirestoreSessionStore implements SessionStore {
     });
   }
   async release(record: SessionRecord) {
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const lock = await tx.get(this.lock(record));
       if (lock.data()?.['sessionId'] === record.id && lock.data()?.['owner'] === this.owner)
         tx.delete(lock.ref);
@@ -179,7 +180,7 @@ export class FirestoreSessionStore implements SessionStore {
   }
   async finish(record: SessionRecord, summary: string, reason: ByeReason) {
     const { uid, childId } = record.identity;
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const [lock, userDelete, childDelete, session, child] = await Promise.all([
         tx.get(this.lock(record)),
         tx.get(db().doc(`deletionLocks/${uid}`)),
@@ -264,7 +265,7 @@ export class FirestoreSessionStore implements SessionStore {
     if (job.kind === 'build') await reserveWorld(job.uid, job.plan);
     if (localDevelopment()) {
       const ref = db().doc(`localBuildTasks/${job.jobId}`);
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const [task, deleting, childDeleting] = await Promise.all([
           tx.get(ref),
           tx.get(db().doc(`deletionLocks/${job.uid}`)),
@@ -313,7 +314,7 @@ export class FirestoreSessionStore implements SessionStore {
     if (!world.concepts.includes(concept)) throw new Error('Concept absent from world');
     const card = conceptCard(concept);
     const { uid, childId } = record.identity;
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const ref = db().doc(paths.discovery(uid, childId, concept));
       const [snap, parentDelete, childDelete] = await Promise.all([
         tx.get(ref),
@@ -350,7 +351,7 @@ export class FirestoreSessionStore implements SessionStore {
     const { uid, childId } = record.identity;
     const childRef = db().doc(paths.child(uid, childId)),
       progressRef = db().doc(learnPaths.progress(uid, childId, award.packId));
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const [userDelete, childDelete, child, progress] = await Promise.all([
         tx.get(db().doc(`deletionLocks/${uid}`)),
         tx.get(db().doc(`users/${uid}/deletionLocks/${childId}`)),

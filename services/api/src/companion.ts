@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
-import { db } from '@just-imagine/server-core';
+import { db, transaction } from '@just-imagine/server-core';
 import {
   ChildDocSchema,
   ChildResponseSchema,
@@ -137,7 +137,7 @@ export class FirestoreCompanionService implements CompanionService {
     const requestId = randomUUID(),
       day = yyyymmdd(new Date());
     // Authorize before decoding the photo or calling the paid model.
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const [user, child, deleting, childDeleting, request] = await Promise.all([
         tx.get(db().doc(paths.user(uid))),
         tx.get(childRef),
@@ -175,7 +175,7 @@ export class FirestoreCompanionService implements CompanionService {
       const image = await this.generator.generate(photo);
       if (image.length > 130000 || (await sharp(image).metadata()).format !== 'webp')
         throw unavailable();
-      return await db().runTransaction(async (tx) => {
+      return await transaction(async (tx) => {
         const [child, deleting, childDeleting, request] = await Promise.all([
           tx.get(childRef),
           tx.get(db().doc(`deletionLocks/${uid}`)),
@@ -208,13 +208,11 @@ export class FirestoreCompanionService implements CompanionService {
         return ChildResponseSchema.parse({ ...next, id: childId });
       });
     } catch (error) {
-      await db()
-        .runTransaction(async (tx) => {
-          const current = await tx.get(requestRef);
-          if (current.exists && current.data()?.['requestId'] === requestId)
-            tx.update(requestRef, { until: 0, requestId: '' });
-        })
-        .catch(() => {});
+      await transaction(async (tx) => {
+        const current = await tx.get(requestRef);
+        if (current.exists && current.data()?.['requestId'] === requestId)
+          tx.update(requestRef, { until: 0, requestId: '' });
+      }).catch(() => {});
       if (error instanceof ApiFault) throw error;
       throw unavailable();
     } finally {

@@ -1,5 +1,6 @@
 import type { z, ZodType } from 'zod';
 import { db } from './firebase';
+import { transaction } from './transaction';
 
 export class DocShapeError extends Error {
   constructor(
@@ -39,7 +40,7 @@ export async function updateDoc<S extends ZodType>(
   schema: S,
   partial: Record<string, unknown>,
 ): Promise<void> {
-  await db().runTransaction(async (tx) => {
+  await transaction(async (tx) => {
     const ref = db().doc(path);
     const snap = await tx.get(ref);
     if (!snap.exists) throw new DocShapeError(path, 'missing');

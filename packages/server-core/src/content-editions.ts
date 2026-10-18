@@ -11,6 +11,7 @@ import {
   type Language,
 } from '@just-imagine/protocol';
 import { db } from './firebase';
+import { transaction } from './transaction';
 
 export interface EditionSource {
   kind: ContentKind;
@@ -56,7 +57,7 @@ export class ContentEditions {
   async cached<T>(source: EditionSource, language: Language, value: T): Promise<T | null> {
     const entries = contentTexts(source.kind, value),
       hash = digest([version, entries]);
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const canonical = await this.owned(tx, source);
       if (digest([version, contentTexts(source.kind, canonical)]) !== hash)
         throw new Error('The content changed during translation. Please reload it.');
@@ -101,7 +102,7 @@ export class ContentEditions {
     entries: ContentText[],
     hash: string,
   ) {
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       await this.owned(tx, source);
       const spend = await this.budget(tx, source.uid);
       spend();
@@ -121,7 +122,7 @@ export class ContentEditions {
     validateContentTexts(entries, texts);
     if (!texts.every((text) => textUsesLanguage(text, language)))
       throw new Error('The translation used another language.');
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const canonical = await this.owned(tx, source);
       if (digest([version, contentTexts(source.kind, canonical)]) !== hash)
         throw new Error('The content changed during translation. Please reload it.');
@@ -137,7 +138,7 @@ export class ContentEditions {
     if (source.kind !== 'world' || !this.translate) throw new Error('Translation is unavailable.');
     const keys = raw.map((text) => digest([version, text]));
     const ref = db().doc(`${source.path}/languageEditions/runtime_${language}`);
-    const old = await db().runTransaction(async (tx) => {
+    const old = await transaction(async (tx) => {
       await this.owned(tx, source);
       return ((await tx.get(ref)).data()?.['texts'] as Record<string, string> | undefined) ?? {};
     });
@@ -147,7 +148,7 @@ export class ContentEditions {
     let flight = this.flights.get(flightKey);
     if (!flight) {
       flight = (async () => {
-        await db().runTransaction(async (tx) => {
+        await transaction(async (tx) => {
           await this.owned(tx, source);
           const spend = await this.budget(tx, source.uid);
           spend();
@@ -162,7 +163,7 @@ export class ContentEditions {
         );
         if (!translated.every((text) => textUsesLanguage(text, language)))
           throw new Error('The translation used another language.');
-        await db().runTransaction(async (tx) => {
+        await transaction(async (tx) => {
           await this.owned(tx, source);
           const latest =
             ((await tx.get(ref)).data()?.['texts'] as Record<string, string> | undefined) ?? {};

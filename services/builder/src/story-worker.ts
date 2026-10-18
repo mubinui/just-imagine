@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { Storage } from '@google-cloud/storage';
 import sharp from 'sharp';
 import { z } from 'zod';
-import { db, isKillSwitchOn, addImages, logEvent } from '@just-imagine/server-core';
+import { db, isKillSwitchOn, addImages, logEvent, transaction } from '@just-imagine/server-core';
 import {
   StoryBuildJobSchema,
   StoryDocSchema,
@@ -59,28 +59,26 @@ export class StoryWorker {
     if (await isKillSwitchOn()) throw new Error('Generation is paused');
     const ref = db().doc(`stories/${job.storyId}`),
       lock = db().doc(`storyBuildLocks/${job.storyId}`);
-    const initial = await db()
-      .runTransaction(async (tx) => {
-        const book = await this.read(tx, job);
-        if (book.status === 'ready') return null;
-        const current = await tx.get(lock);
-        if (Number(current.data()?.['until']) > Date.now())
-          throw new Error('Story is already being made');
-        tx.set(lock, { token, until: Date.now() + 120000, uid: job.uid, childId: job.childId });
-        tx.update(ref, {
-          status: book.manuscript ? 'illustrating' : 'writing',
-          error: '',
-          updatedAt: Date.now(),
-        });
-        return book;
-      })
-      .catch((error) => {
-        if (error instanceof StoryUnavailable) return null;
-        throw error;
+    const initial = await transaction(async (tx) => {
+      const book = await this.read(tx, job);
+      if (book.status === 'ready') return null;
+      const current = await tx.get(lock);
+      if (Number(current.data()?.['until']) > Date.now())
+        throw new Error('Story is already being made');
+      tx.set(lock, { token, until: Date.now() + 120000, uid: job.uid, childId: job.childId });
+      tx.update(ref, {
+        status: book.manuscript ? 'illustrating' : 'writing',
+        error: '',
+        updatedAt: Date.now(),
       });
+      return book;
+    }).catch((error) => {
+      if (error instanceof StoryUnavailable) return null;
+      throw error;
+    });
     if (!initial) return { status: 'already-complete' };
     const update = async (fields: Record<string, unknown>) =>
-      db().runTransaction(async (tx) => {
+      transaction(async (tx) => {
         const book = await this.read(tx, job),
           claim = await tx.get(lock);
         if (claim.data()?.['token'] !== token)
@@ -95,7 +93,7 @@ export class StoryWorker {
     try {
       let book = initial;
       if (!book.manuscript) {
-        const textBudget = await db().runTransaction(async (tx) => {
+        const textBudget = await transaction(async (tx) => {
           await this.read(tx, job);
           const ref = db().doc(`storyImageAttempts/${job.storyId}_text`),
             old = await tx.get(ref);
@@ -155,7 +153,7 @@ export class StoryWorker {
             new Set(outline.scenes.map((s) => s.id)).size !== outline.scenes.length
           )
             throw new Error('Story outline scene count mismatch');
-          await db().runTransaction(async (tx) => {
+          await transaction(async (tx) => {
             await this.read(tx, job);
             tx.set(draftRef, { uid: job.uid, childId: job.childId, outline, scenes: {} });
           });
@@ -173,7 +171,7 @@ export class StoryWorker {
           if (scene.id !== planned.id || scene.beats.length !== 3)
             throw new Error('Story scene structure mismatch');
           if (!saved)
-            await db().runTransaction(async (tx) => {
+            await transaction(async (tx) => {
               await this.read(tx, job);
               tx.update(draftRef, { [`scenes.${scene.id}`]: scene });
               tx.update(ref, { writtenScenes: index + 1, updatedAt: Date.now() });
@@ -200,10 +198,10 @@ export class StoryWorker {
       }
       for (const scene of book.manuscript!.scenes) {
         // Generation is resumable: accepted plates are never regenerated on a retry.
-        const fresh = await db().runTransaction((tx) => this.read(tx, job));
+        const fresh = await transaction((tx) => this.read(tx, job));
         if (fresh.images[scene.id]?.status === 'ready') continue;
         const attemptsRef = db().doc(`storyImageAttempts/${job.storyId}_${scene.id}`);
-        const allowed = await db().runTransaction(async (tx) => {
+        const allowed = await transaction(async (tx) => {
           await this.read(tx, job);
           const attempts = await tx.get(attemptsRef);
           const user = await tx.get(db().doc(paths.user(job.uid)));
@@ -255,7 +253,7 @@ export class StoryWorker {
           await update({ [`images.${scene.id}`]: { status: 'failed' } });
         }
       }
-      const final = await db().runTransaction((tx) => this.read(tx, job));
+      const final = await transaction((tx) => this.read(tx, job));
       const incomplete = final.manuscript!.scenes.some(
         (s) => final.images[s.id]?.status !== 'ready',
       );
@@ -294,7 +292,7 @@ export class StoryWorker {
       return { status: 'complete' };
     } finally {
       clearInterval(renewal);
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const old = await tx.get(lock);
         if (old.data()?.['token'] === token) tx.delete(lock);
       });

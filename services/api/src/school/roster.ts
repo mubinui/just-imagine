@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { adminAuth, type SchoolAdminActor } from '@just-imagine/server-core';
+import { adminAuth, type SchoolAdminActor, transaction } from '@just-imagine/server-core';
 import {
   AvatarSchema,
   LanguageSchema,
@@ -91,7 +91,7 @@ export async function createStudents(actor: SchoolAdminActor, inputs: unknown[])
       return { id, pin, body, secret: await secret(pin) };
     }),
   );
-  return db().runTransaction(async (tx) => {
+  return transaction(async (tx) => {
     const schoolRef = db().doc(schoolPaths.school(sid)),
       schoolSnap = await tx.get(schoolRef),
       existing = await tx.get(db().collection(schoolPaths.students(sid)));
@@ -142,7 +142,7 @@ export async function updateStudent(actor: SchoolAdminActor, id: string, input: 
     ref = db().doc(schoolPaths.student(sid, id)),
     before = await read(ref.path, StudentDocSchema);
   if (body.classId && body.classId !== before.classId) await revoke(studentUid(sid, id));
-  return db().runTransaction(async (tx) => {
+  return transaction(async (tx) => {
     const snap = await tx.get(ref),
       all = await tx.get(db().collection(schoolPaths.students(sid)));
     if (!snap.exists) return fail(404, 'Student not found.');
@@ -175,7 +175,7 @@ export async function resetPin(actor: SchoolAdminActor, id: string) {
   const sid = await schoolId(actor),
     pin = freshPin(),
     saved = await secret(pin);
-  await db().runTransaction(async (tx) => {
+  await transaction(async (tx) => {
     const ref = db().doc(schoolPaths.student(sid, id)),
       profileSnap = await tx.get(ref),
       school = await tx.get(db().doc(schoolPaths.school(sid)));
@@ -194,7 +194,7 @@ export async function setStudentStatus(actor: SchoolAdminActor, id: string, inpu
   const sid = await schoolId(actor),
     { status } = z.strictObject({ status: StudentStatusSchema }).parse(input),
     ref = db().doc(schoolPaths.student(sid, id));
-  const result = await db().runTransaction(async (tx) => {
+  const result = await transaction(async (tx) => {
     const [snap, school] = await Promise.all([
       tx.get(ref),
       tx.get(db().doc(schoolPaths.school(sid))),
@@ -226,7 +226,7 @@ export async function unlockStudent(actor: SchoolAdminActor, id: string) {
 }
 export async function deleteStudent(actor: SchoolAdminActor, id: string) {
   const sid = await schoolId(actor);
-  await db().runTransaction(async (tx) => {
+  await transaction(async (tx) => {
     const [school, boards] = await Promise.all([
       tx.get(db().doc(schoolPaths.school(sid))),
       tx.get(db().collection(schoolPaths.boards(sid))),

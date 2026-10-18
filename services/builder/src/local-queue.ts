@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { db, logEvent } from '@just-imagine/server-core';
+import { db, logEvent, transaction } from '@just-imagine/server-core';
 import type { BuilderWorker } from './worker';
 
 /** Firestore-backed local task delivery. The production Cloud Tasks path is unchanged. */
@@ -15,7 +15,7 @@ export function startLocalQueue(worker: Pick<BuilderWorker, 'run'>) {
       .get();
     for (const task of tasks.docs) {
       if (stopped) break;
-      const claimed = await db().runTransaction(async (tx) => {
+      const claimed = await transaction(async (tx) => {
         const current = await tx.get(task.ref),
           data = current.data();
         if (
@@ -31,13 +31,11 @@ export function startLocalQueue(worker: Pick<BuilderWorker, 'run'>) {
       });
       if (!claimed) continue;
       const renew = setInterval(() => {
-        void db()
-          .runTransaction(async (tx) => {
-            const current = await tx.get(task.ref);
-            if (current.data()?.['owner'] === owner)
-              tx.update(task.ref, { leaseUntil: Date.now() + 120000 });
-          })
-          .catch(() => {});
+        void transaction(async (tx) => {
+          const current = await tx.get(task.ref);
+          if (current.data()?.['owner'] === owner)
+            tx.update(task.ref, { leaseUntil: Date.now() + 120000 });
+        }).catch(() => {});
       }, 30000);
       let retry = false;
       try {
@@ -56,7 +54,7 @@ export function startLocalQueue(worker: Pick<BuilderWorker, 'run'>) {
       } finally {
         clearInterval(renew);
       }
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const current = await tx.get(task.ref);
         if (current.data()?.['owner'] !== owner) return;
         // Delete payload after completion or exhausted retries; builderJobs retains the diagnostic outcome.

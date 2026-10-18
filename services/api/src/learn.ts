@@ -17,7 +17,7 @@ import {
   adventurePaths,
   type AdventureProgress,
 } from '@just-imagine/protocol';
-import { db, readDoc } from '@just-imagine/server-core';
+import { db, readDoc, transaction } from '@just-imagine/server-core';
 import { ApiFault } from './errors';
 
 // Learning Worlds (spec 6b): points, pets and pack progress for the child's Learn Map and the
@@ -38,7 +38,7 @@ const missing = () => new ApiFault(404, 'NOT_FOUND', 'This item is no longer ava
 
 export class FirestoreLearnStore implements LearnStore {
   async adventures(uid: string, childId: string): Promise<{ progress: AdventureProgress[] }> {
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const [lock, childLock, user, child, progress] = await Promise.all([
         tx.get(db().doc(`deletionLocks/${uid}`)),
         tx.get(db().doc(`users/${uid}/deletionLocks/${childId}`)),
@@ -64,7 +64,7 @@ export class FirestoreLearnStore implements LearnStore {
   ): Promise<AdventureProgress> {
     if (!storyChapter(packId, chapterId))
       throw new ApiFault(400, 'INVALID_ARGUMENT', 'Choose a chapter from this adventure.');
-    return db().runTransaction(async (tx) => {
+    return transaction(async (tx) => {
       const ref = db().doc(adventurePaths.pack(uid, childId, packId));
       const [lock, childLock, user, child, previous] = await Promise.all([
         tx.get(db().doc(`deletionLocks/${uid}`)),

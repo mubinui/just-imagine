@@ -8,7 +8,12 @@ import {
   schoolPaths,
   DocumentIdSchema,
 } from '@just-imagine/protocol';
-import { requireAdmin, AdminRequiredError, type SchoolAdminActor } from '@just-imagine/server-core';
+import {
+  requireAdmin,
+  AdminRequiredError,
+  type SchoolAdminActor,
+  transaction,
+} from '@just-imagine/server-core';
 import { db, newId, read, fail, hash, reasonSchema, dateKey } from './school/common';
 const createSchema = SchoolDocSchema.pick({
   name: true,
@@ -75,7 +80,7 @@ export function registerAdminSchoolRoutes(app: FastifyInstance) {
             status: 'active',
             createdAt: Date.now(),
           });
-          await db().runTransaction(async (tx) => {
+          await transaction(async (tx) => {
             const codeRef = db().doc(schoolPaths.schoolCode(code));
             if ((await tx.get(codeRef)).exists) throw new Error('CODE_TAKEN');
             tx.create(codeRef, { schoolId });
@@ -120,7 +125,7 @@ export function registerAdminSchoolRoutes(app: FastifyInstance) {
       const schoolId = id(req.params),
         body = patchSchema.parse(req.body),
         actor = await adminActor(req);
-      return db().runTransaction(async (tx) => {
+      return transaction(async (tx) => {
         const ref = db().doc(schoolPaths.school(schoolId)),
           snap = await tx.get(ref);
         if (!snap.exists) return fail(404, 'School not found.');
@@ -189,7 +194,7 @@ export function registerAdminSchoolRoutes(app: FastifyInstance) {
           .parse(req.params),
         { reason } = z.object({ reason: reasonSchema }).parse(req.body),
         actor = await adminActor(req);
-      await db().runTransaction(async (tx) => {
+      await transaction(async (tx) => {
         const ref = db().doc(schoolPaths.invite(schoolId, inviteId)),
           snap = await tx.get(ref);
         if (!snap.exists) return fail(404, 'That invite was already used or revoked.');

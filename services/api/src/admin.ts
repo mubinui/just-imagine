@@ -56,6 +56,7 @@ import {
   db,
   isAccountSuspended,
   requireAdmin,
+  transaction,
 } from '@just-imagine/server-core';
 import { ApiFault } from './errors';
 import { FirestoreApiStore, type ApiStore } from './store';
@@ -367,7 +368,7 @@ export class FirestoreAdminStore {
     reason: string,
   ): Promise<AdminWriteResponse> {
     const id = auditId();
-    await db().runTransaction(async (tx) => {
+    await transaction(async (tx) => {
       const now = this.now();
       const change = await run(tx, now);
       tx.create(
