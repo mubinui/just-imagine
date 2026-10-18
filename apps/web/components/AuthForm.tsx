@@ -1,7 +1,7 @@
 'use client';
 import { useLanguage } from '../lib/i18n';
 import { copy as uiText, uiError } from '../lib/i18n/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,7 +10,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
-import { firebase } from '../lib/firebase';
+import { firebase, prepareSignIn } from '../lib/firebase';
 import { env } from '../lib/env';
 import { s } from '../lib/strings/en';
 import { Brand, Preview } from './Shell';
@@ -21,6 +21,8 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
   const [consent, setConsent] = useState(false),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
+  // Ready Google sign-in before the first tap, so phones open its popup on that tap.
+  useEffect(prepareSignIn, []);
   async function submit(form: FormData | null) {
     setError('');
     if ((signup || !form) && !consent) {

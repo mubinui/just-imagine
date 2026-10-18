@@ -25,6 +25,14 @@ function init() {
   return { auth, db };
 }
 export const firebase = () => (instance ??= init());
+/**
+ * Starts Firebase Auth when a sign-in page opens, ahead of any tap. On phones and Safari, Firebase
+ * must load a helper frame before it can open the Google popup. If that happens inside the tap,
+ * the popup opens too late, the browser blocks it, and the first tap seems to do nothing.
+ */
+export function prepareSignIn() {
+  if (!env.fake) firebase();
+}
 export async function currentIdToken() {
   const auth = firebase().auth;
   await auth.authStateReady();
