@@ -49,6 +49,7 @@ import { grade, boards, results, hint, teacherBoards } from './grading';
 import { react } from './chemistry';
 import type { SchoolModel } from './ai';
 import { recentActivity } from './activity';
+import { chooseSchoolPlan } from './plan';
 declare module 'fastify' {
   interface FastifyRequest {
     schoolActor: SchoolAdminActor | null;
@@ -60,6 +61,8 @@ export interface SchoolRouteOptions {
   verifyStudent?: (idToken: string) => Promise<StudentActor>;
   isSchoolSuspended?: (schoolId: string) => Promise<boolean>;
   model?: SchoolModel;
+  /** Schools may take a plan as a free promotion while the deployment takes no payments. */
+  promotions?: boolean;
 }
 function bearer(req: FastifyRequest) {
   const value = req.headers.authorization;
@@ -120,9 +123,13 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
         uid: actor.uid,
         schoolId: actor.schoolId,
         superAdmin: actor.superAdmin,
+        promotions: options.promotions === true,
         ...(snap.exists ? { school: { id: snap.id, ...SchoolDocSchema.parse(snap.data()) } } : {}),
       };
     });
+    routes.post('/v1/school/plan', (req) =>
+      chooseSchoolPlan(schoolActor(req), req.body, options.promotions === true),
+    );
     routes.get('/v1/school/classes', async (req) => {
       const sid = await schoolId(schoolActor(req)),
         snap = await db().collection(schoolPaths.classes(sid)).get();

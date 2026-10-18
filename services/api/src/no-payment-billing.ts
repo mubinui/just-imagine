@@ -1,4 +1,9 @@
-import { SubscriptionDocSchema, UserDocSchema, paths } from '@just-imagine/protocol';
+import {
+  SubscriptionDocSchema,
+  UserDocSchema,
+  paths,
+  type FamilyPlanId,
+} from '@just-imagine/protocol';
 import { db, transaction } from '@just-imagine/server-core';
 import { ApiFault } from './errors';
 import type { Billing } from './app';
@@ -12,7 +17,7 @@ export class NoPaymentBilling implements Billing {
   readonly mode = 'no-payment' as const;
   constructor(private config: { webUrl: string }) {}
 
-  async checkout(uid: string) {
+  async checkout(uid: string, planId: FamilyPlanId = 'family-month') {
     await transaction(async (tx) => {
       const userRef = db().doc(paths.user(uid)),
         subRef = db().doc(paths.subscription(uid));
@@ -25,13 +30,16 @@ export class NoPaymentBilling implements Billing {
       const user = userSnap.exists ? UserDocSchema.parse(userSnap.data()) : null;
       if (!user?.consentAt) throw new ApiFault(403, 'FORBIDDEN', 'Complete parent sign-up first.');
       const sub = subSnap.exists ? SubscriptionDocSchema.parse(subSnap.data()) : null;
-      if (user.plan === 'family' && sub && ['active', 'trialing'].includes(sub.status))
-        throw new ApiFault(409, 'PLAN_LIMIT', 'Your family already has the Family plan.');
+      const active = user.plan === 'family' && sub && ['active', 'trialing'].includes(sub.status);
+      // Switching between the monthly and yearly promotion is fine; choosing the same one twice is not.
+      if (active && (sub.planId ?? 'family-month') === planId)
+        throw new ApiFault(409, 'PLAN_LIMIT', 'Your family already has this plan.');
       tx.set(
         subRef,
         SubscriptionDocSchema.parse({
           stripeSubscriptionId: '',
           source: 'no-payment',
+          planId,
           status: 'active',
           tier: 'family',
           currentPeriodEnd: 0,

@@ -16,6 +16,7 @@ import {
   CreateCompanionBodySchema,
   UpdateChildBodySchema,
   CheckoutBodySchema,
+  type FamilyPlanId,
   DocumentIdSchema,
 } from '@just-imagine/protocol';
 import { ApiFault } from './errors';
@@ -32,7 +33,7 @@ import { catalogRoutes } from './catalog';
 export interface Billing {
   /** `stripe` takes real (test-mode) payments; `no-payment` starts plans without one. */
   readonly mode: 'stripe' | 'no-payment';
-  checkout(uid: string): Promise<{ url: string }>;
+  checkout(uid: string, planId?: FamilyPlanId): Promise<{ url: string }>;
   portal(uid: string): Promise<{ url: string }>;
   webhook(raw: Buffer, signature: string): Promise<void>;
   cancel(uid: string): Promise<void>;
@@ -316,9 +317,9 @@ export function createApi(options: ApiOptions) {
       return reply.status(202).send({ accepted: true });
     });
     routes.post('/v1/billing/checkout', async (req) => {
-      CheckoutBodySchema.parse(req.body);
+      const body = CheckoutBodySchema.parse(req.body);
       if (!options.billing) throw new ApiFault(503, 'INTERNAL', 'Billing is not configured yet.');
-      return options.billing.checkout(req.parentUid);
+      return options.billing.checkout(req.parentUid, body.planId);
     });
     routes.post('/v1/billing/portal', async (req) => {
       if (!options.billing) throw new ApiFault(503, 'INTERNAL', 'Billing is not configured yet.');

@@ -1,17 +1,29 @@
 'use client';
 import { useLanguage } from '../lib/i18n';
 import { copy as uiText } from '../lib/i18n/ui';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
 import { Brand, Preview } from './Shell';
-import { env } from '../lib/env';
-import { firebase } from '../lib/firebase';
+import { ParentGate } from './ParentGate';
+import { parentAreaOpen, signOutFamily } from '../lib/parent-gate';
 import { s } from '../lib/strings/en';
 export function ParentShell({ children }: { children: React.ReactNode }) {
   useLanguage();
   const path = usePathname(),
     router = useRouter();
+  // The server checks the lock on arrival, but back, forward and prefetched links can show this
+  // page without asking it, so nothing shows until the lock is checked here too.
+  const [locked, setLocked] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    void parentAreaOpen().then((open) => live && setLocked(!open));
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (locked) return <ParentGate onOpen={() => setLocked(false)} />;
+  if (locked === null) return <p className="loading">{s.load}</p>;
   return (
     <div data-world="parent">
       <header className="header">
@@ -42,11 +54,7 @@ export function ParentShell({ children }: { children: React.ReactNode }) {
           </nav>
           <button
             onClick={async () => {
-              if (!env.fake) {
-                await signOut(firebase().auth);
-                await fetch('/api/session', { method: 'DELETE' });
-              }
-              localStorage.removeItem('ji-child');
+              await signOutFamily();
               router.push('/sign-in');
             }}
           >

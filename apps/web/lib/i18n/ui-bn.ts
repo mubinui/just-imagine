@@ -1,5 +1,21 @@
 /** Authored Bangladesh copy for interface literals not yet in the older typed table. */
 export const UI_BN: Record<string, string> = {
+  'That email and password do not match. Check them and try again.':
+    'ইমেইল আর পাসওয়ার্ড মিলছে না। দেখে নিয়ে আবার চেষ্টা করুন।',
+  'Sign-in was closed before it finished. Try again.':
+    'প্রবেশ শেষ হওয়ার আগেই বন্ধ হয়ে গেছে। আবার চেষ্টা করুন।',
+  'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.':
+    'ব্রাউজার প্রবেশের জানালাটি আটকে দিয়েছে। এই সাইটের জন্য পপ-আপ চালু করে আবার চেষ্টা করুন।',
+  'Too many tries. Wait a few minutes, then try again.':
+    'অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট অপেক্ষা করে আবার চেষ্টা করুন।',
+  'Could not connect. Check the internet connection and try again.':
+    'সংযোগ পাওয়া যায়নি। ইন্টারনেটের সংযোগ দেখে আবার চেষ্টা করুন।',
+  'An account with this email already exists. Sign in instead.':
+    'এই ইমেইলে আগে থেকেই একটি অ্যাকাউন্ট আছে। তার বদলে প্রবেশ করুন।',
+  'Choose a password with at least 8 characters.': 'অন্তত ৮ অক্ষরের একটি পাসওয়ার্ড বেছে নিন।',
+  'Could not sign in. Please try again.': 'প্রবেশ করা যায়নি। আবার চেষ্টা করুন।',
+  'Sign in with the family account that is already open.':
+    'যে পরিবারের অ্যাকাউন্টটি খোলা আছে, সেটি দিয়েই প্রবেশ করুন।',
   'Voice is still connecting. Please wait.': 'কথার সংযোগ এখনও হচ্ছে। একটু অপেক্ষা করো।',
   'A teacher account is required.': 'শিক্ষক অ্যাকাউন্ট দিয়ে সাইন ইন করুন।',
   'School sign in': 'স্কুল সাইন ইন',
@@ -155,6 +171,7 @@ export const UI_BN: Record<string, string> = {
   'aged 11–13': '১১–১৩ বছর',
   'Paying Family plans': 'মূল্য পরিশোধ করা ফ্যামিলি প্ল্যান',
   'Comped Family plans': 'বিশেষ সুবিধায় দেওয়া ফ্যামিলি প্ল্যান',
+  'School plan changed': 'স্কুলের প্ল্যান বদলানো হয়েছে',
   'Family plans without payment': 'পেমেন্ট ছাড়া ফ্যামিলি প্ল্যান',
   'Free plan': 'বিনামূল্যের প্ল্যান',
   Activity: 'কার্যক্রম',

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AgeBandSchema } from './bands';
 import { AvatarSchema, LanguageSchema } from './firestore';
 import { DateKeySchema, DocumentIdSchema, EpochMsSchema } from './primitives';
+import { SchoolPlanIdSchema } from './plans';
 
 /*
  * Schools product line (docs/superpowers/specs/2026-10-17-schools-stem-design.md §4-§6).
@@ -93,6 +94,8 @@ export const SchoolDocSchema = z.object({
   status: z.enum(['active', 'suspended']),
   seats: z.number().int().min(1).max(5000),
   voiceSecondsPerDay: z.number().int().min(0).max(864000),
+  /** The school plan taken from PLAN_CATALOGUE, when the school chose one. */
+  planId: SchoolPlanIdSchema.optional(),
   createdAt: EpochMsSchema,
 });
 export type SchoolDoc = z.infer<typeof SchoolDocSchema>;

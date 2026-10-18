@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openParentSpace } from './parent-space';
 test('profile gesture unlocks audio, world renders, prediction and lab controls work', async ({
   page,
 }) => {
@@ -36,7 +37,7 @@ test('profile gesture unlocks audio, world renders, prediction and lab controls 
   expect(errors).toEqual([]);
 });
 test('parent CRUD persists and deletion requires confirmation', async ({ page }) => {
-  await page.goto('/parent/children');
+  await openParentSpace(page, '/parent/children');
   await page.getByLabel('First name').last().fill('Mira');
   await page.getByRole('button', { name: 'Add explorer', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Mira', exact: true })).toBeVisible();
@@ -189,6 +190,28 @@ test('an earned local bounce discovery survives the trip to parent space', async
     )
     .toContain('bounce');
   await expect(page.getByRole('button', { name: 'bounce', exact: true })).toHaveCount(0);
-  await page.goto('/parent/dashboard');
+  await openParentSpace(page, '/parent/dashboard');
   await expect(page.locator('.parent-discovery').first()).toBeVisible();
+});
+
+test('the parent space locks once a child screen opens, and playing stays open', async ({
+  page,
+}) => {
+  const gate = page.getByRole('heading', { name: 'Grown-ups only', exact: true });
+  await openParentSpace(page, '/parent/children');
+  await page.goto('/parent/billing');
+  await expect(page.locator('.parent-shell')).toBeVisible();
+  await page.getByRole('link', { name: /Let’s play/ }).click();
+  await expect(page.getByRole('heading', { name: 'Who’s imagining today?' })).toBeVisible();
+  // Back must not reopen the parent page the browser kept in its history.
+  await page.goBack();
+  await expect(gate).toBeVisible();
+  await expect(page.locator('.parent-shell')).toHaveCount(0);
+  await page.getByRole('link', { name: 'Back to playing', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Who’s imagining today?' })).toBeVisible();
+  await page.goto('/parent/dashboard');
+  await expect(gate).toBeVisible();
+  await page.screenshot({ path: 'test-results/parent-gate-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Open the parent space', exact: true }).click();
+  await expect(page.locator('.parent-shell')).toBeVisible();
 });

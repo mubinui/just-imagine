@@ -22,6 +22,7 @@ import {
 } from '@just-imagine/protocol';
 import { db, newId, readDoc, transaction } from '@just-imagine/server-core';
 import { ApiFault } from './errors';
+import { writeStarterContent } from './starter';
 import { requestDeletion, processDeletion } from './deletion';
 
 export interface ApiStore {
@@ -90,6 +91,7 @@ export class FirestoreApiStore implements ApiStore {
       });
       tx.set(userRef, user); // Serialize profile changes across competing requests.
       tx.create(db().doc(paths.child(uid, id)), child);
+      writeStarterContent(tx, uid, id, child);
       return { ...child, id };
     });
   }

@@ -321,9 +321,12 @@ export function ParentPanel({
               <div className="plan-cards">
                 {planOffers('family').map((plan) => {
                   const bn = interfaceLanguage === 'bn';
+                  const promotion = data.billing === 'no-payment';
                   const current =
-                    plan.tier === data.user.plan &&
-                    (plan.tier === 'free' || plan.period === 'month');
+                    plan.tier === 'free'
+                      ? data.user.plan === 'free'
+                      : data.user.plan === 'family' &&
+                        (data.subscription?.planId ?? 'family-month') === plan.id;
                   return (
                     <article
                       key={plan.id}
@@ -356,6 +359,24 @@ export function ParentPanel({
                         ))}
                       </ul>
                       {current && <span className="plan-current">{uiText('Your plan')}</span>}
+                      {promotion && plan.tier === 'family' && !current && (
+                        <button
+                          type="button"
+                          className="button primary plan-start"
+                          disabled={busy || env.fake}
+                          onClick={() =>
+                            void action(async () => {
+                              await api('checkout', {}, { tier: 'family', planId: plan.id });
+                              setPlanNotice(s.planStarted);
+                            })
+                          }
+                        >
+                          {data.user.plan === 'family' ? s.switchPlan : s.startPromo}
+                        </button>
+                      )}
+                      {promotion && plan.tier === 'family' && (
+                        <span className="plan-promo">{s.promoBadge}</span>
+                      )}
                     </article>
                   );
                 })}
@@ -379,26 +400,13 @@ export function ParentPanel({
               </div>
               {data.billing === 'no-payment' ? (
                 <div className="actions">
-                  {data.user.plan === 'family' ? (
+                  {data.user.plan === 'family' && (
                     <button
                       disabled={busy || env.fake}
                       className="button secondary"
                       onClick={() => void action(() => api('cancelPlan'))}
                     >
                       {s.cancelPlan}
-                    </button>
-                  ) : (
-                    <button
-                      disabled={busy || env.fake}
-                      className="button primary"
-                      onClick={() =>
-                        void action(async () => {
-                          await api('checkout', {}, { tier: 'family' });
-                          setPlanNotice(s.planStarted);
-                        })
-                      }
-                    >
-                      {s.startFamily}
                     </button>
                   )}
                   {planNotice && data.user.plan === 'family' && <p role="status">{planNotice}</p>}

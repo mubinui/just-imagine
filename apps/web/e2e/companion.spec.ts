@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openParentSpace } from './parent-space';
 
 test('a chosen friend follows navigation and Exit Studio ends voice until another explicit talk', async ({
   page,
@@ -12,7 +13,7 @@ test('a chosen friend follows navigation and Exit Studio ends voice until anothe
     sockets.push(connection);
     socket.on('close', () => (connection.closed = true));
   });
-  await page.goto('/parent/children');
+  await openParentSpace(page, '/parent/children');
   const setup = page.getByRole('region', { name: 'Ari companion', exact: true });
   await setup.getByLabel("Friend's name").fill('Pip');
   await setup.getByRole('button', { name: 'Mishti the dreamer' }).click();

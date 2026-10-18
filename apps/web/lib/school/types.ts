@@ -39,6 +39,8 @@ export type SchoolMe = {
   schoolId: string | null;
   superAdmin: boolean;
   school: School;
+  /** Plans can be taken as a free promotion while payments are off. */
+  promotions?: boolean;
 };
 export type StudyMe = {
   uid: string;

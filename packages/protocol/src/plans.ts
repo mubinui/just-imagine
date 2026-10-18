@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const PlanTierSchema = z.enum(['free', 'family']);
+export const SchoolPlanIdSchema = z.enum(['school-classroom', 'school-standard', 'school-network']);
+export type SchoolPlanId = z.infer<typeof SchoolPlanIdSchema>;
 export type PlanTier = z.infer<typeof PlanTierSchema>;
 
 export const PlanLimitsSchema = z.object({
@@ -50,6 +52,8 @@ export interface PlanOffer {
   /** Student seats for school plans. */
   seats?: number;
   teachers?: number;
+  /** Live voice the whole school may use each day, for school plans. */
+  voiceSecondsPerDay?: number;
   summary: PlanText;
   features: PlanText[];
   recommended?: boolean;
@@ -130,6 +134,7 @@ export const PLAN_CATALOGUE: readonly PlanOffer[] = [
     period: 'year',
     seats: 40,
     teachers: 2,
+    voiceSecondsPerDay: 4 * 3600,
     summary: {
       en: 'One class, its teachers and every lesson.',
       bn: 'একটি ক্লাস, শিক্ষক আর সব পাঠ।',
@@ -149,6 +154,7 @@ export const PLAN_CATALOGUE: readonly PlanOffer[] = [
     period: 'year',
     seats: 500,
     teachers: 20,
+    voiceSecondsPerDay: 40 * 3600,
     summary: {
       en: 'A whole school, with AI lesson writing.',
       bn: 'পুরো স্কুল, এআই দিয়ে পাঠ লেখা সহ।',
@@ -172,6 +178,7 @@ export const PLAN_CATALOGUE: readonly PlanOffer[] = [
     period: 'year',
     seats: 5000,
     teachers: 200,
+    voiceSecondsPerDay: 240 * 3600,
     summary: { en: 'Several schools under one agreement.', bn: 'একটি চুক্তিতে কয়েকটি স্কুল।' },
     features: [
       { en: 'Up to 5,000 seats', bn: '৫,০০০ পর্যন্ত আসন' },

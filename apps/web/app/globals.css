@@ -877,6 +877,19 @@ footer p {
   top: 40px;
   box-shadow: 0 15px 30px -20px #4c4b3e;
 }
+/* A world with its own painted art shows it across the top of the card. */
+.world-tile.has-art .world-thumb {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  /* Painted backdrops keep their subject low; the sky alone says little about the world. */
+  object-position: center 88%;
+}
+.world-tile.has-art .world-tile-copy {
+  padding-top: 180px;
+}
 .world-1 {
   background: #e8e4f0;
 }

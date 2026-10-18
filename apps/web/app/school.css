@@ -8,7 +8,8 @@
  */
 .sch {
   color: var(--ink);
-  background: var(--ground);
+  /* The page body already paints --ground; a solid fill here would hide the theme art. */
+  background: transparent;
   min-height: 100dvh;
 }
 /* An embedded school screen never adds a second page height or background. */
@@ -475,6 +476,12 @@
 }
 .sch-auth section > button {
   margin: 0 10px 12px 0;
+}
+/* Google sign-in spans the form, like the sign-in button above it and the parent page. */
+.sch-auth section > button.sch-auth-google {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
 }
 .sch-empty {
   padding: 40px 0;
@@ -1923,4 +1930,76 @@ label.sch-option {
   .sch-pin img {
     float: right;
   }
+}
+
+/* ---------- school plans (free promotion while payments are off) ---------- */
+.sch-plan-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.sch-plan-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--ground);
+}
+.sch-plan-card[data-recommended] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.sch-plan-card[data-current] {
+  border: 2px solid var(--accent);
+}
+.sch-plan-card h3 {
+  margin: 0;
+  font-size: 22px;
+}
+.sch-plan-card p {
+  margin: 0;
+}
+.sch-plan-card ul {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+.sch-plan-card li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.35;
+}
+.sch-plan-card li .ui-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+.sch-plan-price s {
+  color: var(--soft);
+}
+.sch-plan-promo,
+.sch-plan-current {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.sch-plan-promo {
+  background: color-mix(in srgb, var(--yellow) 55%, var(--ground));
+  color: var(--ink);
+}
+.sch-plan-current {
+  justify-self: start;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.sch-plan-card > button {
+  width: 100%;
 }

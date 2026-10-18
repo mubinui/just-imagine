@@ -55,7 +55,9 @@ it('requires recent authentication', async () => {
   expect(mock.cookie).not.toHaveBeenCalled();
 });
 it('requires explicit consent for a new account', async () => {
-  expect((await POST(request({ idToken: 'a' }))).status).toBe(401);
+  const refused = await POST(request({ idToken: 'a' }));
+  expect(refused.status).toBe(403);
+  expect(await refused.json()).toMatchObject({ code: 'CONSENT_REQUIRED' });
   expect(mock.create).not.toHaveBeenCalled();
   const response = await POST(request({ idToken: 'a', consent: true }));
   expect(response.status).toBe(200);
