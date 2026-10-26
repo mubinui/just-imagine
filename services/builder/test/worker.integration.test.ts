@@ -451,6 +451,10 @@ it('publishes the nearest sample world when every template fails its gate on the
       }),
     );
     expect(events.filter((e) => e.event === 'game_fallback')).toHaveLength(1);
+    // The scriptless sample is never silent: a code-only event says its templates failed.
+    expect(events.filter((e) => e.event === 'game_template_failed')).toEqual([
+      { event: 'game_template_failed', jobId: job.jobId, worldId: job.worldId, reason: 'sample' },
+    ]);
   } finally {
     await cleanup();
   }

@@ -267,10 +267,18 @@ export class BuilderWorker {
               const sample = nearestConceptFixture(job).doc;
               beginArt(sample);
               // A lab is a playground without a script, as imagineGame builds one. A curated
-              // sample whose templates all fail the gate is published as it is, without a script.
+              // sample whose templates all fail is published as it is, without a script.
               const template = job.labKind
                 ? undefined
-                : await templateGame(sample, job, undefined, deps).catch(() => undefined);
+                : await templateGame(sample, job, undefined, deps).catch(() => {
+                    // Codes only: the template error embeds child-facing strings.
+                    logEvent(
+                      'game_template_failed',
+                      { jobId: job.jobId, worldId: job.worldId, reason: 'sample' },
+                      'WARNING',
+                    );
+                    return undefined;
+                  });
               fallback = 'sample';
               logEvent(
                 'game_fallback',
