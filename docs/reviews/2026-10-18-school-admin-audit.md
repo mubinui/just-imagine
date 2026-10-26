@@ -55,7 +55,7 @@ Legend: `[x]` verified working, `[~]` works with a known limitation (noted), `[ 
 - [x] L3 Chemistry presets: pH and indicators, titration, flame test, reaction rate, gas laws — registered, drawn and animated
 - [x] L4 Mathematics presets: function grapher, derivative, area under a curve, probability, trigonometry waves — registered, drawn and animated
 - [~] L5 Teacher library, configure view (locks) and task editor — every preset is listed under its curriculum chapters in the lesson editor, with editable-parameter locks and a task editor whose arguments start at the preset's own reading; a dedicated preview-card library view is still to build
-- [ ] L6 Teacher generation with `gemini-4-argon`, validated and reviewed before adding — designed in the simulation library spec, not built
+- [x] L6 Teacher generation with `gemini-4-argon`, validated and reviewed before adding — "Lab from a description" in the lesson editor (teacher and operator) returns a configured chapter simulation, graded task, example answer and hints, re-checked like a saved lesson; checked with the real model on 2026-10-26
 
 ## Live voice during play
 
@@ -110,6 +110,6 @@ Items that cannot be completed locally or need a decision are listed here with t
 - Live voice with a real microphone for the student tutor: needs a person speaking to the live model.
 - Keeping a published lesson live while it is edited (T5): needs a separate published copy in the data model; for now the editor warns before taking it offline.
 - Seeded demo names on the persistent demo stack keep Western digits; the demo data is not reset.
-- A dedicated simulation library view with live preview cards (L5) and teacher generation with `gemini-4-argon` (L6): designed, not built.
+- A dedicated simulation library view with live preview cards (L5): designed, not built.
 - Physics and mathematics subject icons still use a planet and a pencil; proper atom and maths icons need two Phosphor files downloaded, awaiting approval.
 - Simulation dragging and frame rate on a real tablet (X5): not yet measured on a device.
