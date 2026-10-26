@@ -22,6 +22,8 @@ export type TelemetryFields = {
   /** Short operational codes only, such as 'won' or 'exhausted'; never model or child text. */
   outcome?: string;
   reason?: string;
+  /** Which template game replaced a failed programme, such as 'collect'. */
+  template?: string;
 };
 export function childHash(uid: string, childId: string) {
   return createHash('sha256')

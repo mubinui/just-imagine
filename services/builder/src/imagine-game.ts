@@ -26,6 +26,7 @@ import { createBudget, type BuildBudget } from './budget';
 import { raceCandidates, type Candidate } from './candidates';
 import { ensureHero } from './hero';
 import { feedbackLint } from './designer-brief';
+import { templateGame } from './templates';
 
 /** Calls the script model with a prompt; resolves with its parsed JSON output. */
 export type GenerateScript = (
@@ -64,7 +65,7 @@ export interface ImagineGameResult {
   kind: 'game' | 'playground';
   /** Script model calls made. */
   attempts: number;
-  /** Retained for older callers; new failures throw instead of substituting a plain scene. */
+  /** True when a gated template game replaced the generated one; never a plain scene. */
   fallback: boolean;
   /** Why the last script failed, for logs. */
   failure?: string;
@@ -160,7 +161,11 @@ export async function gateScript(
   return describeFailure(result);
 }
 
-function withScript(doc: SceneDoc, source: string, mode: 'game' | 'freeplay' = 'game'): SceneDoc {
+export function withScript(
+  doc: SceneDoc,
+  source: string,
+  mode: 'game' | 'freeplay' = 'game',
+): SceneDoc {
   const next = structuredClone(doc);
   next.game = {
     script: { apiVersion: 1, source, hash: scriptHash(source) },
@@ -175,8 +180,9 @@ function withScript(doc: SceneDoc, source: string, mode: 'game' | 'freeplay' = '
  * The `imagineGame` flow: decide game or playground from the wish, compose the
  * scene, hand it to `onScene`, then ask the script model for a programme against
  * the Game API in at most two rounds of parallel candidates, each gated by the
- * static check, smoke run, moderation and the acceptance plan. Report failure
- * when the requested game cannot be built; never substitute a plain scene.
+ * static check, smoke run, moderation and the acceptance plan. When no programme
+ * passes, publish a template game through the same gate, flagged as a fallback;
+ * never substitute a plain scene.
  */
 export async function imagineGame(
   job: BuildWorldJob,
@@ -522,6 +528,7 @@ export async function compileBehavior(
   const candidates = Math.max(1, Math.floor(deps.candidates ?? 2));
   let count = candidates;
   let feedback = '';
+  let lastRound = 0;
   let best: { failure: string; diagnostic: GameFailureDiagnostic } = {
     failure: 'the time budget ran out before a programme could be written',
     diagnostic: { code: 'BUDGET' },
@@ -543,6 +550,7 @@ export async function compileBehavior(
       ...(plan ? { plan } : {}),
     });
     const outcome = await runRound(ctx, round, count, `${prompt}${feedback}`, plan);
+    lastRound = round;
     if (outcome.won)
       return {
         doc: outcome.doc,
@@ -573,8 +581,26 @@ export async function compileBehavior(
     feedback = retryFeedback(reason, closest.source, lint);
   }
   if (options.fallback === 'template') {
-    // TODO(template fallback): Task 8 publishes a tested template here instead of throwing.
-    throw new GameGenerationError(best.failure, best.diagnostic);
+    // Never silently substitute: the template is gated like any script and flagged as one.
+    const template = await templateGame(doc, job, plan, deps).catch((error: unknown) => {
+      throw new GameGenerationError(
+        `${best.failure}; ${error instanceof Error ? error.message : String(error)}`,
+        best.diagnostic,
+      );
+    });
+    logEvent(
+      'game_fallback',
+      { jobId, worldId, reason: 'template', template: template.kind },
+      'WARNING',
+    );
+    return {
+      doc: template.doc,
+      kind: 'game',
+      attempts: ctx.attempts,
+      rounds: lastRound,
+      fallback: true,
+      fallbackReason: 'template',
+    };
   }
   throw new GameGenerationError(best.failure, best.diagnostic);
 }

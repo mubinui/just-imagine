@@ -145,30 +145,46 @@ describe('imagineGame', () => {
     expect(result.doc.game?.script.source).toBe(GOOD);
   });
 
-  it('reports a failed game instead of publishing an unrelated plain scene', async () => {
-    const script = recorded<unknown>([
-      { kind: 'game', source: 'eval("1"); game.score(1);' },
-      { kind: 'game', source: 'game.say("no goal here");' },
-    ]);
-    await expect(
-      imagineGame(job('catch the flies game'), {
-        generateScene: sceneModel(),
-        generateScript: script.fn as GenerateScript,
-        candidates: 1,
+  it('falls back to a template after two failed rounds on a build, honestly flagged', async () => {
+    const alwaysStatic = vi.fn(async () => ({ kind: 'game', source: 'eval("1"); game.score(1);' }));
+    const result = await imagineGame(job('catch flies'), {
+      generateScene: sceneModel(),
+      generateScript: alwaysStatic,
+    });
+    expect(result).toMatchObject({
+      kind: 'game',
+      fallback: true,
+      fallbackReason: 'template',
+      rounds: 2,
+      attempts: 4,
+    });
+    expect(result.doc.game?.script.source).toContain('Catch 5');
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        event: 'game_fallback',
+        jobId: 'j_game',
+        worldId: 'w_game',
+        reason: 'template',
+        template: 'collect',
       }),
-    ).rejects.toThrow(/goal|score|win/i);
-    expect(script.fn).toHaveBeenCalledTimes(2);
+    );
   });
 
-  it('reports a failed game when the model is unavailable', async () => {
+  it('publishes a flagged template game when the model is unavailable', async () => {
     const script = vi
       .fn()
       .mockResolvedValueOnce({ nope: true })
       .mockRejectedValue(new Error('model unavailable'));
+    const result = await imagineGame(job('catch the flies game'), {
+      generateScene: sceneModel(),
+      generateScript: script,
+    });
+    expect(result).toMatchObject({ kind: 'game', fallback: true, fallbackReason: 'template' });
+    // The same failure with template fallback switched off is still reported.
     await expect(
-      imagineGame(job('catch the flies game'), {
+      compileBehavior(sceneOnly(flies), job('catch the flies game'), {
         generateScene: sceneModel(),
-        generateScript: script,
+        generateScript: vi.fn().mockRejectedValue(new Error('model unavailable')),
       }),
     ).rejects.toThrow('model unavailable');
   });
@@ -310,12 +326,14 @@ describe('imagineGame', () => {
       { kind: 'playground' },
       { kind: 'playground' },
     ]);
-    await expect(
-      imagineGame(job('catch the flies game', { experience: 'game' }), {
-        generateScene: sceneModel(),
-        generateScript: script.fn as GenerateScript,
-      }),
-    ).rejects.toThrow('downgrade');
+    // The playground answer is refused; a gated template game is published and flagged instead.
+    const result = await imagineGame(job('catch the flies game', { experience: 'game' }), {
+      generateScene: sceneModel(),
+      generateScript: script.fn as GenerateScript,
+    });
+    expect(result).toMatchObject({ kind: 'game', fallback: true, fallbackReason: 'template' });
+    expect(result.doc.game?.mode).toBeUndefined();
+    expect(result.doc.game?.script.source).toMatch(/game\.score/);
   });
 
   it('compiles scoreless open play and only bypasses the script model for explicit Labs', async () => {
