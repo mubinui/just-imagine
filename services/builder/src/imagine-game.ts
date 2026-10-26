@@ -24,6 +24,7 @@ import { providerFailure, type GameFailureDiagnostic } from './game-diagnostics'
 import { isRateLimited, isTransientProviderError } from './rate-limit';
 import { createBudget, type BuildBudget } from './budget';
 import { raceCandidates, type Candidate } from './candidates';
+import { ensureHero } from './hero';
 import { feedbackLint } from './designer-brief';
 
 /** Calls the script model with a prompt; resolves with its parsed JSON output. */
@@ -189,12 +190,13 @@ export async function imagineGame(
       fallback: false,
       rounds: 0,
     };
-  const doc = await buildScene(
+  const built = await buildScene(
     job,
     (prompt, kind, sessionId) =>
       deps.generateScene(`${prompt}\n${GAME_SCENE_HINT}`, kind, sessionId),
     deps.reviewScene,
   );
+  const doc = ensureHero(built, job);
   deps.onScene?.(doc);
   return compileBehavior(doc, job, deps, undefined, { fallback: 'template' });
 }
