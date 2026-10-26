@@ -525,7 +525,36 @@ export class BuilderWorker {
         const request = requests[cursor++]!;
         if (Date.now() > deadline || (await isKillSwitchOn()))
           throw new EditError('Artwork did not finish; the previous creation was kept.');
-        const asset = await this.asset(job, request);
+        let asset: ArtAsset;
+        try {
+          asset = await this.asset(job, request);
+        } catch (error) {
+          // A failed animation sheet never rejects the edit: the sprite keeps its old still
+          // picture, if it had one, and `patch` drops its locomotion.
+          if (!request.locomotion || request.locomotion.kind === 'roll') throw error;
+          logEvent(
+            'asset_failed',
+            { jobId: job.jobId, milestone: request.kind, success: false },
+            'WARNING',
+          );
+          const old = before.doc.entities.find((e) => e.id === request.id);
+          const entity = doc.entities.find((e) => e.id === request.id);
+          if (
+            entity &&
+            old?.asset?.status === 'ready' &&
+            !old.asset.animation &&
+            old.kind === entity.kind &&
+            old.description === entity.description
+          ) {
+            entity.asset = structuredClone(old.asset);
+            world.assets[request.id] = {
+              status: 'ready',
+              url: old.asset.url,
+              ...(old.asset.colliderUrl ? { colliderUrl: old.asset.colliderUrl } : {}),
+            };
+          } else world.assets[request.id] = { status: 'failed' };
+          continue;
+        }
         const ref = {
           status: 'ready' as const,
           url: asset.url,

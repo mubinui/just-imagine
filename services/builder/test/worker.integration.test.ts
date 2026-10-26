@@ -462,3 +462,93 @@ it('publishes ready with partial art when the hard deadline passes during art', 
     await h.cleanup();
   }
 });
+
+it('commits a voice edit with the sprite kept still when its only animation sheet fails', async () => {
+  const h = await artWorld(
+    'edit',
+    async (request) => {
+      if (request.locomotion) throw new Error('The run cycle could not be registered');
+      return picture(request.id);
+    },
+    async () => ({
+      kind: 'game',
+      source: "game.on('tap', e => { if(e.target) game.move(e.target.id, {x:8,y:3}); });",
+    }),
+  );
+  try {
+    // The current world: every picture is ready and nothing moves on its own.
+    const before: SceneDoc = structuredClone(flies);
+    before.worldId = h.job.worldId;
+    before.theme.backdrop = {
+      url: picture('backdrop').url,
+      width: 64,
+      height: 64,
+      status: 'ready',
+    };
+    for (const entity of before.entities)
+      if (entity.kind === 'sprite')
+        entity.asset = { url: picture(entity.id).url, width: 64, height: 64, status: 'ready' };
+    await db()
+      .doc(paths.world(h.job.worldId))
+      .set(
+        WorldDocSchema.parse({
+          ownerUid: h.job.uid,
+          childId: h.job.childId,
+          title: before.title,
+          status: 'ready',
+          doc: before,
+          schemaVersion: 1,
+          promptVersion: 'v1',
+          styleVersion: 'v1',
+          assets: {},
+          concepts: before.learning.concepts,
+          thumbnailUrl: null,
+          jobId: 'j_initial_edit',
+          createdAt: 1,
+          updatedAt: 1,
+        }),
+      );
+    // The scene model already returns the frog with a run cycle (see artWorld).
+    const job = {
+      kind: 'patch',
+      jobId: 'j_art_edit_patch',
+      worldId: h.job.worldId,
+      uid: h.job.uid,
+      childId: h.job.childId,
+      sessionId: 's_art',
+      plan: 'free',
+      instruction: 'Make the frog run',
+      promptVersion: 'v1',
+    };
+    await db()
+      .doc('builderJobs/' + job.jobId)
+      .delete();
+    expect(await h.worker.run(job)).toEqual({ status: 'complete' });
+    const world = await h.world();
+    expect(world.status).toBe('ready');
+    expect(world.revisionId).toBe(job.jobId);
+    const frog = world.doc.entities.find((e) => e.id === 'frog')!;
+    expect(frog.locomotion).toBeUndefined();
+    expect(frog.asset).toEqual({
+      url: picture('frog').url,
+      width: 64,
+      height: 64,
+      status: 'ready',
+    });
+    expect(
+      (
+        await db()
+          .doc(`${paths.worldVersions(job.worldId)}/${job.jobId}`)
+          .get()
+      ).exists,
+    ).toBe(true);
+    expect(events).toContainEqual(
+      expect.objectContaining({ event: 'art_locomotion_dropped', ids: ['frog'] }),
+    );
+    await db()
+      .doc('builderJobs/' + job.jobId)
+      .delete();
+  } finally {
+    await h.cleanup();
+  }
+});
