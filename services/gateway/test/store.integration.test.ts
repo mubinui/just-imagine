@@ -1,4 +1,4 @@
-import { it, expect } from 'vitest';
+import { it, expect, vi } from 'vitest';
 import { db } from '@just-imagine/server-core';
 import { paths, yyyymmdd } from '@just-imagine/protocol';
 import { FirestoreSessionStore } from '../src/store';
@@ -174,6 +174,62 @@ it('delivers local jobs with optional fields through Firestore without undefined
   } finally {
     if (previous === undefined) delete process.env['LOCAL_DEV'];
     else process.env['LOCAL_DEV'] = previous;
+    await ref.delete();
+  }
+});
+it('queues builds with a 900 second dispatch deadline (stubbed Cloud Tasks client)', async () => {
+  const previous = process.env['LOCAL_DEV'];
+  delete process.env['LOCAL_DEV'];
+  const store = new FirestoreSessionStore({
+    project: 'demo-just-imagine',
+    queue: 'test',
+    builderUrl: 'https://example.test',
+    serviceAccount: 'test@example.test',
+  });
+  const createTask = vi.fn(async () => [{}]);
+  (store as unknown as { tasks: unknown }).tasks = {
+    queuePath: (project: string, location: string, queue: string) =>
+      `projects/${project}/locations/${location}/queues/${queue}`,
+    createTask,
+  };
+  try {
+    await store.enqueue({
+      kind: 'patch',
+      jobId: 'j_deadline',
+      worldId: 'w_deadline',
+      uid: 'deadline_parent',
+      childId: 'c_deadline',
+      sessionId: 's_deadline',
+      plan: 'free',
+      instruction: 'Make it greener',
+      promptVersion: 'v1',
+    });
+    expect(createTask).toHaveBeenCalledOnce();
+    const [request] = createTask.mock.calls[0] as unknown as [
+      { task: { dispatchDeadline: { seconds: number } } },
+    ];
+    expect(request.task.dispatchDeadline.seconds).toBe(900);
+  } finally {
+    if (previous !== undefined) process.env['LOCAL_DEV'] = previous;
+  }
+});
+it('passes the fallback reason from the job document to the watcher', async () => {
+  const store = new FirestoreSessionStore({
+    project: 'demo-just-imagine',
+    queue: 'test',
+    builderUrl: 'https://example.test',
+    serviceAccount: 'test@example.test',
+  });
+  const ref = db().doc('builderJobs/j_fallback_reason');
+  await ref.set({ status: 'fallback', fallbackReason: 'template' });
+  let stop = () => {};
+  try {
+    const seen = await new Promise<unknown[]>((resolve) => {
+      stop = store.watchJob('j_fallback_reason', (...args) => resolve(args));
+    });
+    expect(seen).toEqual(['fallback', { fallbackReason: 'template' }]);
+  } finally {
+    stop();
     await ref.delete();
   }
 });

@@ -62,7 +62,10 @@ export interface SessionStore {
     concept: string,
     explanation: string,
   ): Promise<Extract<ServerMessage, { type: 'discovery' }>>;
-  watchJob?(id: string, callback: (status: string) => void): () => void;
+  watchJob?(
+    id: string,
+    callback: (status: string, detail?: { fallbackReason?: 'template' | 'sample' }) => void,
+  ): () => void;
   watchWorld(id: string, callback: (world: WorldDoc) => void): () => void;
   /** Adds validated challenge points to the child profile and returns the new total and pets. */
   awardPoints(
