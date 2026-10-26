@@ -188,14 +188,11 @@ export async function imagineGame(
   job: BuildWorldJob,
   deps: ImagineGameDeps,
 ): Promise<ImagineGameResult> {
-  if (job.labKind)
-    return {
-      doc: await buildScene(job, deps.generateScene),
-      kind: 'playground',
-      attempts: 0,
-      fallback: false,
-      rounds: 0,
-    };
+  if (job.labKind) {
+    const lab = await buildScene(job, deps.generateScene);
+    deps.onScene?.(lab);
+    return { doc: lab, kind: 'playground', attempts: 0, fallback: false, rounds: 0 };
+  }
   const built = await buildScene(
     job,
     (prompt, kind, sessionId) =>

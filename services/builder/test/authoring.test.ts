@@ -4,7 +4,7 @@ import { type WorldDoc, type ChildDoc, type PatchWorldJob } from '@just-imagine/
 import { reviseCreation, reconcileArt } from '../src/revisions';
 import { toGenerated } from '../src/prompts/v1';
 import { validateScene } from '@just-imagine/scene-schema';
-import { requireMotionArtwork, MotionArtworkError } from '../src/motion';
+import { dropMissingMotion } from '../src/motion';
 
 const doc = structuredClone(FIXTURE_WORLDS.jellyDragon);
 const world = {
@@ -19,22 +19,23 @@ const world = {
   },
 } as WorldDoc;
 const child = { ageBand: '8-10', language: 'bn' } as ChildDoc;
-it('does not publish a finished motion world while its requested actor lacks animation', () => {
+it('keeps a requested actor still, rather than failing the world, while it lacks animation', () => {
   const scene = structuredClone(doc),
     hero = scene.entities.find((e) => e.id === scene.learning.heroEntityId)!;
   hero.locomotion = { kind: 'run', stride: 1, facing: 'right' };
-  expect(() => requireMotionArtwork(scene)).toThrow(MotionArtworkError);
-  hero.asset = {
+  const animated = structuredClone(scene);
+  animated.entities.find((e) => e.id === hero.id)!.asset = {
     status: 'ready',
     url: '/approved',
     width: 768,
     height: 768,
     animation: { columns: 3, rows: 3, frames: 9 },
   };
-  expect(() => requireMotionArtwork(scene)).not.toThrow();
-  delete hero.locomotion;
-  delete hero.asset;
-  expect(() => requireMotionArtwork(scene)).not.toThrow();
+  expect(dropMissingMotion(animated)).toEqual([]);
+  expect(animated.entities.find((e) => e.id === hero.id)!.locomotion?.kind).toBe('run');
+  expect(dropMissingMotion(scene)).toEqual([hero.id]);
+  expect(hero.locomotion).toBeUndefined();
+  expect(dropMissingMotion(scene)).toEqual([]);
 });
 const job = {
   kind: 'patch',

@@ -715,4 +715,18 @@ describe('two candidates per round', () => {
     );
     expect(result.rounds).toBe(1);
   });
+
+  it('hands a Lab scene to onScene too, so its art starts at once', async () => {
+    const onScene = vi.fn();
+    const result = await imagineGame(
+      job('a launch experiment', { tier: 'lab', labKind: 'projectile' }),
+      {
+        generateScene: sceneModel(sceneOnly(FIXTURE_WORLDS.projectileLab)),
+        generateScript: vi.fn() as unknown as GenerateScript,
+        onScene,
+      },
+    );
+    expect(onScene).toHaveBeenCalledOnce();
+    expect(onScene.mock.calls[0]![0]).toBe(result.doc);
+  });
 });

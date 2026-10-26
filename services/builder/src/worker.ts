@@ -39,11 +39,20 @@ import {
   motionArt,
   sameMotionArt,
   locomotionImagePrompt,
-  requireMotionArtwork,
+  dropMissingMotion,
   motionRepairInstruction,
   hasMotionArtwork,
 } from './motion';
-import type { PatchOp, AssetRef, Locomotion } from '@just-imagine/scene-schema';
+import {
+  applyArt,
+  requestsFor,
+  startArt,
+  type ArtAsset,
+  type ArtOutcome,
+  type ArtRequest,
+} from './art-phase';
+import { ART_PHASE_MS, createBudget } from './budget';
+import type { PatchOp, AssetRef, SceneDoc } from '@just-imagine/scene-schema';
 
 export class BuilderWorker {
   private storage = new Storage();
@@ -149,10 +158,14 @@ export class BuilderWorker {
         lease,
         startedAt: Date.now(),
       });
-      tx.set(lockRef, { lease, expiresAt: Date.now() + 360000 });
+      // The hard build budget plus room for the completion writes.
+      tx.set(lockRef, { lease, expiresAt: Date.now() + 960000 });
       return true;
     });
     if (!claim) return { status: 'already-complete' };
+    const budget = createBudget();
+    /** Set once the build stops listening to art: the world is final, or the build failed. */
+    let closed = false;
     try {
       if (job.kind === 'patch' || job.kind === 'undo') {
         if (job.kind === 'undo') await this.undo(job, lease);
@@ -160,6 +173,51 @@ export class BuilderWorker {
         logEvent('builder_result', { jobId: job.jobId, success: true });
         return { status: 'complete' };
       } else {
+        let art: ReturnType<typeof startArt> | undefined;
+        let requests: ArtRequest[] = [];
+        /** Set once `base`, the world as built, exists; nothing is published before then. */
+        let publishable = false;
+        let publishing: Promise<void> = Promise.resolve();
+        let queued = false;
+        let publishFailed = false;
+        // Publishes run one at a time, each painting every outcome known when it starts.
+        const publishArt = () => {
+          if (queued) return publishing;
+          queued = true;
+          publishing = publishing.then(() => {
+            queued = false;
+            return this.publish(job, lease, applyArt(base, art!.outcomes));
+          });
+          publishing.catch(() => (publishFailed = true));
+          return publishing;
+        };
+        // Art depends only on the job and the scene, so it starts as soon as the scene exists.
+        const beginArt = (scene: SceneDoc) => {
+          if (art) return;
+          requests = requestsFor(scene, job.plan);
+          art = startArt(
+            requests,
+            async (request) => {
+              try {
+                return await this.asset(job, request);
+              } catch (error) {
+                logEvent(
+                  'asset_failed',
+                  { jobId: job.jobId, milestone: request.kind, success: false },
+                  'WARNING',
+                );
+                throw error;
+              }
+            },
+            {
+              deadline: budget.deadlineFor(ART_PHASE_MS),
+              onUpdate: () => {
+                if (publishable && !closed) void publishArt();
+              },
+              stop: async () => closed || publishFailed || (await isKillSwitchOn()),
+            },
+          );
+        };
         const doc = await traced(
           'scene_build',
           { worldId: job.worldId, jobId: job.jobId },
@@ -169,6 +227,8 @@ export class BuilderWorker {
               ...this.game,
               generateScene: this.models.generate,
               reviewScene: this.models.reviewScene,
+              budget,
+              onScene: beginArt,
             });
             logEvent(
               built.fallback ? 'game_fallback' : 'game_kind',
@@ -184,7 +244,9 @@ export class BuilderWorker {
             return built.doc;
           },
         );
-        let world: WorldDoc = WorldDocSchema.parse({
+        beginArt(doc);
+        // The world as built, before any art; every publish paints the outcomes onto it.
+        const base: WorldDoc = WorldDocSchema.parse({
           ownerUid: job.uid,
           childId: job.childId,
           title: doc.title,
@@ -201,90 +263,40 @@ export class BuilderWorker {
           updatedAt: Date.now(),
           creation: initialCreation(job),
         });
-        await this.publish(job, lease, world);
-        const deadline = Date.now() + 180000;
-        const requests = [
-          {
-            id: 'backdrop',
-            description: doc.theme.backdropDescription,
-            kind: 'backdrop',
-            hero: true,
-          },
-          ...(doc.theme.midLayerDescription
-            ? [
-                {
-                  id: 'midLayer',
-                  description: doc.theme.midLayerDescription,
-                  kind: 'overlay',
-                  hero: true,
-                },
-              ]
-            : []),
-          ...doc.entities
-            .filter((e) => e.kind === 'sprite')
-            .sort(
-              (a, b) =>
-                Number(b.id === doc.learning.heroEntityId) * 2 +
-                Number(Boolean(b.character)) -
-                (Number(a.id === doc.learning.heroEntityId) * 2 + Number(Boolean(a.character))),
-            )
-            .slice(0, PLAN_LIMITS[job.plan].imagesPerWorld)
-            .map((e) => ({
-              id: e.id,
-              description: e.description,
-              kind: 'sprite',
-              hero: e.id === doc.learning.heroEntityId || Boolean(e.character),
-              ...(e.locomotion ? { locomotion: e.locomotion } : {}),
-            })),
-        ];
-        let nextRequest = 0;
-        const generateNext = async () => {
-          while (nextRequest < requests.length) {
-            const request = requests[nextRequest++]!;
-            if (Date.now() > deadline || (await isKillSwitchOn())) return;
-            world.assets[request.id] = { status: 'generating' };
-            await this.publish(job, lease, world);
-            try {
-              const asset = await this.asset(job, request);
-              world.assets[request.id] = {
-                status: 'ready',
-                url: asset.url,
-                ...(asset.colliderUrl ? { colliderUrl: asset.colliderUrl } : {}),
-              };
-              const ref = {
-                status: 'ready' as const,
-                url: asset.url,
-                width: asset.width,
-                height: asset.height,
-                ...(asset.animation ? { animation: asset.animation } : {}),
-                ...(asset.colliderUrl ? { colliderUrl: asset.colliderUrl } : {}),
-              };
-              if (request.id === 'backdrop') {
-                world.doc.theme.backdrop = ref;
-                world.thumbnailUrl = asset.url;
-                applyPaintedFloor(world.doc);
-              } else if (request.id === 'midLayer') world.doc.theme.midLayer = ref;
-              else {
-                const entity = world.doc.entities.find((e) => e.id === request.id);
-                if (entity) entity.asset = ref;
-              }
-            } catch {
-              logEvent(
-                'asset_failed',
-                { jobId: job.jobId, milestone: request.kind, success: false },
-                'WARNING',
-              );
-              world.assets[request.id] = { status: 'failed' };
-            }
-            await this.publish(job, lease, world);
-          }
-        };
-        await Promise.all(
-          Array.from({ length: Math.min(4, requests.length) }, () => generateNext()),
-        );
-        requireMotionArtwork(world.doc);
-        world = { ...world, status: 'ready' };
-        await this.publish(job, lease, world);
+        publishable = true;
+        // The first publish already carries any art that finished while the game was written.
+        await publishArt();
+        let timer: NodeJS.Timeout | undefined;
+        const deadlineHit = await Promise.race([
+          art!.done.then(() => false),
+          new Promise<boolean>((resolve) => {
+            timer = setTimeout(() => resolve(true), Math.max(0, budget.hard - Date.now()));
+          }),
+        ]);
+        clearTimeout(timer);
+        closed = true;
+        await publishing;
+        const outcomes = new Map<string, ArtOutcome>(art!.outcomes);
+        if (deadlineHit) {
+          logEvent(
+            'build_deadline_hit',
+            { jobId: job.jobId, worldId: job.worldId, phase: 'art' },
+            'WARNING',
+          );
+          for (const request of requests)
+            if (outcomes.get(request.id)?.status !== 'ready')
+              outcomes.set(request.id, { status: 'failed' });
+        }
+        const world = applyArt(base, outcomes);
+        // A sprite whose motion art did not finish stands still; the world is never failed for it.
+        const dropped = dropMissingMotion(world.doc);
+        if (dropped.length)
+          logEvent(
+            'art_locomotion_dropped',
+            { jobId: job.jobId, worldId: job.worldId, ids: dropped },
+            'WARNING',
+          );
+        await this.publish(job, lease, { ...world, status: 'ready' });
       }
       await transaction(async (tx) => {
         const [lock, ...fences] = await Promise.all([
@@ -307,6 +319,7 @@ export class BuilderWorker {
       });
       return { status: 'complete' };
     } catch (error) {
+      closed = true;
       if (error instanceof GameGenerationError)
         logEvent(
           'game_generation_failed',
@@ -410,7 +423,13 @@ export class BuilderWorker {
       next = { ...world, doc: patched.doc };
       patch = patched.patch;
     }
-    requireMotionArtwork(next.doc);
+    const dropped = dropMissingMotion(next.doc);
+    if (dropped.length)
+      logEvent(
+        'art_locomotion_dropped',
+        { jobId: job.jobId, worldId: job.worldId, ids: dropped },
+        'WARNING',
+      );
     applyPaintedFloor(next.doc);
     await this.commitRevision(job, lease, world, next, job.childRequest ?? job.instruction, patch);
   }
@@ -591,16 +610,7 @@ export class BuilderWorker {
       tx.delete(lockRef);
     });
   }
-  private async asset(
-    job: BuilderJob,
-    request: {
-      id: string;
-      description: string;
-      kind: string;
-      hero: boolean;
-      locomotion?: Locomotion;
-    },
-  ) {
+  private async asset(job: BuilderJob, request: ArtRequest): Promise<ArtAsset> {
     const style = job.kind === 'build' ? job.styleVersion : 'v1';
     const hash = assetKey(
       request.description,

@@ -24,6 +24,10 @@ export type TelemetryFields = {
   reason?: string;
   /** Which template game replaced a failed programme, such as 'collect'. */
   template?: string;
+  /** The build phase a deadline cut short, such as 'art'. */
+  phase?: string;
+  /** Scene entity ids (short identifiers, never descriptions), such as sprites left still. */
+  ids?: string[];
 };
 export function childHash(uid: string, childId: string) {
   return createHash('sha256')
