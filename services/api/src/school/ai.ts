@@ -96,8 +96,12 @@ export function schoolModelFor(modelId: () => string, timeoutMs = 60000): School
 export const vertexSchoolModel = schoolModelFor(
   () => process.env['FAST_MODEL'] ?? 'gemini-3.8-flash',
 );
-/** Lab generation uses the world-builder model; 60 s per call keeps two calls, each with one JSON resend, under Cloud Run's 300 s. */
-export const labModel = schoolModelFor(() => process.env['SCENE_MODEL'] || 'gemini-4-argon', 60000);
+/** Lab generation uses the world-builder model. A timeout fails at once (no JSON resend), and the
+ *  repair round only starts within 150 s, so two 110 s calls stay under Cloud Run's 300 s. */
+export const labModel = schoolModelFor(
+  () => process.env['SCENE_MODEL'] || 'gemini-4-argon',
+  110000,
+);
 export async function reserveAi(sid: string, kind: 'aiDrafts' | 'aiReactions') {
   if (await isKillSwitchOn()) return fail(503, 'School AI is paused by the operator.');
   const school = await read(schoolPaths.school(sid), SchoolDocSchema);
