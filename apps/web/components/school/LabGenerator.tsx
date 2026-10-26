@@ -311,7 +311,15 @@ export function LabGenerator({
     }
   }
   if (!open)
-    return (
+    return chapterSims === 0 ? (
+      <div className={styles.closed}>
+        <button type="button" className={styles.opener} disabled aria-describedby="lab-no-sims">
+          <UiIcon name="flask" />
+          {copy.open}
+        </button>
+        <p id="lab-no-sims">{copy.noSims}</p>
+      </div>
+    ) : (
       <button type="button" className={styles.opener} onClick={() => setOpen(true)}>
         <UiIcon name="flask" />
         {copy.open}

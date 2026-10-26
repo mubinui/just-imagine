@@ -10,7 +10,7 @@ import {
   labStartValues,
   labTaskValues,
 } from '../lib/school/lab-generation';
-import { LabProposalView } from '../components/school/LabGenerator';
+import { LabGenerator, LabProposalView } from '../components/school/LabGenerator';
 import type { Lesson, LessonKeys } from '../lib/school/types';
 
 const text = (en: string, bn: string) => ({ en, bn });
@@ -207,5 +207,29 @@ describe('LabProposalView', () => {
     expect(html).toContain('খাড়া পাড় থেকে ছোড়া বল');
     expect(html).toContain('পাঠে যোগ করুন');
     expect(html).toContain('মূল্যায়িত কাজ নেই');
+  });
+});
+
+describe('LabGenerator', () => {
+  const render = (chapterSims: number) =>
+    renderToStaticMarkup(
+      <LabGenerator
+        lesson={lesson()}
+        chapterSims={chapterSims}
+        admin={false}
+        reason=""
+        editLanguage="en"
+        onAccept={() => {}}
+      />,
+    );
+  it('explains up front when the chapter has no simulations', () => {
+    const html = render(0);
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>.*Lab from a description/);
+    expect(html).toContain('This chapter has no simulations yet.');
+  });
+  it('offers the panel when the chapter has simulations', () => {
+    const html = render(3);
+    expect(html).not.toContain('disabled');
+    expect(html).not.toContain('This chapter has no simulations yet.');
   });
 });
