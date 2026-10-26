@@ -65,6 +65,7 @@ process.stdout.write = ((chunk: string | Uint8Array) => {
 }) as typeof process.stdout.write;
 const print = (s: string) => realWrite(s + '\n');
 
+const redact = (text: string) => (apiKey ? text.replaceAll(apiKey, '[redacted]') : text);
 const secs = (ms: number) => (ms / 1000).toFixed(1);
 const rows: { result: string; game: number }[] = [];
 print('wish | result | rounds | attempts | game_s | scene_s | fallback | outcome');
@@ -111,16 +112,23 @@ for (const [i, [short, description]] of WISHES.entries()) {
     attempts = String(built.attempts);
     reason = built.fallbackReason ?? '';
   } catch (error) {
-    const e = error as { name?: string; message?: string; diagnostic?: { code?: string } };
-    if (error instanceof SceneValidationError || error instanceof GameGenerationError) {
-      // The worker answers these with the nearest sample world.
-      result = 'sample';
-      reason = 'sample';
-      process.stderr.write(`  [sample cause] ${e.name}: ${String(e.message).slice(0, 300)}\n`);
-      outcome = e.diagnostic?.code ?? e.name ?? 'unknown';
-    } else {
+    if (error === null || typeof error !== 'object') {
       result = 'error';
-      reason = `${e.name}: ${String(e.message).slice(0, 160)}`;
+      reason = redact(String(error)).slice(0, 160);
+    } else {
+      const e = error as { name?: string; message?: string; diagnostic?: { code?: string } };
+      const message = redact(String(e.message));
+      if (error instanceof SceneValidationError || error instanceof GameGenerationError) {
+        // imagineGame threw; the worker would turn this into a sample world.
+        result = 'threw';
+        reason =
+          e.diagnostic?.code ??
+          (error instanceof SceneValidationError ? 'SCENE_INVALID' : 'unknown');
+        process.stderr.write(`  [threw cause] ${e.name}: ${message.slice(0, 300)}\n`);
+      } else {
+        result = 'error';
+        reason = `${e.name}: ${message.slice(0, 160)}`;
+      }
     }
   }
   const fb = events.find((e) => e['event'] === 'game_fallback');
@@ -147,5 +155,5 @@ const sorted = rows.map((r) => r.game).sort((a, b) => a - b);
 const mid = Math.floor(sorted.length / 2);
 const median = sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
 print(
-  `SUMMARY won=${counts['won'] ?? 0} template=${counts['template'] ?? 0} sample=${counts['sample'] ?? 0} error=${counts['error'] ?? 0} median_game_s=${median.toFixed(1)}`,
+  `SUMMARY won=${counts['won'] ?? 0} template=${counts['template'] ?? 0} threw=${counts['threw'] ?? 0} error=${counts['error'] ?? 0} median_game_s=${median.toFixed(1)}`,
 );
