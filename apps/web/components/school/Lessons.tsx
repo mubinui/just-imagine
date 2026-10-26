@@ -47,6 +47,8 @@ import {
   lessonTextAssistCopy,
 } from './LessonTextAssist';
 import { invalidateTextApprovals, type LessonTextField } from '../../lib/school/text-assist';
+import { acceptLabProposal } from '../../lib/school/lab-generation';
+import { LabGenerator } from './LabGenerator';
 import assistStyles from './LessonTextAssist.module.css';
 import { LessonQuality } from './LessonQuality';
 import { UiIcon } from '../UiIcon';
@@ -1324,6 +1326,18 @@ export function LessonEditor({ id, admin = false }: { id: string; admin?: boolea
           </button>
         ))}
       </div>
+      <LabGenerator
+        lesson={lesson}
+        chapterSims={chapterSims.length}
+        admin={admin}
+        reason={reason}
+        editLanguage={editLang}
+        onAccept={(proposal) => {
+          const next = acceptLabProposal(lesson, keys, proposal);
+          change(next.lesson);
+          setKeys(next.keys);
+        }}
+      />
       {!isNew && (
         <div className="sch-editor-footer">
           {!dirty && (
