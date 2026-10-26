@@ -41,6 +41,8 @@ const round = (n: number) => Math.round(n * 100) / 100;
 
 export function gameScriptPrompt(input: {
   description: string;
+  /** The words the worked examples are chosen by; defaults to the description. */
+  exampleWish?: string;
   doc: SceneDoc;
   language: 'en' | 'bn';
   ageBand: string;
@@ -63,7 +65,7 @@ export function gameScriptPrompt(input: {
     `Game API declarations (TypeScript, the contract):\n${GAME_API_DECLARATIONS}`,
     DESIGNER_BRIEF,
     SMOKE_EXAM,
-    `Complete worked examples (data): ${JSON.stringify(closestExamples(input.description))}`,
+    `Complete worked examples (data): ${JSON.stringify(closestExamples(input.exampleWish ?? input.description))}`,
     'For illustrated character motion such as orbiting planets, use game.move(id, {x,y}) on tick with smooth bounded paths. game.impulse does not move static bodies. Keep each path centered on its own starting position, small enough to preserve the composition. Integrate phase with dt times the child-controlled orbit speed, so changing it does not teleport a planet. This is a playful diagram, not a true-scale orbit simulation. Do not invent planet or spaceship mechanics for unrelated requests. Do not create decorative controls.',
     'When talking characters are present, default to an ongoing discovery world. Reaching a collection goal should celebrate once and keep movement, new discoveries and conversations available. Do not end the world with game.win or stop its input handlers unless the child explicitly requests a finite race or challenge.',
     'Movement must express the requested action. Locomotion-marked actors have distance-driven run/walk/swim/fly cycles or no-slip spinning vehicle wheels supplied by the renderer. Your script controls WHERE they go: accelerate and brake, follow meaningful bounded routes, stop when input stops or the goal is reached. Ground actors run along the ground and jump with gravity; they never wander vertically or slide in random directions. Use controlled impulses for dynamic bodies so collisions matter; game.move is for scripted static actors or deliberate teleports, not bypassing walls. Swimmers follow a chosen underwater route and turn toward it, not arbitrary sine motion on both axes. Never rotate the entire car as a substitute for its wheels. No permanent decorative movement loop on a resting character. Tick integration uses dt and must remain stable when input changes. A genuine teleport should be instantaneous and not play a running cycle.',

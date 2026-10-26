@@ -96,4 +96,12 @@ describe('hero rule', () => {
     expect(scenePromptV1(job('x', { companionId: 'bhombol' }))).toContain(CHARACTERS.bhombol.look);
     expect(scenePromptV1(job('x'))).not.toContain(CHARACTERS.bhombol.look);
   });
+
+  it('never tells the scene model the companion look for a Lab', () => {
+    const lab = scenePromptV1(
+      job('a launch experiment', { tier: 'lab', labKind: 'projectile', companionId: 'bhombol' }),
+    );
+    expect(lab).not.toContain(CHARACTERS.bhombol.look);
+    expect(lab).not.toContain("the hero is the child's friend");
+  });
 });

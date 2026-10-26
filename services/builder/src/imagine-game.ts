@@ -16,6 +16,7 @@ import {
   runGameplayPlan,
   diagnoseGameplayPlanFailure,
   withoutCheck,
+  GATE_CANCELLED,
   type GameplayPlan,
   type PlanGame,
 } from './game-playtest';
@@ -137,7 +138,10 @@ function describeFailure(result: Extract<SmokeResult, { ok: false }>): string {
   }
 }
 
-/** Static check, ten-second smoke run and moderation. Returns null when the script passes. */
+/**
+ * Static check, ten-second smoke run and moderation. Returns null when the script passes,
+ * and GATE_CANCELLED, never a failure, once `signal` is aborted before the smoke run.
+ */
 export async function gateScript(
   doc: SceneDoc,
   source: string,
@@ -147,8 +151,11 @@ export async function gateScript(
     seconds?: number;
     requireGoal?: boolean;
     diagnose?: (diagnostic: GameFailureDiagnostic) => void;
+    /** Aborted once another candidate wins: a losing candidate skips its smoke run. */
+    signal?: AbortSignal;
   },
 ): Promise<string | null> {
+  if (options.signal?.aborted) return GATE_CANCELLED;
   const check = checkScript(source);
   if (!check.ok) {
     options.diagnose?.({
@@ -157,6 +164,7 @@ export async function gateScript(
     });
     return `static check: ${check.errors.map((e) => `line ${e.line}: ${e.message}`).join('; ')}`;
   }
+  if (options.signal?.aborted) return GATE_CANCELLED;
   const result = await smokeRun(doc, source, {
     seconds: options.seconds ?? 10,
     requireGoal: options.requireGoal ?? doc.game?.mode !== 'freeplay',
@@ -215,13 +223,13 @@ export async function imagineGame(
   job: BuildWorldJob,
   deps: ImagineGameDeps,
 ): Promise<ImagineGameResult> {
+  // One budget for the whole build: the scene retry and the script rounds share it.
+  const budget = deps.budget ?? createBudget();
   if (job.labKind) {
-    const lab = await buildScene(job, deps.generateScene);
+    const lab = await buildScene(job, retryingScene(job, deps, budget));
     deps.onScene?.(lab);
     return { doc: lab, kind: 'playground', attempts: 0, fallback: false, rounds: 0 };
   }
-  // One budget for the whole build: the scene retry and the script rounds share it.
-  const budget = deps.budget ?? createBudget();
   const built = await buildScene(
     job,
     retryingScene(job, deps, budget, (prompt) => `${prompt}\n${GAME_SCENE_HINT}`),
@@ -327,7 +335,7 @@ async function establishPlan(
 /** What a candidate reports once another has won; the race ignores it. */
 const cancelled = (attempt: number): Extract<Candidate<never>, { ok: false }> => ({
   ok: false,
-  failure: 'cancelled: another candidate won',
+  failure: GATE_CANCELLED,
   diagnostic: { code: 'SCRIPT_OUTPUT', attempt },
 });
 
@@ -388,6 +396,7 @@ async function runCandidate(
         diagnose: (detail) => {
           diagnostic = detail;
         },
+        signal,
         ...(deps.moderate ? { moderate: deps.moderate } : {}),
         ...(deps.seconds ? { seconds: deps.seconds } : {}),
       });
@@ -402,8 +411,10 @@ async function runCandidate(
               (detail) => {
                 diagnostic = detail;
               },
+              signal,
             )
           : null;
+      if (signal.aborted) return cancelled(attempt);
       if (problem === null && gameplayProblem === null) {
         diagnostic = { code: 'SCENE_INVALID' };
         return { ok: true, value: withScript(doc, source, mode) };
@@ -569,6 +580,8 @@ export async function compileBehavior(
         : job.description,
       doc,
       language,
+      // Worked examples follow the child's own words, never the companion's interpretation.
+      exampleWish: job.childRequest ?? job.description,
       ageBand: job.ageBand,
       mode,
       previous,

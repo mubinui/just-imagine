@@ -150,6 +150,27 @@ describe('tap toy', () => {
   });
 });
 
+describe('tap toy progress', () => {
+  it('shows the count on the HUD from the first counted tap in game mode', async () => {
+    const scene = sceneOnly(FIXTURE_WORLDS.jellyDragon);
+    const hero = scene.learning.heroEntityId;
+    const others = scene.entities.filter(
+      (e) => e.kind === 'sprite' && !e.body.isStatic && e.id !== hero,
+    );
+    const counted = others.length > 0 ? others : scene.entities.filter((e) => e.id === hero);
+    const target = counted[0]!;
+    const huds = (
+      await play(
+        scene,
+        templateSource('tap-toy', scene, 'en', 'game'),
+        [0.5, 0.6, 0.7].map((at) => ({ at, type: 'tap' as const, target: target.id })),
+      )
+    ).filter((c) => c.type === 'hud') as unknown as { score?: number; label?: string }[];
+    expect(huds.map((h) => h.score)).toEqual([0, 1, 2, 3]);
+    for (const h of huds) expect(h.label).toBe('Tap 10 things!');
+  });
+});
+
 describe('collect hop', () => {
   it('never pushes the hero upward in space, where the engine has no gravity', async () => {
     const scene = sceneOnly(FIXTURE_WORLDS.moonBounce);

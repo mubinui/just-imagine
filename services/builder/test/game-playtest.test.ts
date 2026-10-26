@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { FIXTURE_WORLDS } from '@just-imagine/fixtures/browser';
 import {
   GameplayPlanSchema,
@@ -6,6 +6,7 @@ import {
   validateGameplayPlan,
   diagnoseGameplayPlanFailure,
   withoutCheck,
+  GATE_CANCELLED,
   type GameplayPlan,
 } from '../src/game-playtest';
 import type { GameFailureDiagnostic } from '../src/game-diagnostics';
@@ -48,6 +49,23 @@ function catchError(fn: () => unknown): unknown {
 const responsive = "game.on('tap', e => { if (!e.target) game.move('ball', {x:e.x,y:e.y}); });";
 
 describe('real-engine acceptance journeys', () => {
+  it('stops before any scenario once its signal is aborted, as a cancellation, not a failure', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const diagnose = vi.fn();
+    // This programme fails the plan; an aborted run never plays it.
+    expect(
+      await runGameplayPlan(
+        scene(),
+        'game.on("tap", () => {});',
+        plan(),
+        undefined,
+        diagnose,
+        controller.signal,
+      ),
+    ).toBe(GATE_CANCELLED);
+    expect(diagnose).not.toHaveBeenCalled();
+  });
   it('checks separation through the whole journey, including a transient overlap before the final clear position', async () => {
     const doc = scene();
     const bolt = doc.entities.find((e) => e.id === 'bolt_toy')!;

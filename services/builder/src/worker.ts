@@ -258,10 +258,10 @@ export class BuilderWorker {
               );
               return built.doc;
             } catch (error) {
-              // The scene never validated, or not even a template passed on it: the nearest
-              // sample world of the same tier stands in, with its own art.
-              if (!(error instanceof SceneValidationError || error instanceof GameGenerationError))
-                throw error;
+              // Whatever stopped the build (the scene never validated, not even a template
+              // passed on it, or an unexpected error), the nearest sample world of the same
+              // tier stands in, with its own art. The kill switch, the lease and deletion are
+              // checked outside imagineGame, so they never reach this rung.
               // Art for an abandoned generated scene is stopped and never painted.
               retireArt();
               const sample = nearestConceptFixture(job).doc;
@@ -287,9 +287,15 @@ export class BuilderWorker {
                   worldId: job.worldId,
                   reason: 'sample',
                   ...(template ? { template: template.kind } : {}),
-                  ...(error instanceof GameGenerationError
-                    ? { outcome: error.diagnostic.code }
-                    : {}),
+                  // A code only, never the error's message.
+                  outcome:
+                    error instanceof GameGenerationError
+                      ? error.diagnostic.code
+                      : error instanceof SceneValidationError
+                        ? 'SCENE_INVALID'
+                        : error instanceof Error
+                          ? error.name
+                          : 'UNKNOWN',
                 },
                 'WARNING',
               );

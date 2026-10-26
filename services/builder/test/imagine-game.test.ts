@@ -23,8 +23,10 @@ import {
   guardPatchedGame,
   compileBehavior,
   GameGenerationError,
+  gateScript,
   type GenerateScript,
 } from '../src/imagine-game';
+import { GATE_CANCELLED } from '../src/game-playtest';
 import { createBudget } from '../src/budget';
 
 const flies = GAME_WORLDS.catchTheFlies;
@@ -762,5 +764,62 @@ describe('two candidates per round', () => {
     );
     expect(onScene).toHaveBeenCalledOnce();
     expect(onScene.mock.calls[0]![0]).toBe(result.doc);
+  });
+});
+
+describe('final review', () => {
+  it('chooses worked examples from the child words, never the companion interpretation', async () => {
+    const script = recorded<unknown>([
+      { kind: 'game', source: GOOD },
+      { kind: 'game', source: GOOD },
+    ]);
+    await compileBehavior(
+      sceneOnly(flies),
+      job('keep the bubble alive: puff the bubble upward so it floats and earns a point', {
+        childRequest: 'a snail race across the pond',
+      }),
+      { generateScene: sceneModel(), generateScript: script.fn as GenerateScript },
+    );
+    const examples = script.prompts[0]!.split('\n').find((line) =>
+      line.startsWith('Complete worked examples'),
+    )!;
+    expect(examples).toContain('snail-race-in-the-rain');
+    expect(examples).not.toContain('keep-the-bubble-alive');
+  });
+
+  it('retries a transient provider error on a Lab scene instead of spending a repair on it', async () => {
+    const lab = toGenerated(sceneOnly(FIXTURE_WORLDS.projectileLab)) as unknown;
+    const prompts: string[] = [];
+    const generateScene = vi.fn(async (prompt: string) => {
+      prompts.push(prompt);
+      if (prompts.length === 1) throw Object.assign(new Error('UNAVAILABLE'), { status: 503 });
+      return lab;
+    });
+    const result = await imagineGame(
+      job('a launch experiment', { tier: 'lab', labKind: 'projectile' }),
+      {
+        generateScene,
+        generateScript: vi.fn() as unknown as GenerateScript,
+        sceneRetry: { random: () => 0.5, sleep: async () => {} },
+      },
+    );
+    expect(result).toMatchObject({ kind: 'playground', fallback: false });
+    expect(generateScene).toHaveBeenCalledTimes(2);
+    expect(prompts[1]).not.toContain('Validation error to repair');
+    expect(events.filter((e) => e.event === 'scene_provider_retry')).toHaveLength(1);
+  });
+
+  it('stops the gate before the smoke run once the candidate signal is aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const diagnose = vi.fn();
+    // A programme that throws on its first tick: a smoke run would report a runtime failure.
+    const verdict = await gateScript(sceneOnly(flies), 'game.on("tick", () => { null.x; });', {
+      language: 'en',
+      diagnose,
+      signal: controller.signal,
+    });
+    expect(verdict).toBe(GATE_CANCELLED);
+    expect(diagnose).not.toHaveBeenCalled();
   });
 });

@@ -18,8 +18,8 @@ export const TAP_TOY_STRINGS = {
 /**
  * Tap toy: a tapped body hops with a boing, a tap on empty stage nudges the
  * nearest movable body toward the finger with a boing and a sparkle, a dragged
- * body follows the finger, hard bumps pop, and the first tap is greeted. In `game` mode every tenth tap
- * on a body other than the hero scores and celebrates; when only the hero can
+ * body follows the finger, hard bumps pop, and the first tap is greeted. In `game` mode the HUD
+ * counts every tap on a body other than the hero, and every tenth scores and celebrates; when only the hero can
  * move, taps on the hero count. Whenever nothing in the scene can move (from
  * the start, or after a scene rule removed every moving body), one movable
  * copy of a sprite is dropped in so there is always something to play with.
@@ -97,7 +97,6 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
       `const LABEL = ${JSON.stringify(strings.label)};`,
       `const WIN = ${JSON.stringify(strings.win)};`,
       'let taps = 0;',
-      'let points = 0;',
       'game.hud({ score: 0, label: LABEL });',
     );
   }
@@ -123,11 +122,11 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
     lines.push(
       '  if (e.target.id === HERO && !COUNT_HERO) return;',
       '  taps += 1;',
+      '  // Every counted tap shows on the HUD, so progress toward ten is never stuck at 0.',
+      '  game.hud({ score: taps, label: LABEL });',
       '  if (taps % 10 !== 0) return;',
-      '  points += 1;',
       '  game.score(1);',
       "  game.celebrate('confetti');",
-      '  game.hud({ score: points, label: LABEL });',
       '  game.say(WIN);',
     );
   }

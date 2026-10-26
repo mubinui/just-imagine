@@ -83,7 +83,8 @@ export function scenePromptV1(job: BuildWorldJob): string {
       : [
           'Compose the requested world from primitives, not a stored scenario. Interaction techniques: a tap can move or transform a prop; drag can arrange an invented machine; a collision can open a gate; a timed event can change a scene; characters can react through Live conversation. Combine only what serves the requested idea. Never add stars to collect, a race, an obstacle, a quiz or sliders merely to make something look like a game.',
         ]),
-    ...(job.companionId
+    // A Lab's hero is its experiment body: the companion never joins it.
+    ...(job.companionId && !job.labKind
       ? [
           `When the child names no character, the hero is the child's friend: create a sprite entity with id "${job.companionId}", tags ["hero","${job.companionId}"], description "${CHARACTERS[job.companionId].look}", and set learning.heroEntityId to it. It has no character metadata.`,
         ]

@@ -1,9 +1,12 @@
 import { it, expect, vi, beforeEach } from 'vitest';
 import type * as ServerCore from '@just-imagine/server-core';
 import type * as Budget from '../src/budget';
+import type * as Hero from '../src/hero';
 
 const events = vi.hoisted(() => [] as { event: string; [field: string]: unknown }[]);
 const budgetOverride = vi.hoisted(() => ({ hardMs: 0 }));
+/** An unexpected error the next ensureHero call throws, once: it escapes imagineGame unwrapped. */
+const heroFault = vi.hoisted(() => ({ error: undefined as Error | undefined }));
 vi.mock('@just-imagine/server-core', async (importOriginal) => {
   const actual = await importOriginal<typeof ServerCore>();
   return {
@@ -25,9 +28,22 @@ vi.mock('../src/budget', async (importOriginal) => {
       }),
   };
 });
+vi.mock('../src/hero', async (importOriginal) => {
+  const actual = await importOriginal<typeof Hero>();
+  return {
+    ...actual,
+    ensureHero: (...args: Parameters<typeof actual.ensureHero>) => {
+      const error = heroFault.error;
+      heroFault.error = undefined;
+      if (error) throw error;
+      return actual.ensureHero(...args);
+    },
+  };
+});
 beforeEach(() => {
   events.length = 0;
   budgetOverride.hardMs = 0;
+  heroFault.error = undefined;
 });
 
 import { db, writeDoc } from '@just-imagine/server-core';
@@ -378,8 +394,72 @@ it('publishes the nearest sample world with a template game when the scene never
         jobId: job.jobId,
         worldId: job.worldId,
         reason: 'sample',
+        outcome: 'SCENE_INVALID',
       }),
     );
+  } finally {
+    await cleanup();
+  }
+});
+
+it('publishes the nearest sample world when an unexpected error escapes the game build', async () => {
+  const job: BuildWorldJob = {
+    kind: 'build',
+    jobId: 'j_unexpected',
+    worldId: 'w_unexpected',
+    uid: 'unexpected_parent',
+    childId: 'c_unexpected',
+    sessionId: 's_unexpected',
+    plan: 'free',
+    description: 'a wobbly jelly that bounces',
+    experience: 'game',
+    concepts: ['bounce'],
+    ageBand: '8-10',
+    tier: 'playground',
+    styleVersion: 'v1',
+    promptVersion: 'v1',
+    conversationSummary: '',
+  };
+  const cleanup = await family(job.uid, job.childId, [job.jobId], job.worldId);
+  try {
+    const scene: SceneDoc = structuredClone(flies);
+    delete scene.game;
+    const models = {
+      generate: vi.fn(async () => toGenerated(scene)),
+      image: vi.fn(async () => {
+        throw new Error('Image unavailable');
+      }),
+    } as unknown as VertexModels;
+    const generateScript = vi.fn(forbiddenScript);
+    // A plain programming error, neither SceneValidationError nor GameGenerationError.
+    heroFault.error = new TypeError("Cannot read properties of undefined (reading 'private')");
+    const worker = new BuilderWorker(
+      models,
+      { bucket: 'unused', assetBaseUrl: 'https://assets.invalid' },
+      { generateScript },
+    );
+    expect(await worker.run(job)).toEqual({ status: 'complete' });
+    expect(heroFault.error).toBeUndefined();
+    expect(generateScript).not.toHaveBeenCalled();
+    const record = (await db().doc(`builderJobs/${job.jobId}`).get()).data();
+    expect(record).toMatchObject({
+      status: 'fallback',
+      fallbackReason: 'sample',
+      finishedAt: expect.any(Number),
+    });
+    expect(record?.['failure']).toBeUndefined();
+    const sample = nearestConceptFixture(job).doc;
+    const world = WorldDocSchema.parse((await db().doc(paths.world(job.worldId)).get()).data());
+    expect(world).toMatchObject({
+      status: 'ready',
+      title: sample.title,
+      creation: expect.objectContaining({ fallback: 'sample' }),
+    });
+    const fallbacks = events.filter((e) => e.event === 'game_fallback');
+    expect(fallbacks).toHaveLength(1);
+    // The error's name is the code; its message never reaches the log.
+    expect(fallbacks[0]).toMatchObject({ reason: 'sample', outcome: 'TypeError' });
+    expect(JSON.stringify(fallbacks[0])).not.toMatch(/private|Cannot read/);
   } finally {
     await cleanup();
   }
