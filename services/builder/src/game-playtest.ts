@@ -170,6 +170,7 @@ export function diagnoseGameplayPlanFailure(error: unknown): GameFailureDiagnost
     ['Command checks need', 'COMMAND_BOUNDS'],
     ['World-changing command checks', 'COMMAND_TARGET'],
     ['Separation needs', 'SEPARATION_BOUNDS'],
+    ['A triggered at-rest check', 'REST_ONLY_EFFECT'],
     ['Scenario needs a measurable', 'TRIVIAL_SCENARIO'],
     ['A goal-based game needs', 'EXTERNAL_GOAL'],
   ];
@@ -231,7 +232,7 @@ export function validateGameplayPlan(value: unknown, doc: SceneDoc): GameplayPla
               'A held-body position is input echo; check a downstream consequence or release it before measuring',
             );
         }
-        meaningful = true;
+        if (check.type !== 'speed') meaningful = true;
       } else if (
         scenario.inputs.length > 0 &&
         check.type !== 'separated' &&
@@ -270,10 +271,34 @@ export function validateGameplayPlan(value: unknown, doc: SceneDoc): GameplayPla
           meaningful = true;
       }
     }
+    for (const check of scenario.checks) {
+      if (check.type !== 'speed' || check.trigger === undefined) continue;
+      const hasEffect = scenario.checks.some(
+        (other) =>
+          'trigger' in other &&
+          other.trigger === check.trigger &&
+          (other.type === 'near' ||
+            other.type === 'displacement' ||
+            (other.type === 'exists' && !other.value) ||
+            (other.type === 'command' && other.min > 0)),
+      );
+      if (!hasEffect)
+        throw new Error('A triggered at-rest check needs a sibling effect with the same trigger');
+    }
     if (!meaningful)
       throw new Error('Scenario needs a measurable change, not only initial position or rest');
   }
   return plan;
+}
+
+/** Drop one check; an emptied scenario is removed, and a plan left with no scenarios is returned unchanged. */
+export function withoutCheck(plan: GameplayPlan, scenario: number, index: number): GameplayPlan {
+  const scenarios = plan.scenarios.flatMap((s, i) => {
+    if (i !== scenario) return [s];
+    const checks = s.checks.filter((_, j) => j !== index);
+    return checks.length === 0 ? [] : [{ ...s, checks }];
+  });
+  return scenarios.length === 0 ? plan : { ...plan, scenarios };
 }
 
 export function gameplayPlanPrompt(doc: SceneDoc, job: BuildWorldJob, previous?: string): string {
@@ -486,8 +511,9 @@ export async function runGameplayPlan(
     ];
     for (const trigger of triggers) {
       const checks = scenario.checks.filter(
-        (check) => 'trigger' in check && check.trigger === trigger,
+        (check) => 'trigger' in check && check.trigger === trigger && check.type !== 'speed',
       );
+      if (checks.length === 0) continue;
       const control =
         trigger === 0
           ? idle

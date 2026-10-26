@@ -5,6 +5,7 @@ import {
   runGameplayPlan,
   validateGameplayPlan,
   diagnoseGameplayPlanFailure,
+  withoutCheck,
   type GameplayPlan,
 } from '../src/game-playtest';
 import type { GameFailureDiagnostic } from '../src/game-diagnostics';
@@ -36,6 +37,14 @@ const plan = (): GameplayPlan => ({
     },
   ],
 });
+function catchError(fn: () => unknown): unknown {
+  try {
+    fn();
+  } catch (error) {
+    return error;
+  }
+  return undefined;
+}
 const responsive = "game.on('tap', e => { if (!e.target) game.move('ball', {x:e.x,y:e.y}); });";
 
 describe('real-engine acceptance journeys', () => {
@@ -268,6 +277,61 @@ describe('bounded data-only plans', () => {
       });
       expect(JSON.stringify(diagnoseGameplayPlanFailure(error))).not.toContain('private_actor');
     }
+  });
+  it('rejects a scenario whose only triggered effect is at rest, and names the rule', () => {
+    const p = plan();
+    p.scenarios[0]!.inputs = [{ at: 0.5, type: 'tap', target: 'ball' }];
+    p.scenarios[0]!.checks = [{ at: 2.5, type: 'speed', trigger: 0, target: 'ball', max: 0.5 }];
+    expect(() => validateGameplayPlan(p, scene())).toThrow(/A triggered at-rest check/);
+    expect(diagnoseGameplayPlanFailure(catchError(() => validateGameplayPlan(p, scene())))).toEqual(
+      { code: 'PLAN_INVALID', planRule: 'REST_ONLY_EFFECT' },
+    );
+  });
+  it('accepts an at-rest check that shares its trigger with a displacement effect', () => {
+    const p = plan();
+    p.scenarios[0]!.inputs = [{ at: 0.5, type: 'tap', target: 'ball' }];
+    p.scenarios[0]!.checks = [
+      { at: 1.5, type: 'displacement', trigger: 0, target: 'ball', min: 0.5 },
+      { at: 2.5, type: 'speed', trigger: 0, target: 'ball', max: 0.5 },
+    ];
+    expect(() => validateGameplayPlan(p, scene())).not.toThrow();
+  });
+  it('requires a triggered speed check in the full journey but not in the input-prefix control', async () => {
+    const doc = scene();
+    doc.entities.find((e) => e.id === 'ball')!.body.isStatic = false;
+    const p = plan();
+    p.scenarios[0]!.seconds = 3;
+    p.scenarios[0]!.inputs = [{ at: 0.5, type: 'tap', x: 12, y: 3 }];
+    p.scenarios[0]!.checks = [
+      { at: 1.5, type: 'displacement', trigger: 0, target: 'ball', min: 0.5 },
+      { at: 2.9, type: 'speed', trigger: 0, target: 'ball', max: 0.5 },
+    ];
+    const movesThenStops =
+      "let tx=null; game.on('tap',e=>{tx=e.x;}); game.on('tick',()=>{const b=game.find('ball')[0]; if(!b||tx===null)return; const v=Math.max(-4,Math.min(4,(tx-b.x)*4)); game.impulse(b.id,{x:v-b.vx,y:-b.vy});});";
+    const neverStops =
+      "let go=false; game.on('tap',()=>{go=true;}); game.on('tick',()=>{const b=game.find('ball')[0]; if(!b||!go)return; game.impulse(b.id,{x:2-b.vx,y:-b.vy});});";
+    expect(await runGameplayPlan(doc, movesThenStops, p)).toBeNull();
+    expect(await runGameplayPlan(doc, neverStops, p)).toMatch(/speed/);
+  });
+  it('drops one check and removes an emptied scenario', () => {
+    const both = plan();
+    both.scenarios[0]!.checks = [
+      { at: 1.5, type: 'displacement', trigger: 0, target: 'ball', min: 0.5 },
+      { at: 2.5, type: 'speed', trigger: 0, target: 'ball', max: 0.5 },
+    ];
+    const dropped = withoutCheck(both, 0, 1);
+    expect(dropped.scenarios[0]!.checks).toHaveLength(1);
+    expect(both.scenarios[0]!.checks).toHaveLength(2);
+    const single = plan();
+    single.scenarios[0]!.checks = [both.scenarios[0]!.checks[0]!];
+    expect(withoutCheck(single, 0, 0)).toBe(single);
+    const two = plan();
+    two.scenarios.push({
+      ...two.scenarios[0]!,
+      name: 'second',
+      checks: [both.scenarios[0]!.checks[0]!],
+    });
+    expect(withoutCheck(two, 1, 0).scenarios).toHaveLength(1);
   });
   it('allows genuine Live-only conversation without inventing a movement game', () => {
     const doc = scene();

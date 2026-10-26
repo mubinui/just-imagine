@@ -47,6 +47,7 @@ export interface GameFailureDiagnostic {
     | 'COMMAND_BOUNDS'
     | 'COMMAND_TARGET'
     | 'SEPARATION_BOUNDS'
+    | 'REST_ONLY_EFFECT'
     | 'TRIVIAL_SCENARIO'
     | 'EXTERNAL_GOAL'
     | 'UNKNOWN';
