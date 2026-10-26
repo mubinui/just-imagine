@@ -1,5 +1,6 @@
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import { adminAuth, db, requireParent, requireStudent } from '@just-imagine/server-core';
+import { schoolPaths } from '@just-imagine/protocol';
 import { createApi } from '../src/app';
 import type { ApiStore } from '../src/store';
 import { DEMO_LESSONS } from '../src/school/demo-lessons';
@@ -211,6 +212,40 @@ describe('school role-to-role backend', () => {
         classIds: ['other_class'],
       });
     expect((await call('GET', '/v1/study/lessons/' + foreign.id, pupil)).statusCode).toBe(404);
+  });
+  it('shows a school’s published copy instead of the shared lesson it adapts', async () => {
+    const source = DEMO_LESSONS[2]!.lesson;
+    const shared = await db()
+      .collection('lessons')
+      .add({ ...source, scope: 'global', schoolId: null, classIds: [], status: 'published' });
+    const copy = await db()
+      .collection('lessons')
+      .add({
+        ...source,
+        scope: 'school',
+        schoolId: sid,
+        status: 'published',
+        copiedFrom: shared.id,
+      });
+    const ids = async () =>
+      ((await call('GET', '/v1/study/lessons', pupil)).json().lessons as { id: string }[]).map(
+        (l) => l.id,
+      );
+    expect(await ids()).toContain(copy.id);
+    expect(await ids()).not.toContain(shared.id);
+    // A student who already started the shared lesson keeps it, with their progress.
+    await db()
+      .doc(schoolPaths.attempt(sid, studentId, shared.id))
+      .set({
+        studentId,
+        lessonId: shared.id,
+        revision: source.revision,
+        items: {},
+        pointsAwarded: 0,
+        completedAt: null,
+        updatedAt: Date.now(),
+      });
+    expect(await ids()).toEqual(expect.arrayContaining([shared.id, copy.id]));
   });
   it('rejects stale revisions and invalid forged parameters', async () => {
     const b = { revision: revision - 1, answers: [{ itemId: 'q1', answer: 0 }] };
