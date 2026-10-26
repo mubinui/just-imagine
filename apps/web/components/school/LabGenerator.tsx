@@ -301,7 +301,7 @@ export function LabGenerator({
     try {
       const response = await schoolRequest(`${admin ? 'admin' : 'school'}/lab/generate`, {
         ...labRequest(lesson, description, editLanguage),
-        ...(admin ? { reason } : {}),
+        ...(admin ? { reason, lessonId: lesson.id } : {}),
       });
       if (task === generation.current) setProposal(LabProposalSchema.parse(response));
     } catch (err) {

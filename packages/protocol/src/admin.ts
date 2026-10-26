@@ -91,6 +91,7 @@ export const AdminAuditActionSchema = z.enum([
   'lesson.save',
   'lesson.approve',
   'lesson.archive',
+  'lesson.generateLab',
 ]);
 export type AdminAuditAction = z.infer<typeof AdminAuditActionSchema>;
 
