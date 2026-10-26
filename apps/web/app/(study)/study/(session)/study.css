@@ -905,7 +905,10 @@
     gap: 16px;
     padding: 12px 4% 24px;
   }
+  /* A row above the content scrolls with the page; the sticky sidebar behaviour would leave it
+     floating, transparent, over the lesson. */
   .sch.study .sch-nav {
+    position: static;
     display: flex;
     flex-direction: row;
     align-items: center;

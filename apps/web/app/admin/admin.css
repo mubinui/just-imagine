@@ -853,6 +853,12 @@ body:has(.adm-shell)::before,
   font-size: 13px;
   border-radius: 8px;
 }
+/* Compact table buttons stay small for a mouse but get a full touch target on touch screens. */
+@media (pointer: coarse) {
+  .adm-small {
+    min-height: var(--tap, 44px);
+  }
+}
 a.adm-button {
   display: inline-flex;
   align-items: center;

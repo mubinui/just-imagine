@@ -237,3 +237,83 @@ test('small console controls keep a 44 px touch target', async ({ page }) => {
   expect(Math.min(pick.width, pick.height)).toBeGreaterThanOrEqual(44);
   expect((await box(page, '.adm-segments button')).height).toBeGreaterThanOrEqual(44);
 });
+
+test('simulation parameter selects show the longest reagent names in full', async ({ page }) => {
+  const longest = 'সোডিয়াম হাইড্রোক্সাইড (NaOH)';
+  for (const width of [1920, 1280, 1180, 820, 390]) {
+    await render(
+      page,
+      phoneCss,
+      `<div class="sch study"><div style="width: ${Math.min(width - 32, 960)}px">
+        <div class="stem-workspace">
+          <div class="stem-visual" style="grid-area: visual; height: 200px"></div>
+          <section class="stem-params"><h2>Parameters</h2>
+            <label class="sch-field"><span>Solution</span><select id="reagent"><option>${longest}</option></select></label>
+          </section>
+        </div></div></div>`,
+      width,
+    );
+    await page.evaluate(() => document.fonts.ready);
+    const fits = await page.locator('#reagent').evaluate((select: HTMLSelectElement) => {
+      const s = getComputedStyle(select);
+      const ctx = document.createElement('canvas').getContext('2d')!;
+      ctx.font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+      const room = select.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+      return ctx.measureText(select.selectedOptions[0]!.text).width <= room;
+    });
+    expect(fits, `reagent name fits at ${width}px`).toBe(true);
+  }
+});
+
+test('the tolerance unit select shows the whole unit', async ({ page }) => {
+  await render(
+    page,
+    globalCss + schoolCss,
+    `<div class="sch sch-panel sch-lesson-editor" style="width: 700px"><div class="sch-tolerance">
+      <label class="sch-field"><span>Tolerance</span><input value="0.01" /></label>
+      <select id="mode"><option>± mol/dm³</option><option>%</option></select>
+    </div></div>`,
+    1180,
+  );
+  const fits = await page.locator('#mode').evaluate((select: HTMLSelectElement) => {
+    const s = getComputedStyle(select);
+    const ctx = document.createElement('canvas').getContext('2d')!;
+    ctx.font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+    const room = select.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+    return ctx.measureText(select.selectedOptions[0]!.text).width <= room;
+  });
+  expect(fits).toBe(true);
+});
+
+test.describe('on a touch screen', () => {
+  test.use({ hasTouch: true, isMobile: true });
+  test('small operator buttons keep a 44 px touch target', async ({ page }) => {
+    await render(
+      page,
+      adminCss,
+      `<div class="adm"><button class="adm-button adm-quiet adm-small">Copy</button></div>`,
+      820,
+    );
+    // Mobile emulation scales layout, so allow sub-pixel rounding of the 44 px box.
+    expect((await box(page, '.adm-small')).height).toBeGreaterThanOrEqual(43.5);
+  });
+});
+
+for (const [role, width] of [
+  ['study', 820],
+  ['study', 390],
+  ['teacher', 390],
+] as const)
+  test(`the ${role} navigation row scrolls away at ${width}px instead of covering the content`, async ({
+    page,
+  }) => {
+    await render(
+      page,
+      phoneCss,
+      `<div class="sch ${role}"><div class="sch-shell"><aside class="sch-nav"><p>Menu</p><nav>${navLinks(['Home', 'Leaderboard', 'Chemistry lab'])}</nav></aside><main class="sch-content" style="height: 3000px"></main></div></div>`,
+      width,
+    );
+    expect(await page.locator('.sch-nav').evaluate((n) => getComputedStyle(n).position)).toBe(
+      'static',
+    );
+  });

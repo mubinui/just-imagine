@@ -1534,7 +1534,8 @@ label.sch-option {
 }
 .sch-tolerance {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px;
+  /* The unit select sizes to its longest option, so units such as mol/dm³ are never cut. */
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: end;
 }
