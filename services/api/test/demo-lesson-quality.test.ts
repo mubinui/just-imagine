@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SIMS, mix, parseEquation, type SimId } from '@just-imagine/stem-sims';
+import { SIMS, SIM_IDS, mix, parseEquation, type SimId } from '@just-imagine/stem-sims';
 import { REAGENTS, REACTIONS } from '@just-imagine/stem-content';
 import { DEMO_LESSONS } from '../src/school/demo-lessons';
 import { describeLessonQuality, itemsOf } from './support/demo-lesson-checks';
@@ -90,6 +90,15 @@ describe('every example lesson together', () => {
     expect(hints).toHaveLength(DEMO_LESSONS.length * 6 * 2);
     expect(new Set(hints.map((hint) => hint.en)).size).toBe(hints.length);
     expect(new Set(hints.map((hint) => hint.bn)).size).toBe(hints.length);
+  });
+
+  it('gives every simulation at least one example lesson that explores it', () => {
+    const explored = new Set(
+      DEMO_LESSONS.flatMap((entry) =>
+        entry.lesson.steps.flatMap((step) => (step.kind === 'explore' ? [step.simId] : [])),
+      ),
+    );
+    expect(SIM_IDS.filter((id) => !explored.has(id))).toEqual([]);
   });
 
   it('spreads correct answers evenly across option positions', () => {

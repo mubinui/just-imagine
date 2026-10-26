@@ -72,8 +72,8 @@ describe('school learning boundaries', () => {
       assistLessonText({ ...actor, superAdmin: false }, input, model),
     ).rejects.toMatchObject({ status: 403 });
   });
-  it('publishes seven structurally valid bilingual lessons with five quiz questions each', () => {
-    expect(DEMO_LESSONS).toHaveLength(7);
+  it('publishes 24 structurally valid bilingual lessons with five quiz questions each', () => {
+    expect(DEMO_LESSONS).toHaveLength(24);
     for (const l of DEMO_LESSONS) {
       expect(() => validateLesson(l.lesson, l.keys, true)).not.toThrow();
       expect(l.lesson.steps.find((s) => s.kind === 'quiz')).toMatchObject({
