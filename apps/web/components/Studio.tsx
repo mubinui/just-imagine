@@ -297,33 +297,34 @@ export function Studio() {
             if (worldRef.current?.id === message.worldId && worldRef.current.status !== 'ready')
               selectWorldId(undefined);
           }
+          const heardAt = Date.now();
+          setShowStartedAt((t) => (message.status === 'queued' ? heardAt : (t ?? heardAt)));
+          setJob(message.status);
+          // The fake gateway's canned timeline replays a build of a preview world the picker
+          // already serves; only its status shows. Every other build, the fake gateway's
+          // scripted one included, is handled exactly as in the real Studio.
+          if (env.fake && Object.values(FIXTURE_WORLDS).some((w) => w.worldId === message.worldId))
+            break;
           const outcome = onWorldJob(message, {
             selectedWorldId: selectedWorld.current,
             askedWorldId: askedWorldId.current,
           });
           askedWorldId.current = outcome.askedWorldId;
-          const heardAt = Date.now();
-          setShowStartedAt((t) => (message.status === 'queued' ? heardAt : (t ?? heardAt)));
-          setJob(message.status);
           // Leaving the Studio mid-build keeps a small badge on the other child screens.
-          if (!env.fake) {
-            if (outcome.clearBadge) clearBuild();
-            else
-              rememberBuild({
-                worldId: message.worldId,
-                characterId: hello.current?.characterId ?? 'bhombol',
-                startedAt: heardAt,
-              });
-          }
-          if (!env.fake) {
-            // A queued world does not exist yet; Firestore correctly denies reads without an owner.
-            // Subscribe only after the builder publishes the first playable document.
-            // The world the child asked for is ready: the friend stops and the game takes over.
-            if (outcome.stopVoice) stopVoice();
-            if (outcome.select) selectWorldId(outcome.select);
-            else if (message.status === 'queued' && selectedWorld.current !== message.worldId)
-              selectWorldId(undefined);
-          }
+          if (outcome.clearBadge) clearBuild();
+          else
+            rememberBuild({
+              worldId: message.worldId,
+              characterId: hello.current?.characterId ?? 'bhombol',
+              startedAt: heardAt,
+            });
+          // A queued world does not exist yet; Firestore correctly denies reads without an owner.
+          // Subscribe only after the builder publishes the first playable document.
+          // The world the child asked for is ready: the friend stops and the game takes over.
+          if (outcome.stopVoice) stopVoice();
+          if (outcome.select) selectWorldId(outcome.select);
+          else if (message.status === 'queued' && selectedWorld.current !== message.worldId)
+            selectWorldId(undefined);
           break;
         }
         case 'transcript':
