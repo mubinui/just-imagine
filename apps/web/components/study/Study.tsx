@@ -348,7 +348,7 @@ function Verdict({
         </strong>
         {correct && explanation ? (
           <p>
-            <span className="study-verdict-label">{t('why')}</span>
+            <span className="study-verdict-label">{t('keyIdea')}</span>
             {explanation}
           </p>
         ) : !correct && !saved ? (

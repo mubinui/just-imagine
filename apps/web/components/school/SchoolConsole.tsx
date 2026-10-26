@@ -1143,7 +1143,11 @@ function StudentsView({ me, copy }: { me: SchoolMe; copy: Copy }) {
                         {locked ? (
                           <StatusChip state="locked">{c('locked')}</StatusChip>
                         ) : failures > 0 ? (
-                          <small className="sch-muted">{c('wrongPins', { count: failures })}</small>
+                          <small className="sch-muted">
+                            {failures === 1
+                              ? c('oneWrongPin')
+                              : c('wrongPins', { count: failures })}
+                          </small>
                         ) : null}
                       </span>
                     </td>
