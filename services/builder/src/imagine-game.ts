@@ -590,7 +590,14 @@ export async function compileBehavior(
     });
     logEvent(
       'game_fallback',
-      { jobId, worldId, reason: 'template', template: template.kind },
+      // The cause as an operational code only: no model text, source or entity names.
+      {
+        jobId,
+        worldId,
+        reason: 'template',
+        template: template.kind,
+        outcome: best.diagnostic.code,
+      },
       'WARNING',
     );
     return {
@@ -600,6 +607,7 @@ export async function compileBehavior(
       rounds: lastRound,
       fallback: true,
       fallbackReason: 'template',
+      failure: best.failure,
     };
   }
   throw new GameGenerationError(best.failure, best.diagnostic);

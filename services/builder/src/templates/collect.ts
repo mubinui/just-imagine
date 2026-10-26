@@ -58,7 +58,8 @@ export function collectSource(doc: SceneDoc, language: Language): string {
   const label = strings.label(
     name === undefined ? strings.things : language === 'en' ? pluralEn(name) : name,
   );
-  const floaty = doc.environment.gravity.y < 1;
+  // The engine runs space with no gravity whatever the document says.
+  const floaty = doc.environment.medium === 'space' || doc.environment.gravity.y < 1;
   const respawnY = Math.min(7.5, Math.max(0.8, template.transform.y));
   return `// Template game: catch the targets with the hero.
 const HERO = ${JSON.stringify(doc.learning.heroEntityId)};
@@ -82,10 +83,13 @@ function hopToward(x, y) {
   const heroes = game.find(HERO);
   if (heroes.length === 0) return;
   const hero = heroes[0];
+  // Only push upward while the hero is settled, so rapid taps cannot launch it.
+  const settled = Math.abs(hero.vy) < 0.3;
   if (FLOATY) {
-    game.impulse(HERO, { x: clamp(x - hero.x, 4), y: clamp(y - hero.y, 4) });
+    const up = clamp(y - hero.y, 4);
+    game.impulse(HERO, { x: clamp(x - hero.x, 4), y: up < 0 && !settled ? 0 : up });
   } else {
-    game.impulse(HERO, { x: clamp((x - hero.x) * 1.2, 5), y: -3 });
+    game.impulse(HERO, { x: clamp((x - hero.x) * 1.2, 5), y: settled ? -3 : 0 });
   }
   game.sound('whoosh');
 }

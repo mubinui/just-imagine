@@ -3,6 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { FIXTURE_WORLDS, GAME_WORLDS, LAB_WORLDS } from '@just-imagine/fixtures/browser';
 import type { BuildWorldJob } from '@just-imagine/protocol';
 import { SceneDocSchema, findBlockedTerm, type SceneDoc } from '@just-imagine/scene-schema';
+import { driveScript, type TimedInput } from '@just-imagine/game-runtime';
+import { createEngineStage, nodeWorkerFactory } from '@just-imagine/game-runtime/node';
 import { gateScript } from '../src/imagine-game';
 import {
   ALL_TEMPLATE_STRINGS,
@@ -33,6 +35,23 @@ const loneHero: SceneDoc = {
   ...flies,
   entities: flies.entities.filter((e) => !e.tags.includes('fly')),
 };
+
+/** Plays exact inputs against the real engine and returns every command with its time. */
+async function play(doc: SceneDoc, source: string, playback: TimedInput[], seconds = 3) {
+  const commands: { time: number; type: string; target?: string; x?: number; y?: number }[] = [];
+  const result = await driveScript(source, await createEngineStage(doc), {
+    seconds,
+    requireGoal: false,
+    seed: doc.environment.seed,
+    worker: nodeWorkerFactory,
+    playback,
+    onFrame(time, _state, frame) {
+      for (const c of frame) commands.push({ time, ...(c as object) } as (typeof commands)[number]);
+    },
+  });
+  expect(result.ok).toBe(true);
+  return commands;
+}
 
 const job = (description: string, overrides: Partial<BuildWorldJob> = {}): BuildWorldJob => ({
   kind: 'build',
@@ -111,6 +130,56 @@ describe('templateSource', () => {
   it('every fixed string passes the blocklist', () => {
     expect(ALL_TEMPLATE_STRINGS.length).toBeGreaterThanOrEqual(12);
     for (const s of ALL_TEMPLATE_STRINGS) expect(findBlockedTerm(s)).toBeNull();
+  });
+});
+
+describe('tap toy', () => {
+  it('answers a tap on empty stage with a sound, a sparkle and a nudge', async () => {
+    const scene = sceneOnly(FIXTURE_WORLDS.jellyDragon);
+    for (const mode of ['game', 'freeplay'] as const) {
+      const after = (
+        await play(scene, templateSource('tap-toy', scene, 'en', mode), [
+          { at: 0.5, type: 'tap', x: 14, y: 2 },
+          { at: 1.5, type: 'tap', x: 2, y: 6 },
+        ])
+      ).filter((c) => c.time >= 1.5);
+      expect(after).toContainEqual(expect.objectContaining({ type: 'sound' }));
+      expect(after).toContainEqual(expect.objectContaining({ type: 'celebrate' }));
+      expect(after).toContainEqual(expect.objectContaining({ type: 'impulse' }));
+    }
+  });
+});
+
+describe('collect hop', () => {
+  it('never pushes the hero upward in space, where the engine has no gravity', async () => {
+    const scene = sceneOnly(FIXTURE_WORLDS.moonBounce);
+    scene.environment.medium = 'space';
+    const hero = scene.learning.heroEntityId;
+    const y = scene.entities.find((e) => e.id === hero)!.transform.y;
+    const hops = (
+      await play(scene, templateSource('collect', scene, 'en', 'game'), [
+        { at: 0.5, type: 'tap', x: 12, y },
+        { at: 0.6, type: 'tap', x: 2, y },
+      ])
+    ).filter((c) => c.type === 'impulse' && c.target === hero);
+    expect(hops).toHaveLength(2);
+    for (const hop of hops) expect(hop.y).toBeGreaterThanOrEqual(0);
+  });
+
+  it('only hops upward when the hero has settled, so rapid taps cannot launch it', async () => {
+    const hero = flies.learning.heroEntityId;
+    const taps: TimedInput[] = [0.5, 0.55, 0.6, 0.65, 0.7].map((at) => ({
+      at,
+      type: 'tap',
+      x: 6,
+      y: 8,
+    }));
+    const hops = (await play(flies, templateSource('collect', flies, 'en', 'game'), taps)).filter(
+      (c) => c.type === 'impulse' && c.target === hero,
+    );
+    expect(hops).toHaveLength(5);
+    expect(hops[0]!.y).toBe(-3);
+    expect(hops.slice(1).every((hop) => hop.y === 0)).toBe(true);
   });
 });
 

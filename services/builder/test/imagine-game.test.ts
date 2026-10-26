@@ -159,15 +159,17 @@ describe('imagineGame', () => {
       attempts: 4,
     });
     expect(result.doc.game?.script.source).toContain('Catch 5');
-    expect(events).toContainEqual(
-      expect.objectContaining({
-        event: 'game_fallback',
-        jobId: 'j_game',
-        worldId: 'w_game',
-        reason: 'template',
-        template: 'collect',
-      }),
-    );
+    // The cause survives: the closest failure on the result, its code on the event.
+    expect(result.failure).toMatch(/^static check: .*eval/);
+    const fallback = events.find((e) => e.event === 'game_fallback');
+    expect(fallback).toEqual({
+      event: 'game_fallback',
+      jobId: 'j_game',
+      worldId: 'w_game',
+      reason: 'template',
+      template: 'collect',
+      outcome: 'SCRIPT_STATIC',
+    });
   });
 
   it('publishes a flagged template game when the model is unavailable', async () => {

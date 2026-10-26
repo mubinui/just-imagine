@@ -16,8 +16,9 @@ export const TAP_TOY_STRINGS = {
 } as const;
 
 /**
- * Tap toy: a tapped body hops with a boing, a dragged one follows the finger,
- * hard bumps pop, and the first tap is greeted. In `game` mode every tenth tap
+ * Tap toy: a tapped body hops with a boing, a tap on empty stage nudges the
+ * nearest movable body toward the finger with a boing and a sparkle, a dragged
+ * body follows the finger, hard bumps pop, and the first tap is greeted. In `game` mode every tenth tap
  * on a body other than the hero scores and celebrates; when only the hero can
  * move, taps on the hero count. Whenever nothing in the scene can move (from
  * the start, or after a scene rule removed every moving body), one movable
@@ -51,12 +52,36 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
     'let greeted = false;',
     'let now = 0;',
     'let lastPop = -1;',
+    `const MOVERS = ${JSON.stringify(movers)};`,
+    '',
+    'function clamp(value, limit) {',
+    '  return Math.max(-limit, Math.min(limit, value));',
+    '}',
+    '',
+    '// An empty-stage tap nudges the nearest body that can move toward the finger.',
+    'function nudgeToward(x, y) {',
+    '  let nearest = null;',
+    '  let best = Infinity;',
+    "  const groups = [game.find('toy')];",
+    '  for (const id of MOVERS) groups.push(game.find(id));',
+    '  for (const group of groups) {',
+    '    for (const body of group) {',
+    '      const d = (body.x - x) * (body.x - x) + (body.y - y) * (body.y - y);',
+    '      if (d < best) {',
+    '        best = d;',
+    '        nearest = body;',
+    '      }',
+    '    }',
+    '  }',
+    '  if (nearest) game.impulse(nearest.id, { x: clamp(x - nearest.x, 3), y: clamp(y - nearest.y, 3) });',
+    "  game.sound('boing');",
+    "  game.celebrate('sparkle');",
+    '}',
   ];
   if (toy) {
     const x = Math.min(14.5, Math.max(1.5, toy.transform.x + 1.2));
     const y = Math.min(7.5, Math.max(0.8, toy.transform.y - 1));
     lines.push(
-      `const MOVERS = ${JSON.stringify(movers)};`,
       '',
       'function keepSomethingToPlayWith() {',
       "  if (game.find('toy').length > 0) return;",
@@ -87,7 +112,10 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
     '    greeted = true;',
     '    game.say(GREETING);',
     '  }',
-    '  if (!e.target) return;',
+    '  if (!e.target) {',
+    '    nudgeToward(e.x, e.y);',
+    '    return;',
+    '  }',
     '  game.impulse(e.target.id, { x: 0, y: -4 });',
     "  game.sound('boing');",
   );
