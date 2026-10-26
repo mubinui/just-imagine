@@ -89,7 +89,9 @@ describe('imagineGame', () => {
     expect(prompt).toContain('interface GameApi');
     expect(prompt).toContain(WORLD_DESIGN_RULES);
     expect(prompt).toContain('Small API technique examples');
-    expect(prompt).not.toContain('catch-the-flies');
+    // The two closest finished examples are worked examples in the prompt.
+    expect(prompt).toContain('Complete worked examples');
+    expect(prompt).toContain('catch-the-flies');
     expect(prompt).toContain('fly_1');
     expect(prompt).toContain(JSON.stringify('catch the flies before the owl wakes up'));
   });

@@ -4,6 +4,7 @@ import type { BuildWorldJob } from '@just-imagine/protocol';
 import { driveScript } from '@just-imagine/game-runtime';
 import { createEngineStage, nodeWorkerFactory } from '@just-imagine/game-runtime/node';
 import { describeScene } from './game-prompt';
+import { DESIGNER_BRIEF } from './designer-brief';
 import type { GameFailureDiagnostic } from './game-diagnostics';
 
 const time = z.number().min(0.1).max(20);
@@ -303,6 +304,8 @@ export function withoutCheck(plan: GameplayPlan, scenario: number, index: number
 
 export function gameplayPlanPrompt(doc: SceneDoc, job: BuildWorldJob, previous?: string): string {
   return [
+    DESIGNER_BRIEF,
+    'A triggered speed (at-rest) check is never the only effect of its trigger: give it a sibling check with the same trigger of type near, displacement, exists false, or command min > 0; a scenario whose only triggered checks are at-rest checks is rejected.',
     'A near check may set invariant=true when an interaction must leave that object in place (for example a disabled portal). Omit trigger for that invariant. Every scenario with inputs still needs at least one real effect with trigger; never relabel a requested movement as invariant to bypass causal testing.',
     'When no-overlap/readability is requested, include separated checks: a and b are distinct scene body ids, margin is nonnegative metres between their rotated rectangular bounds. It is an invariant checked continuously from from through at, rather than a snapshot. Do not use it on intended touching/colliding objects. Test switching between characters while one is still close, not only separately returning each home.',
     'Set externalOnly=false for every requested scripted mechanic. Only when the entire request is simply conversation with existing character-metadata actors, externalOnly=true and scenarios=[]: Live provides selection and speech outside the sandbox. Explicitly list that voice coverage in unverified. Never invent motion or a quiz to make a conversation pass physics tests. Never use this exception for requested movement, transformations, puzzles, rule changes or game actions.',
