@@ -16,6 +16,8 @@ import { labModel, providerJsonSchema, reserveAi, type SchoolModel } from './ai'
 import { fail, schoolId } from './common';
 import { validateLesson } from './lessons';
 
+const REPAIR_DEADLINE_MS = 150_000;
+
 /** The chapter's simulations as the model sees them: parameter schemas and gradable checks. */
 function catalog(chapter: Chapter) {
   return chapter.sims.map((id) => {
@@ -55,6 +57,39 @@ const message = (error: unknown) =>
       ? error.message
       : String(error);
 
+const BANGLA_DIGITS = '০১২৩৪৫৬৭৮৯';
+/** Every number written in a text, Bangla digits included. */
+function numbersIn(text: string): number[] {
+  const ascii = text.replace(/[০-৯]/g, (d) => String(BANGLA_DIGITS.indexOf(d)));
+  return (ascii.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+}
+const numericValues = (value: unknown): number[] =>
+  typeof value === 'number'
+    ? [value]
+    : Array.isArray(value)
+      ? value.flatMap(numericValues)
+      : value && typeof value === 'object'
+        ? Object.values(value).flatMap(numericValues)
+        : [];
+/** True when student-facing text states an example-answer value that is not a given of the task. */
+function revealsAnswer(task: NonNullable<LabProposal['task']>): boolean {
+  const { item, key } = task;
+  const givens = [
+    ...Object.entries(item.startParams)
+      .filter(([name]) => !item.editableParams.includes(name))
+      .flatMap(([, value]) => numericValues(value)),
+    ...numericValues(key.args),
+  ];
+  const answers = numericValues(key.exampleAnswer).filter(
+    (answer) => !givens.some((given) => Math.abs(given - answer) < 1e-9),
+  );
+  const shown = [item.prompt, ...task.hints].flatMap((text) => [
+    ...numbersIn(text.en),
+    ...numbersIn(text.bn),
+  ]);
+  return answers.some((answer) => shown.some((value) => Math.abs(value - answer) < 1e-9));
+}
+
 /** Why a proposal cannot be offered to the teacher, or null when it passes every check. */
 function problem(raw: unknown, input: LabGenerateRequest): string | null {
   const parsed = LabProposalSchema.safeParse(raw);
@@ -71,6 +106,8 @@ function problem(raw: unknown, input: LabGenerateRequest): string | null {
     ...step.prompts,
     ...(task ? [task.item.prompt, ...task.hints] : []),
   ];
+  if (task && revealsAnswer(task))
+    return 'The task prompt or a hint gives away the answer; state the goal without the solution value.';
   if (texts.some((t) => !lessonTextUsesLanguage(t.en, 'en') || !lessonTextUsesLanguage(t.bn, 'bn')))
     return 'Write every English text in English and every Bangla text in natural Bangla.';
   const lesson: LessonDoc = {
@@ -118,6 +155,7 @@ export async function generateLab(
   actor: SchoolAdminActor,
   body: unknown,
   model: SchoolModel = labModel,
+  clock: () => number = Date.now,
 ): Promise<LabProposal> {
   const input = LabGenerateRequestSchema.parse(body);
   const chapter = CHAPTERS.find((entry) => entry.id === input.chapterId);
@@ -130,9 +168,11 @@ export async function generateLab(
     z.toJSONSchema(LabProposalSchema, { unrepresentable: 'any' }),
   ) as Record<string, unknown>;
   const prompt = buildLabPrompt(input, chapter);
+  const started = clock();
   let raw = await model(prompt, schema);
   let issue = problem(raw, input);
-  if (issue) {
+  // Cloud Run ends a request at 300 s; a repair round only starts while it can still finish.
+  if (issue && clock() - started < REPAIR_DEADLINE_MS) {
     raw = await model(
       [
         prompt,

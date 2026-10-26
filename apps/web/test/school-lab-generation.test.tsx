@@ -6,7 +6,9 @@ import {
   freeLabItemId,
   labBlocker,
   labRequest,
+  labProposalFits,
   labStartValues,
+  labTaskValues,
 } from '../lib/school/lab-generation';
 import { LabProposalView } from '../components/school/LabGenerator';
 import type { Lesson, LessonKeys } from '../lib/school/types';
@@ -132,11 +134,37 @@ describe('lab generation helpers', () => {
     expect(labBlocker({ ...base, description: ' short ' })).toBe('short');
   });
 
-  it('lists starting values with labels, units and whether students may change them', () => {
-    const rows = labStartValues(proposal.step, proposal.task, 'en');
-    expect(rows).toContainEqual({ label: 'Launch angle', value: '30 °', role: 'task' });
+  it('lists the explore values with units and whether students may change them', () => {
+    const rows = labStartValues(proposal.step, 'en');
     expect(rows).toContainEqual({ label: 'Gravity', value: '9.8 m/s²', role: 'locked' });
-    expect(rows.find((r) => r.label === 'Launch speed')?.role).toBe('open');
+    expect(rows).toContainEqual({ label: 'Launch angle', value: '30 °', role: 'open' });
+    expect(labStartValues(proposal.step, 'bn')).toContainEqual({
+      label: 'অভিকর্ষজ ত্বরণ',
+      value: '৯.৮ m/s²',
+      role: 'locked',
+    });
+  });
+
+  it('lists where the graded task starts and what students change in it', () => {
+    const task = {
+      ...proposal.task!,
+      item: { ...proposal.task!.item, startParams: { ...start, angle: 15 } },
+    };
+    const rows = labTaskValues(task, 'en');
+    expect(rows).toContainEqual({ label: 'Launch angle', value: '15 °', role: 'task' });
+    expect(rows).toContainEqual({ label: 'Launch height', value: '10 m', role: 'fixed' });
+  });
+
+  it('only fits the lesson it was generated for, with room for its steps', () => {
+    const asked = { subject: 'physics' as const, chapterId: 'physics-2' };
+    expect(labProposalFits(lesson(), asked, proposal)).toBe('');
+    expect(labProposalFits({ ...lesson(), chapterId: 'physics-3' }, asked, proposal)).toBe(
+      'changed',
+    );
+    const full = lesson(Array.from({ length: 19 }, (_, i) => mcq(`c${i}`)));
+    expect(labProposalFits(full, asked, proposal)).toBe('full');
+    const almost = lesson(Array.from({ length: 19 }, (_, i) => mcq(`c${i}`)));
+    expect(labProposalFits(almost, asked, { ...proposal, task: null })).toBe('');
   });
 });
 
@@ -155,6 +183,7 @@ describe('LabProposalView', () => {
       'Projectile motion',
       'Launch angle',
       'Locked',
+      'Task starts at',
       'Predict: which angle lands furthest?',
       'Change the angle so the ball hits the target.',
       'Hits a target on the ground',

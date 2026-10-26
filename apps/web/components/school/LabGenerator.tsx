@@ -6,8 +6,10 @@ import { argLabel, predicateLabel, paramLabel, simLabel } from '../../lib/school
 import {
   LAB_DESCRIPTION_MAX,
   labBlocker,
+  labProposalFits,
   labRequest,
   labStartValues,
+  labTaskValues,
 } from '../../lib/school/lab-generation';
 import type { Lesson } from '../../lib/school/types';
 import { useSchoolLanguage } from '../../lib/i18n/study';
@@ -36,8 +38,11 @@ const COPY = {
     proposal: 'Proposed lab',
     values: 'Starting values',
     locked: 'Locked',
-    task: 'In the task',
     open_: 'Students change',
+    fixed: 'Fixed',
+    taskStart: 'Task starts at',
+    changed:
+      'The chapter or subject changed after this lab was generated. Generate again for the current chapter.',
     prompts: 'Guiding prompts',
     graded: 'Graded task',
     noTask: 'No graded task — students explore freely.',
@@ -70,8 +75,11 @@ const COPY = {
     proposal: 'প্রস্তাবিত ল্যাব',
     values: 'শুরুর মান',
     locked: 'স্থির',
-    task: 'কাজে বদলাবে',
     open_: 'শিক্ষার্থী বদলাতে পারবে',
+    fixed: 'নির্দিষ্ট',
+    taskStart: 'কাজের শুরুর মান',
+    changed:
+      'এই ল্যাব তৈরির পর অধ্যায় বা বিষয় বদলানো হয়েছে। বর্তমান অধ্যায়ের জন্য আবার তৈরি করুন।',
     prompts: 'নির্দেশনা',
     graded: 'মূল্যায়িত কাজ',
     noTask: 'মূল্যায়িত কাজ নেই — শিক্ষার্থীরা মুক্তভাবে অনুসন্ধান করবে।',
@@ -87,8 +95,12 @@ const COPY = {
   },
 } as const;
 
-const formatValue = (value: unknown) =>
-  typeof value === 'number' ? String(Math.round(value * 1000) / 1000) : String(value);
+const formatValue = (value: unknown, language: Lang) =>
+  typeof value === 'number'
+    ? new Intl.NumberFormat(language === 'bn' ? 'bn-BD' : 'en', { maximumFractionDigits: 3 })
+        .format(value)
+        .replace(/,/g, '')
+    : String(value);
 
 /** A generated lab laid out for review: simulation, starting values, prompts and the graded task. */
 export function LabProposalView({
@@ -96,15 +108,18 @@ export function LabProposalView({
   language,
   onAccept,
   onDiscard,
+  blocked = '',
 }: {
   proposal: LabProposal;
   language: Lang;
   onAccept: () => void;
   onDiscard: () => void;
+  /** Why Add to lesson is unavailable; the proposal stays readable. */
+  blocked?: string;
 }) {
   const copy = COPY[language];
   const { step, task, summary } = proposal;
-  const roles = { locked: copy.locked, task: copy.task, open: copy.open_ };
+  const roles = { locked: copy.locked, open: copy.open_, task: copy.open_, fixed: copy.fixed };
   const args =
     task && typeof task.key.args === 'object' && task.key.args !== null
       ? Object.entries(task.key.args as Record<string, unknown>)
@@ -123,7 +138,7 @@ export function LabProposalView({
         <section aria-label={copy.values}>
           <h4>{copy.values}</h4>
           <dl className={styles.values}>
-            {labStartValues(step, task, language).map((row) => (
+            {labStartValues(step, language).map((row) => (
               <div key={row.label} data-role={row.role}>
                 <dt>{row.label}</dt>
                 <dd>
@@ -152,6 +167,18 @@ export function LabProposalView({
             <p className={styles.taskPrompt} lang={language}>
               {task.item.prompt[language]}
             </p>
+            <h5 className={styles.subhead}>{copy.taskStart}</h5>
+            <dl className={styles.values}>
+              {labTaskValues(task, language).map((row) => (
+                <div key={row.label} data-role={row.role}>
+                  <dt>{row.label}</dt>
+                  <dd>
+                    <span className={styles.value}>{row.value}</span>
+                    <span className={styles.role}>{roles[row.role]}</span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
             <dl className={styles.facts}>
               <div>
                 <dt>{copy.goal}</dt>
@@ -161,7 +188,8 @@ export function LabProposalView({
                     <ul>
                       {args.map(([name, value]) => (
                         <li key={name}>
-                          {argLabel(task.key.predicate, name, language)}: {formatValue(value)}
+                          {argLabel(task.key.predicate, name, language)}:{' '}
+                          {formatValue(value, language)}
                         </li>
                       ))}
                     </ul>
@@ -175,7 +203,7 @@ export function LabProposalView({
                     {Object.entries(task.key.exampleAnswer)
                       .map(
                         ([name, value]) =>
-                          `${paramLabel(step.simId, name, language)} = ${formatValue(value)}`,
+                          `${paramLabel(step.simId, name, language)} = ${formatValue(value, language)}`,
                       )
                       .join(' · ')}
                   </dd>
@@ -200,8 +228,14 @@ export function LabProposalView({
         )}
       </section>
       <p className={styles.review}>{copy.review}</p>
+      {blocked && <p className={styles.blocker}>{blocked}</p>}
       <div className={styles.actions}>
-        <button type="button" className="sch-primary" onClick={onAccept}>
+        <button
+          type="button"
+          className="sch-primary"
+          disabled={Boolean(blocked)}
+          onClick={onAccept}
+        >
           {copy.add}
         </button>
         <button type="button" onClick={onDiscard}>
@@ -236,8 +270,10 @@ export function LabGenerator({
   const [now, setNow] = useState(0);
   const [error, setError] = useState<unknown>();
   const [proposal, setProposal] = useState<LabProposal>();
+  const [requested, setRequested] = useState<Pick<Lesson, 'subject' | 'chapterId'>>();
   const [notice, setNotice] = useState('');
   const generation = useRef(0);
+  const descriptionField = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (busySince === null) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -261,6 +297,7 @@ export function LabGenerator({
     setError(undefined);
     setNotice('');
     setProposal(undefined);
+    setRequested({ subject: lesson.subject, chapterId: lesson.chapterId });
     try {
       const response = await schoolRequest(`${admin ? 'admin' : 'school'}/lab/generate`, {
         ...labRequest(lesson, description, editLanguage),
@@ -281,6 +318,7 @@ export function LabGenerator({
       </button>
     );
   const visibleBlocker = blocker === 'short' && !description ? '' : blocker;
+  const fit = proposal && requested ? labProposalFits(lesson, requested, proposal) : '';
   return (
     <section className={styles.panel} aria-labelledby="lab-generator-title">
       <div className={styles.head}>
@@ -293,6 +331,9 @@ export function LabGenerator({
           onClick={() => {
             generation.current++;
             setBusySince(null);
+            setProposal(undefined);
+            setError(undefined);
+            setNotice('');
             setOpen(false);
           }}
         >
@@ -303,6 +344,7 @@ export function LabGenerator({
       <label className={styles.field}>
         <span>{copy.label}</span>
         <textarea
+          ref={descriptionField}
           value={description}
           maxLength={LAB_DESCRIPTION_MAX}
           placeholder={copy.placeholder}
@@ -334,15 +376,19 @@ export function LabGenerator({
         <LabProposalView
           proposal={proposal}
           language={language}
+          blocked={fit === 'changed' ? copy.changed : fit === 'full' ? copy.full : ''}
           onAccept={() => {
+            if (fit) return;
             onAccept(proposal);
             setProposal(undefined);
             setDescription('');
             setNotice(copy.added);
+            descriptionField.current?.focus();
           }}
           onDiscard={() => {
             setProposal(undefined);
             setNotice(copy.discarded);
+            descriptionField.current?.focus();
           }}
         />
       )}

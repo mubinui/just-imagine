@@ -71,31 +71,67 @@ export function labBlocker(state: {
   return '';
 }
 
-export type StartValue = { label: string; value: string; role: 'locked' | 'task' | 'open' };
+export type StartValue = {
+  label: string;
+  value: string;
+  role: 'locked' | 'open' | 'task' | 'fixed';
+};
 
-/** Each visible starting value with its unit: locked, changed for the task, or free to explore. */
-export function labStartValues(
-  step: LabProposal['step'],
-  task: LabProposal['task'],
+const number = (value: number, language: Lang) =>
+  new Intl.NumberFormat(language === 'bn' ? 'bn-BD' : 'en', { maximumFractionDigits: 3 })
+    .format(value)
+    .replace(/,/g, '');
+
+/** Visible parameters of a simulation with their labels and units, in the given language. */
+function valueRows(
+  simId: string,
+  values: Record<string, unknown>,
   language: Lang,
+  role: (name: string) => StartValue['role'],
 ): StartValue[] {
   const i = language === 'bn' ? 1 : 0;
-  const values = step.params;
-  return (PARAMS[step.simId as SimId] ?? [])
+  return (PARAMS[simId as SimId] ?? [])
     .filter((spec) => Object.hasOwn(values, spec.id) && (!spec.when || spec.when(values)))
     .map((spec) => {
       const raw = values[spec.id];
+      const shown = (v: unknown) => (typeof v === 'number' ? number(v, language) : String(v));
       const value =
         spec.kind === 'choice'
           ? (spec.options.find((o) => o.value === raw)?.label[i] ?? String(raw))
-          : [Array.isArray(raw) ? raw.join(', ') : String(raw), unitText(spec.unit, language)]
+          : [
+              Array.isArray(raw) ? raw.map(shown).join(', ') : shown(raw),
+              unitText(spec.unit, language),
+            ]
               .filter(Boolean)
               .join(' ');
-      const role = step.lockedParams.includes(spec.id)
-        ? 'locked'
-        : task?.item.editableParams.includes(spec.id)
-          ? 'task'
-          : 'open';
-      return { label: spec.label[i], value, role };
+      return { label: spec.label[i], value, role: role(spec.id) };
     });
+}
+
+/** The explore step's starting values: locked, or free for students to change while exploring. */
+export function labStartValues(step: LabProposal['step'], language: Lang): StartValue[] {
+  return valueRows(step.simId, step.params, language, (name) =>
+    step.lockedParams.includes(name) ? 'locked' : 'open',
+  );
+}
+
+/** Where the graded task starts: the values students change for it, and the ones it fixes. */
+export function labTaskValues(
+  task: NonNullable<LabProposal['task']>,
+  language: Lang,
+): StartValue[] {
+  return valueRows(task.item.simId, task.item.startParams, language, (name) =>
+    task.item.editableParams.includes(name) ? 'task' : 'fixed',
+  );
+}
+
+/** Why an accepted proposal would no longer fit the lesson, or '' when it does. */
+export function labProposalFits(
+  lesson: Pick<Lesson, 'subject' | 'chapterId' | 'steps'>,
+  requested: Pick<Lesson, 'subject' | 'chapterId'>,
+  proposal: LabProposal,
+): '' | 'changed' | 'full' {
+  if (lesson.subject !== requested.subject || lesson.chapterId !== requested.chapterId)
+    return 'changed';
+  return lesson.steps.length + (proposal.task ? 2 : 1) > 20 ? 'full' : '';
 }

@@ -57,8 +57,8 @@ function proposal(change: (p: LabProposal) => void = () => {}): LabProposal {
       hints: [
         { en: 'Compare the range at two angles first.', bn: 'আগে দুটি কোণে পাল্লা তুলনা করো।' },
         {
-          en: 'A launch height favours an angle a little below 45°.',
-          bn: 'উঁচু থেকে ছুড়লে 45°-এর একটু কম কোণ ভালো কাজ করে।',
+          en: 'From a height, the best angle is lower than on flat ground.',
+          bn: 'উঁচু থেকে ছুড়লে সেরা কোণ সমতলের চেয়ে কম হয়।',
         },
       ],
     },
@@ -210,6 +210,54 @@ describe('generateLab', () => {
     const { model, prompts } = scripted(english, proposal());
     await generateLab(operator, request, model);
     expect(prompts[1]).toMatch(/Bangla/);
+  });
+
+  it('rejects a prompt or hint that gives away the example answer', async () => {
+    const prompt = proposal(
+      (p) => (p.task!.item.prompt.en = 'Change the angle (45° works) so the ball hits the target.'),
+    );
+    const hint = proposal((p) => (p.task!.hints[1]!.bn = 'কোণ ৪৫° করে দেখো।'));
+    for (const leak of [prompt, hint]) {
+      const { model, prompts } = scripted(leak, leak);
+      await expect(generateLab(operator, request, model)).rejects.toMatchObject({ status: 503 });
+      expect(prompts[1]).toMatch(/gives away the answer/);
+    }
+  });
+
+  it('allows a given quantity that happens to equal the answer', async () => {
+    const given = proposal((p) => {
+      p.task!.item.startParams = { ...start, height: 45 };
+      p.task!.item.prompt.en = 'From a 45 m cliff, change the angle so the ball hits the target.';
+      const range = Number(SIMS.projectile.solve({ ...start, height: 45, angle: 45 }).range);
+      p.task!.key.args = { x: range, tol: 0.5 };
+    });
+    const { model } = scripted(given);
+    await expect(generateLab(operator, request, model)).resolves.toMatchObject({
+      summary: given.summary,
+    });
+  });
+
+  it('stops on a kill switch or model error during the repair round', async () => {
+    const wrong = proposal((p) => (p.step.params = { ...start, speed: 400 }));
+    const model: SchoolModel = async (prompt) => {
+      if (prompt.includes('It was rejected'))
+        throw Object.assign(new Error('School AI is paused by the operator.'), { status: 503 });
+      return wrong;
+    };
+    await expect(generateLab(operator, request, model)).rejects.toMatchObject({
+      message: expect.stringMatching(/paused/),
+    });
+  });
+
+  it('skips the repair round when the first answer used most of the request time', async () => {
+    const wrong = proposal((p) => (p.step.params = { ...start, speed: 400 }));
+    const { model, prompts } = scripted(wrong, proposal());
+    let now = 0;
+    const clock = () => (now += 160_000);
+    await expect(generateLab(operator, request, model, clock)).rejects.toMatchObject({
+      status: 503,
+    });
+    expect(prompts).toHaveLength(1);
   });
 
   it('treats a malformed answer like an invalid proposal', async () => {

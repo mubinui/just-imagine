@@ -162,6 +162,11 @@
 .values [data-role='open'] .role {
   border-style: dashed;
 }
+.subhead {
+  margin: 4px 0 0;
+  font-size: 16px;
+  color: var(--ink);
+}
 .prompts,
 .facts ol {
   display: grid;
