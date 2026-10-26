@@ -33,3 +33,6 @@ apps/web/.impeccable/review/
 # Firebase Hosting static copy of apps/web/public, filled by the hosting predeploy step
 infra/hosting/public/*
 !infra/hosting/public/.gitkeep
+
+# Superpowers plan workspaces (local scratch)
+.superpowers/
