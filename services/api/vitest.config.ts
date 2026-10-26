@@ -15,6 +15,7 @@ export default defineConfig({
           'test/demo-lessons-physics.test.ts',
           'test/demo-lessons-chemistry.test.ts',
           'test/demo-lessons-math.test.ts',
+          'test/lab-generation.test.ts',
         ],
     environment: 'node',
     fileParallelism: false,

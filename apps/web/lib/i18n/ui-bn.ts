@@ -35,6 +35,7 @@ export const UI_BN: Record<string, string> = {
   'Lesson saved': 'পাঠ সংরক্ষিত হয়েছে',
   'Lesson language approved': 'পাঠের ভাষা অনুমোদিত হয়েছে',
   'Lesson archived': 'পাঠ আর্কাইভ করা হয়েছে',
+  'Lab generated': 'ল্যাব তৈরি করা হয়েছে',
   'Opening your adventure…': 'তোমার গল্প খোলা হচ্ছে…',
   'Try a gravity experiment': 'মাধ্যাকর্ষণ নিয়ে পরীক্ষা করে দেখো',
   'What if gravity changed?': 'মাধ্যাকর্ষণ বদলে গেলে কী হবে?',

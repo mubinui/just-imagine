@@ -105,7 +105,7 @@ export function createApi(options: ApiOptions) {
   registerSchoolRoutes(app, options.school);
   registerAdminSchoolRoutes(app);
   registerAdminCatalogRoutes(app);
-  registerAdminLessonRoutes(app);
+  registerAdminLessonRoutes(app, { labModel: options.school?.labModel });
   const isSuspended = options.isSuspended ?? suspensionCheckFor(options.store);
   app.register(async (routes) => {
     routes.decorateRequest('parentUid', '');

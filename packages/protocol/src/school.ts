@@ -159,6 +159,15 @@ const ReagentIdsSchema = z
   .min(1)
   .max(12);
 
+export const SimTaskItemSchema = z.strictObject({
+  id: ItemIdSchema,
+  kind: z.literal('simTask'),
+  prompt: BilingualTextSchema,
+  simId: SimRefSchema,
+  startParams: ParamsSchema,
+  editableParams: z.array(z.string().max(32)).min(1).max(8),
+  points: PointsSchema,
+});
 export const QuizItemSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     id: ItemIdSchema,
@@ -174,15 +183,7 @@ export const QuizItemSchema = z.discriminatedUnion('kind', [
     unit: z.string().max(16),
     points: PointsSchema,
   }),
-  z.strictObject({
-    id: ItemIdSchema,
-    kind: z.literal('simTask'),
-    prompt: BilingualTextSchema,
-    simId: SimRefSchema,
-    startParams: ParamsSchema,
-    editableParams: z.array(z.string().max(32)).min(1).max(8),
-    points: PointsSchema,
-  }),
+  SimTaskItemSchema,
   z.strictObject({
     id: ItemIdSchema,
     kind: z.literal('labTask'),
@@ -193,15 +194,16 @@ export const QuizItemSchema = z.discriminatedUnion('kind', [
 ]);
 export type QuizItem = z.infer<typeof QuizItemSchema>;
 
+export const ExploreStepSchema = z.strictObject({
+  kind: z.literal('explore'),
+  simId: SimRefSchema,
+  params: ParamsSchema,
+  lockedParams: z.array(z.string().max(32)).max(8),
+  prompts: z.array(BilingualTextSchema).max(6),
+});
 export const LessonStepSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('intro'), body: BilingualTextSchema }),
-  z.strictObject({
-    kind: z.literal('explore'),
-    simId: SimRefSchema,
-    params: ParamsSchema,
-    lockedParams: z.array(z.string().max(32)).max(8),
-    prompts: z.array(BilingualTextSchema).max(6),
-  }),
+  ExploreStepSchema,
   z.strictObject({
     kind: z.literal('lab'),
     reagentIds: ReagentIdsSchema,
@@ -279,6 +281,13 @@ export function missingLanguages(l: LessonDoc): ('en' | 'bn')[] {
   return (['en', 'bn'] as const).filter((lang) => texts.some((t) => t[lang] === ''));
 }
 
+export const SimTaskKeySchema = z.strictObject({
+  kind: z.literal('simTask'),
+  predicate: z.string().min(1).max(64),
+  args: z.unknown(),
+  /** Private teacher witness; verified with the same locked model as student answers. */
+  exampleAnswer: z.record(z.string(), z.unknown()).optional(),
+});
 export const QuizKeySchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('mcq'), answer: z.number().int().min(0).max(4) }),
   z.strictObject({
@@ -289,13 +298,7 @@ export const QuizKeySchema = z.discriminatedUnion('kind', [
       .optional(),
     tolerance: z.strictObject({ mode: z.enum(['abs', 'rel']), amount: z.number().nonnegative() }),
   }),
-  z.strictObject({
-    kind: z.literal('simTask'),
-    predicate: z.string().min(1).max(64),
-    args: z.unknown(),
-    /** Private teacher witness; verified with the same locked model as student answers. */
-    exampleAnswer: z.record(z.string(), z.unknown()).optional(),
-  }),
+  SimTaskKeySchema,
   /** `task` is a stem-sims LabTask; the api validates it with LabTaskSchema. */
   z.strictObject({
     kind: z.literal('labTask'),
@@ -304,6 +307,31 @@ export const QuizKeySchema = z.discriminatedUnion('kind', [
   }),
 ]);
 export type QuizKey = z.infer<typeof QuizKeySchema>;
+
+/** A teacher's words for a lab; the server configures one of the chapter's tested simulations. */
+export const LabGenerateRequestSchema = z.object({
+  subject: SchoolSubjectSchema,
+  grade: SchoolGradeSchema,
+  chapterId: ChapterIdSchema,
+  title: BilingualTextSchema,
+  description: z.string().trim().min(8).max(800),
+  language: LanguageSchema,
+});
+export type LabGenerateRequest = z.infer<typeof LabGenerateRequestSchema>;
+/** A proposal for review: nothing is saved until the teacher accepts it into the editor. */
+export const LabProposalSchema = z.strictObject({
+  step: ExploreStepSchema,
+  task: z
+    .strictObject({
+      item: SimTaskItemSchema,
+      key: SimTaskKeySchema,
+      /** Progressive hints that guide without revealing the answer; publishing needs at least one. */
+      hints: z.array(BilingualTextSchema).min(1).max(2),
+    })
+    .nullable(),
+  summary: BilingualTextSchema,
+});
+export type LabProposal = z.infer<typeof LabProposalSchema>;
 /** Server-only (rules deny all client access). */
 export const LessonKeysDocSchema = z.object({
   revision: z.number().int().nonnegative(),

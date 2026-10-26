@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   boardId,
+  LabGenerateRequestSchema,
+  LabProposalSchema,
   LessonDocSchema,
   LessonFieldsSchema,
   missingLanguages,
@@ -142,5 +144,82 @@ describe('lesson contract', () => {
     const Checked = Body.superRefine(refineLesson);
     expect(Checked.safeParse({ ...body, scope: 'class', classIds: [] }).success).toBe(false);
     expect(Checked.safeParse(body).success).toBe(true);
+  });
+});
+
+describe('lab generation contract', () => {
+  const request = {
+    subject: 'physics',
+    grade: 9,
+    chapterId: 'physics-2',
+    title: { en: 'Projectiles', bn: 'প্রক্ষেপক' },
+    description: 'A ball launched from a cliff; students find the angle for the longest range.',
+    language: 'en',
+  };
+  const step = {
+    kind: 'explore',
+    simId: 'projectile',
+    params: { speed: 20, angleDeg: 30 },
+    lockedParams: ['speed'],
+    prompts: [
+      { en: 'Predict: which angle goes furthest?', bn: 'আগে অনুমান: কোন কোণে সবচেয়ে দূরে যায়?' },
+    ],
+  };
+  const task = {
+    item: {
+      id: 'lab1',
+      kind: 'simTask',
+      prompt: {
+        en: 'Find the angle for the longest range.',
+        bn: 'সবচেয়ে বেশি পাল্লার কোণ খুঁজে বের করো।',
+      },
+      simId: 'projectile',
+      startParams: { speed: 20, angleDeg: 30 },
+      editableParams: ['angleDeg'],
+      points: 3,
+    },
+    key: {
+      kind: 'simTask',
+      predicate: 'rangeAtLeast',
+      args: { min: 40 },
+      exampleAnswer: { angleDeg: 45 },
+    },
+    hints: [{ en: 'Try angles either side of 45°.', bn: '45°-এর দুই পাশের কোণ চেষ্টা করো।' }],
+  };
+  const summary = { en: 'Projectile from a cliff', bn: 'খাড়া পাহাড় থেকে প্রক্ষেপক' };
+
+  it('accepts a teacher description and refuses one too short to act on', () => {
+    expect(LabGenerateRequestSchema.parse(request).description).toBe(request.description);
+    expect(LabGenerateRequestSchema.safeParse({ ...request, description: 'ball  ' }).success).toBe(
+      false,
+    );
+    expect(
+      LabGenerateRequestSchema.safeParse({ ...request, description: 'x'.repeat(801) }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a proposal with or without a graded task', () => {
+    expect(LabProposalSchema.parse({ step, task, summary }).task?.item.id).toBe('lab1');
+    expect(LabProposalSchema.parse({ step, task: null, summary }).task).toBeNull();
+  });
+
+  it('needs one or two hints with a task', () => {
+    expect(
+      LabProposalSchema.safeParse({ step, task: { ...task, hints: [] }, summary }).success,
+    ).toBe(false);
+    const three = [summary, summary, summary];
+    expect(
+      LabProposalSchema.safeParse({ step, task: { ...task, hints: three }, summary }).success,
+    ).toBe(false);
+  });
+
+  it('only proposes a simulation step with a simulation task', () => {
+    const bench = { kind: 'lab', reagentIds: ['hcl'], goal: null };
+    expect(LabProposalSchema.safeParse({ step: bench, task: null, summary }).success).toBe(false);
+    const mcq = {
+      ...task,
+      item: { id: 'lab1', kind: 'mcq', prompt: summary, options: [summary, summary], points: 2 },
+    };
+    expect(LabProposalSchema.safeParse({ step, task: mcq, summary }).success).toBe(false);
   });
 });

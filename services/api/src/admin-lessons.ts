@@ -11,8 +11,13 @@ import {
   archiveLesson,
 } from './school/lessons';
 import { assistLessonText, draftLesson, translateLesson } from './school/authoring';
-import { reasonSchema } from './school/common';
-export function registerAdminLessonRoutes(app: FastifyInstance) {
+import { generateLab } from './school/lab-generation';
+import { audit, reasonSchema } from './school/common';
+import type { SchoolModel } from './school/ai';
+export function registerAdminLessonRoutes(
+  app: FastifyInstance,
+  options: { labModel?: SchoolModel } = {},
+) {
   app.register(async (routes) => {
     routes.addHook('preHandler', async (req) => {
       await adminActor(req);
@@ -38,6 +43,35 @@ export function registerAdminLessonRoutes(app: FastifyInstance) {
     routes.post('/v1/admin/lesson-text/assist', async (req) => {
       z.object({ reason: reasonSchema }).parse(req.body);
       return assistLessonText(await adminActor(req), req.body);
+    });
+    // Every operator request is audited with its reason, whether or not a lab came back.
+    routes.post('/v1/admin/lab/generate', async (req) => {
+      const { reason, lessonId, chapterId } = z
+        .object({
+          reason: reasonSchema,
+          lessonId: z
+            .string()
+            .regex(/^[A-Za-z0-9_-]{1,64}$/)
+            .optional(),
+          chapterId: z.string().max(64).optional(),
+        })
+        .parse(req.body);
+      const actor = await adminActor(req);
+      let simId: string | null = null;
+      try {
+        const proposal = await generateLab(actor, req.body, options.labModel);
+        simId = proposal.step.simId;
+        return proposal;
+      } finally {
+        await audit(
+          actor,
+          'lesson.generateLab',
+          { kind: 'lesson', id: lessonId ?? 'new' },
+          null,
+          { chapterId: chapterId ?? null, simId, outcome: simId ? 'proposed' : 'failed' },
+          reason,
+        );
+      }
     });
     routes.patch('/v1/admin/lessons/:id', async (req) =>
       saveLesson(

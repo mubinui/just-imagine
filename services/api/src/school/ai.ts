@@ -53,43 +53,55 @@ export async function requestSchoolJson(
     );
   }
 }
-export const vertexSchoolModel: SchoolModel = async (prompt, schema) => {
-  if (await isKillSwitchOn()) return fail(503, 'School AI is paused by the operator.');
-  const localKey = process.env['LOCAL_DEV'] === '1' ? process.env['GEMINI_API_KEY'] : undefined;
-  if (!localKey && !process.env['GOOGLE_CLOUD_PROJECT'])
-    return fail(503, 'School AI is not connected. Your saved work is safe.');
-  const client = new GoogleGenAI(
-    localKey
-      ? { apiKey: localKey }
-      : {
-          vertexai: true,
-          project: process.env['GOOGLE_CLOUD_PROJECT'],
-          location: vertexModelLocation(),
-        },
-  );
-  return requestSchoolJson(
-    async (requestPrompt, requestSchema) =>
-      client.models.generateContent({
-        model: process.env['FAST_MODEL'] ?? 'gemini-3.8-flash',
-        contents: requestPrompt,
-        config: {
-          responseMimeType: 'application/json',
-          ...(requestSchema ? { responseJsonSchema: requestSchema } : {}),
-          temperature: 0.2,
-          maxOutputTokens: 16000,
-          httpOptions: { timeout: 60000, retryOptions: { attempts: 1 } },
-          safetySettings: [
-            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-            HarmCategory.HARM_CATEGORY_HARASSMENT,
-            HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-          ].map((category) => ({ category, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE })),
-        },
-      }),
-    prompt,
-    schema,
-  );
-};
+/** A JSON-mode school model on Vertex AI (or the local Gemini key in LOCAL_DEV). */
+export function schoolModelFor(modelId: () => string, timeoutMs = 60000): SchoolModel {
+  return async (prompt, schema) => {
+    if (await isKillSwitchOn()) return fail(503, 'School AI is paused by the operator.');
+    const localKey = process.env['LOCAL_DEV'] === '1' ? process.env['GEMINI_API_KEY'] : undefined;
+    if (!localKey && !process.env['GOOGLE_CLOUD_PROJECT'])
+      return fail(503, 'School AI is not connected. Your saved work is safe.');
+    const client = new GoogleGenAI(
+      localKey
+        ? { apiKey: localKey }
+        : {
+            vertexai: true,
+            project: process.env['GOOGLE_CLOUD_PROJECT'],
+            location: vertexModelLocation(),
+          },
+    );
+    return requestSchoolJson(
+      async (requestPrompt, requestSchema) =>
+        client.models.generateContent({
+          model: modelId(),
+          contents: requestPrompt,
+          config: {
+            responseMimeType: 'application/json',
+            ...(requestSchema ? { responseJsonSchema: requestSchema } : {}),
+            temperature: 0.2,
+            maxOutputTokens: 16000,
+            httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
+            safetySettings: [
+              HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+              HarmCategory.HARM_CATEGORY_HARASSMENT,
+              HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+              HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            ].map((category) => ({ category, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE })),
+          },
+        }),
+      prompt,
+      schema,
+    );
+  };
+}
+export const vertexSchoolModel = schoolModelFor(
+  () => process.env['FAST_MODEL'] ?? 'gemini-3.8-flash',
+);
+/** Lab generation uses the world-builder model. A timeout fails at once (no JSON resend), and the
+ *  repair round only starts within 150 s, so two 110 s calls stay under Cloud Run's 300 s. */
+export const labModel = schoolModelFor(
+  () => process.env['SCENE_MODEL'] || 'gemini-4-argon',
+  110000,
+);
 export async function reserveAi(sid: string, kind: 'aiDrafts' | 'aiReactions') {
   if (await isKillSwitchOn()) return fail(503, 'School AI is paused by the operator.');
   const school = await read(schoolPaths.school(sid), SchoolDocSchema);
