@@ -52,7 +52,7 @@ export interface ImagineGameDeps {
   moderate?: Moderate;
   /** Simulated seconds for the smoke run. */
   seconds?: number;
-  /** The build's time budget; defaults to a fresh one when compiling starts. */
+  /** The build's time budget; defaults to a fresh one created when imagineGame starts, so scene time counts against the same budget. */
   budget?: BuildBudget;
   /** Receives the composed scene as soon as it exists, before any script is written. */
   onScene?: (doc: SceneDoc) => void;

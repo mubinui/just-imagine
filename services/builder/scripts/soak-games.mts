@@ -27,6 +27,9 @@ const WISHES: [string, string][] = [
 
 const apiKey = process.env['GEMINI_API_KEY'];
 if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
+const redact = (text: string) => (apiKey ? text.replaceAll(apiKey, '[redacted]') : text);
+// Every printed byte goes through these two, so nothing can bypass the redaction.
+const warn = (text: string) => process.stderr.write(redact(text));
 const project = 'demo-just-imagine-local';
 const models = new VertexModels({
   project,
@@ -54,7 +57,7 @@ process.stdout.write = ((chunk: string | Uint8Array) => {
       const e = JSON.parse(line) as Ev;
       events.push(e);
       const { event, reason, outcome, severity } = e;
-      process.stderr.write(
+      warn(
         `  [${String(severity)}] ${String(event)} ${String(reason ?? '')} ${String(outcome ?? '')}\n`,
       );
     } catch {
@@ -63,9 +66,8 @@ process.stdout.write = ((chunk: string | Uint8Array) => {
   }
   return true;
 }) as typeof process.stdout.write;
-const print = (s: string) => realWrite(s + '\n');
+const print = (s: string) => realWrite(redact(s) + '\n');
 
-const redact = (text: string) => (apiKey ? text.replaceAll(apiKey, '[redacted]') : text);
 const secs = (ms: number) => (ms / 1000).toFixed(1);
 const rows: { result: string; game: number }[] = [];
 print('wish | result | rounds | attempts | game_s | scene_s | fallback | outcome');
@@ -124,7 +126,7 @@ for (const [i, [short, description]] of WISHES.entries()) {
         reason =
           e.diagnostic?.code ??
           (error instanceof SceneValidationError ? 'SCENE_INVALID' : 'unknown');
-        process.stderr.write(`  [threw cause] ${e.name}: ${message.slice(0, 300)}\n`);
+        warn(`  [threw cause] ${e.name}: ${message.slice(0, 300)}\n`);
       } else {
         result = 'error';
         reason = `${e.name}: ${message.slice(0, 160)}`;
