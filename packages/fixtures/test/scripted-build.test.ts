@@ -20,5 +20,17 @@ describe('scripted build', () => {
     expect(world.status).toBe('ready');
     expect(world.title).toBe('Catch the Flies');
     expect(world.doc.game).toEqual(GAME_WORLDS.catchTheFlies.game);
+    expect(world.creation).toBeUndefined();
+  });
+
+  it('serves a template fallback build as a world whose creation says so', () => {
+    const id = scriptedBuildId(4, 'template');
+    expect(isScriptedBuild(id)).toBe(true);
+    expect(id).not.toBe(scriptedBuildId(4));
+    const world = scriptedBuildWorld(id);
+    expect(() => WorldDocSchema.extend({ id: DocumentIdSchema }).parse(world)).not.toThrow();
+    expect(world.id).toBe(id);
+    expect(world.title).toBe('Catch the Flies');
+    expect(world.creation).toMatchObject({ mode: 'game', fallback: 'template' });
   });
 });

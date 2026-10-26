@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { encodeMessage, parseServerMessage, type ServerMessage } from '@just-imagine/protocol';
 import { startFakeGateway, SCENARIOS, type FakeGateway } from '../src/fake-gateway';
-import { isScriptedBuild } from '../src/scripted-build';
+import { isScriptedBuild, scriptedBuildWorld } from '../src/scripted-build';
 
 let gateway: FakeGateway | undefined;
 afterEach(async () => {
@@ -203,6 +203,25 @@ describe('fake gateway', () => {
     const next = await nextJson(ws, 'worldJob');
     expect(next).toMatchObject({ status: 'queued' });
     expect((next as { worldId: string }).worldId).not.toBe(worldId);
+    ws.close();
+  });
+
+  it('builds a template fallback world when the wish for a game asks for a simpler one', async () => {
+    gateway = await startFakeGateway({ port: 0, scenario: SCENARIOS.jellyDragon });
+    const ws = await connect(gateway.url);
+    ws.send(encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'bhombol' }));
+    await nextJson(ws, 'ready');
+    ws.send(encodeMessage({ type: 'text', text: 'a simpler game where a frog catches flies' }));
+    const statuses: ServerMessage[] = [];
+    for (let i = 0; i < 3; i++) statuses.push(await nextJson(ws, 'worldJob'));
+    const worldId = (statuses[0] as Extract<ServerMessage, { type: 'worldJob' }>).worldId;
+    expect(statuses).toMatchObject(
+      ['queued', 'placeholders', 'ready'].map((status) => ({ worldId, status })),
+    );
+    expect(scriptedBuildWorld(worldId).creation).toMatchObject({ fallback: 'template' });
+    ws.send(encodeMessage({ type: 'text', text: 'a game where a frog catches flies' }));
+    const plain = (await nextJson(ws, 'worldJob')) as { worldId: string };
+    expect(scriptedBuildWorld(plain.worldId).creation).toBeUndefined();
     ws.close();
   });
 

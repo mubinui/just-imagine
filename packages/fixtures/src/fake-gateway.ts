@@ -174,7 +174,9 @@ export async function startFakeGateway(opts: {
       if (message.type === 'hangUp') persona?.hangUp(characterId, 's_fake');
       if (message.type === 'text' && !persona?.answer(message.text)) {
         // A wish for a game is a new world; other words about a built world edit it in place.
-        if (/game/i.test(message.text)) build(scriptedBuildId(++builds));
+        // A wish for a simpler game is built as a template fallback.
+        if (/game/i.test(message.text))
+          build(scriptedBuildId(++builds, /simpler/i.test(message.text) ? 'template' : undefined));
         else if (worldId && isScriptedBuild(worldId)) build(worldId);
       }
       if (message.type === 'switchCharacter') {
