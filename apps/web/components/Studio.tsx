@@ -103,7 +103,7 @@ export function Studio() {
   const discovered = useRef(new Set<string>());
   const hello = useRef<Hello | undefined>(undefined);
   const pendingIntent = useRef<'newGame' | undefined>(undefined);
-  const askedThisSession = useRef(false);
+  const askedWorldId = useRef<string | undefined>(undefined);
   const pendingCharacter = useRef<string | undefined>(undefined);
   const pendingCreative = useRef<
     Extract<ClientMessage, { type: 'text' | 'undoWorld' }> | undefined
@@ -284,7 +284,7 @@ export function Studio() {
           previousDoc.current = undefined;
           setJob(undefined);
           setShowStartedAt(undefined);
-          askedThisSession.current = false;
+          askedWorldId.current = undefined;
           setCaption('');
           break;
         case 'worldJob': {
@@ -297,8 +297,11 @@ export function Studio() {
             if (worldRef.current?.id === message.worldId && worldRef.current.status !== 'ready')
               selectWorldId(undefined);
           }
-          if (message.status === 'queued') askedThisSession.current = true;
-          const outcome = onWorldJob(message, { askedThisSession: askedThisSession.current });
+          const outcome = onWorldJob(message, {
+            selectedWorldId: selectedWorld.current,
+            askedWorldId: askedWorldId.current,
+          });
+          askedWorldId.current = outcome.askedWorldId;
           const heardAt = Date.now();
           setShowStartedAt((t) => (message.status === 'queued' ? heardAt : (t ?? heardAt)));
           setJob(message.status);
