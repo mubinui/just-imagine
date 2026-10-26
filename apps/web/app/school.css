@@ -1045,7 +1045,17 @@ label.sch-option {
   cursor: pointer;
   font-weight: 700;
   color: var(--accent);
-  min-height: 24px;
+  min-height: 44px;
+  padding-block: 10px;
+}
+/* The correct-answer radio sits in a 44 px tap target beside its option field. */
+.sch-answer-pick {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
 }
 .sch-import[open] > summary {
   margin-bottom: 16px;
@@ -1670,17 +1680,22 @@ label.sch-option {
   .sch-nav > p {
     display: none;
   }
+  /* Every destination stays visible: three columns of icon-over-label tiles, not a hidden scroller. */
   .sch-nav nav {
-    flex-direction: row;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
     padding: 0 16px 4px;
-    scrollbar-width: none;
   }
   .sch-nav a {
-    white-space: nowrap;
-    padding: 10px 14px;
-    flex-shrink: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 56px;
+    padding: 8px 4px;
+    font-size: 14px;
+    line-height: 1.2;
+    text-align: center;
   }
   .sch-pin-grid {
     grid-template-columns: 1fr;

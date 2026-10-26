@@ -146,3 +146,94 @@ test('the appearance preview starts below the page heading divider', async ({ pa
   );
   expect(await gapBelow(page, '.adm-heading', '.adm-theme-preview')).toBeGreaterThanOrEqual(16);
 });
+
+// Phone layouts use the student and lesson stylesheets as well.
+const studyCss = readFileSync(
+  new URL('../app/(study)/study/(session)/study.css', import.meta.url),
+  'utf8',
+);
+const stemCss = readFileSync(new URL('../app/stem.css', import.meta.url), 'utf8');
+const globalCss = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8');
+const phoneCss = globalCss + schoolCss + stemCss + studyCss;
+const navLinks = (labels: string[]) =>
+  labels
+    .map(
+      (label) =>
+        `<a href="#"><svg class="ui-icon" width="24" height="24"></svg><span>${label}</span></a>`,
+    )
+    .join('');
+
+for (const [role, labels] of [
+  ['study', ['Home', 'Leaderboard', 'Chemistry lab']],
+  ['teacher', ['Home', 'Classes', 'Students', 'Lessons', 'Results', 'Leaderboard']],
+] as const)
+  test(`every ${role} destination is visible and tappable on a phone`, async ({ page }) => {
+    await render(
+      page,
+      phoneCss,
+      `<div class="sch ${role}"><div class="sch-shell"><aside class="sch-nav"><p>Menu</p><nav>${navLinks([...labels])}</nav></aside><main class="sch-content"></main></div></div>`,
+      390,
+    );
+    for (const label of labels) {
+      const link = await box(page, `.sch-nav a:has-text("${label}")`);
+      expect(link.x, label).toBeGreaterThanOrEqual(0);
+      expect(link.x + link.width, label).toBeLessThanOrEqual(390);
+      expect(link.height, label).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+test('lesson step tabs stay inside the lesson card on a phone', async ({ page }) => {
+  const tab = (n: number, label: string, current = false) =>
+    `<button type="button" ${current ? 'aria-current="step"' : ''}><span class="study-step-num">${n}</span><span class="study-step-label">${label}</span></button>`;
+  await render(
+    page,
+    phoneCss,
+    `<div class="sch study"><section class="study-stage study-player" style="width: 358px">
+      <nav class="study-step-tabs">${tab(1, 'Introduction')}${tab(2, 'Explore a simulation', true)}${tab(3, 'Quick check')}${tab(4, 'Quiz')}</nav>
+      <p class="study-step-caption">Step 2 of 4: Explore a simulation</p>
+    </section></div>`,
+    390,
+  );
+  const stage = await box(page, '.study-stage');
+  for (const button of await page.locator('.study-step-tabs button').all()) {
+    const b = (await button.boundingBox())!;
+    expect(b.x).toBeGreaterThanOrEqual(stage.x);
+    expect(b.x + b.width).toBeLessThanOrEqual(stage.x + stage.width);
+    expect(b.height).toBeGreaterThanOrEqual(44);
+  }
+  // Tabs show numbers; the caption below names the current step in full.
+  await expect(page.locator('.study-step-caption')).toBeVisible();
+  await expect(page.locator('.study-step-tabs .study-step-label').first()).toBeHidden();
+  // Four steps share one row at phone width.
+  const tops = new Set(
+    await page
+      .locator('.study-step-tabs button')
+      .evaluateAll((bs) => bs.map((b) => Math.round(b.getBoundingClientRect().top))),
+  );
+  expect(tops.size).toBe(1);
+});
+
+test('guiding prompts read as separate paragraphs', async ({ page }) => {
+  await render(
+    page,
+    phoneCss,
+    `<div class="sch study"><section class="study-stage"><div class="study-step-copy"><p id="a">Predict: one.</p><p id="b">Observe: two.</p></div></section></div>`,
+    390,
+  );
+  expect(await gapBelow(page, '#a', '#b')).toBeGreaterThanOrEqual(8);
+});
+
+test('small console controls keep a 44 px touch target', async ({ page }) => {
+  await render(
+    page,
+    schoolCss + adminCss,
+    `<div class="sch teacher"><details class="sch-panel-card sch-import"><summary>Import CSV</summary></details>
+      <div class="sch-option"><label class="sch-answer-pick"><input type="radio" /></label><input /></div></div>
+     <div class="adm"><div class="adm-segments"><button>Worlds</button><button>Story packs</button></div></div>`,
+    820,
+  );
+  expect((await box(page, '.sch-import > summary')).height).toBeGreaterThanOrEqual(44);
+  const pick = await box(page, '.sch-answer-pick');
+  expect(Math.min(pick.width, pick.height)).toBeGreaterThanOrEqual(44);
+  expect((await box(page, '.adm-segments button')).height).toBeGreaterThanOrEqual(44);
+});

@@ -333,6 +333,9 @@
   gap: 10px;
   padding-inline: 8px 18px;
 }
+.sch .study-stage .study-step-caption {
+  display: none;
+}
 .sch.study .study-step-num {
   display: grid;
   place-items: center;
@@ -1005,15 +1008,42 @@
     grid-template-columns: 44px minmax(0, 1fr) auto;
     padding: 14px 16px;
   }
+  /* A compact stepper: tabs show their numbers (each keeps its full name in aria-label) and the
+     caption below names the current step, so a lesson never needs a hidden sideways scroll. */
   .sch .study-stage .study-step-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    margin-inline: -16px;
-    padding: 2px 16px 6px;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
   }
   .sch .study-stage .study-step-tabs > button {
     flex: 0 0 auto;
+    min-width: 44px;
+    justify-content: center;
+    padding-inline: 8px;
+  }
+  .sch .study-stage .study-step-tabs .study-step-label {
+    display: none;
+  }
+  .sch .study-stage .study-step-caption {
+    display: block;
+    margin: 0 0 20px;
+    font-weight: 800;
+    font-size: 17px;
+  }
+  .sch.study .sch-nav nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+  }
+  .sch.study .sch-nav a {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 56px;
+    padding: 8px 4px;
+    font-size: 14px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
   }
   .sch.study .study-submit {
     padding: 16px;

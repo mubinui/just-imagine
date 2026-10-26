@@ -569,6 +569,9 @@ function LessonPlayerContent({ id }: { id: string }) {
             </button>
           ))}
         </nav>
+        <p className="study-step-caption" aria-hidden="true">
+          {t('stepOf', { n: index + 1, total: lesson.steps.length })}: {s(step.kind)}
+        </p>
         {step.kind === 'intro' ? (
           <p className="study-step-copy">{text(step.body)}</p>
         ) : step.kind === 'explore' ? (

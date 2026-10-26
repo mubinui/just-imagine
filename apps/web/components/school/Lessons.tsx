@@ -1461,13 +1461,15 @@ function QuestionEditor({
           </legend>
           {item.options.map((option, i) => (
             <div className={'sch-option ' + assistStyles.choice} key={i}>
-              <input
-                type="radio"
-                name={'answer-' + item.id}
-                aria-label={`${c('correctAnswer')}: ${c('optionN', { n: i + 1 })}`}
-                checked={itemKey.answer === i}
-                onChange={() => onKey({ kind: 'mcq', answer: i })}
-              />
+              <label className="sch-answer-pick">
+                <input
+                  type="radio"
+                  name={'answer-' + item.id}
+                  aria-label={`${c('correctAnswer')}: ${c('optionN', { n: i + 1 })}`}
+                  checked={itemKey.answer === i}
+                  onChange={() => onKey({ kind: 'mcq', answer: i })}
+                />
+              </label>
               <TextField
                 singleLine
                 assistField="option"
