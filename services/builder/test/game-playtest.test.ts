@@ -324,7 +324,7 @@ describe('bounded data-only plans', () => {
     expect(both.scenarios[0]!.checks).toHaveLength(2);
     const single = plan();
     single.scenarios[0]!.checks = [both.scenarios[0]!.checks[0]!];
-    expect(withoutCheck(single, 0, 0)).toBe(single);
+    expect(withoutCheck(single, 0, 0).scenarios).toHaveLength(0);
     const two = plan();
     two.scenarios.push({
       ...two.scenarios[0]!,

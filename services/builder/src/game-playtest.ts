@@ -291,14 +291,14 @@ export function validateGameplayPlan(value: unknown, doc: SceneDoc): GameplayPla
   return plan;
 }
 
-/** Drop one check; an emptied scenario is removed, and a plan left with no scenarios is returned unchanged. */
+/** Drop one check; a scenario left with no checks is removed, so the result may have no scenarios. */
 export function withoutCheck(plan: GameplayPlan, scenario: number, index: number): GameplayPlan {
   const scenarios = plan.scenarios.flatMap((s, i) => {
     if (i !== scenario) return [s];
     const checks = s.checks.filter((_, j) => j !== index);
     return checks.length === 0 ? [] : [{ ...s, checks }];
   });
-  return scenarios.length === 0 ? plan : { ...plan, scenarios };
+  return { ...plan, scenarios };
 }
 
 export function gameplayPlanPrompt(doc: SceneDoc, job: BuildWorldJob, previous?: string): string {
