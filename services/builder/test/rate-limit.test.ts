@@ -47,6 +47,24 @@ describe('withBackoff', () => {
     expect(c.waits[1]!).toBeGreaterThan(c.waits[0]!);
   });
 
+  it('stops backing off when the signal is aborted', async () => {
+    const c = clock();
+    const controller = new AbortController();
+    let calls = 0;
+    await expect(
+      withBackoff(
+        async () => {
+          calls++;
+          controller.abort();
+          throw limited();
+        },
+        { deadlineMs: 60000, signal: controller.signal, ...c },
+      ),
+    ).rejects.toThrow('exhausted');
+    expect(calls).toBe(1);
+    expect(c.waits).toEqual([]);
+  });
+
   it('does not retry other errors', async () => {
     const c = clock();
     let calls = 0;

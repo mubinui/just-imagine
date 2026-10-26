@@ -37,6 +37,7 @@ export class GameScriptModel {
     prompt: string,
     schema?: Record<string, unknown>,
     purpose: 'script' | 'plan' = 'script',
+    signal?: AbortSignal,
   ): Promise<unknown> {
     const timeoutMs = purpose === 'script' ? 180000 : 90000;
     const response = await withBackoff(
@@ -59,18 +60,21 @@ export class GameScriptModel {
                     },
                   }
                 : {}),
-              abortSignal: AbortSignal.timeout(timeoutMs + 10000),
+              abortSignal: signal
+                ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs + 10000)])
+                : AbortSignal.timeout(timeoutMs + 10000),
               httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
             },
           }),
         ),
       // Rate limits come back at once; waiting briefly beats failing the world.
-      { deadlineMs: this.config.rateLimitDeadlineMs ?? 30000 },
+      { deadlineMs: this.config.rateLimitDeadlineMs ?? 30000, signal },
     );
     if (!response.text) throw new Error('Model returned no structured response');
     return JSON.parse(response.text) as unknown;
   }
-  generate: GenerateScript = async (prompt) => this.request(prompt, OUTPUT_JSON_SCHEMA);
+  generate: GenerateScript = async (prompt, _sessionId, signal) =>
+    this.request(prompt, OUTPUT_JSON_SCHEMA, 'script', signal);
 
   plan: PlanGame = async (doc, job, previous, validationFeedback) => {
     const prompt =
@@ -82,18 +86,12 @@ export class GameScriptModel {
     const schema = toGeminiJsonSchema(
       z.toJSONSchema(GameplayPlanSchema, { target: 'draft-7' }) as Record<string, unknown>,
     );
-    try {
-      return await this.request(prompt, schema, 'plan');
-    } catch (error) {
-      // Some Gemini endpoints reject deeply nested union contracts at request validation.
-      // Retain the same model and strict local validation; retry only this format error.
-      if (!error || typeof error !== 'object' || !('status' in error) || error.status !== 400)
-        throw error;
-      return this.request(
-        `${prompt}\nExact JSON contract (data): ${JSON.stringify(schema)}`,
-        undefined,
-        'plan',
-      );
-    }
+    // The contract travels in the prompt: a nested union schema in responseJsonSchema is
+    // rejected with a 400 every time, so the schema call only cost a wasted round trip.
+    return this.request(
+      `${prompt}\nExact JSON contract (data): ${JSON.stringify(schema)}`,
+      undefined,
+      'plan',
+    );
   };
 }

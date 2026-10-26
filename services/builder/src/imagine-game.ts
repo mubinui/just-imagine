@@ -22,7 +22,11 @@ import { providerFailure, type GameFailureDiagnostic } from './game-diagnostics'
 import { isTransientProviderError } from './rate-limit';
 
 /** Calls the script model with a prompt; resolves with its parsed JSON output. */
-export type GenerateScript = (prompt: string, sessionId?: string) => Promise<unknown>;
+export type GenerateScript = (
+  prompt: string,
+  sessionId?: string,
+  signal?: AbortSignal,
+) => Promise<unknown>;
 
 export const GameScriptOutputSchema = z.object({
   kind: z.enum(['game', 'playground']),

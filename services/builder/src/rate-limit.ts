@@ -20,6 +20,8 @@ export async function withBackoff<T>(
     random?: () => number;
     now?: () => number;
     sleep?: (ms: number) => Promise<void>;
+    /** Once aborted, the last rate-limit error is rethrown instead of waiting. */
+    signal?: AbortSignal;
   },
 ): Promise<T> {
   const {
@@ -37,6 +39,7 @@ export async function withBackoff<T>(
     } catch (error) {
       if (!isRateLimited(error)) throw error;
       const wait = Math.round(Math.min(maxWaitMs, baseMs * 2 ** attempt) * (0.5 + random()));
+      if (options.signal?.aborted) throw error;
       if (now() + wait - start > deadlineMs) throw error;
       await sleep(wait);
     }
