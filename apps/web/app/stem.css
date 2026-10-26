@@ -1,7 +1,8 @@
 /* ---------- Simulation workspace ---------- */
+/* The parameter column fits the longest choice label (sodium hydroxide in Bangla) without cutting it. */
 .stem-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 245px;
+  grid-template-columns: minmax(0, 1fr) 312px;
   grid-template-areas:
     'visual params'
     'details params';
@@ -239,6 +240,9 @@
   white-space: pre-wrap;
   max-width: 65ch;
   line-height: 1.65;
+}
+.study-step-copy p + p {
+  margin-top: 12px;
 }
 .study-question {
   background: var(--ground);
@@ -739,9 +743,14 @@
 
 /* ---------- Breakpoints ---------- */
 @media (max-width: 1000px) {
+  /* Below 1000 px a side column would squeeze the simulation; parameters move under it instead. */
   .stem-workspace {
-    grid-template-columns: minmax(0, 1fr) 210px;
-    gap: 0 16px;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'visual'
+      'params'
+      'details';
+    gap: 16px;
   }
 }
 @media (max-width: 760px) {

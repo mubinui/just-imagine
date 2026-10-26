@@ -7,6 +7,18 @@ import { CHAPTERS } from '@just-imagine/stem-content';
 import type { z } from 'zod';
 import type { Lesson } from './types';
 
+type Chapter = (typeof CHAPTERS)[number];
+/** A subject's chapters by textbook; mathematics has two books whose chapter numbers overlap. */
+export function chapterGroups(
+  subject: Lesson['subject'],
+): { book: Chapter['book']; chapters: Chapter[] }[] {
+  const groups = new Map<Chapter['book'], Chapter[]>();
+  for (const chapter of CHAPTERS)
+    if (chapter.subject === subject)
+      groups.set(chapter.book, [...(groups.get(chapter.book) ?? []), chapter]);
+  return [...groups].map(([book, chapters]) => ({ book, chapters }));
+}
+
 const collator = new Intl.Collator(['en', 'bn'], { numeric: true, sensitivity: 'base' });
 /** "Student 2" before "Student 10"; case and accents do not reorder names. */
 export const naturalCompare = (a: string, b: string) => collator.compare(a, b);

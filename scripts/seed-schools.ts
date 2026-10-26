@@ -168,7 +168,7 @@ if (pins.length) {
   console.log('One-time student PIN sheet written with owner-only permissions to ' + output + '.');
 }
 console.log(
-  'Seeded seven bilingual school lessons. ' +
+  `Seeded ${DEMO_LESSONS.length} bilingual school lessons. ` +
     (createdTeacher
       ? 'Created the demo teacher using SCHOOL_DEMO_PASSWORD.'
       : 'Existing teacher credentials were preserved.') +

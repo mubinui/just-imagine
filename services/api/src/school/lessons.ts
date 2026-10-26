@@ -362,8 +362,14 @@ export async function studentLessons(actor: StudentActor) {
       .where('studentId', '==', actor.studentId)
       .get(),
   ]);
-  const lessons = [global, school, ownClass].flatMap((s) =>
-      s.docs.map((d) => ({ id: d.id, ...LessonDocSchema.parse(d.data()) })),
+  const started = new Set(attempts.docs.map((d) => String(d.get('lessonId'))));
+  const visible = [global, school, ownClass].flatMap((s) =>
+    s.docs.map((d) => ({ id: d.id, ...LessonDocSchema.parse(d.data()) })),
+  );
+  // A school's published copy replaces the shared lesson it adapts, unless the student began the original.
+  const replaced = new Set(visible.flatMap((l) => (l.copiedFrom ? [l.copiedFrom] : [])));
+  const lessons = visible.filter(
+      (l) => l.scope !== 'global' || !replaced.has(l.id) || started.has(l.id),
     ),
     ids = new Set(lessons.map((l) => l.id));
   return {

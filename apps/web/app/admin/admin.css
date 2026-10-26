@@ -565,6 +565,10 @@
   grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
   gap: 32px;
   align-items: start;
+  margin-top: 36px;
+}
+.adm-appearance > .adm-section {
+  margin-top: 0;
 }
 .adm-palettes {
   display: grid;
@@ -747,6 +751,9 @@ body:has(.adm-shell)::before,
 .adm textarea {
   font-weight: 400;
 }
+.adm select {
+  text-overflow: ellipsis;
+}
 .adm ::placeholder {
   font-weight: 400;
   color: var(--soft);
@@ -846,6 +853,12 @@ body:has(.adm-shell)::before,
   font-size: 13px;
   border-radius: 8px;
 }
+/* Compact table buttons stay small for a mouse but get a full touch target on touch screens. */
+@media (pointer: coarse) {
+  .adm-small {
+    min-height: var(--tap, 44px);
+  }
+}
 a.adm-button {
   display: inline-flex;
   align-items: center;
@@ -872,7 +885,7 @@ a.adm-button {
 }
 .adm-segments button {
   border: 0;
-  min-height: 38px;
+  min-height: 44px;
   padding: 6px 16px;
   border-radius: 9px;
   font-size: 15px;
