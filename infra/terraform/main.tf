@@ -7,7 +7,7 @@ locals {
       }, api = {
       min = 0, max = 3, concurrency = 80, cpu = "1", memory = "512Mi", timeout = "300s"
       }, builder = {
-      min = 0, max = 3, concurrency = 4, cpu = "2", memory = "2Gi", timeout = "300s"
+      min = 0, max = 3, concurrency = 4, cpu = "2", memory = "2Gi", timeout = "900s"
     }
 
   }

@@ -7,6 +7,8 @@ locals {
     moderation_hits  = "jsonPayload.event=\"moderation_hit\""
     kill_switch      = "jsonPayload.event=\"kill_switch_on\""
     asset_cache_hits = "jsonPayload.event=\"asset_cache\" AND jsonPayload.cached=true"
+    game_fallbacks   = "jsonPayload.event=\"game_fallback\""
+    build_deadlines  = "jsonPayload.event=\"build_deadline_hit\""
 
   }
 
@@ -136,6 +138,44 @@ resource "google_monitoring_alert_policy" "kill_switch" {
   }
 
 
+}
+
+resource "google_monitoring_alert_policy" "game_fallback" {
+
+  display_name          = "Just Imagine game fallback or build deadline"
+  combiner              = "OR"
+  notification_channels = var.notification_channels
+  conditions {
+    display_name = "A world fell back to a template or sample game"
+    condition_threshold {
+      filter          = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.events["game_fallbacks"].name}\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "0s"
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+    }
+  }
+
+  conditions {
+    display_name = "A build ran out of time"
+    condition_threshold {
+      filter          = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.events["build_deadlines"].name}\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "0s"
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+    }
+  }
+
+  alert_strategy {
+    auto_close = "1800s"
+  }
 }
 
 resource "google_monitoring_alert_policy" "gateway_errors" {
