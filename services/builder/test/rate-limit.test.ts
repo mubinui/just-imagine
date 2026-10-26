@@ -4,6 +4,7 @@ import {
   isRateLimited,
   isTransientProviderError,
   withBackoff,
+  withTransientRetry,
 } from '../src/rate-limit';
 
 const limited = () => Object.assign(new Error('Resource has been exhausted'), { status: 429 });
@@ -142,5 +143,54 @@ describe('isTransientProviderError', () => {
     expect(isTransientProviderError(new Error('request timed out'))).toBe(true);
     expect(isTransientProviderError(Object.assign(new Error('bad'), { status: 400 }))).toBe(false);
     expect(isTransientProviderError(new Error('unavailable'))).toBe(false);
+  });
+});
+
+describe('withTransientRetry', () => {
+  const gateway = () => Object.assign(new Error('DEADLINE_EXCEEDED'), { status: 504 });
+
+  it('retries a transient error with backoff and never a client abort', async () => {
+    const c = clock();
+    let calls = 0;
+    const result = await withTransientRetry(
+      async () => {
+        if (++calls < 3) throw gateway();
+        return 'ok';
+      },
+      { deadlineMs: 120000, random: () => 0.5, now: c.now, sleep: c.sleep },
+    );
+    expect(result).toBe('ok');
+    expect(calls).toBe(3);
+    expect(c.waits).toEqual([1000, 2000]);
+
+    const controller = new AbortController();
+    controller.abort();
+    let aborted = 0;
+    await expect(
+      withTransientRetry(
+        async () => {
+          aborted++;
+          throw gateway();
+        },
+        { deadlineMs: 120000, signal: controller.signal, now: c.now, sleep: c.sleep },
+      ),
+    ).rejects.toMatchObject({ status: 504 });
+    expect(aborted).toBe(1);
+    expect(c.waits).toHaveLength(2);
+  });
+
+  it('fails at once on an error that is not transient', async () => {
+    const c = clock();
+    let calls = 0;
+    await expect(
+      withTransientRetry(
+        async () => {
+          calls++;
+          throw Object.assign(new Error('bad request'), { status: 400 });
+        },
+        { deadlineMs: 120000, now: c.now, sleep: c.sleep },
+      ),
+    ).rejects.toThrow('bad request');
+    expect(calls).toBe(1);
   });
 });

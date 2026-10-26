@@ -21,7 +21,7 @@ import {
 } from './game-playtest';
 import { logEvent } from '@just-imagine/server-core';
 import { providerFailure, type GameFailureDiagnostic } from './game-diagnostics';
-import { isRateLimited, isTransientProviderError } from './rate-limit';
+import { isRateLimited, isTransientProviderError, withTransientRetry } from './rate-limit';
 import { createBudget, type BuildBudget } from './budget';
 import { raceCandidates, type Candidate } from './candidates';
 import { ensureHero } from './hero';
@@ -58,6 +58,33 @@ export interface ImagineGameDeps {
   onScene?: (doc: SceneDoc) => void;
   /** Script candidates raced per round; defaults to 2. */
   candidates?: number;
+  /** Clock, sleep and jitter for the scene-stage retry; tests inject these. */
+  sceneRetry?: Pick<Parameters<typeof withTransientRetry>[1], 'now' | 'sleep' | 'random'>;
+}
+
+/** Wraps the scene model so a transient provider error is retried inside the build budget. */
+export function retryingScene(
+  job: BuildWorldJob,
+  deps: ImagineGameDeps,
+  budget: BuildBudget,
+  compose: (prompt: string) => string = (prompt) => prompt,
+): GenerateJson {
+  return (prompt, kind, sessionId) =>
+    withTransientRetry(
+      () => deps.generateScene(compose(prompt), kind, sessionId),
+      { deadlineMs: Math.min(120000, budget.remainingMs()), ...deps.sceneRetry },
+      (error) => {
+        const status =
+          error && typeof error === 'object' && 'status' in error
+            ? Number(error.status)
+            : undefined;
+        logEvent('scene_provider_retry', {
+          jobId: job.jobId,
+          worldId: job.worldId,
+          ...(status !== undefined && !Number.isNaN(status) ? { status } : {}),
+        });
+      },
+    );
 }
 
 export interface ImagineGameResult {
@@ -193,15 +220,16 @@ export async function imagineGame(
     deps.onScene?.(lab);
     return { doc: lab, kind: 'playground', attempts: 0, fallback: false, rounds: 0 };
   }
+  // One budget for the whole build: the scene retry and the script rounds share it.
+  const budget = deps.budget ?? createBudget();
   const built = await buildScene(
     job,
-    (prompt, kind, sessionId) =>
-      deps.generateScene(`${prompt}\n${GAME_SCENE_HINT}`, kind, sessionId),
+    retryingScene(job, deps, budget, (prompt) => `${prompt}\n${GAME_SCENE_HINT}`),
     deps.reviewScene,
   );
   const doc = ensureHero(built, job);
   deps.onScene?.(doc);
-  return compileBehavior(doc, job, deps, undefined, { fallback: 'template' });
+  return compileBehavior(doc, job, { ...deps, budget }, undefined, { fallback: 'template' });
 }
 
 /** Time a round of script candidates needs to finish: the model call plus every gate. */

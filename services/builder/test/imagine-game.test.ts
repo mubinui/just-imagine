@@ -112,6 +112,40 @@ describe('imagineGame', () => {
     expect(prompt).toContain(JSON.stringify('catch the flies before the owl wakes up'));
   });
 
+  it('builds the scene after a transient provider error instead of falling back', async () => {
+    const doc = toGenerated(sceneOnly(flies)) as unknown;
+    let calls = 0;
+    const prompts: string[] = [];
+    const generateScene = vi.fn(async (prompt: string) => {
+      prompts.push(prompt);
+      if (++calls <= 2) throw Object.assign(new Error('DEADLINE_EXCEEDED'), { status: 504 });
+      return doc;
+    });
+    const script = recorded<unknown>([
+      { kind: 'game', source: GOOD },
+      { kind: 'game', source: GOOD },
+    ]);
+    const sleeps: number[] = [];
+    const result = await imagineGame(job('catch the flies before the owl wakes up'), {
+      generateScene,
+      generateScript: script.fn as GenerateScript,
+      sceneRetry: {
+        random: () => 0.5,
+        sleep: async (ms) => {
+          sleeps.push(ms);
+        },
+      },
+    });
+    expect(result.fallback).toBe(false);
+    expect(generateScene).toHaveBeenCalledTimes(3);
+    expect(prompts.some((p) => p.includes('Previous candidate'))).toBe(false);
+    expect(sleeps).toEqual([1000, 2000]);
+    expect(events.filter((e) => e.event === 'scene_provider_retry')).toEqual([
+      { event: 'scene_provider_retry', jobId: 'j_game', worldId: 'w_game', status: 504 },
+      { event: 'scene_provider_retry', jobId: 'j_game', worldId: 'w_game', status: 504 },
+    ]);
+  });
+
   it('retries once with the static-check error, then publishes the repaired script', async () => {
     const script = recorded<unknown>([
       { kind: 'game', source: 'fetch("https://example.com");\ngame.score(1);' },
