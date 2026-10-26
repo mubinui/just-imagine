@@ -60,7 +60,8 @@ export const STUDY_COPY = {
   notYet: ['Not quite yet', 'এখনো ঠিক হয়নি'],
   savedCorrect: ['Your saved answer is correct', 'তোমার সংরক্ষিত উত্তর সঠিক'],
   savedWrong: ['Your saved answer is not correct yet', 'তোমার সংরক্ষিত উত্তর এখনো সঠিক নয়'],
-  why: ['Why', 'কেন'],
+  /** The lesson's first hint, shown after a correct answer as the reasoning to remember. */
+  keyIdea: ['Key idea', 'মূল ভাবনা'],
   wrongNext: [
     'Change your answer, open a hint or revisit the simulation, then submit again.',
     'উত্তর বদলাও, সংকেত দেখো বা সিমুলেশনে ফিরে যাও, তারপর আবার জমা দাও।',

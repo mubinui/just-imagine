@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { LessonKeysDocSchema } from '@just-imagine/protocol';
 import type { z } from 'zod';
 import {
+  chapterGroups,
   classNameIssue,
   copiedLessonIds,
   filterStudents,
@@ -225,5 +226,19 @@ describe('notices across a route replace', () => {
     rememberNotice('lesson:w1', 'Saved', storage);
     expect(takeNotice('lesson:w1', storage)).toBe('Saved');
     expect(takeNotice('lesson:w1', storage)).toBe('');
+  });
+});
+
+describe('chapterGroups', () => {
+  it('splits mathematics into its two books so equal chapter numbers stay distinguishable', () => {
+    const groups = chapterGroups('math');
+    expect(groups.map((g) => g.book)).toEqual(['general-math', 'higher-math']);
+    expect(groups[0]!.chapters[0]!.id).toBe('math-gm-1');
+    expect(groups[1]!.chapters[0]!.id).toBe('math-hm-1');
+    expect(groups.flatMap((g) => g.chapters)).toHaveLength(31);
+  });
+  it('keeps a single-book subject in one group', () => {
+    expect(chapterGroups('physics')).toHaveLength(1);
+    expect(chapterGroups('physics')[0]!.chapters).toHaveLength(13);
   });
 });

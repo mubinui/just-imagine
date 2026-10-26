@@ -98,6 +98,7 @@ export function Field({
   hint,
   error,
   hintId,
+  className,
 }: {
   label: string;
   children: ReactNode;
@@ -105,9 +106,13 @@ export function Field({
   error?: string;
   /** Lets the control reference the hint or error with aria-describedby. */
   hintId?: string;
+  className?: string;
 }) {
   return (
-    <label className="sch-field" data-invalid={error ? 'true' : undefined}>
+    <label
+      className={className ? `sch-field ${className}` : 'sch-field'}
+      data-invalid={error ? 'true' : undefined}
+    >
       <span>{label}</span>
       {children}
       {(error || hint) && (

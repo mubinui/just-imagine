@@ -15,6 +15,7 @@ import { schoolRequest, useSchoolResource, schoolHref } from '../../lib/school/a
 import type { Lesson, LessonKeys, SchoolMe, SchoolClass } from '../../lib/school/types';
 import { useConsoleCopy, type ConsoleString } from '../../lib/school/console-copy';
 import {
+  chapterGroups,
   copiedLessonIds,
   lessonDraftIssues,
   parseJsonDraft,
@@ -942,7 +943,7 @@ export function LessonEditor({ id, admin = false }: { id: string; admin?: boolea
           onChange={(title) => change({ ...lesson, title })}
           language={editLang}
         />
-        <div className="sch-grid sch-grid-4">
+        <div className="sch-grid sch-lesson-meta">
           <Field label={s('subject')}>
             <select
               value={lesson.subject}
@@ -971,18 +972,6 @@ export function LessonEditor({ id, admin = false }: { id: string; admin?: boolea
               <option value={10}>{n(10)}</option>
             </select>
           </Field>
-          <Field label={s('chapter')}>
-            <select
-              value={lesson.chapterId}
-              onChange={(e) => change({ ...lesson, chapterId: e.target.value })}
-            >
-              {CHAPTERS.filter((ch) => ch.subject === lesson.subject).map((ch) => (
-                <option key={ch.id} value={ch.id}>
-                  {n(ch.number)}. {text(ch.title)}
-                </option>
-              ))}
-            </select>
-          </Field>
           <Field label={s('sourceLanguage')}>
             <select
               value={lesson.sourceLanguage}
@@ -990,6 +979,30 @@ export function LessonEditor({ id, admin = false }: { id: string; admin?: boolea
             >
               <option value="en">English</option>
               <option value="bn">বাংলা</option>
+            </select>
+          </Field>
+          <Field label={s('chapter')} className="sch-lesson-chapter">
+            <select
+              value={lesson.chapterId}
+              onChange={(e) => change({ ...lesson, chapterId: e.target.value })}
+            >
+              {chapterGroups(lesson.subject).map(({ book, chapters }, _, groups) => {
+                const options = chapters.map((ch) => (
+                  <option key={ch.id} value={ch.id}>
+                    {n(ch.number)}. {text(ch.title)}
+                  </option>
+                ));
+                return groups.length > 1 ? (
+                  <optgroup
+                    key={book}
+                    label={c(book === 'higher-math' ? 'book-higher-math' : 'book-general-math')}
+                  >
+                    {options}
+                  </optgroup>
+                ) : (
+                  options
+                );
+              })}
             </select>
           </Field>
         </div>
@@ -1448,13 +1461,15 @@ function QuestionEditor({
           </legend>
           {item.options.map((option, i) => (
             <div className={'sch-option ' + assistStyles.choice} key={i}>
-              <input
-                type="radio"
-                name={'answer-' + item.id}
-                aria-label={`${c('correctAnswer')}: ${c('optionN', { n: i + 1 })}`}
-                checked={itemKey.answer === i}
-                onChange={() => onKey({ kind: 'mcq', answer: i })}
-              />
+              <label className="sch-answer-pick">
+                <input
+                  type="radio"
+                  name={'answer-' + item.id}
+                  aria-label={`${c('correctAnswer')}: ${c('optionN', { n: i + 1 })}`}
+                  checked={itemKey.answer === i}
+                  onChange={() => onKey({ kind: 'mcq', answer: i })}
+                />
+              </label>
               <TextField
                 singleLine
                 assistField="option"
