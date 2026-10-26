@@ -62,6 +62,7 @@ import { LabDrawer } from './studio/LabDrawer';
 import { Dock, StageHeader } from './studio/Dock';
 import { StudioMenu } from './studio/StudioMenu';
 import { clearBuild, rememberBuild } from '../lib/building';
+import { onWorldJob } from '../lib/studio-world-job';
 import { UiIcon } from './UiIcon';
 import { PetFollower } from './pets/PetFollower';
 import { PetSlot } from './pets/PetSlot';
@@ -102,6 +103,7 @@ export function Studio() {
   const discovered = useRef(new Set<string>());
   const hello = useRef<Hello | undefined>(undefined);
   const pendingIntent = useRef<'newGame' | undefined>(undefined);
+  const askedThisSession = useRef(false);
   const pendingCharacter = useRef<string | undefined>(undefined);
   const pendingCreative = useRef<
     Extract<ClientMessage, { type: 'text' | 'undoWorld' }> | undefined
@@ -282,6 +284,7 @@ export function Studio() {
           previousDoc.current = undefined;
           setJob(undefined);
           setShowStartedAt(undefined);
+          askedThisSession.current = false;
           setCaption('');
           break;
         case 'worldJob': {
@@ -294,12 +297,14 @@ export function Studio() {
             if (worldRef.current?.id === message.worldId && worldRef.current.status !== 'ready')
               selectWorldId(undefined);
           }
+          if (message.status === 'queued') askedThisSession.current = true;
+          const outcome = onWorldJob(message, { askedThisSession: askedThisSession.current });
           const heardAt = Date.now();
           setShowStartedAt((t) => (message.status === 'queued' ? heardAt : (t ?? heardAt)));
           setJob(message.status);
           // Leaving the Studio mid-build keeps a small badge on the other child screens.
           if (!env.fake) {
-            if (message.status === 'ready' || message.status === 'failed') clearBuild();
+            if (outcome.clearBadge) clearBuild();
             else
               rememberBuild({
                 worldId: message.worldId,
@@ -310,8 +315,9 @@ export function Studio() {
           if (!env.fake) {
             // A queued world does not exist yet; Firestore correctly denies reads without an owner.
             // Subscribe only after the builder publishes the first playable document.
-            if (['placeholders', 'hero', 'ready'].includes(message.status))
-              selectWorldId(message.worldId);
+            // The world the child asked for is ready: the friend stops and the game takes over.
+            if (outcome.stopVoice) stopVoice();
+            if (outcome.select) selectWorldId(outcome.select);
             else if (message.status === 'queued' && selectedWorld.current !== message.worldId)
               selectWorldId(undefined);
           }
