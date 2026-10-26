@@ -1,4 +1,5 @@
 import { LIMITS, validateScene, type Entity, type SceneDoc } from '@just-imagine/scene-schema';
+import { logEvent } from '@just-imagine/server-core';
 import { CHARACTERS, type BuildWorldJob } from '@just-imagine/protocol';
 
 type CompanionId = NonNullable<BuildWorldJob['companionId']>;
@@ -27,6 +28,16 @@ export function companionHeroEntity(companionId: CompanionId, material: string):
   };
 }
 
+function heroInsertFailed(doc: SceneDoc, job: BuildWorldJob, reason: string): SceneDoc {
+  logEvent('hero_insert_failed', {
+    jobId: job.jobId,
+    worldId: job.worldId,
+    reason,
+    count: doc.entities.length,
+  });
+  return doc;
+}
+
 /**
  * Makes sure the scene has a hero that can act. When the child named nobody, the
  * friend holding the mic becomes the hero. Never throws; returns the input when
@@ -38,13 +49,13 @@ export function ensureHero(doc: SceneDoc, job: BuildWorldJob): SceneDoc {
   if (next.entities.length >= LIMITS.maxEntities) {
     // No room to insert: point at the first thing that can act.
     const actor = next.entities.find((e) => e.kind === 'sprite' && !e.body.isStatic);
-    if (!actor) return doc;
+    if (!actor) return heroInsertFailed(doc, job, 'full_no_actor');
     next.learning.heroEntityId = actor.id;
-    return validateScene(next).ok ? next : doc;
+    return validateScene(next).ok ? next : heroInsertFailed(doc, job, 'invalid_after_repoint');
   }
   const ids = new Set(next.entities.map((e) => e.id));
   let id: string = job.companionId;
-  for (let n = 2; ids.has(id); n += 1) id = `${job.companionId}-${n}`;
+  for (let n = 2; ids.has(id); n += 1) id = `${job.companionId}_${n}`;
   const ground = next.entities.find((e) => e.kind === 'ground');
   const dynamic = next.entities.find((e) => e.kind === 'sprite' && !e.body.isStatic);
   const material = dynamic?.body.material ?? Object.keys(next.materials)[0] ?? 'wood';
@@ -54,5 +65,7 @@ export function ensureHero(doc: SceneDoc, job: BuildWorldJob): SceneDoc {
   next.entities.push(hero);
   next.learning.heroEntityId = id;
   const checked = validateScene(next);
-  return checked.ok && checked.doc ? checked.doc : doc;
+  return checked.ok && checked.doc
+    ? checked.doc
+    : heroInsertFailed(doc, job, 'invalid_after_insert');
 }

@@ -78,6 +78,20 @@ describe('hero rule', () => {
     );
   });
 
+  it('numbers the id when the companion id is already taken', () => {
+    const taken = structuredClone(withStaticHero);
+    taken.entities.push({
+      ...structuredClone(flies.entities.find((e) => e.kind === 'sprite' && !e.body.isStatic)!),
+      id: 'mishti',
+      tags: ['mishti_prop'],
+    });
+    const doc = ensureHero(taken, job('x', { companionId: 'mishti' }));
+    const hero = doc.entities.find((e) => e.id === 'mishti_2');
+    expect(hero?.tags).toEqual(['hero', 'mishti']);
+    expect(doc.learning.heroEntityId).toBe('mishti_2');
+    expect(heroProblem(doc)).toBeNull();
+  });
+
   it('tells the scene model the companion look', () => {
     expect(scenePromptV1(job('x', { companionId: 'bhombol' }))).toContain(CHARACTERS.bhombol.look);
     expect(scenePromptV1(job('x'))).not.toContain(CHARACTERS.bhombol.look);

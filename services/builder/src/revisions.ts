@@ -79,7 +79,8 @@ export async function reviseCreation(
       ),
     deps.reviewScene ? (doc, job) => deps.reviewScene!(doc, job, world.doc) : undefined,
   );
-  doc = ensureHero(doc, build);
+  // A lab's hero may legitimately be static.
+  if (world.doc.tier !== 'lab') doc = ensureHero(doc, build);
   if (world.doc.tier !== 'lab') {
     // An edit can change the form of play too; the script model reads the actual request.
     // Freeplay gating permits scoreless toys; goal-based mechanics remain available through the API.

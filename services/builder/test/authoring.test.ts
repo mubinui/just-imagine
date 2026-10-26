@@ -1,5 +1,5 @@
 import { it, expect, vi } from 'vitest';
-import { FIXTURE_WORLDS } from '@just-imagine/fixtures/browser';
+import { FIXTURE_WORLDS, LAB_WORLDS } from '@just-imagine/fixtures/browser';
 import { type WorldDoc, type ChildDoc, type PatchWorldJob } from '@just-imagine/protocol';
 import { reviseCreation, reconcileArt } from '../src/revisions';
 import { toGenerated } from '../src/prompts/v1';
@@ -171,4 +171,22 @@ it('retries old moving actors whose ready bitmap has no articulated frames', () 
   expect(
     reconcileArt(before, before).entities.find((e) => e.id === hero.id)?.asset,
   ).toBeUndefined();
+});
+
+it('never inserts a companion into a lab revision whose hero is static', async () => {
+  const lab = structuredClone(LAB_WORLDS.fractionsLab);
+  lab.learning.heroEntityId = lab.entities.find((e) => e.body.isStatic)!.id;
+  const labWorld = { ...world, doc: lab, concepts: lab.learning.concepts } as WorldDoc;
+  const result = await reviseCreation(
+    labWorld,
+    { ...job, worldId: lab.worldId, companionId: 'mishti' } as PatchWorldJob,
+    child,
+    {
+      generateScene: vi.fn(async () => toGenerated(lab)),
+      generateScript: vi.fn(),
+      reviewScene: vi.fn(async () => null),
+    },
+  );
+  expect(result.doc.entities.some((e) => e.id === 'mishti')).toBe(false);
+  expect(result.doc.learning.heroEntityId).toBe(lab.learning.heroEntityId);
 });
