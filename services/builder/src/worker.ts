@@ -195,9 +195,16 @@ export class BuilderWorker {
           publishing.catch(() => (publishFailed = true));
           return publishing;
         };
+        /** Stops the current art run without closing the build, when its scene is abandoned. */
+        let retireArt = () => {};
         // Art depends only on the job and the scene, so it starts as soon as the scene exists.
         const beginArt = (scene: SceneDoc) => {
           if (art) return;
+          let retired = false;
+          retireArt = () => {
+            retired = true;
+            art = undefined;
+          };
           requests = requestsFor(scene, job.plan);
           art = startArt(
             requests,
@@ -216,9 +223,9 @@ export class BuilderWorker {
             {
               deadline: budget.deadlineFor(ART_PHASE_MS),
               onUpdate: () => {
-                if (publishable && !closed) void publishArt();
+                if (publishable && !closed && !retired) void publishArt();
               },
-              stop: async () => closed || publishFailed || (await isKillSwitchOn()),
+              stop: async () => retired || closed || publishFailed || (await isKillSwitchOn()),
             },
           );
         };
@@ -251,15 +258,19 @@ export class BuilderWorker {
               );
               return built.doc;
             } catch (error) {
-              if (!(error instanceof SceneValidationError)) throw error;
-              // The scene never validated, so onScene never ran and no art has started:
-              // the nearest sample world of the same tier stands in, with its own art.
+              // The scene never validated, or not even a template passed on it: the nearest
+              // sample world of the same tier stands in, with its own art.
+              if (!(error instanceof SceneValidationError || error instanceof GameGenerationError))
+                throw error;
+              // Art for an abandoned generated scene is stopped and never painted.
+              retireArt();
               const sample = nearestConceptFixture(job).doc;
               beginArt(sample);
-              // A lab is a playground without a script, as imagineGame builds one.
+              // A lab is a playground without a script, as imagineGame builds one. A curated
+              // sample whose templates all fail the gate is published as it is, without a script.
               const template = job.labKind
                 ? undefined
-                : await templateGame(sample, job, undefined, deps);
+                : await templateGame(sample, job, undefined, deps).catch(() => undefined);
               fallback = 'sample';
               logEvent(
                 'game_fallback',
@@ -268,6 +279,9 @@ export class BuilderWorker {
                   worldId: job.worldId,
                   reason: 'sample',
                   ...(template ? { template: template.kind } : {}),
+                  ...(error instanceof GameGenerationError
+                    ? { outcome: error.diagnostic.code }
+                    : {}),
                 },
                 'WARNING',
               );

@@ -385,6 +385,77 @@ it('publishes the nearest sample world with a template game when the scene never
   }
 });
 
+it('publishes the nearest sample world when every template fails its gate on the generated scene', async () => {
+  const job: BuildWorldJob = {
+    kind: 'build',
+    jobId: 'j_no_template',
+    worldId: 'w_no_template',
+    uid: 'no_template_parent',
+    childId: 'c_no_template',
+    sessionId: 's_no_template',
+    plan: 'free',
+    description: 'a frog that must catch ten flies',
+    experience: 'game',
+    concepts: ['bounce'],
+    ageBand: '8-10',
+    tier: 'playground',
+    styleVersion: 'v1',
+    promptVersion: 'v1',
+    conversationSummary: '',
+  };
+  const cleanup = await family(job.uid, job.childId, [job.jobId], job.worldId);
+  try {
+    const scene: SceneDoc = structuredClone(flies);
+    delete scene.game;
+    const models = {
+      generate: vi.fn(async () => toGenerated(scene)),
+      image: vi.fn(async () => {
+        throw new Error('Image unavailable');
+      }),
+    } as unknown as VertexModels;
+    // Every child-facing string is rejected, so all three template tries fail their gate.
+    const moderate = vi.fn(async () => false);
+    const worker = new BuilderWorker(
+      models,
+      { bucket: 'unused', assetBaseUrl: 'https://assets.invalid' },
+      { generateScript: forbiddenScript, moderate },
+    );
+    const asset = vi.spyOn(
+      worker as unknown as { asset: (job: BuildWorldJob, request: ArtRequest) => Promise<unknown> },
+      'asset',
+    );
+    expect(await worker.run(job)).toEqual({ status: 'complete' });
+    expect(moderate).toHaveBeenCalled();
+    expect((await db().doc(`builderJobs/${job.jobId}`).get()).data()).toMatchObject({
+      status: 'fallback',
+      fallbackReason: 'sample',
+      finishedAt: expect.any(Number),
+    });
+    const sample = nearestConceptFixture(job).doc;
+    expect(sample.title).not.toBe(scene.title);
+    const world = WorldDocSchema.parse((await db().doc(paths.world(job.worldId)).get()).data());
+    expect(world).toMatchObject({
+      status: 'ready',
+      title: sample.title,
+      creation: expect.objectContaining({ fallback: 'sample' }),
+    });
+    // Art for the abandoned scene never reaches the published world.
+    expect(asset).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 'frog' }));
+    expect(world.assets['frog']).toBeUndefined();
+    expect(world.doc.entities.some((e) => e.id === 'frog')).toBe(false);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        event: 'game_fallback',
+        reason: 'sample',
+        outcome: 'SCRIPT_STATIC',
+      }),
+    );
+    expect(events.filter((e) => e.event === 'game_fallback')).toHaveLength(1);
+  } finally {
+    await cleanup();
+  }
+});
+
 it('still fails a voice edit whose behaviour never validates and keeps the previous world', async () => {
   const uid = 'edit_fail_parent',
     childId = 'c_edit_fail',

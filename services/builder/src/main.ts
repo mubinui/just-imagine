@@ -129,9 +129,9 @@ app.post('/jobs', async (req, reply) => {
   try {
     return await build(req.body);
   } catch (error) {
-    // A build no longer ends in SceneValidationError or GameGenerationError: it falls back to a
-    // template or sample game (GameGenerationError only if every fixed template failed its gate).
-    // A voice edit still throws them and keeps the previous world.
+    // A build never ends in SceneValidationError or GameGenerationError: it falls back to a
+    // template game, then to the nearest sample world. Only a voice edit still throws them,
+    // and it keeps the previous world.
     if (
       error instanceof SceneValidationError ||
       error instanceof MotionArtworkError ||
