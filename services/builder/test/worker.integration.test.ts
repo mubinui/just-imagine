@@ -42,6 +42,7 @@ import {
 import { FIXTURE_WORLDS, GAME_WORLDS } from '@just-imagine/fixtures/browser';
 import type { SceneDoc } from '@just-imagine/scene-schema';
 import { BuilderWorker } from '../src/worker';
+import { nearestConceptFixture } from '../src/fallback';
 import type { VertexModels } from '../src/vertex';
 import type { ArtAsset, ArtRequest } from '../src/art-phase';
 import { toGenerated } from '../src/prompts/v1';
@@ -219,9 +220,18 @@ it('does not recreate retained job data for a missing or deleted profile', async
   expect((await db().doc('worlds/w_admission_failure').get()).exists).toBe(false);
 });
 
-it('persists only safe terminal game diagnostics and never paints or publishes rejected behavior', async () => {
-  const uid = 'diagnostic_parent',
-    childId = 'c_diagnostic';
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const flies = GAME_WORLDS.catchTheFlies;
+
+/** A parent and child with no leftovers from an earlier run; returns the cleanup. */
+async function family(uid: string, childId: string, jobIds: string[], worldId: string) {
+  const cleanup = async () => {
+    await db().recursiveDelete(db().doc(paths.user(uid)));
+    await db().recursiveDelete(db().doc(paths.world(worldId)));
+    for (const jobId of jobIds) await db().doc(`builderJobs/${jobId}`).delete();
+    await db().doc(`worldLocks/${worldId}`).delete();
+  };
+  await cleanup();
   await writeDoc(paths.user(uid), UserDocSchema, {
     email: 'qa@example.test',
     displayName: 'QA',
@@ -241,24 +251,18 @@ it('persists only safe terminal game diagnostics and never paints or publishes r
     loopsCompleted: 0,
     createdAt: 1,
   });
-  const models = {
-    generate: vi.fn(async () => toGenerated(FIXTURE_WORLDS.jellyDragon)),
-    image: vi.fn(),
-  } as unknown as VertexModels;
-  const worker = new BuilderWorker(
-    models,
-    { bucket: 'unused', assetBaseUrl: 'https://assets.invalid' },
-    {
-      generateScript: async () => ({ kind: 'game', source: 'fetch("private-source");' }),
-    },
-  );
+  return cleanup;
+}
+const forbiddenScript = async () => ({ kind: 'game' as const, source: 'fetch("private-source");' });
+
+it('ends in status fallback with reason template and a ready world when every script fails', async () => {
   const job: BuildWorldJob = {
     kind: 'build',
-    jobId: 'j_safe_diagnostic',
-    worldId: 'w_safe_diagnostic',
-    uid,
-    childId,
-    sessionId: 's_diagnostic',
+    jobId: 'j_template_fallback',
+    worldId: 'w_template_fallback',
+    uid: 'template_parent',
+    childId: 'c_template',
+    sessionId: 's_template',
     plan: 'free',
     description: 'private wish',
     experience: 'freeplay',
@@ -269,26 +273,172 @@ it('persists only safe terminal game diagnostics and never paints or publishes r
     promptVersion: 'v1',
     conversationSummary: '',
   };
-  await expect(worker.run(job)).rejects.toThrow('could not be validated');
-  const result = (
-    await db()
-      .doc('builderJobs/' + job.jobId)
-      .get()
-  ).data()!;
-  expect(result.status).toBe('failed');
-  // Two candidates per round over two rounds: the terminal failure is the third script call.
-  expect(result.failure).toMatchObject({
-    code: 'SCRIPT_STATIC',
-    attempt: 3,
-    issues: [{ code: 'forbidden-identifier', line: 1 }],
-  });
-  expect(JSON.stringify(result.failure)).not.toMatch(/private|fetch|source|wish|child/i);
-  expect((await db().doc(paths.world(job.worldId)).get()).exists).toBe(false);
-  expect(models.image).not.toHaveBeenCalled();
+  const cleanup = await family(job.uid, job.childId, [job.jobId], job.worldId);
+  try {
+    const models = {
+      generate: vi.fn(async () => toGenerated(FIXTURE_WORLDS.jellyDragon)),
+      image: vi.fn(async () => {
+        throw new Error('Image unavailable');
+      }),
+    } as unknown as VertexModels;
+    const generateScript = vi.fn(forbiddenScript);
+    const worker = new BuilderWorker(
+      models,
+      { bucket: 'unused', assetBaseUrl: 'https://assets.invalid' },
+      { generateScript },
+    );
+    expect(await worker.run(job)).toEqual({ status: 'complete' });
+    // Two candidates per round over two rounds, then the template.
+    expect(generateScript).toHaveBeenCalledTimes(4);
+    const record = (await db().doc(`builderJobs/${job.jobId}`).get()).data()!;
+    expect(record).toMatchObject({ status: 'fallback', fallbackReason: 'template' });
+    expect(record['finishedAt']).toEqual(expect.any(Number));
+    // The build did not fail: no failure is recorded; the cause is in the game_fallback event.
+    expect(record['failure']).toBeUndefined();
+    const world = WorldDocSchema.parse((await db().doc(paths.world(job.worldId)).get()).data());
+    expect(world).toMatchObject({
+      status: 'ready',
+      creation: expect.objectContaining({ fallback: 'template', originalWish: 'private wish' }),
+    });
+    // The rejected behaviour is never published; the gated template is.
+    expect(world.doc.game?.script.source).toBeDefined();
+    expect(world.doc.game?.script.source).not.toContain('private-source');
+    const fallbacks = events.filter((e) => e.event === 'game_fallback');
+    expect(fallbacks).toHaveLength(1);
+    expect(fallbacks[0]).toMatchObject({ reason: 'template', outcome: 'SCRIPT_STATIC' });
+    expect(JSON.stringify(fallbacks[0])).not.toMatch(/private|fetch|source|wish|child/i);
+    expect((await db().doc(`worldLocks/${job.worldId}`).get()).exists).toBe(false);
+  } finally {
+    await cleanup();
+  }
 });
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const flies = GAME_WORLDS.catchTheFlies;
+it('publishes the nearest sample world with a template game when the scene never validates', async () => {
+  const job: BuildWorldJob = {
+    kind: 'build',
+    jobId: 'j_sample_fallback',
+    worldId: 'w_sample_fallback',
+    uid: 'sample_parent',
+    childId: 'c_sample',
+    sessionId: 's_sample',
+    plan: 'free',
+    description: 'a wobbly jelly that bounces',
+    experience: 'game',
+    concepts: ['bounce'],
+    ageBand: '8-10',
+    tier: 'playground',
+    styleVersion: 'v1',
+    promptVersion: 'v1',
+    conversationSummary: '',
+  };
+  const cleanup = await family(job.uid, job.childId, [job.jobId], job.worldId);
+  try {
+    const models = {
+      generate: vi.fn(async () => ({ not: 'a scene' })),
+      image: vi.fn(async () => {
+        throw new Error('Image unavailable');
+      }),
+    } as unknown as VertexModels;
+    const generateScript = vi.fn(forbiddenScript);
+    const worker = new BuilderWorker(
+      models,
+      { bucket: 'unused', assetBaseUrl: 'https://assets.invalid' },
+      { generateScript },
+    );
+    const asset = vi.spyOn(
+      worker as unknown as { asset: (job: BuildWorldJob, request: ArtRequest) => Promise<unknown> },
+      'asset',
+    );
+    expect(await worker.run(job)).toEqual({ status: 'complete' });
+    // Three repair rounds, then no script call: the sample gets a template directly.
+    expect(models.generate).toHaveBeenCalledTimes(3);
+    expect(generateScript).not.toHaveBeenCalled();
+    expect((await db().doc(`builderJobs/${job.jobId}`).get()).data()).toMatchObject({
+      status: 'fallback',
+      fallbackReason: 'sample',
+      finishedAt: expect.any(Number),
+    });
+    const sample = nearestConceptFixture(job).doc;
+    const world = WorldDocSchema.parse((await db().doc(paths.world(job.worldId)).get()).data());
+    expect(world).toMatchObject({
+      status: 'ready',
+      title: sample.title,
+      creation: expect.objectContaining({ fallback: 'sample' }),
+    });
+    expect(world.doc.worldId).toBe(job.worldId);
+    expect(world.doc.game?.script.source).toEqual(expect.any(String));
+    // Art was requested for the sample's own pictures.
+    expect(asset).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ id: 'backdrop' }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        event: 'game_fallback',
+        jobId: job.jobId,
+        worldId: job.worldId,
+        reason: 'sample',
+      }),
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+it('still fails a voice edit whose behaviour never validates and keeps the previous world', async () => {
+  const uid = 'edit_fail_parent',
+    childId = 'c_edit_fail',
+    worldId = 'w_edit_fail';
+  const job = {
+    kind: 'patch',
+    jobId: 'j_edit_fail',
+    worldId,
+    uid,
+    childId,
+    sessionId: 's_edit_fail',
+    plan: 'free',
+    instruction: 'Make the frog fly',
+    promptVersion: 'v1',
+  };
+  const cleanup = await family(uid, childId, [job.jobId], worldId);
+  try {
+    const before: SceneDoc = { ...structuredClone(flies), worldId };
+    const previous = WorldDocSchema.parse({
+      ownerUid: uid,
+      childId,
+      title: before.title,
+      status: 'ready',
+      doc: before,
+      schemaVersion: 1,
+      promptVersion: 'v1',
+      styleVersion: 'v1',
+      assets: {},
+      concepts: before.learning.concepts,
+      thumbnailUrl: null,
+      jobId: 'j_edit_fail_initial',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    await db().doc(paths.world(worldId)).set(previous);
+    const models = {
+      generate: vi.fn(async () => toGenerated(flies)),
+      image: vi.fn(),
+    } as unknown as VertexModels;
+    const worker = new BuilderWorker(
+      models,
+      { bucket: 'unused', assetBaseUrl: 'https://assets.invalid' },
+      { generateScript: forbiddenScript },
+    );
+    await expect(worker.run(job)).rejects.toThrow('could not be validated');
+    expect((await db().doc(`builderJobs/${job.jobId}`).get()).data()).toMatchObject({
+      status: 'failed',
+    });
+    expect((await db().doc(paths.world(worldId)).get()).data()).toEqual(previous);
+    expect(events.some((e) => e.event === 'game_fallback')).toBe(false);
+  } finally {
+    await cleanup();
+  }
+});
 
 /** A family whose game wish has a running frog hero, with art scripted per request. */
 async function artWorld(

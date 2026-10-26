@@ -23,7 +23,9 @@ import {
   traced,
   transaction,
 } from '@just-imagine/server-core';
-import { buildScene, patchScene, STYLE_BIBLE } from './pipeline';
+import { buildScene, patchScene, SceneValidationError, STYLE_BIBLE } from './pipeline';
+import { nearestConceptFixture } from './fallback';
+import { templateGame } from './templates';
 import { assetKey, processSprite, processMotionAtlas, MotionRegistrationError } from './assets';
 import type { VertexModels } from './vertex';
 import {
@@ -166,6 +168,8 @@ export class BuilderWorker {
     const budget = createBudget();
     /** Set once the build stops listening to art: the world is final, or the build failed. */
     let closed = false;
+    /** Set when a build published a template or sample game in place of a generated one. */
+    let fallback: 'template' | 'sample' | undefined;
     try {
       if (job.kind === 'patch' || job.kind === 'undo') {
         if (job.kind === 'undo') await this.undo(job, lease);
@@ -223,25 +227,52 @@ export class BuilderWorker {
           { worldId: job.worldId, jobId: job.jobId },
           async () => {
             if (!this.game) return buildScene(job, this.models.generate);
-            const built = await imagineGame(job, {
+            const deps: ImagineGameDeps = {
               ...this.game,
               generateScene: this.models.generate,
               reviewScene: this.models.reviewScene,
               budget,
               onScene: beginArt,
-            });
-            logEvent(
-              built.fallback ? 'game_fallback' : 'game_kind',
-              {
-                jobId: job.jobId,
-                worldId: job.worldId,
-                milestone: built.kind,
-                count: built.attempts,
-                success: !built.fallback,
-              },
-              built.fallback ? 'WARNING' : 'INFO',
-            );
-            return built.doc;
+            };
+            try {
+              const built = await imagineGame(job, deps);
+              if (built.fallbackReason) fallback = built.fallbackReason;
+              // imagineGame logs game_fallback itself; this records the outcome of every build.
+              logEvent(
+                'game_kind',
+                {
+                  jobId: job.jobId,
+                  worldId: job.worldId,
+                  milestone: built.kind,
+                  count: built.attempts,
+                  success: !built.fallback,
+                },
+                built.fallback ? 'WARNING' : 'INFO',
+              );
+              return built.doc;
+            } catch (error) {
+              if (!(error instanceof SceneValidationError)) throw error;
+              // The scene never validated, so onScene never ran and no art has started:
+              // the nearest sample world of the same tier stands in, with its own art.
+              const sample = nearestConceptFixture(job).doc;
+              beginArt(sample);
+              // A lab is a playground without a script, as imagineGame builds one.
+              const template = job.labKind
+                ? undefined
+                : await templateGame(sample, job, undefined, deps);
+              fallback = 'sample';
+              logEvent(
+                'game_fallback',
+                {
+                  jobId: job.jobId,
+                  worldId: job.worldId,
+                  reason: 'sample',
+                  ...(template ? { template: template.kind } : {}),
+                },
+                'WARNING',
+              );
+              return template?.doc ?? sample;
+            }
           },
         );
         beginArt(doc);
@@ -261,7 +292,7 @@ export class BuilderWorker {
           jobId: job.jobId,
           createdAt: Date.now(),
           updatedAt: Date.now(),
-          creation: initialCreation(job),
+          creation: initialCreation(job, fallback),
         });
         publishable = true;
         // The first publish already carries any art that finished while the game was written.
@@ -307,10 +338,13 @@ export class BuilderWorker {
         ]);
         if (fences.some((snapshot) => snapshot.exists)) throw new Error('Deletion requested');
         if (lock.data()?.['lease'] !== lease) throw new Error('Job lease lost');
-        tx.update(jobRef, {
-          status: 'complete',
-          finishedAt: Date.now(),
-        });
+        // A fallback world is playable, so the task succeeds; the job records that it fell back.
+        tx.update(
+          jobRef,
+          fallback
+            ? { status: 'fallback', fallbackReason: fallback, finishedAt: Date.now() }
+            : { status: 'complete', finishedAt: Date.now() },
+        );
         tx.delete(lockRef);
       });
       logEvent('builder_result', {

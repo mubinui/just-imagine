@@ -102,10 +102,11 @@ export async function reviseCreation(
   return { doc: reconcileArt(world.doc, doc), creation };
 }
 
-export function initialCreation(job: BuildWorldJob): Creation {
+export function initialCreation(job: BuildWorldJob, fallback?: Creation['fallback']): Creation {
   return {
     originalWish: job.childRequest ?? job.description,
     changes: [],
     mode: job.experience ?? 'freeplay',
+    ...(fallback ? { fallback } : {}),
   };
 }
