@@ -54,6 +54,13 @@ function proposal(change: (p: LabProposal) => void = () => {}): LabProposal {
         args: { x: target, tol: 0.5 },
         exampleAnswer: { angle: 45 },
       },
+      hints: [
+        { en: 'Compare the range at two angles first.', bn: 'আগে দুটি কোণে পাল্লা তুলনা করো।' },
+        {
+          en: 'A launch height favours an angle a little below 45°.',
+          bn: 'উঁচু থেকে ছুড়লে 45°-এর একটু কম কোণ ভালো কাজ করে।',
+        },
+      ],
     },
     summary: { en: 'A ball launched from a cliff', bn: 'খাড়া পাড় থেকে ছোড়া বল' },
   };
@@ -187,6 +194,13 @@ describe('generateLab', () => {
     const { model, prompts } = scripted(mismatch, proposal());
     await generateLab(operator, request, model);
     expect(prompts[1]).toMatch(/same simulation/);
+  });
+
+  it('checks the hints’ language too', async () => {
+    const hint = proposal((p) => (p.task!.hints[0]!.bn = 'Compare the range at two angles first.'));
+    const { model, prompts } = scripted(hint, proposal());
+    await generateLab(operator, request, model);
+    expect(prompts[1]).toMatch(/Bangla/);
   });
 
   it('rejects text in the wrong language', async () => {

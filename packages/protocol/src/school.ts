@@ -321,7 +321,14 @@ export type LabGenerateRequest = z.infer<typeof LabGenerateRequestSchema>;
 /** A proposal for review: nothing is saved until the teacher accepts it into the editor. */
 export const LabProposalSchema = z.strictObject({
   step: ExploreStepSchema,
-  task: z.strictObject({ item: SimTaskItemSchema, key: SimTaskKeySchema }).nullable(),
+  task: z
+    .strictObject({
+      item: SimTaskItemSchema,
+      key: SimTaskKeySchema,
+      /** Progressive hints that guide without revealing the answer; publishing needs at least one. */
+      hints: z.array(BilingualTextSchema).min(1).max(2),
+    })
+    .nullable(),
   summary: BilingualTextSchema,
 });
 export type LabProposal = z.infer<typeof LabProposalSchema>;

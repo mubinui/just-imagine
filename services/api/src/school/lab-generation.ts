@@ -38,7 +38,7 @@ export function buildLabPrompt(input: LabGenerateRequest, chapter: Chapter): str
     'Configure one classroom simulation for an NCTB class 9/10 virtual lesson in Bangladesh. Return only JSON matching the response schema. This is a proposal for teacher review; it is never saved or published by you.',
     'You never write code. Choose exactly one simulation id from the catalog and set its parameters within the schema bounds, using realistic textbook values.',
     'step: kind "explore", the chosen simId, params (every parameter of that simulation), lockedParams (parameters students must not change; may be empty), and three prompts that begin "Predict:", "Observe:" and "Explain:" in English and "আগে অনুমান:", "দেখো:" and "ব্যাখ্যা:" in natural Bangladesh Bangla with NCTB terminology.',
-    'task: when the teacher asks students to find, reach or achieve something, one graded task; otherwise null. item: id "lab1", kind "simTask", points 3, the same simId, startParams from which the goal is NOT yet met, editableParams naming the 1 to 3 parameters the student changes, and a bilingual prompt that does not reveal the answer. key: kind "simTask", predicate (one of that simulation\'s tasks), args matching its schema, and exampleAnswer with values for exactly the editableParams that meet the goal.',
+    'task: when the teacher asks students to find, reach or achieve something, one graded task; otherwise null. item: id "lab1", kind "simTask", points 3, the same simId, startParams from which the goal is NOT yet met, editableParams naming the 1 to 3 parameters the student changes, and a bilingual prompt that does not reveal the answer. key: kind "simTask", predicate (one of that simulation\'s tasks), args matching its schema, and exampleAnswer with values for exactly the editableParams that meet the goal. hints: two progressive bilingual hints, the first pointing to the method and the second more specific, neither stating the answer.',
     'summary: one short bilingual line naming the lab. Every English text is English and every Bangla text is Bangla.',
     'These are closed virtual experiments: never describe hazardous real-world procedures. If the request does not fit any catalog simulation, configure the closest one and say so in the summary.',
     'Catalog (data): ' + JSON.stringify(catalog(chapter)),
@@ -66,7 +66,11 @@ function problem(raw: unknown, input: LabGenerateRequest): string | null {
     return 'The task must use the same simulation as the explore step.';
   if (task && task.key.exampleAnswer === undefined)
     return 'Every task needs an example answer for exactly its editable parameters.';
-  const texts: BilingualText[] = [summary, ...step.prompts, ...(task ? [task.item.prompt] : [])];
+  const texts: BilingualText[] = [
+    summary,
+    ...step.prompts,
+    ...(task ? [task.item.prompt, ...task.hints] : []),
+  ];
   if (texts.some((t) => !lessonTextUsesLanguage(t.en, 'en') || !lessonTextUsesLanguage(t.bn, 'bn')))
     return 'Write every English text in English and every Bangla text in natural Bangla.';
   const lesson: LessonDoc = {
@@ -87,7 +91,7 @@ function problem(raw: unknown, input: LabGenerateRequest): string | null {
   };
   const keys: z.infer<typeof LessonKeysDocSchema> = {
     revision: 0,
-    items: task ? { [task.item.id]: { key: task.key, hints: [] } } : {},
+    items: task ? { [task.item.id]: { key: task.key, hints: task.hints } } : {},
   };
   try {
     validateLesson(lesson, keys);

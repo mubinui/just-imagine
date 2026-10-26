@@ -184,6 +184,7 @@ describe('lab generation contract', () => {
       args: { min: 40 },
       exampleAnswer: { angleDeg: 45 },
     },
+    hints: [{ en: 'Try angles either side of 45°.', bn: '45°-এর দুই পাশের কোণ চেষ্টা করো।' }],
   };
   const summary = { en: 'Projectile from a cliff', bn: 'খাড়া পাহাড় থেকে প্রক্ষেপক' };
 
@@ -200,6 +201,16 @@ describe('lab generation contract', () => {
   it('accepts a proposal with or without a graded task', () => {
     expect(LabProposalSchema.parse({ step, task, summary }).task?.item.id).toBe('lab1');
     expect(LabProposalSchema.parse({ step, task: null, summary }).task).toBeNull();
+  });
+
+  it('needs one or two hints with a task', () => {
+    expect(
+      LabProposalSchema.safeParse({ step, task: { ...task, hints: [] }, summary }).success,
+    ).toBe(false);
+    const three = [summary, summary, summary];
+    expect(
+      LabProposalSchema.safeParse({ step, task: { ...task, hints: three }, summary }).success,
+    ).toBe(false);
   });
 
   it('only proposes a simulation step with a simulation task', () => {
