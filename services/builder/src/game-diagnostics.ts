@@ -13,7 +13,9 @@ export type GameFailureCode =
   | 'PLAYTEST_RUNTIME'
   | 'PLAYTEST_CHECK'
   | 'PLAYTEST_CAUSAL'
-  | 'SCENE_INVALID';
+  | 'SCENE_INVALID'
+  /** The build's time budget could not hold another round of script candidates. */
+  | 'BUDGET';
 
 export interface GameFailureDiagnostic {
   code: GameFailureCode;
@@ -23,6 +25,8 @@ export interface GameFailureDiagnostic {
   phase?: 'init' | 'handler' | 'timer' | 'async';
   line?: number;
   budget?: { kind: string; value: number; limit: number };
+  /** Plan checks the programme failed in the journey that stopped it. */
+  failedChecks?: number;
   check?: {
     scenario: number;
     index: number;

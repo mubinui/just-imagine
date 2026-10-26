@@ -476,10 +476,12 @@ export async function runGameplayPlan(
     const reportCheck = (
       code: 'PLAYTEST_CHECK' | 'PLAYTEST_CAUSAL',
       check: (typeof scenario.checks)[number],
+      failedChecks: number,
       measured?: { expected: number[]; actual: number[] },
     ) =>
       diagnose?.({
         code,
+        failedChecks,
         check: {
           scenario: scenarioIndex,
           index: scenario.checks.indexOf(check),
@@ -496,7 +498,7 @@ export async function runGameplayPlan(
     }
     if (active.failures.size) {
       const failed = active.failures.keys().next().value!;
-      reportCheck('PLAYTEST_CHECK', failed, active.measurements.get(failed));
+      reportCheck('PLAYTEST_CHECK', failed, active.failures.size, active.measurements.get(failed));
       return `Playtest ${scenario.name}: ${[...active.failures.values()].slice(0, 4).join('; ')}`;
     }
     if (scenario.inputs.length === 0) continue;
@@ -536,7 +538,7 @@ export async function runGameplayPlan(
       }
       for (const check of checks) {
         if (!control.failures.has(check)) {
-          reportCheck('PLAYTEST_CAUSAL', check);
+          reportCheck('PLAYTEST_CAUSAL', check, 1);
           return `Playtest ${scenario.name}: effect ${JSON.stringify(check)} also passes without input ${trigger}; that control has no demonstrated effect`;
         }
       }

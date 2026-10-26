@@ -236,9 +236,10 @@ it('persists only safe terminal game diagnostics and never paints or publishes r
       .get()
   ).data()!;
   expect(result.status).toBe('failed');
+  // Two candidates per round over two rounds: the terminal failure is the third script call.
   expect(result.failure).toMatchObject({
     code: 'SCRIPT_STATIC',
-    attempt: 2,
+    attempt: 3,
     issues: [{ code: 'forbidden-identifier', line: 1 }],
   });
   expect(JSON.stringify(result.failure)).not.toMatch(/private|fetch|source|wish|child/i);

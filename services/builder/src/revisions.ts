@@ -82,10 +82,17 @@ export async function reviseCreation(
     // An edit can change the form of play too; the script model reads the actual request.
     // Freeplay gating permits scoreless toys; goal-based mechanics remain available through the API.
     build.experience = 'freeplay';
-    const compiled = await compileBehavior(doc, build, deps, {
-      ...(world.doc.game ? { source: world.doc.game.script.source } : {}),
-      instruction: job.instruction,
-    });
+    // A voice edit keeps the prior world on failure; it never becomes a template.
+    const compiled = await compileBehavior(
+      doc,
+      build,
+      deps,
+      {
+        ...(world.doc.game ? { source: world.doc.game.script.source } : {}),
+        instruction: job.instruction,
+      },
+      { fallback: 'throw' },
+    );
     doc = compiled.doc;
     creation.mode = 'freeplay';
   }
