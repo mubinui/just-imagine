@@ -45,6 +45,7 @@ import {
   studentLessons,
 } from './lessons';
 import { assistLessonText, draftLesson, translateLesson } from './authoring';
+import { generateLab } from './lab-generation';
 import { grade, boards, results, hint, teacherBoards } from './grading';
 import { react } from './chemistry';
 import type { SchoolModel } from './ai';
@@ -61,6 +62,8 @@ export interface SchoolRouteOptions {
   verifyStudent?: (idToken: string) => Promise<StudentActor>;
   isSchoolSuspended?: (schoolId: string) => Promise<boolean>;
   model?: SchoolModel;
+  /** Lab generation's model; defaults to the world-builder model on Vertex AI. */
+  labModel?: SchoolModel;
   /** Schools may take a plan as a free promotion while the deployment takes no payments. */
   promotions?: boolean;
 }
@@ -231,6 +234,9 @@ export function registerSchoolRoutes(app: FastifyInstance, options: SchoolRouteO
     routes.post('/v1/school/lessons', (req) => saveLesson(schoolActor(req), req.body));
     routes.post('/v1/school/lesson-text/assist', (req) =>
       assistLessonText(schoolActor(req), req.body, options.model),
+    );
+    routes.post('/v1/school/lab/generate', (req) =>
+      generateLab(schoolActor(req), req.body, options.labModel),
     );
     routes.get('/v1/school/lessons/:id', (req) => authorLesson(schoolActor(req), id(req.params)));
     routes.patch('/v1/school/lessons/:id', (req) =>

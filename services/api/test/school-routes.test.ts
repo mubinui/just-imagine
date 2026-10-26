@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { SchoolRoleRequiredError } from '@just-imagine/server-core';
 import { createApi } from '../src/app';
 import type { ApiStore } from '../src/store';
+import type { SchoolModel } from '../src/school/ai';
 
-function harness() {
+function harness(labModel?: SchoolModel) {
   const store = new Proxy({}, { get: () => async () => ({ uid: 'parent' }) }) as ApiStore;
   return createApi({
     store,
@@ -34,6 +35,7 @@ function harness() {
         throw new Error('internal detail: bad token');
       },
       isSchoolSuspended: async (schoolId) => schoolId === 's2',
+      ...(labModel ? { labModel } : {}),
     },
   });
 }
@@ -89,6 +91,58 @@ describe('isolation', () => {
   it('leaves parent routes untouched', async () => {
     const app = harness();
     expect((await get(app, '/v1/me', 'parent')).statusCode).toBe(200);
+    await app.close();
+  });
+});
+
+describe('lab generation route', () => {
+  const body = {
+    subject: 'physics',
+    grade: 9,
+    chapterId: 'physics-2',
+    title: { en: 'Projectiles', bn: 'প্রক্ষেপক' },
+    description: 'Launch a ball and watch how the angle changes the range.',
+    language: 'en',
+  };
+  const proposal = {
+    step: {
+      kind: 'explore',
+      simId: 'projectile',
+      params: { speed: 20, angle: 30, height: 0, gravity: 9.8 },
+      lockedParams: [],
+      prompts: [
+        {
+          en: 'Predict: which angle goes furthest?',
+          bn: 'আগে অনুমান: কোন কোণে সবচেয়ে দূরে যায়?',
+        },
+      ],
+    },
+    task: null,
+    summary: { en: 'Launch angle and range', bn: 'নিক্ষেপ কোণ ও পাল্লা' },
+  };
+  const post = (app: ReturnType<typeof harness>, token: string | undefined, payload: unknown) =>
+    app.inject({
+      method: 'POST',
+      url: '/v1/school/lab/generate',
+      headers: token ? { authorization: `Bearer ${token}` } : {},
+      payload: payload as Record<string, unknown>,
+    });
+
+  it('needs a teacher or operator', async () => {
+    const app = harness(async () => proposal);
+    expect((await post(app, undefined, body)).statusCode).toBe(401);
+    expect((await post(app, 'student', body)).statusCode).toBe(403);
+    await app.close();
+  });
+
+  it('returns a checked proposal and refuses a chapter without simulations', async () => {
+    const app = harness(async () => proposal);
+    const ok = await post(app, 'admin', body);
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().step.simId).toBe('projectile');
+    const none = await post(app, 'teacher', { ...body, chapterId: 'physics-8' });
+    expect(none.statusCode).toBe(400);
+    expect(none.json().error.message).toMatch(/no simulations/i);
     await app.close();
   });
 });

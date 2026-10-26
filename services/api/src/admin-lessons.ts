@@ -11,6 +11,7 @@ import {
   archiveLesson,
 } from './school/lessons';
 import { assistLessonText, draftLesson, translateLesson } from './school/authoring';
+import { generateLab } from './school/lab-generation';
 import { reasonSchema } from './school/common';
 export function registerAdminLessonRoutes(app: FastifyInstance) {
   app.register(async (routes) => {
@@ -38,6 +39,10 @@ export function registerAdminLessonRoutes(app: FastifyInstance) {
     routes.post('/v1/admin/lesson-text/assist', async (req) => {
       z.object({ reason: reasonSchema }).parse(req.body);
       return assistLessonText(await adminActor(req), req.body);
+    });
+    routes.post('/v1/admin/lab/generate', async (req) => {
+      z.object({ reason: reasonSchema }).parse(req.body);
+      return generateLab(await adminActor(req), req.body);
     });
     routes.patch('/v1/admin/lessons/:id', async (req) =>
       saveLesson(
