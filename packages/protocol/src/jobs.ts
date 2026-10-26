@@ -4,6 +4,7 @@ import { PlanTierSchema } from './plans';
 import { AgeBandSchema, TierSchema } from './bands';
 import { DocumentIdSchema } from './primitives';
 import { LanguageSchema } from './firestore';
+import { CompanionIdSchema } from './characters';
 
 const JobBase = z.object({
   jobId: DocumentIdSchema,
@@ -24,6 +25,8 @@ export const BuildWorldJobSchema = JobBase.extend({
   tier: TierSchema,
   // The child's language for titles, narration and say lines; jobs queued before it existed are English.
   language: LanguageSchema.optional(),
+  // The friend holding the mic, who becomes the hero when the child names nobody.
+  companionId: CompanionIdSchema.optional(),
   experience: z.enum(['game', 'freeplay']).optional(),
   labKind: z.enum(['projectile', 'galton', 'fractions']).optional(),
   styleVersion: z.string().min(1),

@@ -75,6 +75,8 @@ export const CreationSchema = z.object({
   originalWish: z.string().min(1).max(4000),
   changes: z.array(z.string().min(1).max(2000)).max(100),
   mode: z.enum(['game', 'freeplay']),
+  // Set when the world fell back to a template or sample game instead of a generated one.
+  fallback: z.enum(['template', 'sample']).optional(),
 });
 export type Creation = z.infer<typeof CreationSchema>;
 
