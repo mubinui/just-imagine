@@ -41,6 +41,7 @@
 | 4 | `feat/game-reliability-4-builder-never-fail` | 7, 8, 9, 10 |
 | 5 | `feat/game-reliability-5-infra` | 12 |
 | none | local only | 13 (soak) |
+| 6 | `feat/game-reliability-6-journey` | 14, 15 |
 
 PR 2, 3 and 4 branch from PR 1's merge (or from its branch). PR 3 (gateway)
 must be merged and deployed before PR 4, because PR 4 is the first code that
@@ -590,6 +591,64 @@ it('queues builds with a 900 second dispatch deadline', async () => { /* store.i
 - [ ] **Step 2: Run** `cd services/builder && set -a && . ../../.env.local && set +a && node --import tsx scripts/soak-games.mts | tee /private/tmp/claude-502/-Users-mubinuiislam-Home-Hackathons-just-imagine/a8ade14c-cd37-41dc-a055-70af82d1ab0c/scratchpad/soak.log`
   Expected: 10 rows, zero errors thrown, median game phase under 90 s, every fallback row carrying a reason. Paste the table in PR 3.
 - [ ] **Step 3: If a wish falls back twice in a row**, record its failure diagnostics in the PR as a prompt follow-up; do not change the templates to hide it.
+
+---
+
+### Task 14: When the world is ready, the voice stops and the child is in the game
+
+Added from the owner's request during execution: "after building the world the voice will stop and will be taken to the game". Today `Studio.tsx:287-318` selects the world on `worldJob ready` but the voice session keeps running and the friend keeps talking over the new game.
+
+**Files:**
+- Modify: `apps/web/components/Studio.tsx:287-318` (`worldJob` case)
+- Test: `apps/web/test/studio-ready.test.tsx` (jsdom; follow `apps/web/test/studio-break.test.tsx` for mounting `Studio` with a fake voice)
+
+**Interfaces:**
+- Consumes: `stopVoice()` (`Studio.tsx:734`), `selectWorldId` (`Studio.tsx:226`), `clearBuild` (`apps/web/lib/building.ts`).
+- Produces: on `worldJob` with `status: 'ready'` for the world this session asked for, the Studio calls `stopVoice()` before `selectWorldId(message.worldId)`, so the voice indicator leaves the `live` state and the game HUD mounts with the world; a `ready` for a world the child did not ask for in this session (badge from another screen) only clears the badge as today. No new visible element and no copy change; the existing "Your game is ready!" badge copy is reused if a caption is needed.
+
+- [ ] **Step 1: Write the failing test**
+
+```tsx
+it('stops the voice and shows the game when the world the child asked for is ready', async () => {
+  // mount Studio with the fake voice; send worldJob queued then ready for worldId 'w_1' with a GAME_WORLDS fixture published
+  expect(voice.stop).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId('game-hud')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /stop/i })).toBeNull(); // the dock is no longer live
+});
+it('leaves the voice alone when a ready arrives for a world this session did not build', async () => { expect(voice.stop).not.toHaveBeenCalled(); });
+```
+
+- [ ] **Step 2: Run to verify it fails** — `cd apps/web && ./node_modules/.bin/vitest run test/studio-ready.test.tsx` → FAIL (voice not stopped).
+- [ ] **Step 3: Implement** in the `worldJob` case: when `message.status === 'ready' && showStartedAt !== undefined` (the build started in this session), call `stopVoice()` before selecting the world.
+- [ ] **Step 4: Run the web unit suite, typecheck, lint** → PASS.
+- [ ] **Step 5: Commit** — `git commit -m "feat(web): the voice stops and the game opens the moment the world is ready"`.
+
+---
+
+### Task 15: The whole journey, end to end
+
+Added from the owner's request: "the start to end journey need to be very stable and smooth".
+
+**Files:**
+- Modify: `packages/fixtures/src/fake-gateway.ts` (a scripted build: on `build_world`-style wish text containing "game", emit `worldJob` `queued` → `placeholders` → `ready` 300 ms apart and publish `GAME_WORLDS.catchTheFlies` under the new world id through the fake world source)
+- Create: `apps/web/e2e/journey.spec.ts` (fake mode, same harness as `apps/web/e2e/generated-game.spec.ts`)
+
+**Interfaces:**
+- Consumes: the fake gateway and fake world source in `packages/fixtures`, Task 14's behaviour.
+
+- [ ] **Step 1: Write the failing e2e test**
+
+```ts
+test('a child asks for a game, waits, the voice stops, and the game is playable', async ({ page }) => {
+  // sign in as the fake child, start voice, type/say "a game where a frog catches flies"
+  // expect the building state, then within 2 s: the dock is not live, the game HUD shows the fly score, tapping a fly changes the score
+});
+```
+
+- [ ] **Step 2: Run to verify it fails** — `cd apps/web && npx playwright test e2e/journey.spec.ts` (fake mode per `apps/web/e2e/README` or the existing specs' setup) → FAIL (no scripted build in the fake gateway).
+- [ ] **Step 3: Implement the scripted build in the fake gateway**; keep every existing fake flow unchanged (run `e2e/generated-game.spec.ts` and `e2e/flows.spec.ts` too).
+- [ ] **Step 4: Run** the new spec and the two existing ones → PASS.
+- [ ] **Step 5: Commit and open PR 6** — `git commit -m "test(web): the child's journey from wish to playable game, end to end"`.
 
 ---
 
