@@ -36,6 +36,8 @@ export interface TutorOptions {
   store: TutorStore;
   provider: TutorProvider;
   meterIntervalMs?: number;
+  /** Shortest gap between screen updates sent to the model. */
+  stateIntervalMs?: number;
 }
 export type TutorSend = (message: ServerMessage) => void;
 export type TutorStudent = Pick<StudentDoc, 'classId' | 'language'>;

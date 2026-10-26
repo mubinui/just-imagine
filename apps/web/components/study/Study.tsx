@@ -8,7 +8,7 @@ import {
   applyTutorSuggestion,
   assessmentRequests,
 } from '../../lib/school/answers';
-import type { SimId, Observable } from '@just-imagine/stem-sims';
+import type { SimId } from '@just-imagine/stem-sims';
 import { schoolRequest, useSchoolResource } from '../../lib/school/api';
 import type { Lesson, StudyMe, GradeResponse, BoardResponse } from '../../lib/school/types';
 import { useSchoolLanguage } from '../../lib/i18n/study';
@@ -24,6 +24,7 @@ import {
   assessmentItems,
   displayRank,
   lessonProgress,
+  newestEvery,
   quizPoints,
   restoredAnswers,
   storedVerdict,
@@ -382,17 +383,15 @@ function LessonPlayerContent({ id }: { id: string }) {
       Record<string, { hints: { en: string; bn: string }[]; nextHintIndex: number | null }>
     >({}),
     [observation, setObservation] = useState<{
+      context: string;
       simId: string;
       observable: Record<string, unknown>;
     }>(),
     [highlight, setHighlight] = useState('');
   const [requests] = useState(assessmentRequests);
-  const observeTime = useRef(0);
-  const onObserve = useCallback((simId: string, o: Observable) => {
-    if (Date.now() - observeTime.current < 1000) return;
-    observeTime.current = Date.now();
-    setObservation({ simId, observable: o });
-  }, []);
+  const [observer] = useState(() => newestEvery(1000, setObservation));
+  const latestObservation = useRef(observation);
+  useEffect(() => () => observer.cancel(), [observer]);
   const lesson = r.data?.lesson,
     step = lesson?.steps[index];
   const loadedAttempt = r.data?.attempt ?? null;
@@ -403,6 +402,14 @@ function LessonPlayerContent({ id }: { id: string }) {
   );
   const answers = useMemo(() => ({ ...restored, ...edits }), [restored, edits]);
   const context = `${id}:${lesson?.revision}:${index}`;
+  // Tagged with its step, so a screen from the previous step is never shown to the tutor.
+  const onObserve = useCallback(
+    (simId: string, screen: Record<string, unknown>) => {
+      latestObservation.current = { context, simId, observable: screen };
+      observer.push(latestObservation.current);
+    },
+    [observer, context],
+  );
   const feedback =
     grades?.context === context && grades.answers === answers ? grades.result : undefined;
   useEffect(() => {
@@ -416,8 +423,6 @@ function LessonPlayerContent({ id }: { id: string }) {
       if (step?.kind === 'explore') setParams(step.params);
       setGrades(undefined);
       setMissing([]);
-      setObservation(undefined);
-      observeTime.current = 0;
       setHighlight('');
     });
     return () => {
@@ -744,7 +749,10 @@ function LessonPlayerContent({ id }: { id: string }) {
         lessonId={id}
         stepIndex={index}
         subject={lesson.subject}
-        observation={observation}
+        observation={observation?.context === context ? observation : undefined}
+        latestObservation={() =>
+          latestObservation.current?.context === context ? latestObservation.current : undefined
+        }
         onHighlight={setHighlight}
         onSuggest={(key, value) => {
           if (step.kind === 'explore')

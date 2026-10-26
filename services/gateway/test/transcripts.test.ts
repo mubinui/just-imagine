@@ -16,3 +16,16 @@ it('retains fragmented turns and handles a text-free final marker once', () => {
   buffer.finish();
   expect(emit.mock.calls.filter((call) => call[2] === true)).toHaveLength(1);
 });
+it('closes the other speaker’s turn before a new speaker starts, so a barge-in never repeats a reply', () => {
+  const emit = vi.fn(),
+    buffer = new TranscriptBuffer(emit);
+  buffer.push('character', { text: 'Velocity is speed' });
+  buffer.push('child', { text: 'No, why is the graph straight?' });
+  buffer.finish();
+  expect(emit.mock.calls).toEqual([
+    ['character', 'Velocity is speed', false],
+    ['character', 'Velocity is speed', true],
+    ['child', 'No, why is the graph straight?', false],
+    ['child', 'No, why is the graph straight?', true],
+  ]);
+});

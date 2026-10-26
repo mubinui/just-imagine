@@ -88,3 +88,23 @@ it('flushes PCM tails and discards late transcripts after intentional close', as
   expect(cb.transcript).not.toHaveBeenCalled();
   expect(cb.closed).not.toHaveBeenCalled();
 });
+it('ends an interrupted reply so the next answer starts a new caption instead of joining it', async () => {
+  let events!: { onmessage: (value: unknown) => void };
+  mocks.connect.mockImplementation(async ({ callbacks: cb }) => {
+    events = cb;
+    queueMicrotask(() => cb.onmessage({ setupComplete: {} }));
+    return {
+      close: vi.fn(),
+      sendRealtimeInput: vi.fn(),
+      sendClientContent: vi.fn(),
+      sendToolResponse: vi.fn(),
+    };
+  });
+  const cb = callbacks();
+  await provider().open(record, cb);
+  events.onmessage({ serverContent: { outputTranscription: { text: 'Velocity is' } } });
+  events.onmessage({ serverContent: { interrupted: true } });
+  events.onmessage({ serverContent: { outputTranscription: { text: 'The graph is straight.' } } });
+  expect(cb.transcript).toHaveBeenNthCalledWith(2, 'character', 'Velocity is', true);
+  expect(cb.transcript).toHaveBeenLastCalledWith('character', 'The graph is straight.', false);
+});

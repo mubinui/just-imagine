@@ -13,7 +13,10 @@ export function displayRank(points: number | undefined, rank: number | null | un
 }
 
 export type Caption = { role: string; text: string; final: boolean; local?: boolean };
-/** A partial transcript is rewritten in place until its final version arrives. */
+/**
+ * A partial transcript is rewritten in place until its final version arrives, even when the
+ * student typed a question while the reply was still streaming.
+ */
 export function mergeCaption(list: readonly Caption[], incoming: Caption): Caption[] {
   const last = list.at(-1);
   if (
@@ -25,9 +28,41 @@ export function mergeCaption(list: readonly Caption[], incoming: Caption): Capti
   )
     return [...list];
   const next = [...list];
-  if (last && last.role === incoming.role && !last.final) next[next.length - 1] = incoming;
+  const open = incoming.local
+    ? -1
+    : next.findLastIndex((c) => c.role === incoming.role && !c.final);
+  if (open >= 0) next[open] = incoming;
   else next.push(incoming);
   return next.slice(-30);
+}
+
+/** Runs at most once per `ms` with the newest value; the last value is never lost. */
+export function newestEvery<T>(ms: number, run: (value: T) => void) {
+  let last = -Infinity,
+    timer: ReturnType<typeof setTimeout> | undefined,
+    pending: { value: T } | undefined;
+  const fire = () => {
+    timer = undefined;
+    if (!pending) return;
+    const { value } = pending;
+    pending = undefined;
+    last = Date.now();
+    run(value);
+  };
+  return {
+    push(value: T) {
+      pending = { value };
+      const wait = last + ms - Date.now();
+      if (wait <= 0) fire();
+      else timer ??= setTimeout(fire, wait);
+    },
+    /** Forgets the waiting value; the next push goes out at once. */
+    cancel() {
+      clearTimeout(timer);
+      timer = pending = undefined;
+      last = -Infinity;
+    },
+  };
 }
 
 export function assessmentItems(step: Lesson['steps'][number] | undefined): QuizItem[] {

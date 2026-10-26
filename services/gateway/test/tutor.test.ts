@@ -45,7 +45,7 @@ const record: TutorRecord = {
     updatedAt: 1,
   },
 };
-async function harness(remaining = 60) {
+async function harness(remaining = 60, stateIntervalMs?: number) {
   let callbacks: LiveCallbacks | undefined;
   const store: TutorStore = {
     authorize: vi.fn(async () => ({
@@ -74,7 +74,7 @@ async function harness(remaining = 60) {
   const server = new WebSocketServer({ port: 0, host: '127.0.0.1' });
   let session: TutorSession | undefined;
   server.on('connection', (socket) => {
-    session = new TutorSession(socket, { store, provider, meterIntervalMs: 20 });
+    session = new TutorSession(socket, { store, provider, meterIntervalMs: 20, stateIntervalMs });
     socket.on('message', (data, binary) => session!.input(data, binary));
     socket.on('close', () => {
       void session!.close();
@@ -152,6 +152,41 @@ it('throttles context, refuses other sims and drops model input after hangup', a
     await h.close();
   }
 });
+it('always delivers the newest screen state, even when it changes inside the throttle window', async () => {
+  const h = await harness(60, 100);
+  try {
+    for (const force of [5, 9, 12])
+      h.socket.send(
+        JSON.stringify({ type: 'tutorState', simId: 'newton-cart', observable: { force } }),
+      );
+    await vi.waitFor(() => expect(h.live.context).toHaveBeenCalledTimes(2));
+    expect(h.live.context.mock.calls[0]![0]).toContain('"force":5');
+    expect(h.live.context.mock.calls[1]![0]).toContain('"force":12');
+  } finally {
+    await h.close();
+  }
+});
+it('tells the tutor what is on screen right before a typed question', async () => {
+  const h = await harness(60, 60000);
+  try {
+    h.socket.send(
+      JSON.stringify({ type: 'tutorState', simId: 'newton-cart', observable: { force: 5 } }),
+    );
+    await vi.waitFor(() => expect(h.live.context).toHaveBeenCalledOnce());
+    h.socket.send(
+      JSON.stringify({ type: 'tutorState', simId: 'newton-cart', observable: { force: 12 } }),
+    );
+    h.socket.send(JSON.stringify({ type: 'text', text: 'Why did it speed up?' }));
+    await vi.waitFor(() => expect(h.live.text).toHaveBeenCalledOnce());
+    expect(h.live.context).toHaveBeenCalledTimes(2);
+    expect(h.live.context.mock.calls[1]![0]).toContain('"force":12');
+    expect(h.live.context.mock.invocationCallOrder[1]!).toBeLessThan(
+      h.live.text.mock.invocationCallOrder[0]!,
+    );
+  } finally {
+    await h.close();
+  }
+});
 it('stops and closes the provider when school quota reaches zero', async () => {
   const h = await harness(0);
   try {
@@ -221,6 +256,8 @@ it('uses Dhaka midnight, live class visibility and a public lesson-only prompt',
   const prompt = tutorInstruction(record);
   expect(prompt).toContain('natural Bangla');
   expect(prompt).toContain('student must tap Try it');
+  expect(prompt).toContain("The student's screen right now");
+  expect(prompt).toContain('no LaTeX');
   expect(prompt).not.toContain('pinHash');
   expect(prompt).not.toContain('firstCorrectAt');
 });

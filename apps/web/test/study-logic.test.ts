@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { QuizItem, AttemptDoc } from '@just-imagine/protocol';
 import {
   competitionRanks,
   displayRank,
   mergeCaption,
+  newestEvery,
   unansweredItems,
   restoredAnswers,
   quizPoints,
@@ -88,6 +89,15 @@ describe('tutor captions', () => {
     list = mergeCaption(list, { role: 'character', text: 'Try it.', final: true });
     expect(list.map((c) => c.text)).toEqual(['What is slope?', 'Slope is steepness.', 'Try it.']);
   });
+  it('finishes a reply in its own bubble when the student typed while it was streaming', () => {
+    let list = mergeCaption([], { role: 'character', text: 'Velocity is', final: false });
+    list = mergeCaption(list, { role: 'child', text: 'Why?', final: true, local: true });
+    list = mergeCaption(list, { role: 'character', text: 'Velocity is speed.', final: true });
+    expect(list.map((c) => [c.role, c.text, c.final])).toEqual([
+      ['character', 'Velocity is speed.', true],
+      ['child', 'Why?', true],
+    ]);
+  });
   it('does not repeat a typed question if the gateway echoes it back', () => {
     let list = mergeCaption([], { role: 'child', text: 'Why?', final: true, local: true });
     list = mergeCaption(list, { role: 'child', text: 'Why?', final: true });
@@ -127,5 +137,27 @@ describe('quiz answers', () => {
     expect(lessonProgress(lesson, attempt({}, { completedAt: 9 }))).toMatchObject({
       state: 'done',
     });
+  });
+});
+
+describe('newest value throttle', () => {
+  it('passes the first value at once and the last one after the gap, dropping only the middle', () => {
+    vi.useFakeTimers();
+    try {
+      const run = vi.fn(),
+        throttle = newestEvery(1000, run);
+      throttle.push(1);
+      throttle.push(2);
+      throttle.push(3);
+      expect(run.mock.calls).toEqual([[1]]);
+      vi.advanceTimersByTime(1000);
+      expect(run.mock.calls).toEqual([[1], [3]]);
+      throttle.push(4);
+      throttle.cancel();
+      vi.advanceTimersByTime(5000);
+      expect(run.mock.calls).toEqual([[1], [3]]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

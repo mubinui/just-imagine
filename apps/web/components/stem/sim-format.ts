@@ -102,6 +102,23 @@ export function isTimedSim(id: SimId): boolean {
   return TIMED.has(id);
 }
 
+const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).length;
+/**
+ * What the tutor is told the student is looking at: the controls they set, the reading at this
+ * moment and the end-of-run summary. The least useful parts go first to stay within 2 KB.
+ */
+export function tutorScreen(
+  id: SimId,
+  settings: Record<string, unknown>,
+  reading: Record<string, unknown>,
+  result: Record<string, unknown>,
+): Record<string, unknown> {
+  const screen: Record<string, unknown> = { sim: simName(id, 'en'), settings, reading, result };
+  if (!isTimedSim(id)) delete screen.reading;
+  for (const part of ['result', 'reading']) if (bytes(screen) > 2048) delete screen[part];
+  return screen;
+}
+
 /** Squeeze or stretch a run so it plays in 2 to 10 real seconds. */
 const fit = (horizon: number) => {
   const h = Math.max(horizon, 0.01);
