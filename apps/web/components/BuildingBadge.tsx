@@ -8,6 +8,7 @@ import { useLanguage } from '../lib/i18n';
 import { firebase } from '../lib/firebase';
 import { env } from '../lib/env';
 import { badgeState, clearBuild, currentBuild, onBuildChange, type Build } from '../lib/building';
+import { isPermissionDenied } from '../lib/permission-denied';
 import { CharacterArt } from './studio/CharacterArt';
 import { UiIcon } from './UiIcon';
 
@@ -45,9 +46,14 @@ export function BuildingBadge() {
           const value = snap.get('status') as WorldStatus;
           if (active) setStatus(value);
         },
-        () => {
-          // The document does not exist until the first draft; listen again shortly.
+        (error) => {
           stop?.();
+          // The rules refuse a world that was never created (a killed build): forget it.
+          if (isPermissionDenied(error)) {
+            if (active) clearBuild();
+            return;
+          }
+          // Otherwise listen again shortly.
           if (active) retry = setTimeout(listen, 5000);
         },
       );

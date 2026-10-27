@@ -62,6 +62,7 @@ import { LabDrawer } from './studio/LabDrawer';
 import { Dock, StageHeader } from './studio/Dock';
 import { StudioMenu } from './studio/StudioMenu';
 import { clearBuild, rememberBuild } from '../lib/building';
+import { isPermissionDenied } from '../lib/permission-denied';
 import { isFallbackWorld, onWorldJob } from '../lib/studio-world-job';
 import { UiIcon } from './UiIcon';
 import { PetFollower } from './pets/PetFollower';
@@ -461,7 +462,14 @@ export function Studio() {
             setPrediction({ type: 'prediction', question: p.question, options: p.options });
         }
       },
-      (e) => setError(uiError(e)),
+      (e) => {
+        // A world that was never published cannot be read; forget it so it is not retried.
+        if (isPermissionDenied(e)) {
+          selectWorldId(undefined);
+          clearBuild();
+        }
+        setError(uiError(e));
+      },
     );
     // stopVoice reads only refs and state setters, so any render's copy is current.
     // eslint-disable-next-line react-hooks/exhaustive-deps
