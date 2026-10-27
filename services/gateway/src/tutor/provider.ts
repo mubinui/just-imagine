@@ -109,6 +109,7 @@ export class VertexTutorProvider implements TutorProvider {
             const content = message.serverContent;
             if (content?.interrupted) {
               pending = Buffer.alloc(0);
+              transcripts.push('character', { finished: true });
               callbacks.interrupted();
             }
             for (const part of content?.modelTurn?.parts ?? []) {

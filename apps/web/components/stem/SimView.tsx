@@ -18,6 +18,7 @@ import {
   simName,
   isTimedSim,
   simClock,
+  tutorScreen,
 } from './sim-format';
 import {
   LIMITS,
@@ -63,7 +64,7 @@ export function SimView({
   value: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
   locked?: string[];
-  onObserve?: (simId: string, o: Observable) => void;
+  onObserve?: (simId: string, screen: Record<string, unknown>) => void;
   highlight?: string;
 }) {
   const { language, s } = useSchoolLanguage(),
@@ -114,7 +115,16 @@ export function SimView({
   useEffect(() => {
     callback.current = onObserve;
   }, [onObserve]);
-  const observationJson = valid ? JSON.stringify(o) : null;
+  const observationJson = valid
+    ? JSON.stringify(
+        tutorScreen(
+          id,
+          params as Record<string, unknown>,
+          o,
+          Renderer ? solved : model.solve(params),
+        ),
+      )
+    : null;
   useEffect(() => {
     if (observationJson !== null) callback.current?.(id, JSON.parse(observationJson));
   }, [id, observationJson]);

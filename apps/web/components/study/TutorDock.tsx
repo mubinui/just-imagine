@@ -13,18 +13,23 @@ import { PARAMS } from '../stem/SimView';
 import { useStudyCopy } from './copy';
 import { mergeCaption, type Caption } from './study-logic';
 
+type Observation = { simId: string; observable: Record<string, unknown> };
 export function TutorDock({
   lessonId,
   stepIndex,
   subject,
   observation,
+  latestObservation,
   onSuggest,
   onHighlight,
 }: {
   lessonId: string;
   stepIndex: number;
   subject: string;
-  observation?: { simId: string; observable: Record<string, unknown> };
+  /** Paced updates while the student explores. */
+  observation?: Observation;
+  /** The screen this instant, sent with every question. */
+  latestObservation?: () => Observation | undefined;
   onSuggest?: (key: string, value: number) => void;
   onHighlight?: (key: string) => void;
 }) {
@@ -37,7 +42,7 @@ export function TutorDock({
     mount = useRef<HTMLElement>(null),
     captionBox = useRef<HTMLDivElement>(null),
     input = useRef<HTMLInputElement>(null),
-    lastState = useRef(0);
+    pinned = useRef(true);
   const [status, setStatus] = useState<'off' | 'connecting' | 'ready'>('off'),
     [captions, setCaptions] = useState<Caption[]>([]),
     [draft, setDraft] = useState(''),
@@ -84,16 +89,35 @@ export function TutorDock({
       );
     queueMicrotask(() => setSuggestion(undefined));
   }, [stepIndex]);
+  // The gateway paces these for the model and always keeps the newest screen.
+  function sendScreen(screen = observation) {
+    if (!screen || socket.current?.readyState !== WebSocket.OPEN) return;
+    const payload = JSON.stringify({
+      type: 'tutorState',
+      simId: screen.simId,
+      observable: screen.observable,
+    });
+    if (new TextEncoder().encode(payload).length <= 2048) socket.current.send(payload);
+  }
   useEffect(() => {
-    if (!observation || status !== 'ready' || Date.now() - lastState.current < 2000) return;
-    const payload = JSON.stringify({ type: 'tutorState', ...observation });
-    if (new TextEncoder().encode(payload).length > 2048) return;
-    lastState.current = Date.now();
-    socket.current?.send(payload);
+    if (status === 'ready') sendScreen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [observation, status]);
   useEffect(() => {
     const box = captionBox.current;
     if (box) box.scrollTop = box.scrollHeight;
+    pinned.current = true;
+  }, [captions]);
+  // A hint, an error or the panel opening shrinks the log; keep the newest line in view.
+  useEffect(() => {
+    const box = captionBox.current;
+    if (!box || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (pinned.current) box.scrollTop = box.scrollHeight;
+    });
+    observer.observe(box);
+    for (const line of box.children) observer.observe(line);
+    return () => observer.disconnect();
   }, [captions]);
   async function connect() {
     if (status === 'ready' && socket.current?.readyState === WebSocket.OPEN) return;
@@ -196,6 +220,8 @@ export function TutorDock({
     const question = draft.trim();
     try {
       await connect();
+      // A question always carries the screen as it is now, not the last paced update.
+      sendScreen(latestObservation?.() ?? observation);
       socket.current?.send(JSON.stringify({ type: 'text', text: question }));
       setCaptions((previous) =>
         mergeCaption(previous, { role: 'child', text: question, final: true, local: true }),
@@ -299,7 +325,15 @@ export function TutorDock({
             <UiIcon name="arrowDown" width={22} height={22} />
           </button>
         </header>
-        <div className="tutor-caption" ref={captionBox} aria-live="polite">
+        <div
+          className="tutor-caption"
+          ref={captionBox}
+          aria-live="polite"
+          onScroll={(e) => {
+            const box = e.currentTarget;
+            pinned.current = box.scrollHeight - box.scrollTop - box.clientHeight < 24;
+          }}
+        >
           {captions.length ? (
             captions.map((c, i) => (
               <p key={i} data-role={c.role} data-final={c.final}>

@@ -6,6 +6,7 @@ import {
   snapToStep,
   simName,
   isTimedSim,
+  tutorScreen,
 } from '../components/stem/sim-format';
 import { groupReagents, phRangeIssue, limitingSummary } from '../components/stem/lab-logic';
 
@@ -82,5 +83,39 @@ describe('chemistry bench', () => {
         REAGENTS,
       ),
     ).toEqual({ kind: 'limiting', formula: 'HCl', leftover: [{ formula: 'NaOH', moles: 0.002 }] });
+  });
+});
+
+describe('what the tutor is told about the screen', () => {
+  it('includes the student settings, so a change the readings do not show still reaches the tutor', () => {
+    const before = tutorScreen(
+      'motion-graphs',
+      { u: 2, a: 0, duration: 10 },
+      { t: 0, x: 0, v: 2 },
+      {
+        finalX: 20,
+      },
+    );
+    const after = tutorScreen(
+      'motion-graphs',
+      { u: 2, a: 1.5, duration: 10 },
+      { t: 0, x: 0, v: 2 },
+      {
+        finalX: 95,
+      },
+    );
+    expect(before).toMatchObject({
+      sim: 'Motion graphs: position and velocity over time',
+      settings: { u: 2, a: 0, duration: 10 },
+      reading: { t: 0, x: 0, v: 2 },
+      result: { finalX: 20 },
+    });
+    expect(JSON.stringify(after)).not.toBe(JSON.stringify(before));
+  });
+  it('stays under the 2 KB tutor limit by dropping the least useful parts first', () => {
+    const big = Object.fromEntries(Array.from({ length: 120 }, (_, i) => [`k${i}`, i * 1.2345]));
+    const screen = tutorScreen('ohms-circuit', { topology: 'series', resistors: [1, 2] }, big, big);
+    expect(new TextEncoder().encode(JSON.stringify(screen)).length).toBeLessThanOrEqual(2048);
+    expect(screen.settings).toEqual({ topology: 'series', resistors: [1, 2] });
   });
 });
