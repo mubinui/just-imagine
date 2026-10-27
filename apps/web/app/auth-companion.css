@@ -141,3 +141,38 @@
   text-underline-offset: 4px;
   cursor: pointer;
 }
+
+/* A new account found while signing in: one calm step, then back to the choices. */
+.consent-step-lead {
+  margin: -12px 0 10px;
+  max-width: 46ch;
+  color: var(--soft);
+  font-weight: 700;
+  line-height: 1.55;
+}
+.consent-step-account {
+  margin: 0 0 26px;
+  color: var(--soft);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.consent-step {
+  display: grid;
+  gap: 22px;
+}
+.consent-step > .button {
+  width: 100%;
+}
+.auth-panel > .consent-step-other {
+  margin-top: 14px;
+  padding: 10px 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--soft);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
