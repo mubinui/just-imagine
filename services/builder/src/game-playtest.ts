@@ -4,6 +4,7 @@ import type { BuildWorldJob } from '@just-imagine/protocol';
 import { driveScript } from '@just-imagine/game-runtime';
 import { createEngineStage, nodeWorkerFactory } from '@just-imagine/game-runtime/node';
 import { describeScene } from './game-prompt';
+import { DESIGNER_BRIEF } from './designer-brief';
 import type { GameFailureDiagnostic } from './game-diagnostics';
 
 const time = z.number().min(0.1).max(20);
@@ -170,6 +171,7 @@ export function diagnoseGameplayPlanFailure(error: unknown): GameFailureDiagnost
     ['Command checks need', 'COMMAND_BOUNDS'],
     ['World-changing command checks', 'COMMAND_TARGET'],
     ['Separation needs', 'SEPARATION_BOUNDS'],
+    ['A triggered at-rest check', 'REST_ONLY_EFFECT'],
     ['Scenario needs a measurable', 'TRIVIAL_SCENARIO'],
     ['A goal-based game needs', 'EXTERNAL_GOAL'],
   ];
@@ -231,7 +233,7 @@ export function validateGameplayPlan(value: unknown, doc: SceneDoc): GameplayPla
               'A held-body position is input echo; check a downstream consequence or release it before measuring',
             );
         }
-        meaningful = true;
+        if (check.type !== 'speed') meaningful = true;
       } else if (
         scenario.inputs.length > 0 &&
         check.type !== 'separated' &&
@@ -270,14 +272,40 @@ export function validateGameplayPlan(value: unknown, doc: SceneDoc): GameplayPla
           meaningful = true;
       }
     }
+    for (const check of scenario.checks) {
+      if (check.type !== 'speed' || check.trigger === undefined) continue;
+      const hasEffect = scenario.checks.some(
+        (other) =>
+          'trigger' in other &&
+          other.trigger === check.trigger &&
+          (other.type === 'near' ||
+            other.type === 'displacement' ||
+            (other.type === 'exists' && !other.value) ||
+            (other.type === 'command' && other.min > 0)),
+      );
+      if (!hasEffect)
+        throw new Error('A triggered at-rest check needs a sibling effect with the same trigger');
+    }
     if (!meaningful)
       throw new Error('Scenario needs a measurable change, not only initial position or rest');
   }
   return plan;
 }
 
+/** Drop one check; a scenario left with no checks is removed, so the result may have no scenarios. */
+export function withoutCheck(plan: GameplayPlan, scenario: number, index: number): GameplayPlan {
+  const scenarios = plan.scenarios.flatMap((s, i) => {
+    if (i !== scenario) return [s];
+    const checks = s.checks.filter((_, j) => j !== index);
+    return checks.length === 0 ? [] : [{ ...s, checks }];
+  });
+  return { ...plan, scenarios };
+}
+
 export function gameplayPlanPrompt(doc: SceneDoc, job: BuildWorldJob, previous?: string): string {
   return [
+    DESIGNER_BRIEF,
+    'A triggered speed (at-rest) check is never the only effect of its trigger: give it a sibling check with the same trigger of type near, displacement, exists false, or command min > 0; a scenario whose only triggered checks are at-rest checks is rejected.',
     'A near check may set invariant=true when an interaction must leave that object in place (for example a disabled portal). Omit trigger for that invariant. Every scenario with inputs still needs at least one real effect with trigger; never relabel a requested movement as invariant to bypass causal testing.',
     'When no-overlap/readability is requested, include separated checks: a and b are distinct scene body ids, margin is nonnegative metres between their rotated rectangular bounds. It is an invariant checked continuously from from through at, rather than a snapshot. Do not use it on intended touching/colliding objects. Test switching between characters while one is still close, not only separately returning each home.',
     'Set externalOnly=false for every requested scripted mechanic. Only when the entire request is simply conversation with existing character-metadata actors, externalOnly=true and scenarios=[]: Live provides selection and speech outside the sandbox. Explicitly list that voice coverage in unverified. Never invent motion or a quiz to make a conversation pass physics tests. Never use this exception for requested movement, transformations, puzzles, rule changes or game actions.',
@@ -437,21 +465,29 @@ async function evaluateScenario(
 }
 
 /** Fresh real worlds for each journey, idle control, and per-effect input-prefix control. */
+/** What a gate returns once its candidate's race is decided: a cancellation, not a failure. */
+export const GATE_CANCELLED = 'cancelled: another candidate won';
+
 export async function runGameplayPlan(
   doc: SceneDoc,
   source: string,
   plan: GameplayPlan,
   moderate?: (text: string) => Promise<boolean>,
   diagnose?: (diagnostic: GameFailureDiagnostic) => void,
+  /** Aborted once another candidate wins: no further scenario is played. */
+  signal?: AbortSignal,
 ): Promise<string | null> {
   for (const [scenarioIndex, scenario] of plan.scenarios.entries()) {
+    if (signal?.aborted) return GATE_CANCELLED;
     const reportCheck = (
       code: 'PLAYTEST_CHECK' | 'PLAYTEST_CAUSAL',
       check: (typeof scenario.checks)[number],
+      failedChecks: number,
       measured?: { expected: number[]; actual: number[] },
     ) =>
       diagnose?.({
         code,
+        failedChecks,
         check: {
           scenario: scenarioIndex,
           index: scenario.checks.indexOf(check),
@@ -468,10 +504,11 @@ export async function runGameplayPlan(
     }
     if (active.failures.size) {
       const failed = active.failures.keys().next().value!;
-      reportCheck('PLAYTEST_CHECK', failed, active.measurements.get(failed));
+      reportCheck('PLAYTEST_CHECK', failed, active.failures.size, active.measurements.get(failed));
       return `Playtest ${scenario.name}: ${[...active.failures.values()].slice(0, 4).join('; ')}`;
     }
     if (scenario.inputs.length === 0) continue;
+    if (signal?.aborted) return GATE_CANCELLED;
     const idle = await evaluateScenario(doc, source, { ...scenario, inputs: [] }, moderate);
     if (idle.error) {
       diagnose?.({ code: 'PLAYTEST_RUNTIME' });
@@ -486,8 +523,10 @@ export async function runGameplayPlan(
     ];
     for (const trigger of triggers) {
       const checks = scenario.checks.filter(
-        (check) => 'trigger' in check && check.trigger === trigger,
+        (check) => 'trigger' in check && check.trigger === trigger && check.type !== 'speed',
       );
+      if (checks.length === 0) continue;
+      if (signal?.aborted) return GATE_CANCELLED;
       const control =
         trigger === 0
           ? idle
@@ -507,7 +546,7 @@ export async function runGameplayPlan(
       }
       for (const check of checks) {
         if (!control.failures.has(check)) {
-          reportCheck('PLAYTEST_CAUSAL', check);
+          reportCheck('PLAYTEST_CAUSAL', check, 1);
           return `Playtest ${scenario.name}: effect ${JSON.stringify(check)} also passes without input ${trigger}; that control has no demonstrated effect`;
         }
       }

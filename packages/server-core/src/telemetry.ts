@@ -14,6 +14,20 @@ export type TelemetryFields = {
   cached?: boolean;
   service?: string;
   status?: number;
+  /** Game generation: candidate round, candidates raced, candidate or check index, plan scenario. */
+  round?: number;
+  candidates?: number;
+  index?: number;
+  scenario?: number;
+  /** Short operational codes only, such as 'won' or 'exhausted'; never model or child text. */
+  outcome?: string;
+  reason?: string;
+  /** Which template game replaced a failed programme, such as 'collect'. */
+  template?: string;
+  /** The build phase a deadline cut short, such as 'art'. */
+  phase?: string;
+  /** Scene entity ids (short identifiers, never descriptions), such as sprites left still. */
+  ids?: string[];
 };
 export function childHash(uid: string, childId: string) {
   return createHash('sha256')

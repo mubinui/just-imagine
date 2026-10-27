@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { BuilderJobSchema } from '../src/jobs';
+import { BuilderJobSchema, BuildWorldJobSchema } from '../src/jobs';
+import { CreationSchema } from '../src/firestore';
 
 const base = {
   jobId: 'j_1',
@@ -78,4 +79,27 @@ it('preserves optional server-captured child words and keeps legacy queued jobs 
       childRequest: 'x'.repeat(2001),
     }).success,
   ).toBe(false);
+});
+
+const build = {
+  ...base,
+  kind: 'build' as const,
+  description: 'A fox',
+  concepts: [],
+  ageBand: '8-10' as const,
+  tier: 'playground' as const,
+  styleVersion: 'v1',
+  promptVersion: 'v1',
+  conversationSummary: '',
+};
+const creation = { originalWish: 'a fox', changes: [], mode: 'game' as const };
+
+it('accepts an optional companion on a build job and rejects a guide', () => {
+  expect(BuildWorldJobSchema.safeParse({ ...build, companionId: 'mishti' }).success).toBe(true);
+  expect(BuildWorldJobSchema.safeParse({ ...build, companionId: 'pori' }).success).toBe(false);
+  expect(BuildWorldJobSchema.safeParse(build).success).toBe(true);
+});
+it('records how a creation fell back', () => {
+  expect(CreationSchema.parse({ ...creation, fallback: 'template' }).fallback).toBe('template');
+  expect(CreationSchema.safeParse({ ...creation, fallback: 'plain' }).success).toBe(false);
 });

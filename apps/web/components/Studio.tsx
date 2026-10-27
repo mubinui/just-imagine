@@ -62,6 +62,7 @@ import { LabDrawer } from './studio/LabDrawer';
 import { Dock, StageHeader } from './studio/Dock';
 import { StudioMenu } from './studio/StudioMenu';
 import { clearBuild, rememberBuild } from '../lib/building';
+import { isFallbackWorld, onWorldJob } from '../lib/studio-world-job';
 import { UiIcon } from './UiIcon';
 import { PetFollower } from './pets/PetFollower';
 import { PetSlot } from './pets/PetSlot';
@@ -102,6 +103,12 @@ export function Studio() {
   const discovered = useRef(new Set<string>());
   const hello = useRef<Hello | undefined>(undefined);
   const pendingIntent = useRef<'newGame' | undefined>(undefined);
+  const askedWorldId = useRef<string | undefined>(undefined);
+  // Whether the latest loaded world document is a fallback, set the moment it arrives so a
+  // ready that follows it at once still reads it.
+  const loadedWorld = useRef<{ id: string; fallback: boolean } | undefined>(undefined);
+  // The asked-for world was ready before its document loaded; the document decides the stop.
+  const stopVoiceOnLoad = useRef<string | undefined>(undefined);
   const pendingCharacter = useRef<string | undefined>(undefined);
   const pendingCreative = useRef<
     Extract<ClientMessage, { type: 'text' | 'undoWorld' }> | undefined
@@ -157,6 +164,7 @@ export function Studio() {
     }
     if (selectedWorld.current !== id) {
       selectedWorld.current = id;
+      if (stopVoiceOnLoad.current !== id) stopVoiceOnLoad.current = undefined;
       clearPending();
       setWorld(undefined);
       setWorldCharacter(undefined);
@@ -282,6 +290,8 @@ export function Studio() {
           previousDoc.current = undefined;
           setJob(undefined);
           setShowStartedAt(undefined);
+          askedWorldId.current = undefined;
+          stopVoiceOnLoad.current = undefined;
           setCaption('');
           break;
         case 'worldJob': {
@@ -297,24 +307,37 @@ export function Studio() {
           const heardAt = Date.now();
           setShowStartedAt((t) => (message.status === 'queued' ? heardAt : (t ?? heardAt)));
           setJob(message.status);
+          // The fake gateway's canned timeline replays a build of a preview world the picker
+          // already serves; only its status shows. Every other build, the fake gateway's
+          // scripted one included, is handled exactly as in the real Studio.
+          if (env.fake && Object.values(FIXTURE_WORLDS).some((w) => w.worldId === message.worldId))
+            break;
+          const outcome = onWorldJob(message, {
+            selectedWorldId: selectedWorld.current,
+            askedWorldId: askedWorldId.current,
+            fallback:
+              loadedWorld.current?.id === message.worldId
+                ? loadedWorld.current.fallback
+                : undefined,
+          });
+          askedWorldId.current = outcome.askedWorldId;
+          if (outcome.stopVoiceOnLoad) stopVoiceOnLoad.current = outcome.stopVoiceOnLoad;
           // Leaving the Studio mid-build keeps a small badge on the other child screens.
-          if (!env.fake) {
-            if (message.status === 'ready' || message.status === 'failed') clearBuild();
-            else
-              rememberBuild({
-                worldId: message.worldId,
-                characterId: hello.current?.characterId ?? 'bhombol',
-                startedAt: heardAt,
-              });
-          }
-          if (!env.fake) {
-            // A queued world does not exist yet; Firestore correctly denies reads without an owner.
-            // Subscribe only after the builder publishes the first playable document.
-            if (['placeholders', 'hero', 'ready'].includes(message.status))
-              selectWorldId(message.worldId);
-            else if (message.status === 'queued' && selectedWorld.current !== message.worldId)
-              selectWorldId(undefined);
-          }
+          if (outcome.clearBadge) clearBuild();
+          else
+            rememberBuild({
+              worldId: message.worldId,
+              characterId: hello.current?.characterId ?? 'bhombol',
+              startedAt: heardAt,
+            });
+          // A queued world does not exist yet; Firestore correctly denies reads without an owner.
+          // Subscribe only after the builder publishes the first playable document.
+          // The world the child asked for is ready: the friend stops and the game takes over,
+          // unless a simpler fallback stands in; then the friend stays on to say so.
+          if (outcome.stopVoice) stopVoice();
+          if (outcome.select) selectWorldId(outcome.select);
+          else if (message.status === 'queued' && selectedWorld.current !== message.worldId)
+            selectWorldId(undefined);
           break;
         }
         case 'transcript':
@@ -405,6 +428,12 @@ export function Studio() {
     return createWorldSource(fixture).subscribe(
       worldId,
       (doc) => {
+        const fallback = isFallbackWorld(doc);
+        loadedWorld.current = { id: doc.id, fallback };
+        if (stopVoiceOnLoad.current === doc.id) {
+          stopVoiceOnLoad.current = undefined;
+          if (!fallback) stopVoice();
+        }
         setWorld(doc);
         if (doc.doc.learning.mode === 'incidental') setPrediction(undefined);
         setShowStartedAt(undefined);
@@ -434,6 +463,8 @@ export function Studio() {
       },
       (e) => setError(uiError(e)),
     );
+    // stopVoice reads only refs and state setters, so any render's copy is current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worldId, fixture, language]);
   useEffect(() => {
     if (!discovery) return;

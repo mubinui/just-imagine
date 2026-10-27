@@ -266,6 +266,80 @@ it('keeps creation available to Lab-profile children and sends their language to
   }
 });
 
+async function buildWith(characterId: string, companion?: string) {
+  const h = harness();
+  const authorize = h.store.authorize;
+  h.store.authorize = async (token, childId) => {
+    const identity = await authorize(token, childId);
+    return {
+      ...identity,
+      child: { ...identity.child, ...(companion ? { companion: { characterId: companion } } : {}) },
+    } as typeof identity;
+  };
+  h.store.enqueue = vi.fn(async () => {});
+  const { socket, messages } = await connect(h.gateway);
+  try {
+    socket.send(JSON.stringify({ ...hello, characterId }));
+    await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+    h.callbacks()?.tool('t_build', 'build_world', {
+      description: 'A game about a rocket',
+      concepts: ['gravity'],
+      experience: 'game',
+    });
+    await vi.waitFor(() => expect(h.store.enqueue).toHaveBeenCalledOnce());
+    return vi.mocked(h.store.enqueue).mock.calls[0]![0] as { companionId?: string };
+  } finally {
+    socket.terminate();
+    await h.gateway.close();
+  }
+}
+it('puts the mic-holding companion on a build job', async () => {
+  expect((await buildWith('mishti')).companionId).toBe('mishti');
+});
+it("falls back to the child's own companion when a guide holds the mic", async () => {
+  expect((await buildWith('pori', 'chandni')).companionId).toBe('chandni');
+});
+it('falls back to the default companion when a guide holds the mic and the child has none', async () => {
+  expect((await buildWith('pori')).companionId).toBe('bhombol');
+});
+it.each([
+  ['template', 'simpler version of your game'],
+  ['sample', 'could not be painted'],
+  [undefined, 'could not be painted'],
+] as const)(
+  'tells the friend about a %s fallback and does not report failure to the browser',
+  async (reason, line) => {
+    const h = harness();
+    let emit: Parameters<NonNullable<SessionStore['watchJob']>>[1] = () => {};
+    h.store.watchJob = (_id, callback) => {
+      emit = callback;
+      return () => {};
+    };
+    h.store.enqueue = vi.fn(async () => {});
+    const { socket, messages } = await connect(h.gateway);
+    try {
+      socket.send(JSON.stringify(hello));
+      await vi.waitFor(() => expect(messages[0]).toMatchObject({ type: 'ready' }));
+      h.callbacks()?.tool('t_build', 'build_world', {
+        description: 'A game about a rocket',
+        concepts: ['gravity'],
+        experience: 'game',
+      });
+      await vi.waitFor(() => expect(h.store.enqueue).toHaveBeenCalledOnce());
+      emit('fallback', reason ? { fallbackReason: reason } : undefined);
+      expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining(line));
+      if (reason === 'template')
+        expect(h.live.text).toHaveBeenCalledWith(expect.stringContaining('modify_world'));
+      expect(messages).not.toContainEqual(
+        expect.objectContaining({ type: 'worldJob', status: 'failed' }),
+      );
+    } finally {
+      socket.terminate();
+      await h.gateway.close();
+    }
+  },
+);
+
 it('keeps fast speech bursts intact and closes explicitly when the audio transport is overloaded', async () => {
   const h = harness();
   const { socket, messages } = await connect(h.gateway);

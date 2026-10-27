@@ -60,10 +60,12 @@ it('plans before seeing any new source and repairs a smoke-safe broken mechanic 
       order.push('repair');
       return { kind: 'game', source };
     });
+  // One candidate per round keeps the repair a second, observable request.
   const result = await compileBehavior(doc, job, {
     planGame,
     generateScript,
     generateScene: vi.fn(),
+    candidates: 1,
   });
   expect(order).toEqual(['plan', 'script', 'repair']);
   expect(planGame).toHaveBeenCalledWith(doc, job, undefined);
@@ -71,6 +73,7 @@ it('plans before seeing any new source and repairs a smoke-safe broken mechanic 
   expect(generateScript.mock.calls[0]![0]).toContain('No score or ending');
   expect(result).toMatchObject({
     attempts: 2,
+    rounds: 2,
     fallback: false,
     doc: { game: { mode: 'freeplay', script: { source } } },
   });
@@ -85,22 +88,27 @@ it('never publishes or downgrades a persistently unplayable creation', async () 
       generateScene: vi.fn(),
     }),
   ).rejects.toThrow(/Playtest.*position=/);
-  expect(generateScript).toHaveBeenCalledTimes(2);
+  // Two candidates in each of the two rounds.
+  expect(generateScript).toHaveBeenCalledTimes(4);
   expect(doc.game).toBeUndefined();
 });
 
-it('fails closed on invalid or unavailable planning before any script or art is generated', async () => {
-  const generateScript = vi.fn();
+it('programs against the smoke run alone when planning is invalid or unavailable', async () => {
   for (const planGame of [
     async () => ({ ...plan, scenarios: [] }),
     async () => {
       throw new Error('unavailable');
     },
-  ])
-    await expect(
-      compileBehavior(doc, job, { planGame, generateScript, generateScene: vi.fn() }),
-    ).rejects.toThrow(/valid gameplay acceptance plan/);
-  expect(generateScript).not.toHaveBeenCalled();
+  ]) {
+    const generateScript = vi.fn(async (_prompt: string) => ({ kind: 'game', source }));
+    const result = await compileBehavior(doc, job, {
+      planGame,
+      generateScript,
+      generateScene: vi.fn(),
+    });
+    expect(generateScript.mock.calls[0]![0]).not.toContain('Acceptance plan');
+    expect(result).toMatchObject({ fallback: false, doc: { game: { script: { source } } } });
+  }
 });
 
 it('gives a timed-out or rate-limited planner one more attempt, then plans as usual', async () => {

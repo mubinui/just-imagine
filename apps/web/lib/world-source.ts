@@ -8,6 +8,9 @@ import {
   fixtureWorldDoc,
   LAB_WORLDS,
   GAME_WORLDS,
+  isScriptedBuild,
+  scriptedBuildWorld,
+  type FakeWorldStep,
 } from '@just-imagine/fixtures/browser';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { firebase } from './firebase';
@@ -26,33 +29,39 @@ function previewArt(world: WorldWithId, key: PreviewKey): WorldWithId {
     ),
   };
 }
+function fixtureScript(key: PreviewKey): FakeWorldStep[] {
+  return (
+    key in LAB_WORLDS || key in GAME_WORLDS
+      ? [
+          {
+            afterMs: 0,
+            world: fixtureWorldDoc('projectileLab', {
+              doc:
+                key in GAME_WORLDS
+                  ? GAME_WORLDS[key as keyof typeof GAME_WORLDS]
+                  : LAB_WORLDS[key as keyof typeof LAB_WORLDS],
+            }),
+          },
+        ]
+      : progressiveScript(key as FixtureWorldKey)
+  ).map((step) => ({ ...step, world: previewArt(step.world, key) }));
+}
+const fakeTimers = {
+  setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
+  clearTimeout: (handle: ReturnType<typeof setTimeout>) => clearTimeout(handle),
+};
 export function createWorldSource(key: PreviewKey = 'jellyDragon'): WorldSource {
   if (env.fake)
-    return new FakeWorldSource(
-      (key in LAB_WORLDS || key in GAME_WORLDS
-        ? [
-            {
-              afterMs: 0,
-              world: fixtureWorldDoc('projectileLab', {
-                doc:
-                  key in GAME_WORLDS
-                    ? GAME_WORLDS[key as keyof typeof GAME_WORLDS]
-                    : LAB_WORLDS[key as keyof typeof LAB_WORLDS],
-              }),
-            },
-          ]
-        : progressiveScript(key as FixtureWorldKey)
-      ).map((step) => ({
-        ...step,
-        world: previewArt(step.world, key),
-      })),
-      {
-        timers: {
-          setTimeout: (fn, ms) => setTimeout(fn, ms),
-          clearTimeout: (handle) => clearTimeout(handle),
-        },
-      },
-    );
+    return {
+      // The fake gateway's scripted build names its world; the game is served under that name.
+      subscribe: (id, update, error) =>
+        new FakeWorldSource(
+          isScriptedBuild(id)
+            ? [{ afterMs: 0, world: previewArt(scriptedBuildWorld(id), 'catchTheFlies') }]
+            : fixtureScript(key),
+          { timers: fakeTimers },
+        ).subscribe(id, update, error),
+    };
   return {
     subscribe(id, update, error) {
       let active = true,
