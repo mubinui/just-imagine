@@ -12,6 +12,13 @@ const KEY = 'ji-building';
 /** After this long without a finished world the badge says so instead of spinning on. */
 export const SLOW_BUILD_MS = 4 * 60 * 1000;
 
+/** The builder's hard deadline is 13 minutes; past this a silent world is a dead build. */
+export const BUILD_GIVE_UP_MS = 15 * 60 * 1000;
+
+export function shouldGiveUp(build: Build | undefined, now: number): boolean {
+  return build !== undefined && now - build.startedAt > BUILD_GIVE_UP_MS;
+}
+
 export function currentBuild(): Build | undefined {
   try {
     const value = JSON.parse(sessionStorage.getItem(KEY) ?? 'null') as Partial<Build> | null;

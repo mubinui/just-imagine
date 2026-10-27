@@ -62,6 +62,7 @@ import { LabDrawer } from './studio/LabDrawer';
 import { Dock, StageHeader } from './studio/Dock';
 import { StudioMenu } from './studio/StudioMenu';
 import { clearBuild, currentBuild, rememberBuild } from '../lib/building';
+import { onWorldReadDenied } from '../lib/world-read-denied';
 import { isPermissionDenied } from '../lib/permission-denied';
 import { isFallbackWorld, onWorldJob } from '../lib/studio-world-job';
 import { UiIcon } from './UiIcon';
@@ -153,6 +154,8 @@ export function Studio() {
     worldRef.current = world;
   }, [world]);
   const selectedWorld = useRef<string | undefined>(undefined);
+  const jobRef = useRef<JobStatus>(undefined);
+  jobRef.current = job;
   const clearPending = () => {
     clearTimeout(variableTimer.current);
     variableTimer.current = undefined;
@@ -463,12 +466,16 @@ export function Studio() {
         }
       },
       (e) => {
-        // A world that was never published cannot be read; forget it so it is not retried.
-        if (isPermissionDenied(e)) {
-          selectWorldId(undefined);
-          if (currentBuild()?.worldId === worldId) clearBuild();
-        }
-        setError(uiError(e));
+        if (!isPermissionDenied(e)) return setError(uiError(e));
+        const outcome = onWorldReadDenied({
+          worldId,
+          job: jobRef.current,
+          build: currentBuild(),
+          now: Date.now(),
+        });
+        if (outcome.deselect) selectWorldId(undefined);
+        if (outcome.clearBuild) clearBuild();
+        if (outcome.toast) setError(uiError(e));
       },
     );
     // stopVoice reads only refs and state setters, so any render's copy is current.
