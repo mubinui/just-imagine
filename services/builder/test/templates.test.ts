@@ -290,4 +290,18 @@ describe('the friend in template games', () => {
     expect(commands.some((c) => c.type === 'impulse' && c.target === 'bhombol')).toBe(true);
     expect(commands.some((c) => c.type === 'score')).toBe(false);
   });
+
+  it('tap toy never picks the friend as the toy to copy', () => {
+    const scene = withFriend({
+      ...flies,
+      entities: flies.entities.map((e) =>
+        e.kind === 'sprite' ? { ...e, body: { ...e.body, isStatic: true } } : e,
+      ),
+    });
+    const friend = scene.entities.find((e) => e.tags.includes('friend'))!;
+    friend.body = { ...friend.body, isStatic: false };
+    const source = templateSource('tap-toy', scene, 'en', 'game');
+    expect(source).not.toContain(`game.spawn(${JSON.stringify(friend.id)}`);
+    expect(source).toContain('game.spawn(');
+  });
 });

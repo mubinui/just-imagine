@@ -42,9 +42,9 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
   ];
   const toy =
     moving.find((e) => e.id !== hero && !friends.includes(e.id)) ??
-    moving[0] ??
-    sprites.find((e) => e.id !== hero) ??
-    sprites[0];
+    moving.find((e) => !friends.includes(e.id)) ??
+    sprites.find((e) => e.id !== hero && !friends.includes(e.id)) ??
+    sprites.find((e) => !friends.includes(e.id));
   const strings = TAP_TOY_STRINGS[language];
   const lines = [
     '// Template toy: tap anything and see what happens.',
