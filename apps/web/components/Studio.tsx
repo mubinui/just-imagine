@@ -61,7 +61,7 @@ import {
 import { LabDrawer } from './studio/LabDrawer';
 import { Dock, StageHeader } from './studio/Dock';
 import { StudioMenu } from './studio/StudioMenu';
-import { clearBuild, rememberBuild } from '../lib/building';
+import { clearBuild, currentBuild, rememberBuild } from '../lib/building';
 import { isPermissionDenied } from '../lib/permission-denied';
 import { isFallbackWorld, onWorldJob } from '../lib/studio-world-job';
 import { UiIcon } from './UiIcon';
@@ -466,7 +466,7 @@ export function Studio() {
         // A world that was never published cannot be read; forget it so it is not retried.
         if (isPermissionDenied(e)) {
           selectWorldId(undefined);
-          clearBuild();
+          if (currentBuild()?.worldId === worldId) clearBuild();
         }
         setError(uiError(e));
       },

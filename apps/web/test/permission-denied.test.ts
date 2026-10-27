@@ -12,6 +12,8 @@ it('recognises a Firestore permission-denied error by code or message', () => {
   expect(isPermissionDenied({ code: 'permission-denied' })).toBe(true);
   expect(isPermissionDenied(new Error('Missing or insufficient permissions.'))).toBe(true);
   expect(isPermissionDenied({ code: 'unavailable', message: 'offline' })).toBe(false);
+  expect(isPermissionDenied({ code: 'unauthenticated', message: 'No user' })).toBe(false);
+  expect(isPermissionDenied({ code: 'not-found', message: 'Gone' })).toBe(false);
   expect(isPermissionDenied(undefined)).toBe(false);
 });
 
