@@ -6,7 +6,7 @@ import { SceneDocSchema, findBlockedTerm, type SceneDoc } from '@just-imagine/sc
 import { driveScript, type TimedInput } from '@just-imagine/game-runtime';
 import { createEngineStage, nodeWorkerFactory } from '@just-imagine/game-runtime/node';
 import { gateScript } from '../src/imagine-game';
-import { ensureFriend } from '../src/hero';
+import { ensureFriend, ensureHero } from '../src/hero';
 import {
   ALL_TEMPLATE_STRINGS,
   chooseTemplate,
@@ -302,6 +302,53 @@ describe('the friend in template games', () => {
     friend.body = { ...friend.body, isStatic: false };
     const source = templateSource('tap-toy', scene, 'en', 'game');
     expect(source).not.toContain(`game.spawn(${JSON.stringify(friend.id)}`);
+    expect(source).toContain('game.spawn(');
+  });
+});
+
+describe('the friend as the hero in the tap toy', () => {
+  /** The flies meadow with nothing able to move. */
+  const still = (): SceneDoc => ({
+    ...structuredClone(flies),
+    entities: flies.entities.map((e) =>
+      e.kind === 'sprite' ? { ...structuredClone(e), body: { ...e.body, isStatic: true } } : e,
+    ),
+  });
+  /** The friend the hero insert makes: tags ['hero', 'mishti'], no friend tag. */
+  const inserted = (): SceneDoc => {
+    const doc = still();
+    doc.learning = { ...doc.learning, heroEntityId: 'nobody' };
+    return ensureHero(doc, job('x', { companionId: 'mishti' }));
+  };
+  /** The friend beside the hero, made the hero by an edit: tags ['friend', 'bhombol']. */
+  const promoted = (): SceneDoc => {
+    const doc = ensureFriend(still(), job('x', { companionId: 'bhombol' }));
+    doc.learning = { ...doc.learning, heroEntityId: 'bhombol' };
+    return doc;
+  };
+  const shapes = [
+    ['inserted as the hero', inserted, 'mishti'],
+    ['promoted to the hero', promoted, 'bhombol'],
+  ] as const;
+
+  it.each(shapes)('counts taps on the friend %s when only the hero moves', async (_s, make, id) => {
+    const scene = make();
+    expect(scene.learning.heroEntityId).toBe(id);
+    const source = templateSource('tap-toy', scene, 'en', 'game');
+    expect(source).toContain('const COUNT_HERO = true;');
+    const huds = (
+      await play(
+        scene,
+        source,
+        [0.5, 0.6, 0.7].map((at) => ({ at, type: 'tap' as const, target: id })),
+      )
+    ).filter((c) => c.type === 'hud') as unknown as { score?: number }[];
+    expect(huds.map((h) => h.score)).toEqual([0, 1, 2, 3]);
+  });
+
+  it.each(shapes)('never copies the friend %s as the drop-in toy', (_s, make, id) => {
+    const source = templateSource('tap-toy', make(), 'en', 'game');
+    expect(source).not.toContain(`game.spawn(${JSON.stringify(id)}`);
     expect(source).toContain('game.spawn(');
   });
 });

@@ -1,4 +1,5 @@
 import type { SceneDoc } from '@just-imagine/scene-schema';
+import { isFriendEntity } from '../standins';
 
 type Language = 'en' | 'bn';
 
@@ -20,7 +21,7 @@ export const TAP_TOY_STRINGS = {
  * nearest movable body toward the finger with a boing and a sparkle, a dragged
  * body follows the finger, hard bumps pop, and the first tap is greeted. In `game` mode the HUD
  * counts every tap on a body other than the hero and the friend, and every tenth scores and celebrates; when only the hero can
- * move, taps on the hero count. Whenever nothing in the scene can move (from
+ * move, taps on the hero count (the friend too, when it is the hero). The friend is never the copy. Whenever nothing in the scene can move (from
  * the start, or after a scene rule removed every moving body), one movable
  * copy of a sprite is dropped in so there is always something to play with.
  */
@@ -28,8 +29,12 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
   const hero = doc.learning.heroEntityId;
   const sprites = doc.entities.filter((e) => e.kind === 'sprite');
   const moving = sprites.filter((e) => !e.body.isStatic);
-  // The child's friend hops when tapped but never counts toward the ten.
-  const friends = sprites.filter((e) => e.tags.includes('friend')).map((e) => e.id);
+  // The child's friend (any shape of it) is never copied as the drop-in toy.
+  const friendly = sprites
+    .filter((e) => e.tags.includes('friend') || isFriendEntity(e))
+    .map((e) => e.id);
+  // The friend hops when tapped but never counts toward the ten, unless it is the hero.
+  const friends = friendly.filter((id) => id !== hero);
   const othersMove = moving.some((e) => e.id !== hero && !friends.includes(e.id));
   const heroMoves = moving.some((e) => e.id === hero);
   // Tags only moving sprites carry: copies a scene rule spawns still count as something to play with.
@@ -41,10 +46,10 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
     ]),
   ];
   const toy =
-    moving.find((e) => e.id !== hero && !friends.includes(e.id)) ??
-    moving.find((e) => !friends.includes(e.id)) ??
-    sprites.find((e) => e.id !== hero && !friends.includes(e.id)) ??
-    sprites.find((e) => !friends.includes(e.id));
+    moving.find((e) => e.id !== hero && !friendly.includes(e.id)) ??
+    moving.find((e) => !friendly.includes(e.id)) ??
+    sprites.find((e) => e.id !== hero && !friendly.includes(e.id)) ??
+    sprites.find((e) => !friendly.includes(e.id));
   const strings = TAP_TOY_STRINGS[language];
   const lines = [
     '// Template toy: tap anything and see what happens.',
