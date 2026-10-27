@@ -291,7 +291,7 @@ export class FirestoreSessionStore implements SessionStore {
       parent,
       task: {
         name: `${parent}/tasks/${job.jobId}`,
-        dispatchDeadline: { seconds: 300 },
+        dispatchDeadline: { seconds: 900 },
         httpRequest: {
           httpMethod: 'POST',
           url: `${this.queue.builderUrl}/jobs`,
@@ -377,13 +377,21 @@ export class FirestoreSessionStore implements SessionStore {
       return { total, unlocked };
     });
   }
-  watchJob(id: string, callback: (status: string) => void) {
+  watchJob(
+    id: string,
+    callback: (status: string, detail?: { fallbackReason?: 'template' | 'sample' }) => void,
+  ) {
     return db()
       .doc(`builderJobs/${id}`)
       .onSnapshot(
         (snap) => {
-          const status = snap.data()?.['status'];
-          if (typeof status === 'string') callback(status);
+          const data = snap.data();
+          const status = data?.['status'];
+          const reason = data?.['fallbackReason'];
+          if (typeof status !== 'string') return;
+          if (reason === 'template' || reason === 'sample')
+            callback(status, { fallbackReason: reason });
+          else callback(status);
         },
         () => {},
       );

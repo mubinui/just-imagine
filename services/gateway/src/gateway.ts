@@ -7,6 +7,8 @@ import {
   ServerMessageSchema,
   CHARACTERS,
   BuilderJobSchema,
+  CompanionIdSchema,
+  DEFAULT_CHARACTER,
   type ClientMessage,
   type ServerMessage,
   type CharacterId,
@@ -503,6 +505,12 @@ export function startGateway(options: {
     if (session.ended || session.generation !== generation) return;
     await openLive(session, summary, false);
   }
+  function companionFor(session: Active) {
+    const holder = CompanionIdSchema.safeParse(session.record.characterId);
+    if (holder.success) return holder.data;
+    const own = CompanionIdSchema.safeParse(session.record.identity.child.companion?.characterId);
+    return own.success ? own.data : DEFAULT_CHARACTER;
+  }
   function watch(session: Active, worldId: string, jobId?: string) {
     if (session.ended) return;
     session.stopWorld?.();
@@ -522,7 +530,7 @@ export function startGateway(options: {
       stopJob?.();
       watchedJob = id;
       outcome = '';
-      stopJob = options.store.watchJob?.(id, (status) => {
+      stopJob = options.store.watchJob?.(id, (status, detail) => {
         if (session.ended || stopped || session.record.worldId !== worldId || watchedJob !== id)
           return;
         if (['running', 'complete'].includes(status)) {
@@ -535,12 +543,15 @@ export function startGateway(options: {
         }
         if (!['failed', 'fallback'].includes(status)) return;
         outcome =
-          status === 'fallback'
-            ? 'The requested world could not be painted. This is a safe sample world instead. Explain gently and offer to explore it or try again.'
-            : "Creation did not finish. Keep the child's original cast, setting and goal. Explain honestly and offer to retry their idea; do not silently substitute a sample world or claim success.";
+          status === 'fallback' && detail?.fallbackReason === 'template'
+            ? `The child's exact game could not be built. A simpler version with their own characters and scene was made instead. Say honestly: "I made a simpler version of your game. Tell me what to change." Offer to change it with modify_world.`
+            : status === 'fallback'
+              ? 'The requested world could not be painted. This is a safe sample world instead. Explain gently and offer to explore it or try again.'
+              : "Creation did not finish. Keep the child's original cast, setting and goal. Explain honestly and offer to retry their idea; do not silently substitute a sample world or claim success.";
         if (milestone !== `${id}:failed`) {
           milestone = `${id}:failed`;
-          send(session, { type: 'worldJob', worldId, jobId: id, status: 'failed' });
+          if (status === 'failed')
+            send(session, { type: 'worldJob', worldId, jobId: id, status: 'failed' });
           updateContext();
         }
       });
@@ -652,6 +663,7 @@ export function startGateway(options: {
           childId: identity.childId,
           sessionId: r.id,
           plan: identity.plan,
+          companionId: companionFor(session),
           description: a.description,
           ...(childRequest ? { childRequest } : {}),
           concepts: a.concepts,
