@@ -47,8 +47,10 @@ import {
   applyArt,
   applyStandIns,
   editRequestsFor,
+  isMissingArtStandIn,
   needsStandIn,
   paintFriends,
+  paintStandIn,
   requestsFor,
   startArt,
   type ArtAsset,
@@ -58,6 +60,12 @@ import {
 import { standInFor } from './standins';
 import { ART_PHASE_MS, createBudget } from './budget';
 import type { PatchOp, AssetRef, SceneDoc } from '@just-imagine/scene-schema';
+
+/** The ids of the sprites that move. */
+const movingIds = (doc: SceneDoc) => doc.entities.filter((e) => e.locomotion).map((e) => e.id);
+/** Which of `moving` no longer move: a stand-in or missing motion art stopped them. */
+const stoppedIds = (doc: SceneDoc, moving: string[]) =>
+  moving.filter((id) => !doc.entities.find((e) => e.id === id)?.locomotion);
 
 export class BuilderWorker {
   private storage = new Storage();
@@ -352,6 +360,7 @@ export class BuilderWorker {
               outcomes.set(request.id, { status: 'failed' });
         }
         const world = applyArt(base, outcomes);
+        const moving = movingIds(world.doc);
         const standIns = applyStandIns(world, outcomes);
         if (standIns)
           logEvent('art_standin_used', {
@@ -359,8 +368,10 @@ export class BuilderWorker {
             worldId: job.worldId,
             count: standIns,
           });
-        // A sprite whose motion art did not finish stands still; the world is never failed for it.
-        const dropped = dropMissingMotion(world.doc);
+        // A sprite whose motion art did not finish (or that shows a still stand-in) stands
+        // still; the world is never failed for it.
+        dropMissingMotion(world.doc);
+        const dropped = stoppedIds(world.doc, moving);
         if (dropped.length)
           logEvent(
             'art_locomotion_dropped',
@@ -476,6 +487,8 @@ export class BuilderWorker {
     );
     let next: WorldDoc;
     let patch: PatchOp[] | null = null;
+    /** Sprites that moved before the edit's art was painted, when it is painted here. */
+    let moving: string[] = [];
     if (this.game && world.doc.tier !== 'lab') {
       const revised = await reviseCreation(world, job, child, {
         ...this.game,
@@ -483,6 +496,7 @@ export class BuilderWorker {
         reviewScene: this.models.reviewScene,
       });
       next = { ...world, ...revised };
+      moving = movingIds(next.doc);
       await this.paintEdit(job, next, world);
     } else {
       const patched = await patchScene(
@@ -497,7 +511,7 @@ export class BuilderWorker {
       next = { ...world, doc: patched.doc };
       patch = patched.patch;
     }
-    const dropped = dropMissingMotion(next.doc);
+    const dropped = [...new Set([...dropMissingMotion(next.doc), ...stoppedIds(next.doc, moving)])];
     if (dropped.length)
       logEvent(
         'art_locomotion_dropped',
@@ -562,42 +576,44 @@ export class BuilderWorker {
           asset = await this.asset(job, request);
         } catch (error) {
           // A failed animation sheet never rejects the edit: the sprite keeps its old still
-          // picture, if it had one, and `patch` drops its locomotion.
+          // picture, if it had one, and `patch` drops its locomotion. A hero or character
+          // that still showed a stand-in gets a fresh one; anything else keeps its stand-in.
           const entity = doc.entities.find((e) => e.id === request.id);
           const standable = Boolean(
             entity && request.kind === 'sprite' && needsStandIn(entity, doc.learning.heroEntityId),
           );
-          if ((!request.locomotion || request.locomotion.kind === 'roll') && !standable)
+          const old = before.doc.entities.find((e) => e.id === request.id);
+          const oldStill =
+            entity &&
+            old?.asset?.status === 'ready' &&
+            !old.asset.animation &&
+            old.kind === entity.kind &&
+            old.description === entity.description
+              ? old.asset
+              : undefined;
+          // Asked again only because it still showed a stand-in: it can keep a stand-in.
+          const hadStandIn = Boolean(oldStill && isMissingArtStandIn(oldStill.url));
+          if (
+            (!request.locomotion || request.locomotion.kind === 'roll') &&
+            !standable &&
+            !hadStandIn
+          )
             throw error;
           logEvent(
             'asset_failed',
             { jobId: job.jobId, milestone: request.kind, success: false },
             'WARNING',
           );
-          const old = before.doc.entities.find((e) => e.id === request.id);
-          if (
-            entity &&
-            old?.asset?.status === 'ready' &&
-            !old.asset.animation &&
-            old.kind === entity.kind &&
-            old.description === entity.description
-          ) {
-            entity.asset = structuredClone(old.asset);
+          if (entity && oldStill && !(standable && hadStandIn)) {
+            entity.asset = structuredClone(oldStill);
             world.assets[request.id] = {
               status: 'ready',
-              url: old.asset.url,
-              ...(old.asset.colliderUrl ? { colliderUrl: old.asset.colliderUrl } : {}),
+              url: oldStill.url,
+              ...(oldStill.colliderUrl ? { colliderUrl: oldStill.colliderUrl } : {}),
             };
           } else if (entity && standable) {
-            // The hero, a character or the friend never ends up without a picture.
-            const standIn = standInFor(entity);
-            entity.asset = {
-              status: 'ready',
-              url: standIn.url,
-              width: standIn.width,
-              height: standIn.height,
-            };
-            world.assets[request.id] = { status: 'ready', url: standIn.url };
+            // The hero or a character never ends up without a picture.
+            paintStandIn(world, entity, standInFor(entity));
             standIns++;
           } else world.assets[request.id] = { status: 'failed' };
           continue;

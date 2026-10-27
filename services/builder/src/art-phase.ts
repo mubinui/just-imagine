@@ -2,7 +2,7 @@ import { PLAN_LIMITS, type PlanTier, type WorldDoc } from '@just-imagine/protoco
 import type { AssetRef, Locomotion, SceneDoc } from '@just-imagine/scene-schema';
 import { hasMotionArtwork, sameMotionArt } from './motion';
 import { applyPaintedFloor } from './presentation';
-import { FRIEND_STANDINS, isFriendEntity, standInFor } from './standins';
+import { FRIEND_STANDINS, isFriendEntity, standInFor, type StandIn } from './standins';
 
 /** One picture the world needs: the backdrop, the mid layer or a sprite. */
 export interface ArtRequest {
@@ -161,10 +161,16 @@ export function requestsFor(doc: SceneDoc, plan: PlanTier, companionId?: string)
   ];
 }
 
+const FRIEND_FRAME_URLS = new Set(Object.values(FRIEND_STANDINS).map((frame) => frame.url));
+
+/** A painted stand-in for art that did not arrive (a friend's frame is that friend's own art). */
+export const isMissingArtStandIn = (url: string) =>
+  url.startsWith('/standins/') && !FRIEND_FRAME_URLS.has(url);
+
 /**
  * The art a voice edit asks for: a changed backdrop or mid layer, and every sprite (the friend
- * excepted) that is new, changed, or lacks ready art for its motion, characters first, capped
- * by the plan.
+ * excepted) that is new, changed, lacks ready art for its motion or still shows a stand-in,
+ * characters first, capped by the plan.
  */
 export function editRequestsFor(doc: SceneDoc, before: SceneDoc, plan: PlanTier): ArtRequest[] {
   return [
@@ -199,6 +205,7 @@ export function editRequestsFor(doc: SceneDoc, before: SceneDoc, plan: PlanTier)
               old.kind === e.kind &&
               old.description === e.description &&
               old.asset?.status === 'ready' &&
+              !isMissingArtStandIn(old.asset.url) &&
               hasMotionArtwork(old) &&
               sameMotionArt(old.locomotion, e.locomotion),
           ),
@@ -218,7 +225,7 @@ export function editRequestsFor(doc: SceneDoc, before: SceneDoc, plan: PlanTier)
 /**
  * Gives every friend sprite its own companion's frame (the world is changed in place); a
  * friend already showing its frame keeps it. A still frame cannot walk or roll, so the
- * friend's locomotion is removed. Returns how many friends there are.
+ * friend's locomotion is removed (see `dropStandInMotion`). Returns how many friends there are.
  */
 export function paintFriends(world: WorldDoc, companionId?: string): number {
   let count = 0;
@@ -226,10 +233,10 @@ export function paintFriends(world: WorldDoc, companionId?: string): number {
     const friend = entity.kind === 'sprite' ? isFriendEntity(entity, companionId) : undefined;
     if (!friend) continue;
     const frame = FRIEND_STANDINS[friend];
-    if (entity.asset?.status !== 'ready' || entity.asset.url !== frame.url)
-      entity.asset = { status: 'ready', url: frame.url, width: frame.width, height: frame.height };
-    delete entity.locomotion;
-    world.assets[entity.id] = { status: 'ready', url: frame.url };
+    if (entity.asset?.status === 'ready' && entity.asset.url === frame.url) {
+      dropStandInMotion(entity, frame);
+      world.assets[entity.id] = { status: 'ready', url: frame.url };
+    } else paintStandIn(world, entity, frame);
     count++;
   }
   return count;
@@ -245,19 +252,35 @@ export const needsStandIn = (entity: SceneEntity, heroId: string | undefined) =>
  * in place). Returns how many were painted. Backdrop, mid layer and props are left alone.
  */
 export function applyStandIns(world: WorldDoc, outcomes: Map<string, ArtOutcome>): number {
+  // A lab keeps its own art or none: a painted stand-in never enters a simulation.
+  if (world.doc.tier === 'lab') return 0;
   let count = 0;
   for (const entity of world.doc.entities) {
     if (outcomes.get(entity.id)?.status !== 'failed') continue;
     if (!needsStandIn(entity, world.doc.learning.heroEntityId)) continue;
-    const standIn = standInFor(entity);
-    entity.asset = {
-      status: 'ready',
-      url: standIn.url,
-      width: standIn.width,
-      height: standIn.height,
-    };
-    world.assets[entity.id] = { status: 'ready', url: standIn.url };
+    paintStandIn(world, entity, standInFor(entity));
     count++;
   }
   return count;
+}
+
+/**
+ * A stand-in is a still picture, so the entity's locomotion is removed, except a wheel-less
+ * roll on the ball, which simply turns the round picture.
+ */
+function dropStandInMotion(entity: SceneEntity, standIn: StandIn) {
+  const rolls = entity.locomotion?.kind === 'roll' && !entity.locomotion.wheels;
+  if (!(standIn.key === 'ball' && rolls)) delete entity.locomotion;
+}
+
+/** Paints `standIn` on the entity and in the world's asset map (both changed in place). */
+export function paintStandIn(world: WorldDoc, entity: SceneEntity, standIn: StandIn) {
+  entity.asset = {
+    status: 'ready',
+    url: standIn.url,
+    width: standIn.width,
+    height: standIn.height,
+  };
+  world.assets[entity.id] = { status: 'ready', url: standIn.url };
+  dropStandInMotion(entity, standIn);
 }

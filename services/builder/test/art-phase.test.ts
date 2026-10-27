@@ -7,6 +7,7 @@ import {
   applyStandIns,
   editRequestsFor,
   paintFriends,
+  paintStandIn,
   requestsFor,
   startArt,
   type ArtAsset,
@@ -15,7 +16,7 @@ import {
 } from '../src/art-phase';
 import { dropMissingMotion } from '../src/motion';
 import { companionHeroEntity } from '../src/hero';
-import { FRIEND_STANDINS } from '../src/standins';
+import { FRIEND_STANDINS, STANDINS } from '../src/standins';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const request = (id: string): ArtRequest => ({
@@ -314,7 +315,8 @@ describe('retry and stand-ins', () => {
     hero!.name = 'Red Car';
     hero!.description = 'a red car';
     hero!.locomotion = { kind: 'run', stride: 1, facing: 'right' };
-    other!.character = { name: 'Zed', personality: 'shy' } as never;
+    // The friend has no character metadata: the friend rule alone paints it.
+    other!.character = undefined;
     other!.tags = ['friend', 'bhombol'];
     third!.character = undefined;
     third!.tags = [];
@@ -331,9 +333,9 @@ describe('retry and stand-ins', () => {
     expect(painted.assets[hero!.id]).toEqual({ status: 'ready', url: '/standins/car.webp' });
     expect(painted.assets[third!.id]).toEqual({ status: 'failed' });
     expect(painted.assets['backdrop']).toEqual({ status: 'failed' });
-    // A stand-in has no animation, so the hero's locomotion is dropped and it stays ready.
-    expect(dropMissingMotion(painted.doc)).toContain(hero!.id);
+    // A stand-in has no animation, so the hero's locomotion goes with it and it stays ready.
     expect(byId(hero!.id).locomotion).toBeUndefined();
+    expect(dropMissingMotion(painted.doc)).toEqual([]);
     expect(byId(hero!.id).asset?.status).toBe('ready');
   });
 
@@ -422,5 +424,76 @@ describe('the friend art', () => {
     const ids = editRequestsFor(after, before.doc, 'free').map((r) => r.id);
     expect(ids).not.toContain('mishti');
     expect(ids).not.toContain('bhombol_2');
+  });
+});
+
+describe('stand-ins in labs, motion and edits', () => {
+  const failedHero = (description: string) => {
+    const world = fixtureWorld();
+    const hero = world.doc.entities.find((e) => e.id === 'dragon')!;
+    hero.name = 'Hero';
+    hero.tags = ['hero'];
+    hero.description = description;
+    const outcomes = new Map<string, ArtOutcome>([['dragon', { status: 'failed' }]]);
+    return { world: applyArt(world, outcomes), outcomes };
+  };
+  const hero = (world: WorldDoc) => world.doc.entities.find((e) => e.id === 'dragon')!;
+
+  it('paints no stand-in in a lab', () => {
+    const { world, outcomes } = failedHero('a red car');
+    world.doc.tier = 'lab';
+    expect(applyStandIns(world, outcomes)).toBe(0);
+    expect(hero(world).asset).toBeUndefined();
+    expect(world.assets['dragon']).toEqual({ status: 'failed' });
+  });
+
+  it('drops the motion of a stand-in, except a wheel-less roll on the ball', () => {
+    const cases = [
+      ['a red car', { kind: 'run', stride: 1, facing: 'right' }, false],
+      ['a red car', { kind: 'roll', stride: 1, facing: 'right' }, false],
+      ['a bouncy ball', { kind: 'roll', stride: 1, facing: 'right' }, true],
+      [
+        'a bouncy ball',
+        { kind: 'roll', stride: 1, facing: 'right', wheels: [{ x: 0, y: 0, radius: 0.1 }] },
+        false,
+      ],
+      ['a bouncy ball', { kind: 'walk', stride: 1, facing: 'right' }, false],
+    ] as const;
+    for (const [description, locomotion, kept] of cases) {
+      const { world, outcomes } = failedHero(description);
+      hero(world).locomotion = structuredClone(locomotion) as never;
+      expect(applyStandIns(world, outcomes)).toBe(1);
+      expect(hero(world).locomotion, `${description} ${locomotion.kind}`).toEqual(
+        kept ? locomotion : undefined,
+      );
+    }
+  });
+
+  it('paintStandIn sets the picture and the motion rule for an edit too', () => {
+    const { world } = failedHero('a red car');
+    hero(world).locomotion = { kind: 'roll', stride: 1, facing: 'right' };
+    const crate = STANDINS.find((s) => s.key === 'crate')!;
+    paintStandIn(world, hero(world), crate);
+    expect(hero(world).asset).toEqual({
+      status: 'ready',
+      url: crate.url,
+      width: crate.width,
+      height: crate.height,
+    });
+    expect(world.assets['dragon']).toEqual({ status: 'ready', url: crate.url });
+    expect(hero(world).locomotion).toBeUndefined();
+  });
+
+  it('asks an edit to repaint a stand-in, but keeps real art', () => {
+    const before = structuredClone(FIXTURE_WORLDS.jellyDragon);
+    const ready = (url: string) => ({ status: 'ready' as const, url, width: 64, height: 64 });
+    before.entities.find((e) => e.id === 'dragon')!.asset = ready('/standins/crate.webp');
+    before.entities.find((e) => e.id === 'pebble')!.asset = ready('https://art.test/pebble.webp');
+    before.entities.find((e) => e.id === 'cloud1')!.asset = ready(FRIEND_STANDINS.mishti.url);
+    const ids = editRequestsFor(structuredClone(before), before, 'free').map((r) => r.id);
+    expect(ids).toContain('dragon');
+    expect(ids).not.toContain('pebble');
+    // A friend's frame is that friend's art, not a stand-in for missing art.
+    expect(ids).not.toContain('cloud1');
   });
 });
