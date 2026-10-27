@@ -2,11 +2,14 @@ locals {
 
   event_metrics = {
 
-    builder_failures = "jsonPayload.event=\"builder_result\" AND jsonPayload.success=false"
-    builder_results  = "jsonPayload.event=\"builder_result\""
-    moderation_hits  = "jsonPayload.event=\"moderation_hit\""
-    kill_switch      = "jsonPayload.event=\"kill_switch_on\""
-    asset_cache_hits = "jsonPayload.event=\"asset_cache\" AND jsonPayload.cached=true"
+    builder_failures      = "jsonPayload.event=\"builder_result\" AND jsonPayload.success=false"
+    builder_results       = "jsonPayload.event=\"builder_result\""
+    moderation_hits       = "jsonPayload.event=\"moderation_hit\""
+    kill_switch           = "jsonPayload.event=\"kill_switch_on\""
+    asset_cache_hits      = "jsonPayload.event=\"asset_cache\" AND jsonPayload.cached=true"
+    game_fallbacks        = "jsonPayload.event=\"game_fallback\""
+    game_sample_fallbacks = "jsonPayload.event=\"game_fallback\" AND jsonPayload.reason=\"sample\""
+    build_deadlines       = "jsonPayload.event=\"build_deadline_hit\""
 
   }
 
@@ -132,6 +135,80 @@ resource "google_monitoring_alert_policy" "kill_switch" {
     }
 
     auto_close = "1800s"
+
+  }
+
+
+}
+
+resource "google_monitoring_alert_policy" "game_fallback" {
+
+  display_name          = "Just Imagine sample fallback or build deadline"
+  combiner              = "OR"
+  notification_channels = var.notification_channels
+  conditions {
+    display_name = "A world fell back to a sample world"
+    condition_threshold {
+      filter          = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.events["game_sample_fallbacks"].name}\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "0s"
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+    }
+  }
+
+  conditions {
+    display_name = "A build ran out of time"
+    condition_threshold {
+      filter          = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.events["build_deadlines"].name}\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "0s"
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+    }
+  }
+
+  alert_strategy {
+    auto_close = "1800s"
+  }
+}
+
+# Template fallbacks are expected on a share of builds, so they alert by ratio, not one by one.
+resource "google_monitoring_alert_policy" "game_fallback_rate" {
+
+  display_name          = "Just Imagine game fallback rate above 50 percent"
+  combiner              = "OR"
+  notification_channels = var.notification_channels
+  conditions {
+    display_name = "Fallback ratio above 0.5 for 15 minutes"
+    condition_threshold {
+
+      filter             = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.events["game_fallbacks"].name}\""
+      denominator_filter = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.events["builder_results"].name}\""
+      comparison         = "COMPARISON_GT"
+      threshold_value    = 0.5
+      duration           = "900s"
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_RATE"
+
+      }
+
+      denominator_aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_RATE"
+
+      }
+
+
+    }
+
 
   }
 
