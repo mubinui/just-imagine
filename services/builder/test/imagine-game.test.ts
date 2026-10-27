@@ -23,8 +23,10 @@ import {
   guardPatchedGame,
   compileBehavior,
   GameGenerationError,
+  gateScript,
   type GenerateScript,
 } from '../src/imagine-game';
+import { GATE_CANCELLED } from '../src/game-playtest';
 import { createBudget } from '../src/budget';
 
 const flies = GAME_WORLDS.catchTheFlies;
@@ -112,6 +114,40 @@ describe('imagineGame', () => {
     expect(prompt).toContain(JSON.stringify('catch the flies before the owl wakes up'));
   });
 
+  it('builds the scene after a transient provider error instead of falling back', async () => {
+    const doc = toGenerated(sceneOnly(flies)) as unknown;
+    let calls = 0;
+    const prompts: string[] = [];
+    const generateScene = vi.fn(async (prompt: string) => {
+      prompts.push(prompt);
+      if (++calls <= 2) throw Object.assign(new Error('DEADLINE_EXCEEDED'), { status: 504 });
+      return doc;
+    });
+    const script = recorded<unknown>([
+      { kind: 'game', source: GOOD },
+      { kind: 'game', source: GOOD },
+    ]);
+    const sleeps: number[] = [];
+    const result = await imagineGame(job('catch the flies before the owl wakes up'), {
+      generateScene,
+      generateScript: script.fn as GenerateScript,
+      sceneRetry: {
+        random: () => 0.5,
+        sleep: async (ms) => {
+          sleeps.push(ms);
+        },
+      },
+    });
+    expect(result.fallback).toBe(false);
+    expect(generateScene).toHaveBeenCalledTimes(3);
+    expect(prompts.some((p) => p.includes('Previous candidate'))).toBe(false);
+    expect(sleeps).toEqual([1000, 2000]);
+    expect(events.filter((e) => e.event === 'scene_provider_retry')).toEqual([
+      { event: 'scene_provider_retry', jobId: 'j_game', worldId: 'w_game', status: 504 },
+      { event: 'scene_provider_retry', jobId: 'j_game', worldId: 'w_game', status: 504 },
+    ]);
+  });
+
   it('retries once with the static-check error, then publishes the repaired script', async () => {
     const script = recorded<unknown>([
       { kind: 'game', source: 'fetch("https://example.com");\ngame.score(1);' },
@@ -145,30 +181,48 @@ describe('imagineGame', () => {
     expect(result.doc.game?.script.source).toBe(GOOD);
   });
 
-  it('reports a failed game instead of publishing an unrelated plain scene', async () => {
-    const script = recorded<unknown>([
-      { kind: 'game', source: 'eval("1"); game.score(1);' },
-      { kind: 'game', source: 'game.say("no goal here");' },
-    ]);
-    await expect(
-      imagineGame(job('catch the flies game'), {
-        generateScene: sceneModel(),
-        generateScript: script.fn as GenerateScript,
-        candidates: 1,
-      }),
-    ).rejects.toThrow(/goal|score|win/i);
-    expect(script.fn).toHaveBeenCalledTimes(2);
+  it('falls back to a template after two failed rounds on a build, honestly flagged', async () => {
+    const alwaysStatic = vi.fn(async () => ({ kind: 'game', source: 'eval("1"); game.score(1);' }));
+    const result = await imagineGame(job('catch flies'), {
+      generateScene: sceneModel(),
+      generateScript: alwaysStatic,
+    });
+    expect(result).toMatchObject({
+      kind: 'game',
+      fallback: true,
+      fallbackReason: 'template',
+      rounds: 2,
+      attempts: 4,
+    });
+    expect(result.doc.game?.script.source).toContain('Catch 5');
+    // The cause survives: the closest failure on the result, its code on the event.
+    expect(result.failure).toMatch(/^static check: .*eval/);
+    const fallback = events.find((e) => e.event === 'game_fallback');
+    expect(fallback).toEqual({
+      event: 'game_fallback',
+      jobId: 'j_game',
+      worldId: 'w_game',
+      reason: 'template',
+      template: 'collect',
+      outcome: 'SCRIPT_STATIC',
+    });
   });
 
-  it('reports a failed game when the model is unavailable', async () => {
+  it('publishes a flagged template game when the model is unavailable', async () => {
     const script = vi
       .fn()
       .mockResolvedValueOnce({ nope: true })
       .mockRejectedValue(new Error('model unavailable'));
+    const result = await imagineGame(job('catch the flies game'), {
+      generateScene: sceneModel(),
+      generateScript: script,
+    });
+    expect(result).toMatchObject({ kind: 'game', fallback: true, fallbackReason: 'template' });
+    // The same failure with template fallback switched off is still reported.
     await expect(
-      imagineGame(job('catch the flies game'), {
+      compileBehavior(sceneOnly(flies), job('catch the flies game'), {
         generateScene: sceneModel(),
-        generateScript: script,
+        generateScript: vi.fn().mockRejectedValue(new Error('model unavailable')),
       }),
     ).rejects.toThrow('model unavailable');
   });
@@ -310,12 +364,14 @@ describe('imagineGame', () => {
       { kind: 'playground' },
       { kind: 'playground' },
     ]);
-    await expect(
-      imagineGame(job('catch the flies game', { experience: 'game' }), {
-        generateScene: sceneModel(),
-        generateScript: script.fn as GenerateScript,
-      }),
-    ).rejects.toThrow('downgrade');
+    // The playground answer is refused; a gated template game is published and flagged instead.
+    const result = await imagineGame(job('catch the flies game', { experience: 'game' }), {
+      generateScene: sceneModel(),
+      generateScript: script.fn as GenerateScript,
+    });
+    expect(result).toMatchObject({ kind: 'game', fallback: true, fallbackReason: 'template' });
+    expect(result.doc.game?.mode).toBeUndefined();
+    expect(result.doc.game?.script.source).toMatch(/game\.score/);
   });
 
   it('compiles scoreless open play and only bypasses the script model for explicit Labs', async () => {
@@ -694,5 +750,76 @@ describe('two candidates per round', () => {
       script.fn.mock.invocationCallOrder[0]!,
     );
     expect(result.rounds).toBe(1);
+  });
+
+  it('hands a Lab scene to onScene too, so its art starts at once', async () => {
+    const onScene = vi.fn();
+    const result = await imagineGame(
+      job('a launch experiment', { tier: 'lab', labKind: 'projectile' }),
+      {
+        generateScene: sceneModel(sceneOnly(FIXTURE_WORLDS.projectileLab)),
+        generateScript: vi.fn() as unknown as GenerateScript,
+        onScene,
+      },
+    );
+    expect(onScene).toHaveBeenCalledOnce();
+    expect(onScene.mock.calls[0]![0]).toBe(result.doc);
+  });
+});
+
+describe('final review', () => {
+  it('chooses worked examples from the child words, never the companion interpretation', async () => {
+    const script = recorded<unknown>([
+      { kind: 'game', source: GOOD },
+      { kind: 'game', source: GOOD },
+    ]);
+    await compileBehavior(
+      sceneOnly(flies),
+      job('keep the bubble alive: puff the bubble upward so it floats and earns a point', {
+        childRequest: 'a snail race across the pond',
+      }),
+      { generateScene: sceneModel(), generateScript: script.fn as GenerateScript },
+    );
+    const examples = script.prompts[0]!.split('\n').find((line) =>
+      line.startsWith('Complete worked examples'),
+    )!;
+    expect(examples).toContain('snail-race-in-the-rain');
+    expect(examples).not.toContain('keep-the-bubble-alive');
+  });
+
+  it('retries a transient provider error on a Lab scene instead of spending a repair on it', async () => {
+    const lab = toGenerated(sceneOnly(FIXTURE_WORLDS.projectileLab)) as unknown;
+    const prompts: string[] = [];
+    const generateScene = vi.fn(async (prompt: string) => {
+      prompts.push(prompt);
+      if (prompts.length === 1) throw Object.assign(new Error('UNAVAILABLE'), { status: 503 });
+      return lab;
+    });
+    const result = await imagineGame(
+      job('a launch experiment', { tier: 'lab', labKind: 'projectile' }),
+      {
+        generateScene,
+        generateScript: vi.fn() as unknown as GenerateScript,
+        sceneRetry: { random: () => 0.5, sleep: async () => {} },
+      },
+    );
+    expect(result).toMatchObject({ kind: 'playground', fallback: false });
+    expect(generateScene).toHaveBeenCalledTimes(2);
+    expect(prompts[1]).not.toContain('Validation error to repair');
+    expect(events.filter((e) => e.event === 'scene_provider_retry')).toHaveLength(1);
+  });
+
+  it('stops the gate before the smoke run once the candidate signal is aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const diagnose = vi.fn();
+    // A programme that throws on its first tick: a smoke run would report a runtime failure.
+    const verdict = await gateScript(sceneOnly(flies), 'game.on("tick", () => { null.x; });', {
+      language: 'en',
+      diagnose,
+      signal: controller.signal,
+    });
+    expect(verdict).toBe(GATE_CANCELLED);
+    expect(diagnose).not.toHaveBeenCalled();
   });
 });

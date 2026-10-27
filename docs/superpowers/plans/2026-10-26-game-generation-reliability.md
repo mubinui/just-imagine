@@ -652,6 +652,36 @@ test('a child asks for a game, waits, the voice stops, and the game is playable'
 
 ---
 
+### Task 16: Transient scene-stage errors are retried inside the budget
+
+Added after the Task 13 soak: a provider `504 DEADLINE_EXCEEDED` at the scene stage counted as a failed scene attempt, and three such attempts sent the child a sample world. A transient provider error is not a bad scene.
+
+**Files:**
+- Modify: `services/builder/src/rate-limit.ts` (generalise the backoff loop behind a predicate)
+- Modify: `services/builder/src/imagine-game.ts` (`imagineGame`'s scene closure) and `services/builder/src/revisions.ts` (`reviseCreation`'s scene closure)
+- Test: `services/builder/test/rate-limit.test.ts`, `services/builder/test/imagine-game.test.ts`
+
+**Interfaces:**
+- Produces: `export async function withTransientRetry<T>(call: () => Promise<T>, options: { deadlineMs: number; baseMs?; maxWaitMs?; random?; now?; sleep?; signal?: AbortSignal }): Promise<T>` — same backoff as `withBackoff` but retries whenever `isTransientProviderError(error)` and the signal is not aborted; `withBackoff` keeps its rate-limit-only behaviour (implemented over the same loop with a `shouldRetry` predicate).
+- `ImagineGameDeps.sceneRetry?: Pick<Parameters<typeof withTransientRetry>[1], 'now' | 'sleep' | 'random'>` for tests.
+- The scene closure passed to `buildScene` wraps `deps.generateScene` in `withTransientRetry` with `deadlineMs = Math.min(120000, budget.remainingMs())`; a retry is logged `scene_provider_retry { jobId, worldId, status }`.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+it('retries a transient scene error with backoff and never a client abort', async () => { /* rate-limit.test.ts: 504 then 504 then ok → 3 calls, two sleeps; an aborted signal → rethrow at once */ });
+it('builds the scene after a transient provider error instead of falling back', async () => {
+  // imagine-game.test.ts: generateScene rejects with { status: 504 } twice then returns the scene; injected sleep; expect one buildScene attempt (no "Previous candidate" repair prompt), result.fallback false, event scene_provider_retry logged twice
+});
+```
+
+- [ ] **Step 2: Run to verify they fail** → FAIL (no export; today the 504s consume scene attempts).
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run the builder unit suite, typecheck, lint** → PASS.
+- [ ] **Step 5: Commit** — `git commit -m "fix(builder): a transient provider error at the scene stage is retried, not turned into a sample world"`.
+
+---
+
 ## Self-review
 
 - Spec coverage: 6.1 → Task 3; 6.2, 6.3 → Task 4; 6.4 → Tasks 1, 7, 11; 6.5 → Tasks 5 (schema call), 9 (art), review-parallel plan is **not** implemented (saves ~5 s, adds a wasted call on review failure; left out deliberately, noted here); 6.6 → Tasks 5, 6; 6.7 → Tasks 2, 9, 11, 12; 6.8 → Tasks 6 (plan skipped), 8, 9, 10, 11; 6.9 → Task 8; 6.10 → Tasks 6, 8, 9, 10, 12; verification 10 → Task 13 and the integration tests.

@@ -16,15 +16,18 @@ import {
   runGameplayPlan,
   diagnoseGameplayPlanFailure,
   withoutCheck,
+  GATE_CANCELLED,
   type GameplayPlan,
   type PlanGame,
 } from './game-playtest';
 import { logEvent } from '@just-imagine/server-core';
 import { providerFailure, type GameFailureDiagnostic } from './game-diagnostics';
-import { isRateLimited, isTransientProviderError } from './rate-limit';
+import { isRateLimited, isTransientProviderError, withTransientRetry } from './rate-limit';
 import { createBudget, type BuildBudget } from './budget';
 import { raceCandidates, type Candidate } from './candidates';
+import { ensureHero } from './hero';
 import { feedbackLint } from './designer-brief';
+import { templateGame } from './templates';
 
 /** Calls the script model with a prompt; resolves with its parsed JSON output. */
 export type GenerateScript = (
@@ -50,12 +53,39 @@ export interface ImagineGameDeps {
   moderate?: Moderate;
   /** Simulated seconds for the smoke run. */
   seconds?: number;
-  /** The build's time budget; defaults to a fresh one when compiling starts. */
+  /** The build's time budget; defaults to a fresh one created when imagineGame starts, so scene time counts against the same budget. */
   budget?: BuildBudget;
   /** Receives the composed scene as soon as it exists, before any script is written. */
   onScene?: (doc: SceneDoc) => void;
   /** Script candidates raced per round; defaults to 2. */
   candidates?: number;
+  /** Clock, sleep and jitter for the scene-stage retry; tests inject these. */
+  sceneRetry?: Pick<Parameters<typeof withTransientRetry>[1], 'now' | 'sleep' | 'random'>;
+}
+
+/** Wraps the scene model so a transient provider error is retried inside the build budget. */
+export function retryingScene(
+  job: BuildWorldJob,
+  deps: ImagineGameDeps,
+  budget: BuildBudget,
+  compose: (prompt: string) => string = (prompt) => prompt,
+): GenerateJson {
+  return (prompt, kind, sessionId) =>
+    withTransientRetry(
+      () => deps.generateScene(compose(prompt), kind, sessionId),
+      { deadlineMs: Math.min(120000, budget.remainingMs()), ...deps.sceneRetry },
+      (error) => {
+        const status =
+          error && typeof error === 'object' && 'status' in error
+            ? Number(error.status)
+            : undefined;
+        logEvent('scene_provider_retry', {
+          jobId: job.jobId,
+          worldId: job.worldId,
+          ...(status !== undefined && !Number.isNaN(status) ? { status } : {}),
+        });
+      },
+    );
 }
 
 export interface ImagineGameResult {
@@ -63,7 +93,7 @@ export interface ImagineGameResult {
   kind: 'game' | 'playground';
   /** Script model calls made. */
   attempts: number;
-  /** Retained for older callers; new failures throw instead of substituting a plain scene. */
+  /** True when a gated template game replaced the generated one; never a plain scene. */
   fallback: boolean;
   /** Why the last script failed, for logs. */
   failure?: string;
@@ -108,7 +138,10 @@ function describeFailure(result: Extract<SmokeResult, { ok: false }>): string {
   }
 }
 
-/** Static check, ten-second smoke run and moderation. Returns null when the script passes. */
+/**
+ * Static check, ten-second smoke run and moderation. Returns null when the script passes,
+ * and GATE_CANCELLED, never a failure, once `signal` is aborted before the smoke run.
+ */
 export async function gateScript(
   doc: SceneDoc,
   source: string,
@@ -118,8 +151,11 @@ export async function gateScript(
     seconds?: number;
     requireGoal?: boolean;
     diagnose?: (diagnostic: GameFailureDiagnostic) => void;
+    /** Aborted once another candidate wins: a losing candidate skips its smoke run. */
+    signal?: AbortSignal;
   },
 ): Promise<string | null> {
+  if (options.signal?.aborted) return GATE_CANCELLED;
   const check = checkScript(source);
   if (!check.ok) {
     options.diagnose?.({
@@ -128,6 +164,7 @@ export async function gateScript(
     });
     return `static check: ${check.errors.map((e) => `line ${e.line}: ${e.message}`).join('; ')}`;
   }
+  if (options.signal?.aborted) return GATE_CANCELLED;
   const result = await smokeRun(doc, source, {
     seconds: options.seconds ?? 10,
     requireGoal: options.requireGoal ?? doc.game?.mode !== 'freeplay',
@@ -159,7 +196,11 @@ export async function gateScript(
   return describeFailure(result);
 }
 
-function withScript(doc: SceneDoc, source: string, mode: 'game' | 'freeplay' = 'game'): SceneDoc {
+export function withScript(
+  doc: SceneDoc,
+  source: string,
+  mode: 'game' | 'freeplay' = 'game',
+): SceneDoc {
   const next = structuredClone(doc);
   next.game = {
     script: { apiVersion: 1, source, hash: scriptHash(source) },
@@ -174,29 +215,29 @@ function withScript(doc: SceneDoc, source: string, mode: 'game' | 'freeplay' = '
  * The `imagineGame` flow: decide game or playground from the wish, compose the
  * scene, hand it to `onScene`, then ask the script model for a programme against
  * the Game API in at most two rounds of parallel candidates, each gated by the
- * static check, smoke run, moderation and the acceptance plan. Report failure
- * when the requested game cannot be built; never substitute a plain scene.
+ * static check, smoke run, moderation and the acceptance plan. When no programme
+ * passes, publish a template game through the same gate, flagged as a fallback;
+ * never substitute a plain scene.
  */
 export async function imagineGame(
   job: BuildWorldJob,
   deps: ImagineGameDeps,
 ): Promise<ImagineGameResult> {
-  if (job.labKind)
-    return {
-      doc: await buildScene(job, deps.generateScene),
-      kind: 'playground',
-      attempts: 0,
-      fallback: false,
-      rounds: 0,
-    };
-  const doc = await buildScene(
+  // One budget for the whole build: the scene retry and the script rounds share it.
+  const budget = deps.budget ?? createBudget();
+  if (job.labKind) {
+    const lab = await buildScene(job, retryingScene(job, deps, budget));
+    deps.onScene?.(lab);
+    return { doc: lab, kind: 'playground', attempts: 0, fallback: false, rounds: 0 };
+  }
+  const built = await buildScene(
     job,
-    (prompt, kind, sessionId) =>
-      deps.generateScene(`${prompt}\n${GAME_SCENE_HINT}`, kind, sessionId),
+    retryingScene(job, deps, budget, (prompt) => `${prompt}\n${GAME_SCENE_HINT}`),
     deps.reviewScene,
   );
+  const doc = ensureHero(built, job);
   deps.onScene?.(doc);
-  return compileBehavior(doc, job, deps, undefined, { fallback: 'template' });
+  return compileBehavior(doc, job, { ...deps, budget }, undefined, { fallback: 'template' });
 }
 
 /** Time a round of script candidates needs to finish: the model call plus every gate. */
@@ -294,7 +335,7 @@ async function establishPlan(
 /** What a candidate reports once another has won; the race ignores it. */
 const cancelled = (attempt: number): Extract<Candidate<never>, { ok: false }> => ({
   ok: false,
-  failure: 'cancelled: another candidate won',
+  failure: GATE_CANCELLED,
   diagnostic: { code: 'SCRIPT_OUTPUT', attempt },
 });
 
@@ -355,6 +396,7 @@ async function runCandidate(
         diagnose: (detail) => {
           diagnostic = detail;
         },
+        signal,
         ...(deps.moderate ? { moderate: deps.moderate } : {}),
         ...(deps.seconds ? { seconds: deps.seconds } : {}),
       });
@@ -369,8 +411,10 @@ async function runCandidate(
               (detail) => {
                 diagnostic = detail;
               },
+              signal,
             )
           : null;
+      if (signal.aborted) return cancelled(attempt);
       if (problem === null && gameplayProblem === null) {
         diagnostic = { code: 'SCENE_INVALID' };
         return { ok: true, value: withScript(doc, source, mode) };
@@ -520,6 +564,7 @@ export async function compileBehavior(
   const candidates = Math.max(1, Math.floor(deps.candidates ?? 2));
   let count = candidates;
   let feedback = '';
+  let lastRound = 0;
   let best: { failure: string; diagnostic: GameFailureDiagnostic } = {
     failure: 'the time budget ran out before a programme could be written',
     diagnostic: { code: 'BUDGET' },
@@ -535,12 +580,15 @@ export async function compileBehavior(
         : job.description,
       doc,
       language,
+      // Worked examples follow the child's own words, never the companion's interpretation.
+      exampleWish: job.childRequest ?? job.description,
       ageBand: job.ageBand,
       mode,
       previous,
       ...(plan ? { plan } : {}),
     });
     const outcome = await runRound(ctx, round, count, `${prompt}${feedback}`, plan);
+    lastRound = round;
     if (outcome.won)
       return {
         doc: outcome.doc,
@@ -571,8 +619,34 @@ export async function compileBehavior(
     feedback = retryFeedback(reason, closest.source, lint);
   }
   if (options.fallback === 'template') {
-    // TODO(template fallback): Task 8 publishes a tested template here instead of throwing.
-    throw new GameGenerationError(best.failure, best.diagnostic);
+    // Never silently substitute: the template is gated like any script and flagged as one.
+    const template = await templateGame(doc, job, plan, deps).catch((error: unknown) => {
+      throw new GameGenerationError(
+        `${best.failure}; ${error instanceof Error ? error.message : String(error)}`,
+        best.diagnostic,
+      );
+    });
+    logEvent(
+      'game_fallback',
+      // The cause as an operational code only: no model text, source or entity names.
+      {
+        jobId,
+        worldId,
+        reason: 'template',
+        template: template.kind,
+        outcome: best.diagnostic.code,
+      },
+      'WARNING',
+    );
+    return {
+      doc: template.doc,
+      kind: 'game',
+      attempts: ctx.attempts,
+      rounds: lastRound,
+      fallback: true,
+      fallbackReason: 'template',
+      failure: best.failure,
+    };
   }
   throw new GameGenerationError(best.failure, best.diagnostic);
 }

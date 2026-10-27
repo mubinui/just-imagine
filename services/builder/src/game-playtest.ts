@@ -465,14 +465,20 @@ async function evaluateScenario(
 }
 
 /** Fresh real worlds for each journey, idle control, and per-effect input-prefix control. */
+/** What a gate returns once its candidate's race is decided: a cancellation, not a failure. */
+export const GATE_CANCELLED = 'cancelled: another candidate won';
+
 export async function runGameplayPlan(
   doc: SceneDoc,
   source: string,
   plan: GameplayPlan,
   moderate?: (text: string) => Promise<boolean>,
   diagnose?: (diagnostic: GameFailureDiagnostic) => void,
+  /** Aborted once another candidate wins: no further scenario is played. */
+  signal?: AbortSignal,
 ): Promise<string | null> {
   for (const [scenarioIndex, scenario] of plan.scenarios.entries()) {
+    if (signal?.aborted) return GATE_CANCELLED;
     const reportCheck = (
       code: 'PLAYTEST_CHECK' | 'PLAYTEST_CAUSAL',
       check: (typeof scenario.checks)[number],
@@ -502,6 +508,7 @@ export async function runGameplayPlan(
       return `Playtest ${scenario.name}: ${[...active.failures.values()].slice(0, 4).join('; ')}`;
     }
     if (scenario.inputs.length === 0) continue;
+    if (signal?.aborted) return GATE_CANCELLED;
     const idle = await evaluateScenario(doc, source, { ...scenario, inputs: [] }, moderate);
     if (idle.error) {
       diagnose?.({ code: 'PLAYTEST_RUNTIME' });
@@ -519,6 +526,7 @@ export async function runGameplayPlan(
         (check) => 'trigger' in check && check.trigger === trigger && check.type !== 'speed',
       );
       if (checks.length === 0) continue;
+      if (signal?.aborted) return GATE_CANCELLED;
       const control =
         trigger === 0
           ? idle

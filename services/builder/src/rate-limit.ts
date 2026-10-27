@@ -6,23 +6,22 @@ export function isRateLimited(error: unknown): boolean {
   return error instanceof Error && error.message.includes('RESOURCE_EXHAUSTED');
 }
 
-/**
- * Retries rate-limited calls with exponential backoff and jitter, as Vertex AI recommends for
- * its shared capacity. Other errors fail at once, and no wait starts that would end after
- * `deadlineMs` from the first attempt; the last rate-limit error is rethrown instead.
- */
-export async function withBackoff<T>(
+interface RetryOptions {
+  deadlineMs: number;
+  baseMs?: number;
+  maxWaitMs?: number;
+  random?: () => number;
+  now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
+  /** Once aborted, the last error is rethrown instead of waiting. */
+  signal?: AbortSignal;
+}
+
+async function retryWithBackoff<T>(
   call: () => Promise<T>,
-  options: {
-    deadlineMs: number;
-    baseMs?: number;
-    maxWaitMs?: number;
-    random?: () => number;
-    now?: () => number;
-    sleep?: (ms: number) => Promise<void>;
-    /** Once aborted, the last rate-limit error is rethrown instead of waiting. */
-    signal?: AbortSignal;
-  },
+  options: RetryOptions,
+  shouldRetry: (error: unknown) => boolean,
+  onRetry?: (error: unknown) => void,
 ): Promise<T> {
   const {
     deadlineMs,
@@ -37,13 +36,35 @@ export async function withBackoff<T>(
     try {
       return await call();
     } catch (error) {
-      if (!isRateLimited(error)) throw error;
+      if (!shouldRetry(error)) throw error;
       const wait = Math.round(Math.min(maxWaitMs, baseMs * 2 ** attempt) * (0.5 + random()));
       if (options.signal?.aborted) throw error;
       if (now() + wait - start > deadlineMs) throw error;
+      onRetry?.(error);
       await sleep(wait);
     }
   }
+}
+
+/**
+ * Retries rate-limited calls with exponential backoff and jitter, as Vertex AI recommends for
+ * its shared capacity. Other errors fail at once, and no wait starts that would end after
+ * `deadlineMs` from the first attempt; the last rate-limit error is rethrown instead.
+ */
+export function withBackoff<T>(call: () => Promise<T>, options: RetryOptions): Promise<T> {
+  return retryWithBackoff(call, options, isRateLimited);
+}
+
+/**
+ * The same backoff, but for every transient provider error (rate limit, timeout, 5xx). A
+ * deliberate abort is never retried: once `signal` is aborted the error is rethrown at once.
+ */
+export function withTransientRetry<T>(
+  call: () => Promise<T>,
+  options: RetryOptions,
+  onRetry?: (error: unknown) => void,
+): Promise<T> {
+  return retryWithBackoff(call, options, isTransientProviderError, onRetry);
 }
 
 /** Lets at most `limit` tasks run at once; the rest wait in arrival order. */
