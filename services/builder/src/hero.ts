@@ -70,6 +70,34 @@ export function ensureHero(doc: SceneDoc, job: BuildWorldJob): SceneDoc {
     : heroInsertFailed(doc, job, 'invalid_after_insert');
 }
 
+/** True when the friend, standing at x, would sit inside a static body (the ground it stands on excepted). */
+function blockedByStatic(doc: SceneDoc, friend: Entity, x: number): boolean {
+  const halfW = friend.body.size.width / 2;
+  const halfH = friend.body.size.height / 2;
+  return doc.entities.some(
+    (e) =>
+      e.body.isStatic &&
+      e.kind !== 'ground' &&
+      Math.abs(e.transform.x - x) < halfW + e.body.size.width / 2 - 0.01 &&
+      Math.abs(e.transform.y - friend.transform.y) < halfH + e.body.size.height / 2 - 0.01,
+  );
+}
+
+/** 1.5 m left of the hero, else 1.5 m right, else the nearest clear spot along the stage. */
+function friendSlot(doc: SceneDoc, friend: Entity, heroX: number): number {
+  const inStage = (x: number) => x >= 0.5 && x <= 15.5;
+  const preferred = [heroX - 1.5, heroX + 1.5].filter(
+    (x) => inStage(x) && !blockedByStatic(doc, friend, x),
+  );
+  if (preferred[0] !== undefined) return preferred[0];
+  for (let step = 0.25; step <= 15; step += 0.25) {
+    for (const x of [heroX - step, heroX + step]) {
+      if (inStage(x) && !blockedByStatic(doc, friend, x)) return x;
+    }
+  }
+  return Math.min(15.5, Math.max(0.5, heroX - 1.5 >= 0.5 ? heroX - 1.5 : heroX + 1.5));
+}
+
 function friendSkipped(doc: SceneDoc, job: BuildWorldJob, reason: string): SceneDoc {
   logEvent('friend_insert_skipped', { jobId: job.jobId, worldId: job.worldId, reason });
   return doc;
@@ -101,9 +129,7 @@ export function ensureFriend(doc: SceneDoc, job: BuildWorldJob): SceneDoc {
   friend.id = id;
   friend.tags = ['friend', companionId];
   if (ground) friend.transform.y = ground.transform.y - ground.body.size.height / 2 - 0.5;
-  const heroX = hero?.transform.x ?? 8;
-  const left = heroX - 1.5;
-  friend.transform.x = Math.min(15.5, Math.max(0.5, left >= 0.5 ? left : heroX + 1.5));
+  friend.transform.x = friendSlot(next, friend, hero?.transform.x ?? 8);
   next.entities.push(friend);
   const checked = validateScene(next);
   return checked.ok && checked.doc ? checked.doc : friendSkipped(doc, job, 'invalid_after_insert');

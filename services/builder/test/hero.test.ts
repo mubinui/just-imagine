@@ -142,6 +142,32 @@ describe('the friend always joins', () => {
     expect(validateScene(doc).ok).toBe(true);
   });
 
+  it('skips a slot blocked by a static wall, and keeps the spacing near an edge', () => {
+    const heroX = heroEntity.transform.x;
+    const wall = {
+      ...structuredClone(heroEntity),
+      id: 'wall',
+      tags: ['wall'],
+      body: { ...heroEntity.body, isStatic: true, size: { width: 1, height: 3 } },
+      transform: { x: heroX - 1.5, y: heroEntity.transform.y, rotation: 0 },
+    };
+    const walled: SceneDoc = { ...flies, entities: [...flies.entities, wall] };
+    const friend = ensureFriend(walled, job('x', { companionId: 'bhombol' })).entities.find(
+      (e) => e.id === 'bhombol',
+    )!;
+    expect(friend.transform.x).toBeCloseTo(heroX + 1.5, 5);
+    const nearRight: SceneDoc = {
+      ...flies,
+      entities: flies.entities.map((e) =>
+        e.id === heroEntity.id ? { ...e, transform: { ...e.transform, x: 15 } } : e,
+      ),
+    };
+    const edge = ensureFriend(nearRight, job('x', { companionId: 'bhombol' })).entities.find(
+      (e) => e.id === 'bhombol',
+    )!;
+    expect(edge.transform.x).toBeCloseTo(13.5, 5);
+  });
+
   it('leaves a scene that already has the friend unchanged (by id or by tag)', () => {
     const byId = ensureFriend(flies, job('x', { companionId: 'bhombol' }));
     expect(ensureFriend(byId, job('x', { companionId: 'bhombol' }))).toBe(byId);

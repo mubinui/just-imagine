@@ -6,6 +6,7 @@ import { SceneDocSchema, findBlockedTerm, type SceneDoc } from '@just-imagine/sc
 import { driveScript, type TimedInput } from '@just-imagine/game-runtime';
 import { createEngineStage, nodeWorkerFactory } from '@just-imagine/game-runtime/node';
 import { gateScript } from '../src/imagine-game';
+import { ensureFriend } from '../src/hero';
 import {
   ALL_TEMPLATE_STRINGS,
   chooseTemplate,
@@ -226,5 +227,67 @@ describe('templateGame', () => {
     await expect(
       templateGame(flies, job('catch the flies'), undefined, { moderate: async () => false }),
     ).rejects.toThrow();
+  });
+});
+
+describe('the friend in template games', () => {
+  const withFriend = (doc: SceneDoc): SceneDoc =>
+    ensureFriend(doc, job('x', { companionId: 'bhombol' }));
+  const fliesFriend = withFriend(flies);
+  const loneFriend = withFriend({
+    ...flies,
+    entities: flies.entities.map((e) =>
+      e.tags.includes('fly') ? { ...e, body: { ...e.body, isStatic: true } } : e,
+    ),
+  });
+
+  it('puts the friend in the scenes', () => {
+    expect(fliesFriend.entities.some((e) => e.tags.includes('friend'))).toBe(true);
+    expect(loneFriend.entities.some((e) => e.tags.includes('friend'))).toBe(true);
+  });
+
+  it('chooses the tap toy for hero + friend + static ground, and collect when a real target exists', () => {
+    expect(chooseTemplate(loneFriend, 'game')).toBe('tap-toy');
+    expect(chooseTemplate(loneFriend, 'freeplay', 'catch the stars')).toBe('tap-toy');
+    expect(chooseTemplate(fliesFriend, 'game')).toBe('collect');
+  });
+
+  it('collect never lists, removes or scores the friend', async () => {
+    const source = templateSource('collect', fliesFriend, 'en', 'game');
+    expect(source).not.toContain('"bhombol"');
+    const commands = await play(
+      fliesFriend,
+      source,
+      [{ at: 0.5, type: 'tap', target: 'bhombol' } as unknown as TimedInput],
+      2,
+    );
+    expect(commands.some((c) => c.type === 'remove' && c.target === 'bhombol')).toBe(false);
+    expect(commands.some((c) => c.type === 'score')).toBe(false);
+  });
+
+  it('tap toy lets the friend hop but never counts it, and the gate passes', async () => {
+    expect(templateSource('tap-toy', loneFriend, 'en', 'game')).toContain(
+      'const COUNT_HERO = true;',
+    );
+    for (const doc of [loneFriend, fliesFriend]) {
+      expect(
+        await gateScript(doc, templateSource('tap-toy', doc, 'en', 'game'), {
+          language: 'en',
+          requireGoal: true,
+        }),
+      ).toBeNull();
+    }
+    const commands = await play(
+      loneFriend,
+      templateSource('tap-toy', loneFriend, 'en', 'game'),
+      Array.from({ length: 12 }, (_, i) => ({
+        at: 0.3 + i * 0.1,
+        type: 'tap',
+        target: 'bhombol',
+      })) as unknown as TimedInput[],
+      3,
+    );
+    expect(commands.some((c) => c.type === 'impulse' && c.target === 'bhombol')).toBe(true);
+    expect(commands.some((c) => c.type === 'score')).toBe(false);
   });
 });
