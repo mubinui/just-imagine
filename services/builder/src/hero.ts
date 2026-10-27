@@ -69,3 +69,42 @@ export function ensureHero(doc: SceneDoc, job: BuildWorldJob): SceneDoc {
     ? checked.doc
     : heroInsertFailed(doc, job, 'invalid_after_insert');
 }
+
+function friendSkipped(doc: SceneDoc, job: BuildWorldJob, reason: string): SceneDoc {
+  logEvent('friend_insert_skipped', { jobId: job.jobId, worldId: job.worldId, reason });
+  return doc;
+}
+
+/**
+ * Makes sure the child's friend is in a playground world: when no entity carries the
+ * companion's id or tag, adds them on the ground 1.5 m beside the hero. Labs, jobs
+ * without a companion and edits (which carry no companion) are returned unchanged.
+ * Never throws; a full or invalid scene is returned as it was.
+ */
+export function ensureFriend(doc: SceneDoc, job: BuildWorldJob): SceneDoc {
+  const companionId = job.companionId;
+  if (!companionId || job.labKind || job.tier === 'lab' || doc.tier === 'lab') return doc;
+  if (doc.entities.some((e) => e.id === companionId || e.tags.includes(companionId))) return doc;
+  if (doc.entities.length >= LIMITS.maxEntities) return friendSkipped(doc, job, 'full');
+  const next = structuredClone(doc);
+  const ids = new Set(next.entities.map((e) => e.id));
+  let id: string = companionId;
+  for (let n = 2; ids.has(id); n += 1) id = `${companionId}_${n}`;
+  const ground = next.entities.find((e) => e.kind === 'ground');
+  const hero = next.entities.find((e) => e.id === next.learning.heroEntityId);
+  const material =
+    hero?.body.material ??
+    next.entities.find((e) => e.kind === 'sprite' && !e.body.isStatic)?.body.material ??
+    Object.keys(next.materials)[0] ??
+    'wood';
+  const friend = companionHeroEntity(companionId, material);
+  friend.id = id;
+  friend.tags = ['friend', companionId];
+  if (ground) friend.transform.y = ground.transform.y - ground.body.size.height / 2 - 0.5;
+  const heroX = hero?.transform.x ?? 8;
+  const left = heroX - 1.5;
+  friend.transform.x = Math.min(15.5, Math.max(0.5, left >= 0.5 ? left : heroX + 1.5));
+  next.entities.push(friend);
+  const checked = validateScene(next);
+  return checked.ok && checked.doc ? checked.doc : friendSkipped(doc, job, 'invalid_after_insert');
+}

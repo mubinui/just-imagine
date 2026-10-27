@@ -1,8 +1,21 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const events = vi.hoisted(() => [] as { event: string; [field: string]: unknown }[]);
+vi.mock('@just-imagine/server-core', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  logEvent: (event: string, fields: Record<string, unknown> = {}) => {
+    events.push({ event, ...fields });
+  },
+}));
+beforeEach(() => {
+  events.length = 0;
+});
+
 import { GAME_WORLDS } from '@just-imagine/fixtures/browser';
 import { CHARACTERS, type BuildWorldJob } from '@just-imagine/protocol';
 import { validateScene, LIMITS, type SceneDoc } from '@just-imagine/scene-schema';
-import { ensureHero, heroProblem } from '../src/hero';
+import { ensureFriend, ensureHero, heroProblem } from '../src/hero';
+import { gameScriptPrompt } from '../src/game-prompt';
 import { scenePromptV1 } from '../src/prompts/v1';
 
 const flies = GAME_WORLDS.catchTheFlies;
@@ -103,5 +116,94 @@ describe('hero rule', () => {
     );
     expect(lab).not.toContain(CHARACTERS.bhombol.look);
     expect(lab).not.toContain("the hero is the child's friend");
+  });
+});
+
+describe('the friend always joins', () => {
+  const ground = flies.entities.find((e) => e.kind === 'ground')!;
+  const heroEntity = flies.entities.find((e) => e.id === flies.learning.heroEntityId)!;
+  it('inserts the friend beside a named hero, on the ground, without hero or character', () => {
+    const doc = ensureFriend(flies, job('a car race', { companionId: 'bhombol' }));
+    const friend = doc.entities.find((e) => e.id === 'bhombol')!;
+    expect(friend).toMatchObject({
+      kind: 'sprite',
+      name: CHARACTERS.bhombol.displayName,
+      description: CHARACTERS.bhombol.look,
+      tags: ['friend', 'bhombol'],
+    });
+    expect(friend.character).toBeUndefined();
+    expect(friend.body.isStatic).toBe(false);
+    expect(Math.abs(friend.transform.x - heroEntity.transform.x)).toBeCloseTo(1.5, 5);
+    expect(friend.transform.y).toBeCloseTo(
+      ground.transform.y - ground.body.size.height / 2 - 0.5,
+      5,
+    );
+    expect(doc.learning.heroEntityId).toBe(flies.learning.heroEntityId);
+    expect(validateScene(doc).ok).toBe(true);
+  });
+
+  it('leaves a scene that already has the friend unchanged (by id or by tag)', () => {
+    const byId = ensureFriend(flies, job('x', { companionId: 'bhombol' }));
+    expect(ensureFriend(byId, job('x', { companionId: 'bhombol' }))).toBe(byId);
+    const byTag = ensureHero(withStaticHero, job('x', { companionId: 'mishti' }));
+    expect(ensureFriend(byTag, job('x', { companionId: 'mishti' }))).toBe(byTag);
+  });
+
+  it('skips labs and jobs without a companion', () => {
+    expect(ensureFriend(flies, job('x', { companionId: 'bhombol', labKind: 'projectile' }))).toBe(
+      flies,
+    );
+    expect(ensureFriend(flies, job('x', { companionId: 'bhombol', tier: 'lab' }))).toBe(flies);
+    expect(ensureFriend(flies, job('x'))).toBe(flies);
+  });
+
+  it('skips a full scene and logs friend_insert_skipped', () => {
+    const actor = flies.entities.find((e) => e.kind === 'sprite' && !e.body.isStatic)!;
+    const full: SceneDoc = {
+      ...flies,
+      entities: [
+        ...flies.entities,
+        ...Array.from({ length: LIMITS.maxEntities - flies.entities.length }, (_, i) => ({
+          ...actor,
+          id: `extra${i}`,
+          tags: [],
+        })),
+      ],
+    };
+    expect(ensureFriend(full, job('x', { companionId: 'bhombol' }))).toBe(full);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        event: 'friend_insert_skipped',
+        jobId: 'j_hero',
+        worldId: 'w_hero',
+      }),
+    );
+  });
+
+  it('puts the friend line in the playground scene prompt and not in a lab prompt', () => {
+    const line = `The child's friend ${CHARACTERS.bhombol.displayName} is always in this world`;
+    const prompt = scenePromptV1(job('x', { companionId: 'bhombol' }));
+    expect(prompt).toContain(line);
+    expect(prompt).toContain(`tags ["friend","bhombol"]`);
+    expect(prompt).toContain(CHARACTERS.bhombol.look);
+    const lab = scenePromptV1(
+      job('x', { tier: 'lab', labKind: 'projectile', companionId: 'bhombol' }),
+    );
+    expect(lab).not.toContain(line);
+  });
+
+  it('mentions the friend in the script prompt only when a friend entity exists', () => {
+    const input = { description: 'x', language: 'en' as const, ageBand: '6-7' };
+    const withFriend = gameScriptPrompt({
+      ...input,
+      doc: ensureFriend(flies, job('x', { companionId: 'bhombol' })),
+    });
+    expect(withFriend).toContain(
+      `The child's friend ${CHARACTERS.bhombol.displayName} (entity "bhombol") is in this world.`,
+    );
+    expect(withFriend).toContain(
+      'Never make the friend an obstacle, a target or something to remove.',
+    );
+    expect(gameScriptPrompt({ ...input, doc: flies })).not.toContain("The child's friend");
   });
 });
