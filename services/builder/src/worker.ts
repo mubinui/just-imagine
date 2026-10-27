@@ -47,12 +47,15 @@ import {
 } from './motion';
 import {
   applyArt,
+  applyStandIns,
+  needsStandIn,
   requestsFor,
   startArt,
   type ArtAsset,
   type ArtOutcome,
   type ArtRequest,
 } from './art-phase';
+import { standInFor } from './standins';
 import { ART_PHASE_MS, createBudget } from './budget';
 import type { PatchOp, AssetRef, SceneDoc } from '@just-imagine/scene-schema';
 
@@ -347,6 +350,13 @@ export class BuilderWorker {
               outcomes.set(request.id, { status: 'failed' });
         }
         const world = applyArt(base, outcomes);
+        const standIns = applyStandIns(world, outcomes);
+        if (standIns)
+          logEvent('art_standin_used', {
+            jobId: job.jobId,
+            worldId: job.worldId,
+            count: standIns,
+          });
         // A sprite whose motion art did not finish stands still; the world is never failed for it.
         const dropped = dropMissingMotion(world.doc);
         if (dropped.length)
@@ -581,6 +591,7 @@ export class BuilderWorker {
     }
     world.thumbnailUrl = doc.theme.backdrop.status === 'ready' ? doc.theme.backdrop.url : null;
     let cursor = 0;
+    let standIns = 0;
     const deadline = Date.now() + 180000;
     const work = async () => {
       while (cursor < requests.length) {
@@ -593,14 +604,18 @@ export class BuilderWorker {
         } catch (error) {
           // A failed animation sheet never rejects the edit: the sprite keeps its old still
           // picture, if it had one, and `patch` drops its locomotion.
-          if (!request.locomotion || request.locomotion.kind === 'roll') throw error;
+          const entity = doc.entities.find((e) => e.id === request.id);
+          const standable = Boolean(
+            entity && request.kind === 'sprite' && needsStandIn(entity, doc.learning.heroEntityId),
+          );
+          if ((!request.locomotion || request.locomotion.kind === 'roll') && !standable)
+            throw error;
           logEvent(
             'asset_failed',
             { jobId: job.jobId, milestone: request.kind, success: false },
             'WARNING',
           );
           const old = before.doc.entities.find((e) => e.id === request.id);
-          const entity = doc.entities.find((e) => e.id === request.id);
           if (
             entity &&
             old?.asset?.status === 'ready' &&
@@ -614,6 +629,17 @@ export class BuilderWorker {
               url: old.asset.url,
               ...(old.asset.colliderUrl ? { colliderUrl: old.asset.colliderUrl } : {}),
             };
+          } else if (entity && standable) {
+            // The hero, a character or the friend never ends up without a picture.
+            const standIn = standInFor(entity);
+            entity.asset = {
+              status: 'ready',
+              url: standIn.url,
+              width: standIn.width,
+              height: standIn.height,
+            };
+            world.assets[request.id] = { status: 'ready', url: standIn.url };
+            standIns++;
           } else world.assets[request.id] = { status: 'failed' };
           continue;
         }
@@ -643,6 +669,8 @@ export class BuilderWorker {
     const results = await Promise.allSettled(
       Array.from({ length: Math.min(4, requests.length) }, work),
     );
+    if (standIns)
+      logEvent('art_standin_used', { jobId: job.jobId, worldId: job.worldId, count: standIns });
     if (results.some((result) => result.status === 'rejected'))
       throw new EditError(
         'The requested artwork could not be finished; the previous creation was kept.',

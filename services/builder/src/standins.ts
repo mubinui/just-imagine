@@ -41,3 +41,37 @@ export const FRIEND_STANDINS: Record<'mishti' | 'bhombol' | 'chandni', StandIn> 
   bhombol: standIn('friend-bhombol', 193, 219, ['bhombol']),
   chandni: standIn('friend-chandni', 164, 216, ['chandni']),
 };
+
+const words = (text: string) => text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+
+/**
+ * The stand-in for an entity whose art did not arrive. A friend gets its own companion's frame;
+ * anything else gets the entry with the most matching whole words in its name, tags and
+ * description (ties go to the earlier entry), else the generic crate.
+ */
+export function standInFor(
+  entity: { name?: string; tags: readonly string[]; description?: string },
+  companionId?: string,
+): StandIn {
+  if (entity.tags.includes('friend')) {
+    const own = Object.keys(FRIEND_STANDINS).find((id) => entity.tags.includes(id)) ?? companionId;
+    if (own && own in FRIEND_STANDINS) return FRIEND_STANDINS[own as keyof typeof FRIEND_STANDINS];
+  }
+  const present = new Set([
+    ...words(entity.name ?? ''),
+    ...entity.tags.flatMap(words),
+    ...words(entity.description ?? ''),
+  ]);
+  let best = STANDINS.find((s) => s.key === 'crate')!;
+  let bestScore = 0;
+  for (const candidate of STANDINS) {
+    const score = candidate.words.filter((phrase) =>
+      words(phrase).every((w) => present.has(w)),
+    ).length;
+    if (score > bestScore) {
+      best = candidate;
+      bestScore = score;
+    }
+  }
+  return best;
+}

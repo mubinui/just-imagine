@@ -4,6 +4,7 @@ import type { WorldDoc } from '@just-imagine/protocol';
 import type { SceneDoc } from '@just-imagine/scene-schema';
 import {
   applyArt,
+  applyStandIns,
   requestsFor,
   startArt,
   type ArtAsset,
@@ -226,5 +227,124 @@ describe('dropMissingMotion', () => {
     expect(doc.entities.find((e) => e.id === 'roller')!.locomotion?.kind).toBe('roll');
     expect(doc.entities.find((e) => e.id === 'cloud1')!.locomotion?.kind).toBe('walk');
     expect(dropMissingMotion(doc)).toEqual([]);
+  });
+});
+
+describe('retry and stand-ins', () => {
+  const heroReq = (id: string): ArtRequest => ({ ...request(id), hero: true });
+  const failing = (fails: number) => {
+    const calls: string[] = [];
+    let left = fails;
+    return {
+      calls,
+      generate: async (r: ArtRequest) => {
+        calls.push(r.id);
+        if (left-- > 0) throw new Error('no art');
+        return art(r.id);
+      },
+    };
+  };
+  const options = { deadline: 100, concurrency: 1 };
+
+  it('uses the second result when a hero fails once', async () => {
+    const f = failing(1);
+    const run = startArt([heroReq('car')], f.generate, { ...options, now: () => 0 });
+    await run.done;
+    expect(f.calls).toEqual(['car', 'car']);
+    expect(run.outcomes.get('car')).toEqual({ status: 'ready', asset: art('car') });
+  });
+
+  it('tries a hero exactly twice', async () => {
+    const f = failing(5);
+    const run = startArt([heroReq('car')], f.generate, { ...options, now: () => 0 });
+    await run.done;
+    expect(f.calls).toHaveLength(2);
+    expect(run.outcomes.get('car')).toEqual({ status: 'failed' });
+  });
+
+  it('starts no retry after the deadline or with the kill switch on', async () => {
+    let t = 0;
+    const late = { calls: 0 };
+    const run = startArt(
+      [heroReq('car')],
+      async () => {
+        late.calls++;
+        t = 200;
+        throw new Error('slow');
+      },
+      { ...options, now: () => t },
+    );
+    await run.done;
+    expect(late.calls).toBe(1);
+    let stopped = false;
+    const f = failing(5);
+    const run2 = startArt(
+      [heroReq('car')],
+      async (r) => {
+        stopped = true;
+        return f.generate(r);
+      },
+      { ...options, now: () => 0, stop: async () => stopped },
+    );
+    await run2.done;
+    expect(f.calls).toHaveLength(1);
+  });
+
+  it('never retries backdrop, mid layer or props', async () => {
+    const f = failing(10);
+    const reqs: ArtRequest[] = [
+      { ...heroReq('backdrop'), kind: 'backdrop' },
+      { ...heroReq('midLayer'), kind: 'overlay' },
+      request('prop'),
+    ];
+    const run = startArt(reqs, f.generate, { ...options, now: () => 0 });
+    await run.done;
+    expect(f.calls).toEqual(['backdrop', 'midLayer', 'prop']);
+  });
+
+  it('paints a stand-in over a failed hero, character and friend, but not a prop or the backdrop', () => {
+    const world = fixtureWorld();
+    const doc = world.doc;
+    const [hero, other, third] = doc.entities.filter((e) => e.kind === 'sprite');
+    doc.learning.heroEntityId = hero!.id;
+    hero!.name = 'Red Car';
+    hero!.description = 'a red car';
+    hero!.locomotion = { kind: 'run', stride: 1, facing: 'right' };
+    other!.character = { name: 'Zed', personality: 'shy' } as never;
+    other!.tags = ['friend', 'bhombol'];
+    third!.character = undefined;
+    third!.tags = [];
+    third!.name = 'Rock';
+    const outcomes = new Map<string, ArtOutcome>(
+      [hero!.id, other!.id, third!.id, 'backdrop'].map((id) => [id, { status: 'failed' }]),
+    );
+    const painted = applyArt(world, outcomes);
+    const count = applyStandIns(painted, outcomes);
+    const byId = (id: string) => painted.doc.entities.find((e) => e.id === id)!;
+    expect(count).toBe(2);
+    expect(byId(hero!.id).asset).toMatchObject({ status: 'ready', url: '/standins/car.webp' });
+    expect(byId(other!.id).asset?.url).toBe('/standins/friend-bhombol.webp');
+    expect(painted.assets[hero!.id]).toEqual({ status: 'ready', url: '/standins/car.webp' });
+    expect(painted.assets[third!.id]).toEqual({ status: 'failed' });
+    expect(painted.assets['backdrop']).toEqual({ status: 'failed' });
+    // A stand-in has no animation, so the hero's locomotion is dropped and it stays ready.
+    expect(dropMissingMotion(painted.doc)).toContain(hero!.id);
+    expect(byId(hero!.id).locomotion).toBeUndefined();
+    expect(byId(hero!.id).asset?.status).toBe('ready');
+  });
+
+  it('uses the crate for an unmatched hero', () => {
+    const world = fixtureWorld();
+    const hero = world.doc.entities.find((e) => e.kind === 'sprite')!;
+    world.doc.learning.heroEntityId = hero.id;
+    hero.name = 'Zorp';
+    hero.tags = [];
+    hero.description = 'a wobbly thing';
+    const outcomes = new Map<string, ArtOutcome>([[hero.id, { status: 'failed' }]]);
+    const painted = applyArt(world, outcomes);
+    applyStandIns(painted, outcomes);
+    expect(painted.doc.entities.find((e) => e.id === hero.id)!.asset?.url).toBe(
+      '/standins/crate.webp',
+    );
   });
 });

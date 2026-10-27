@@ -1,6 +1,7 @@
 import { PLAN_LIMITS, type PlanTier, type WorldDoc } from '@just-imagine/protocol';
 import type { AssetRef, Locomotion, SceneDoc } from '@just-imagine/scene-schema';
 import { applyPaintedFloor } from './presentation';
+import { standInFor } from './standins';
 
 /** One picture the world needs: the backdrop, the mid layer or a sprite. */
 export interface ArtRequest {
@@ -60,7 +61,21 @@ export function startArt(
       try {
         report(request.id, { status: 'ready', asset: await generate(request) });
       } catch {
-        report(request.id, { status: 'failed' });
+        // The hero and the characters get exactly one more try while the art deadline allows.
+        const retry =
+          request.hero &&
+          request.kind === 'sprite' &&
+          now() < options.deadline &&
+          !(await options.stop?.().catch(() => true));
+        if (!retry) {
+          report(request.id, { status: 'failed' });
+          continue;
+        }
+        try {
+          report(request.id, { status: 'ready', asset: await generate(request) });
+        } catch {
+          report(request.id, { status: 'failed' });
+        }
       }
     }
   };
@@ -136,4 +151,31 @@ export function requestsFor(doc: SceneDoc, plan: PlanTier): ArtRequest[] {
         ...(e.locomotion ? { locomotion: e.locomotion } : {}),
       })),
   ];
+}
+
+/** The hero, the characters and the child's friend: the sprites a world cannot do without. */
+export const needsStandIn = (entity: SceneDoc['entities'][number], heroId: string | undefined) =>
+  entity.kind === 'sprite' &&
+  (entity.id === heroId || Boolean(entity.character) || entity.tags.includes('friend'));
+
+/**
+ * Paints a stand-in over every failed hero, character or friend sprite (the world is changed
+ * in place). Returns how many were painted. Backdrop, mid layer and props are left alone.
+ */
+export function applyStandIns(world: WorldDoc, outcomes: Map<string, ArtOutcome>): number {
+  let count = 0;
+  for (const entity of world.doc.entities) {
+    if (outcomes.get(entity.id)?.status !== 'failed') continue;
+    if (!needsStandIn(entity, world.doc.learning.heroEntityId)) continue;
+    const standIn = standInFor(entity);
+    entity.asset = {
+      status: 'ready',
+      url: standIn.url,
+      width: standIn.width,
+      height: standIn.height,
+    };
+    world.assets[entity.id] = { status: 'ready', url: standIn.url };
+    count++;
+  }
+  return count;
 }

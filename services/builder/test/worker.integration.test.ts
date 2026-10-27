@@ -721,7 +721,10 @@ it('publishes building with art that finished during scripting, then ready, neve
     expect(world.status).toBe('ready');
     const frog = world.doc.entities.find((e) => e.id === 'frog')!;
     expect(frog.locomotion).toBeUndefined();
-    expect(world.assets['frog']).toEqual({ status: 'failed' });
+    // The hero's art never arrives, so a painted stand-in takes its place and it still stands still.
+    expect(frog.asset).toMatchObject({ status: 'ready' });
+    expect(frog.asset?.url).toMatch(/^\/standins\//);
+    expect(world.assets['frog']).toMatchObject({ status: 'ready' });
     expect(world.doc.game?.script.source).toBe(flies.game!.script.source);
     expect(
       (
@@ -733,6 +736,12 @@ it('publishes building with art that finished during scripting, then ready, neve
     expect(events).toContainEqual(
       expect.objectContaining({ event: 'art_locomotion_dropped', ids: ['frog'] }),
     );
+    expect(events).toContainEqual({
+      event: 'art_standin_used',
+      jobId: h.job.jobId,
+      worldId: h.job.worldId,
+      count: 1,
+    });
   } finally {
     await h.cleanup();
   }
@@ -752,7 +761,7 @@ it('publishes ready with partial art when the hard deadline passes during art', 
     const world = await h.world();
     expect(world.status).toBe('ready');
     expect(world.doc.theme.backdrop.status).toBe('ready');
-    expect(world.assets['frog']).toEqual({ status: 'failed' });
+    expect(world.assets['frog']?.url).toMatch(/^\/standins\//);
     expect(world.doc.entities.find((e) => e.id === 'frog')!.locomotion).toBeUndefined();
     expect(events).toContainEqual(
       expect.objectContaining({ event: 'build_deadline_hit', phase: 'art' }),
@@ -762,7 +771,7 @@ it('publishes ready with partial art when the hard deadline passes during art', 
     release(picture('frog'));
     await sleep(50);
     expect(h.published.length).toBe(count);
-    expect((await h.world()).assets['frog']).toEqual({ status: 'failed' });
+    expect((await h.world()).assets['frog']?.url).toMatch(/^\/standins\//);
   } finally {
     await h.cleanup();
   }
