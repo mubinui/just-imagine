@@ -14,6 +14,10 @@ import {
 import { int16ToBytes, pcm16Tone, splitPcm16Frames } from './audio';
 import jellyDragonScenario from '../scenarios/jelly-dragon.json' with { type: 'json' };
 import { createFakeLearn } from './fake-learn';
+import { isScriptedBuild, scriptedBuildId } from './scripted-build';
+
+/** A scripted build reports queued, placeholders and ready this far apart. */
+export const SCRIPTED_BUILD_STEP_MS = 300;
 
 export const ScenarioSchema = z.object({
   onHello: z.array(ServerMessageSchema),
@@ -52,6 +56,7 @@ export async function startFakeGateway(opts: {
   const received: ClientMessage[] = [];
   const cleanups = new Set<() => void>();
   const learn = createFakeLearn(scenario.learn);
+  let builds = 0;
 
   wss.on('connection', (ws: WsSocket) => {
     const timers = new Set<ReturnType<typeof setTimeout>>();
@@ -60,7 +65,8 @@ export async function startFakeGateway(opts: {
     let worldId: string | undefined;
     let ended = false;
     let persona: ReturnType<ReturnType<typeof createFakeLearn>> | undefined;
-    // Once a Learning World character holds the call, the canned world timeline stays quiet.
+    // Once a Learning World character holds the call, or the child's own wish is being built,
+    // the canned world timeline stays quiet.
     let quietTimeline = false;
     const send = (message: ServerMessage): void => {
       if (ws.readyState === ws.OPEN) ws.send(encodeMessage(message));
@@ -94,6 +100,17 @@ export async function startFakeGateway(opts: {
       cleanups.delete(cleanup);
     };
     cleanups.add(cleanup);
+    // The browser's fake world source serves Catch the Flies under any scripted build id.
+    const build = (id: string): void => {
+      quietTimeline = true;
+      worldId = id;
+      (['queued', 'placeholders', 'ready'] as const).forEach((status, step) =>
+        schedule(
+          () => send({ type: 'worldJob', jobId: `j_${id}`, worldId: id, status }),
+          step * SCRIPTED_BUILD_STEP_MS,
+        ),
+      );
+    };
     const malformed = (message = 'malformed client message'): void =>
       send({ type: 'error', code: 'INTERNAL', message });
 
@@ -155,7 +172,13 @@ export async function startFakeGateway(opts: {
       if (message.type === 'summonPersona')
         persona?.summon(message.packId, message.characterId, characterId, 's_fake');
       if (message.type === 'hangUp') persona?.hangUp(characterId, 's_fake');
-      if (message.type === 'text') persona?.answer(message.text);
+      if (message.type === 'text' && !persona?.answer(message.text)) {
+        // A wish for a game is a new world; other words about a built world edit it in place.
+        // A wish for a simpler game is built as a template fallback.
+        if (/game/i.test(message.text))
+          build(scriptedBuildId(++builds, /simpler/i.test(message.text) ? 'template' : undefined));
+        else if (worldId && isScriptedBuild(worldId)) build(worldId);
+      }
       if (message.type === 'switchCharacter') {
         toneTimers.forEach((handle) => {
           clearTimeout(handle);

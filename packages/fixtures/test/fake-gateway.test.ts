@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { encodeMessage, parseServerMessage, type ServerMessage } from '@just-imagine/protocol';
 import { startFakeGateway, SCENARIOS, type FakeGateway } from '../src/fake-gateway';
+import { isScriptedBuild, scriptedBuildWorld } from '../src/scripted-build';
 
 let gateway: FakeGateway | undefined;
 afterEach(async () => {
@@ -172,6 +173,103 @@ describe('fake gateway', () => {
       'switchCharacter',
     ]);
     ws.close();
+  });
+
+  it('builds Catch the Flies under a new world id when the wish asks for a game', async () => {
+    gateway = await startFakeGateway({ port: 0, scenario: SCENARIOS.jellyDragon });
+    const ws = await connect(gateway.url);
+    ws.send(encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'bhombol' }));
+    await nextJson(ws, 'ready');
+    const wished = Date.now();
+    ws.send(encodeMessage({ type: 'text', text: 'a game where a frog catches flies' }));
+    const jobs: { message: ServerMessage; at: number }[] = [];
+    for (let i = 0; i < 3; i++)
+      jobs.push({ message: await nextJson(ws, 'worldJob'), at: Date.now() });
+    const worldId = (jobs[0]!.message as Extract<ServerMessage, { type: 'worldJob' }>).worldId;
+    expect(isScriptedBuild(worldId)).toBe(true);
+    expect(jobs.map((job) => job.message)).toEqual(
+      (['queued', 'placeholders', 'ready'] as const).map((status) => ({
+        type: 'worldJob',
+        jobId: `j_${worldId}`,
+        worldId,
+        status,
+      })),
+    );
+    expect(jobs[0]!.at - wished).toBeLessThan(200);
+    expect(jobs[1]!.at - jobs[0]!.at).toBeGreaterThanOrEqual(250);
+    expect(jobs[2]!.at - jobs[1]!.at).toBeGreaterThanOrEqual(250);
+    // The next wish for a game is a new world.
+    ws.send(encodeMessage({ type: 'text', text: 'another GAME please' }));
+    const next = await nextJson(ws, 'worldJob');
+    expect(next).toMatchObject({ status: 'queued' });
+    expect((next as { worldId: string }).worldId).not.toBe(worldId);
+    ws.close();
+  });
+
+  it('builds a template fallback world when the wish for a game asks for a simpler one', async () => {
+    gateway = await startFakeGateway({ port: 0, scenario: SCENARIOS.jellyDragon });
+    const ws = await connect(gateway.url);
+    ws.send(encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'bhombol' }));
+    await nextJson(ws, 'ready');
+    ws.send(encodeMessage({ type: 'text', text: 'a simpler game where a frog catches flies' }));
+    const statuses: ServerMessage[] = [];
+    for (let i = 0; i < 3; i++) statuses.push(await nextJson(ws, 'worldJob'));
+    const worldId = (statuses[0] as Extract<ServerMessage, { type: 'worldJob' }>).worldId;
+    expect(statuses).toMatchObject(
+      ['queued', 'placeholders', 'ready'].map((status) => ({ worldId, status })),
+    );
+    expect(scriptedBuildWorld(worldId).creation).toMatchObject({ fallback: 'template' });
+    ws.send(encodeMessage({ type: 'text', text: 'a game where a frog catches flies' }));
+    const plain = (await nextJson(ws, 'worldJob')) as { worldId: string };
+    expect(scriptedBuildWorld(plain.worldId).creation).toBeUndefined();
+    ws.close();
+  });
+
+  it('edits a scripted world in place and builds nothing for other words', async () => {
+    gateway = await startFakeGateway({ port: 0, scenario: SCENARIOS.jellyDragon });
+    const built = await connect(gateway.url);
+    built.send(
+      encodeMessage({ type: 'hello', idToken: 't', childId: 'c1', characterId: 'bhombol' }),
+    );
+    await nextJson(built, 'ready');
+    built.send(encodeMessage({ type: 'text', text: 'a game with flies' }));
+    const worldId = (await nextJson(built, 'worldJob')) as { worldId: string };
+    built.close();
+
+    const editing = await connect(gateway.url);
+    editing.send(
+      encodeMessage({
+        type: 'hello',
+        idToken: 't',
+        childId: 'c1',
+        characterId: 'bhombol',
+        worldId: worldId.worldId,
+      }),
+    );
+    await nextJson(editing, 'ready');
+    editing.send(encodeMessage({ type: 'text', text: 'make the flies faster' }));
+    const statuses = [];
+    for (let i = 0; i < 3; i++) statuses.push(await nextJson(editing, 'worldJob'));
+    expect(statuses).toMatchObject(
+      ['queued', 'placeholders', 'ready'].map((status) => ({ worldId: worldId.worldId, status })),
+    );
+    editing.close();
+
+    const plain = await connect(gateway.url);
+    plain.send(
+      encodeMessage({
+        type: 'hello',
+        idToken: 't',
+        childId: 'c1',
+        characterId: 'bhombol',
+        worldId: 'w_fixture_jelly_dragon',
+      }),
+    );
+    await nextJson(plain, 'ready');
+    plain.send(encodeMessage({ type: 'text', text: 'make the dragon purple' }));
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(inboxes.get(plain)!.queued.filter((message) => message.type === 'worldJob')).toEqual([]);
+    plain.close();
   });
 
   it('rejects startup when the requested port is already in use', async () => {
