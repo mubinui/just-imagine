@@ -5,6 +5,8 @@ import type { SceneDoc } from '@just-imagine/scene-schema';
 import {
   applyArt,
   applyStandIns,
+  editRequestsFor,
+  paintFriends,
   requestsFor,
   startArt,
   type ArtAsset,
@@ -12,6 +14,8 @@ import {
   type ArtRequest,
 } from '../src/art-phase';
 import { dropMissingMotion } from '../src/motion';
+import { companionHeroEntity } from '../src/hero';
+import { FRIEND_STANDINS } from '../src/standins';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const request = (id: string): ArtRequest => ({
@@ -346,5 +350,77 @@ describe('retry and stand-ins', () => {
     expect(painted.doc.entities.find((e) => e.id === hero.id)!.asset?.url).toBe(
       '/standins/crate.webp',
     );
+  });
+});
+
+describe('the friend art', () => {
+  /** The friend the hero insert makes (no friend tag) and the friend beside the hero. */
+  function withFriends(): WorldDoc {
+    const world = fixtureWorld();
+    const asHero = companionHeroEntity('mishti', 'wood');
+    const beside = { ...companionHeroEntity('bhombol', 'wood'), id: 'bhombol_2' };
+    beside.tags = ['friend', 'bhombol'];
+    beside.locomotion = { kind: 'run', stride: 1, facing: 'right' };
+    world.doc.entities.push(asHero, beside);
+    world.doc.learning.heroEntityId = 'mishti';
+    return world;
+  }
+  const frame = (id: keyof typeof FRIEND_STANDINS) => ({
+    status: 'ready',
+    url: FRIEND_STANDINS[id].url,
+    width: FRIEND_STANDINS[id].width,
+    height: FRIEND_STANDINS[id].height,
+  });
+  const byId = (world: WorldDoc, id: string) => world.doc.entities.find((e) => e.id === id)!;
+
+  it('asks for no picture of the friend, even when the friend is the hero', () => {
+    const ids = requestsFor(withFriends().doc, 'free').map((r) => r.id);
+    expect(ids).toContain('dragon');
+    expect(ids).not.toContain('mishti');
+    expect(ids).not.toContain('bhombol_2');
+  });
+
+  it('paints each friend its own frame and keeps one already painted', () => {
+    const world = withFriends();
+    expect(paintFriends(world)).toBe(2);
+    expect(byId(world, 'mishti').asset).toEqual(frame('mishti'));
+    expect(byId(world, 'bhombol_2').asset).toEqual(frame('bhombol'));
+    expect(world.assets['mishti']).toEqual({ status: 'ready', url: FRIEND_STANDINS.mishti.url });
+    expect(world.assets['bhombol_2']).toEqual({
+      status: 'ready',
+      url: FRIEND_STANDINS.bhombol.url,
+    });
+    // A still frame cannot run.
+    expect(byId(world, 'bhombol_2').locomotion).toBeUndefined();
+    expect(byId(world, 'dragon').asset).toBeUndefined();
+    const kept = byId(world, 'mishti').asset;
+    paintFriends(world);
+    expect(byId(world, 'mishti').asset).toBe(kept);
+  });
+
+  it('never lets the image cap drop the friend', () => {
+    const world = withFriends();
+    for (let i = 0; i < 40; i++)
+      world.doc.entities.push({
+        ...structuredClone(byId(world, 'pebble')),
+        id: `pal_${i}`,
+        character: { name: `Pal ${i}`, personality: 'kind' } as never,
+      });
+    const ids = requestsFor(world.doc, 'free').map((r) => r.id);
+    expect(ids.length).toBeLessThan(world.doc.entities.length);
+    expect(ids.filter((id) => id === 'mishti' || id === 'bhombol_2')).toEqual([]);
+    paintFriends(world);
+    expect(byId(world, 'mishti').asset).toEqual(frame('mishti'));
+    expect(byId(world, 'bhombol_2').asset).toEqual(frame('bhombol'));
+  });
+
+  it('asks for no picture of the friend in an edit, even a changed one', () => {
+    const before = withFriends();
+    paintFriends(before);
+    const after = structuredClone(before.doc);
+    byId({ ...before, doc: after }, 'bhombol_2').description = 'a puppy in a red hat';
+    const ids = editRequestsFor(after, before.doc, 'free').map((r) => r.id);
+    expect(ids).not.toContain('mishti');
+    expect(ids).not.toContain('bhombol_2');
   });
 });

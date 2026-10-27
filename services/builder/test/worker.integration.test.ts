@@ -747,6 +747,45 @@ it('publishes building with art that finished during scripting, then ready, neve
   }
 });
 
+it("gives the child's friend its own frame and never asks for a picture of it", async () => {
+  const asked: string[] = [];
+  const h = await artWorld(
+    'friend',
+    async (request) => {
+      asked.push(request.id);
+      return picture(request.id);
+    },
+    async () => ({ kind: 'game', source: flies.game!.script.source }),
+  );
+  h.job.companionId = 'bhombol';
+  try {
+    expect(await h.worker.run(h.job)).toEqual({ status: 'complete' });
+    const world = await h.world();
+    expect(world.status).toBe('ready');
+    const friend = world.doc.entities.find((e) => e.id === 'bhombol')!;
+    expect(friend.tags).toContain('friend');
+    expect(friend.asset).toEqual({
+      status: 'ready',
+      url: '/standins/friend-bhombol.webp',
+      width: 193,
+      height: 219,
+    });
+    expect(world.assets['bhombol']).toEqual({
+      status: 'ready',
+      url: '/standins/friend-bhombol.webp',
+    });
+    expect(asked).toContain('frog');
+    expect(asked).not.toContain('bhombol');
+    // Every publish, the first included, already shows the friend's frame.
+    for (const published of h.published)
+      expect(published.doc.entities.find((e) => e.id === 'bhombol')?.asset?.url).toBe(
+        '/standins/friend-bhombol.webp',
+      );
+  } finally {
+    await h.cleanup();
+  }
+});
+
 it('publishes ready with partial art when the hard deadline passes during art', async () => {
   budgetOverride.hardMs = 3000;
   let release!: (asset: ArtAsset) => void;

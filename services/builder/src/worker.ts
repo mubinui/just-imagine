@@ -39,16 +39,16 @@ import { applyPaintedFloor } from './presentation';
 import { layerArtPrompt, processLayerArt } from './layer-art';
 import {
   motionArt,
-  sameMotionArt,
   locomotionImagePrompt,
   dropMissingMotion,
   motionRepairInstruction,
-  hasMotionArtwork,
 } from './motion';
 import {
   applyArt,
   applyStandIns,
+  editRequestsFor,
   needsStandIn,
+  paintFriends,
   requestsFor,
   startArt,
   type ArtAsset,
@@ -208,7 +208,7 @@ export class BuilderWorker {
             retired = true;
             art = undefined;
           };
-          requests = requestsFor(scene, job.plan);
+          requests = requestsFor(scene, job.plan, job.companionId);
           art = startArt(
             requests,
             async (request) => {
@@ -325,6 +325,8 @@ export class BuilderWorker {
           updatedAt: Date.now(),
           creation: initialCreation(job, fallback),
         });
+        // The friend's art is always its own frame, never a generated picture.
+        paintFriends(base, job.companionId);
         publishable = true;
         // The first publish already carries any art that finished while the game was written.
         await publishArt();
@@ -529,52 +531,7 @@ export class BuilderWorker {
   }
   private async paintEdit(job: BuilderJob, world: WorldDoc, before: WorldDoc) {
     const doc = world.doc;
-    const requests = [
-      ...(doc.theme.backdropDescription !== before.doc.theme.backdropDescription
-        ? [
-            {
-              id: 'backdrop',
-              description: doc.theme.backdropDescription,
-              kind: 'backdrop',
-              hero: true,
-            },
-          ]
-        : []),
-      ...(doc.theme.midLayerDescription &&
-      doc.theme.midLayerDescription !== before.doc.theme.midLayerDescription
-        ? [
-            {
-              id: 'midLayer',
-              description: doc.theme.midLayerDescription,
-              kind: 'overlay',
-              hero: true,
-            },
-          ]
-        : []),
-      ...doc.entities
-        .filter(
-          (e) =>
-            e.kind === 'sprite' &&
-            !before.doc.entities.some(
-              (old) =>
-                old.id === e.id &&
-                old.kind === e.kind &&
-                old.description === e.description &&
-                old.asset?.status === 'ready' &&
-                hasMotionArtwork(old) &&
-                sameMotionArt(old.locomotion, e.locomotion),
-            ),
-        )
-        .sort((a, b) => Number(Boolean(b.character)) - Number(Boolean(a.character)))
-        .slice(0, PLAN_LIMITS[job.plan].imagesPerWorld)
-        .map((e) => ({
-          id: e.id,
-          description: e.description,
-          kind: 'sprite',
-          hero: Boolean(e.character) || e.id === doc.learning.heroEntityId,
-          ...(e.locomotion ? { locomotion: e.locomotion } : {}),
-        })),
-    ];
+    const requests = editRequestsFor(doc, before.doc, job.plan);
     world.assets = {};
     const existingAssets: [string, AssetRef | undefined][] = [
       ['backdrop', doc.theme.backdrop],
@@ -589,6 +546,8 @@ export class BuilderWorker {
           ...(asset.colliderUrl ? { colliderUrl: asset.colliderUrl } : {}),
         };
     }
+    // The friend is never drawn: it always shows its own frame.
+    paintFriends(world);
     world.thumbnailUrl = doc.theme.backdrop.status === 'ready' ? doc.theme.backdrop.url : null;
     let cursor = 0;
     let standIns = 0;

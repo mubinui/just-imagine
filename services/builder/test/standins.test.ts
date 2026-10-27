@@ -2,7 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
-import { FRIEND_STANDINS, STANDINS, standInFor, type StandIn } from '../src/standins';
+import {
+  FRIEND_STANDINS,
+  STANDINS,
+  isFriendEntity,
+  standInFor,
+  type StandIn,
+} from '../src/standins';
 
 const publicDir = fileURLToPath(new URL('../../../apps/web/public', import.meta.url));
 const all: StandIn[] = [...STANDINS, ...Object.values(FRIEND_STANDINS)];
@@ -69,5 +75,35 @@ describe('standInFor', () => {
     for (const id of ['mishti', 'bhombol', 'chandni'] as const)
       expect(standInFor(e('Pal', ['friend', id], 'a car dog'), 'mishti')).toBe(FRIEND_STANDINS[id]);
     expect(standInFor(e('Pal', ['friend'], 'x'), 'chandni')).toBe(FRIEND_STANDINS.chandni);
+  });
+
+  it('gives the friend inserted as the hero, and the friend beside the hero, their own frames', () => {
+    const asHero = { id: 'mishti', name: 'Mishti', tags: ['hero', 'mishti'], description: 'a cat' };
+    const beside = {
+      id: 'bhombol_2',
+      name: 'Bhombol',
+      tags: ['friend', 'bhombol'],
+      description: 'a dog',
+    };
+    expect(standInFor(asHero)).toBe(FRIEND_STANDINS.mishti);
+    expect(standInFor(beside)).toBe(FRIEND_STANDINS.bhombol);
+  });
+});
+
+describe('isFriendEntity', () => {
+  it('knows the friend by its id, its companion tag, or the friend tag', () => {
+    expect(isFriendEntity({ id: 'mishti', tags: ['hero', 'mishti'] })).toBe('mishti');
+    expect(isFriendEntity({ id: 'bhombol_2', tags: ['friend', 'bhombol'] })).toBe('bhombol');
+    expect(isFriendEntity({ id: 'chandni_3', tags: [] })).toBe('chandni');
+    expect(isFriendEntity({ id: 'pal', tags: ['chandni'] })).toBe('chandni');
+    expect(isFriendEntity({ id: 'pal', tags: ['friend'] }, 'mishti')).toBe('mishti');
+  });
+
+  it('is undefined for anything else', () => {
+    expect(isFriendEntity({ id: 'frog', tags: ['hero'] })).toBeUndefined();
+    expect(isFriendEntity({ id: 'mishti_cake', tags: [] })).toBeUndefined();
+    expect(isFriendEntity({ id: 'mishtix', tags: [] })).toBeUndefined();
+    // The friend tag alone names no companion without the build's own.
+    expect(isFriendEntity({ id: 'pal', tags: ['friend'] })).toBeUndefined();
   });
 });

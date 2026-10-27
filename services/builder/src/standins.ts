@@ -35,12 +35,35 @@ export const STANDINS: readonly StandIn[] = [
   standIn('crate', 511, 512, ['box', 'block', 'crate', 'cube']),
 ];
 
+export type CompanionKey = 'mishti' | 'bhombol' | 'chandni';
+
 /** Each friend's own relaxed-smile frame, cut from the friends acting sheet. */
-export const FRIEND_STANDINS: Record<'mishti' | 'bhombol' | 'chandni', StandIn> = {
+export const FRIEND_STANDINS: Record<CompanionKey, StandIn> = {
   mishti: standIn('friend-mishti', 167, 217, ['mishti']),
   bhombol: standIn('friend-bhombol', 193, 219, ['bhombol']),
   chandni: standIn('friend-chandni', 164, 216, ['chandni']),
 };
+
+const COMPANIONS = Object.keys(FRIEND_STANDINS) as CompanionKey[];
+const isCompanion = (value: string | undefined): value is CompanionKey =>
+  COMPANIONS.includes(value as CompanionKey);
+
+/**
+ * Which companion an entity is, when it is the child's friend: its id is `<companion>` or
+ * `<companion>_N`, or it carries a companion's tag, or it carries the `friend` tag (then the
+ * build's own `companionId` names it). Undefined for anything else.
+ */
+export function isFriendEntity(
+  entity: { id?: string; tags: readonly string[] },
+  companionId?: string,
+): CompanionKey | undefined {
+  const byId = entity.id?.match(/^([a-z]+)(?:_\d+)?$/)?.[1];
+  if (isCompanion(byId)) return byId;
+  const byTag = COMPANIONS.find((id) => entity.tags.includes(id));
+  if (byTag) return byTag;
+  if (entity.tags.includes('friend') && isCompanion(companionId)) return companionId;
+  return undefined;
+}
 
 const words = (text: string) => text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
 
@@ -50,13 +73,11 @@ const words = (text: string) => text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
  * description (ties go to the earlier entry), else the generic crate.
  */
 export function standInFor(
-  entity: { name?: string; tags: readonly string[]; description?: string },
+  entity: { id?: string; name?: string; tags: readonly string[]; description?: string },
   companionId?: string,
 ): StandIn {
-  if (entity.tags.includes('friend')) {
-    const own = Object.keys(FRIEND_STANDINS).find((id) => entity.tags.includes(id)) ?? companionId;
-    if (own && own in FRIEND_STANDINS) return FRIEND_STANDINS[own as keyof typeof FRIEND_STANDINS];
-  }
+  const friend = isFriendEntity(entity, companionId);
+  if (friend) return FRIEND_STANDINS[friend];
   const present = new Set([
     ...words(entity.name ?? ''),
     ...entity.tags.flatMap(words),
