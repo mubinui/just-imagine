@@ -22,3 +22,13 @@ describe('production build guard', () => {
     expect(() => nextConfig(PHASE_DEVELOPMENT_SERVER)).not.toThrow();
   });
 });
+
+describe('static art caching', () => {
+  it('caches the painted stand-ins like the other static art folders', async () => {
+    const rules = (await nextConfig(PHASE_DEVELOPMENT_SERVER).headers?.()) ?? [];
+    const standins = rules.find((rule) => rule.source === '/standins/:path*');
+    const characters = rules.find((rule) => rule.source === '/characters/:path*');
+    expect(characters).toBeDefined();
+    expect(standins?.headers).toEqual(characters?.headers);
+  });
+});
