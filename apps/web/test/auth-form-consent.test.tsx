@@ -13,3 +13,41 @@ describe('parent consent on the auth forms', () => {
     expect(renderToStaticMarkup(<AuthForm />)).not.toContain('type="checkbox"');
   });
 });
+
+import { ConsentStep } from '../components/ConsentStep';
+import { s } from '../lib/strings/en';
+
+describe('the new-account consent step after signing in', () => {
+  const step = (error = '') =>
+    renderToStaticMarkup(
+      <ConsentStep
+        email="parent@example.com"
+        consent={false}
+        busy={false}
+        error={error}
+        onConsent={() => {}}
+        onCreate={() => {}}
+        onOtherAccount={() => {}}
+      />,
+    );
+  it('is titled as account creation, not sign in', () => {
+    const html = step();
+    expect(html).toContain(`<h1>${s.signUp}</h1>`);
+    expect(html).not.toContain(s.signIn);
+  });
+  it('explains the step as a calm lead, not as an error, and names the account', () => {
+    const html = step();
+    expect(html).toContain(`<p class="consent-step-lead">${s.newAccountConsent}</p>`);
+    expect(html).not.toContain('role="alert"');
+    expect(html).toContain('parent@example.com');
+  });
+  it('offers one way forward and a way back, and never a second create link', () => {
+    const html = step();
+    expect(html).toContain(s.createFamilyAccount);
+    expect(html).toContain(s.parentGateOther);
+    expect(html).not.toContain('href="/sign-up"');
+  });
+  it('shows a real problem as an alert', () => {
+    expect(step(s.consentRequired)).toContain('role="alert"');
+  });
+});

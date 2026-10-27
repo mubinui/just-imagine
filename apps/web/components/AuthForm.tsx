@@ -13,16 +13,18 @@ import {
 } from 'firebase/auth';
 import { firebase, prepareSignIn } from '../lib/firebase';
 import { env } from '../lib/env';
-import { unlockParentArea } from '../lib/parent-gate';
+import { signOutFamily, unlockParentArea } from '../lib/parent-gate';
 import { s } from '../lib/strings/en';
 import { Brand, Preview } from './Shell';
 import { AuthCompanion } from './AuthCompanion';
+import { ConsentStep } from './ConsentStep';
 export function AuthForm({ signup = false }: { signup?: boolean }) {
   const { language } = useLanguage();
   const router = useRouter();
   const [consent, setConsent] = useState(false),
     // Set when signing in reached an account Just Imagine has never seen: it needs consent once.
     [newAccount, setNewAccount] = useState(false),
+    [accountEmail, setAccountEmail] = useState<string | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   const askConsent = signup || newAccount;
@@ -39,8 +41,10 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
     }
     const body = (await response.json().catch(() => ({}))) as { error?: string; code?: string };
     if (body.code === 'CONSENT_REQUIRED') {
+      // Not a failure: the step itself explains what is needed.
+      setAccountEmail(firebase().auth.currentUser?.email ?? null);
       setNewAccount(true);
-      setError(s.newAccountConsent);
+      setError('');
       return;
     }
     throw new Error(body.error);
@@ -64,6 +68,18 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
     } catch (e) {
       setError(e instanceof Error ? signInError(e) : s.unavailable);
     } finally {
+      setBusy(false);
+    }
+  }
+  /** Leaves the unfinished new account and returns to the sign-in choices. */
+  async function switchAccount() {
+    setBusy(true);
+    try {
+      await signOutFamily();
+    } finally {
+      setNewAccount(false);
+      setConsent(false);
+      setError('');
       setBusy(false);
     }
   }
@@ -113,29 +129,19 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
       <div className="auth-character-layout">
         <AuthCompanion role="family" language={language} />
         <section className="auth-panel">
-          <h1>{signup ? s.signUp : s.signIn}</h1>
           {newAccount ? (
-            <div className="consent-step">
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={consent}
-                  onChange={(e) => setConsent(e.target.checked)}
-                />
-                <span>
-                  {s.consent} <Link href="/privacy">{s.privacy}</Link>
-                </span>
-              </label>
-              <button
-                className="button primary"
-                disabled={busy}
-                onClick={() => void createAccount()}
-              >
-                {s.createFamilyAccount}
-              </button>
-            </div>
+            <ConsentStep
+              email={accountEmail}
+              consent={consent}
+              busy={busy}
+              error={error}
+              onConsent={setConsent}
+              onCreate={() => void createAccount()}
+              onOtherAccount={() => void switchAccount()}
+            />
           ) : (
             <>
+              <h1>{signup ? s.signUp : s.signIn}</h1>
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -179,15 +185,15 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
               >
                 {s.google}
               </button>
+              {error && (
+                <p role="alert" className="error">
+                  {uiText(error)}
+                </p>
+              )}
+              <Link href={signup ? '/sign-in' : '/sign-up'}>{signup ? s.signIn : s.signUp}</Link>
+              {env.fake && <Link href="/play">{s.previewSignIn}</Link>}
             </>
           )}
-          {error && (
-            <p role="alert" className="error">
-              {uiText(error)}
-            </p>
-          )}
-          <Link href={signup ? '/sign-in' : '/sign-up'}>{signup ? s.signIn : s.signUp}</Link>
-          {env.fake && <Link href="/play">{s.previewSignIn}</Link>}
         </section>
       </div>
     </main>
