@@ -79,10 +79,8 @@ it('honors the explicit authoring region and never falls back after a model erro
   expect(mockGenerate).toHaveBeenCalledTimes(1);
 });
 
-it('retries a rejected nested plan schema as JSON on the same model and retains safety and strict downstream validation', async () => {
-  mockGenerate
-    .mockRejectedValueOnce(Object.assign(new Error('schema rejected'), { status: 400 }))
-    .mockResolvedValueOnce({ text: '{"intent":"format probe"}' });
+it('plans with one JSON-mode request that carries the contract in the prompt', async () => {
+  mockGenerate.mockResolvedValueOnce({ text: '{"intent":"format probe"}' });
   const model = new GameScriptModel({
     project: 'test',
     model: 'gemini-4-argon',
@@ -91,20 +89,36 @@ it('retries a rejected nested plan schema as JSON on the same model and retains 
   await expect(model.plan(FIXTURE_WORLDS.moonBounce, job)).resolves.toEqual({
     intent: 'format probe',
   });
-  expect(mockGenerate).toHaveBeenCalledTimes(2);
-  const requests = mockGenerate.mock.calls.map(([request]) => request);
-  expect(requests.map((request) => request.model)).toEqual(['gemini-4-argon', 'gemini-4-argon']);
-  expect(requests[0].config.responseJsonSchema).toBeDefined();
-  expect(requests[1].config.responseJsonSchema).toBeUndefined();
-  expect(requests[1].contents).toContain('Exact JSON contract');
-  expect(requests[1].config.safetySettings).toHaveLength(4);
-  expect(requests[1].config.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
-  expect(requests.every((request) => request.config.httpOptions.timeout === 90000)).toBe(true);
+  expect(mockGenerate).toHaveBeenCalledTimes(1);
+  const request = mockGenerate.mock.calls[0]![0];
+  expect(request.model).toBe('gemini-4-argon');
+  expect(request.config.responseMimeType).toBe('application/json');
+  expect(request.config.responseJsonSchema).toBeUndefined();
+  expect(request.contents).toContain('Exact JSON contract');
+  expect(request.config.safetySettings).toHaveLength(4);
+  expect(request.config.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
+  expect(request.config.httpOptions.timeout).toBe(90000);
 });
 
-it('does not use a format retry to hide planner authentication or quota failure', async () => {
+it('aborts a script request through the caller signal', async () => {
+  mockGenerate.mockImplementation(
+    ({ config }: { config: { abortSignal: AbortSignal } }) =>
+      new Promise((_, reject) => {
+        config.abortSignal.addEventListener('abort', () =>
+          reject(new DOMException('This operation was aborted', 'AbortError')),
+        );
+      }),
+  );
+  const model = new GameScriptModel({ project: 'test', model: 'gemini-4-argon' });
+  const controller = new AbortController();
+  const pending = model.generate('p', undefined, controller.signal);
+  controller.abort();
+  await expect(pending).rejects.toThrow(/abort/i);
+});
+
+it('does not hide planner authentication or quota failure', async () => {
   mockGenerate.mockRejectedValue(Object.assign(new Error('quota'), { status: 429 }));
-  // Rate-limit backoff is covered in rate-limit.test.ts; here only the format retry is under test.
+  // Rate-limit backoff is covered in rate-limit.test.ts.
   const model = new GameScriptModel({
     project: 'test',
     model: 'gemini-4-argon',

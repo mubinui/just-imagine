@@ -31,6 +31,7 @@ const env = z
     SCENE_MODEL: z.string().default('gemini-4-argon'),
     GAME_MODEL: z.string().min(1).default('gemini-4-argon'),
     GAME_MODEL_LOCATION: z.string().min(1).default('global'),
+    GAME_CANDIDATES: z.coerce.number().int().min(1).max(3).default(2),
     FAST_MODEL: z.string().default('gemini-3.8-flash'),
     HERO_MODEL: z.string().default('gemini-nano-banana-2.1'),
     PROP_MODEL: z.string().default('gemini-3.1-flash-lite-image'),
@@ -60,6 +61,7 @@ const worker = new BuilderWorker(
   {
     generateScript: gameModel.generate,
     planGame: gameModel.plan,
+    candidates: env.GAME_CANDIDATES,
   },
 );
 const storyWorker = new StoryWorker(
@@ -127,6 +129,9 @@ app.post('/jobs', async (req, reply) => {
   try {
     return await build(req.body);
   } catch (error) {
+    // With game generation configured, a build never ends in SceneValidationError or
+    // GameGenerationError: it falls back to a template game, then to the nearest sample world.
+    // A voice edit still throws them, and it keeps the previous world.
     if (
       error instanceof SceneValidationError ||
       error instanceof MotionArtworkError ||

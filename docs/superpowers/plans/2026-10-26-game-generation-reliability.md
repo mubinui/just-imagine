@@ -148,7 +148,7 @@ it('caps a phase deadline at the hard deadline', () => {
 - Test: `services/builder/test/game-playtest.test.ts` (`describe('bounded data-only plans')`)
 
 **Interfaces:**
-- Produces: `export function withoutCheck(plan: GameplayPlan, scenario: number, index: number): GameplayPlan` (pure; drops one check; if the scenario would have no checks left it is removed; if no scenarios remain, returns `plan` unchanged).
+- Produces: `export function withoutCheck(plan: GameplayPlan, scenario: number, index: number): GameplayPlan` (pure; drops one check; a scenario left with no checks is removed; the result may have zero scenarios, which Task 6 treats as "no plan").
 - `diagnoseGameplayPlanFailure` maps the message prefix `'A triggered at-rest check'` to `'REST_ONLY_EFFECT'`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -354,7 +354,7 @@ it('never substitutes a template on a voice edit', async () => { /* Review Focus
 - [ ] **Step 3: Implement `raceCandidates`** with one `AbortController` per candidate; validation happens inside `make`, so the first `ok` resolves the race.
 - [ ] **Step 4: Rewrite the script loop in `compileBehavior`**
   - Plan: as today, but a second planner failure or second invalid plan sets `plan = undefined` and logs `game_plan_skipped` instead of throwing.
-  - Rounds: `for round in 1..2`: if `!budget.canStart(190000)` break; `raceCandidates(deps.candidates ?? 2, (signal) => generate + gate + plan journeys)`; a win returns; otherwise choose the better failure (fewest failed checks, then latest failing `check.at`, then `SCRIPT_*` before `PLAYTEST_*`), compute `lint = feedbackLint(source)`, `feedback = retryFeedback(failure, source, lint)`; if every candidate's diagnostic is `PLAYTEST_CAUSAL` on the same `{scenario, index}`, `plan = withoutCheck(plan, …)` and add one line to feedback naming the dropped check.
+  - Rounds: `for round in 1..2`: if `!budget.canStart(190000)` break; `raceCandidates(deps.candidates ?? 2, (signal) => generate + gate + plan journeys)`; a win returns; otherwise choose the better failure (fewest failed checks, then latest failing `check.at`, then `SCRIPT_*` before `PLAYTEST_*`), compute `lint = feedbackLint(source)`, `feedback = retryFeedback(failure, source, lint)`; if every candidate's diagnostic is `PLAYTEST_CAUSAL` on the same `{scenario, index}`, `plan = withoutCheck(plan, …)` and add one line to feedback naming the dropped check; a plan left with zero scenarios becomes `undefined` (logged `game_plan_skipped { reason: 'exhausted' }`) so the next round is gated by the smoke run alone.
   - Degrade on rate limits: when every candidate of a round failed with `isRateLimited(error)`, the next round sends one candidate. `deps.candidates` defaults to `Number(process.env.GAME_CANDIDATES ?? 2)` wired in `main.ts` (add `GAME_CANDIDATES: z.coerce.number().int().min(1).max(3).default(2)` to the env schema).
   - After the rounds: `options.fallback === 'throw'` → `throw new GameGenerationError(failure, diagnostic)`; `'template'` → Task 8 (until then, throw).
 - [ ] **Step 5: Run the whole builder unit suite** → PASS; update the existing tests that counted calls (`keeps one genuine validation repair … at most three calls` becomes at most four across two rounds).
@@ -649,6 +649,36 @@ test('a child asks for a game, waits, the voice stops, and the game is playable'
 - [ ] **Step 3: Implement the scripted build in the fake gateway**; keep every existing fake flow unchanged (run `e2e/generated-game.spec.ts` and `e2e/flows.spec.ts` too).
 - [ ] **Step 4: Run** the new spec and the two existing ones → PASS.
 - [ ] **Step 5: Commit and open PR 6** — `git commit -m "test(web): the child's journey from wish to playable game, end to end"`.
+
+---
+
+### Task 16: Transient scene-stage errors are retried inside the budget
+
+Added after the Task 13 soak: a provider `504 DEADLINE_EXCEEDED` at the scene stage counted as a failed scene attempt, and three such attempts sent the child a sample world. A transient provider error is not a bad scene.
+
+**Files:**
+- Modify: `services/builder/src/rate-limit.ts` (generalise the backoff loop behind a predicate)
+- Modify: `services/builder/src/imagine-game.ts` (`imagineGame`'s scene closure) and `services/builder/src/revisions.ts` (`reviseCreation`'s scene closure)
+- Test: `services/builder/test/rate-limit.test.ts`, `services/builder/test/imagine-game.test.ts`
+
+**Interfaces:**
+- Produces: `export async function withTransientRetry<T>(call: () => Promise<T>, options: { deadlineMs: number; baseMs?; maxWaitMs?; random?; now?; sleep?; signal?: AbortSignal }): Promise<T>` — same backoff as `withBackoff` but retries whenever `isTransientProviderError(error)` and the signal is not aborted; `withBackoff` keeps its rate-limit-only behaviour (implemented over the same loop with a `shouldRetry` predicate).
+- `ImagineGameDeps.sceneRetry?: Pick<Parameters<typeof withTransientRetry>[1], 'now' | 'sleep' | 'random'>` for tests.
+- The scene closure passed to `buildScene` wraps `deps.generateScene` in `withTransientRetry` with `deadlineMs = Math.min(120000, budget.remainingMs())`; a retry is logged `scene_provider_retry { jobId, worldId, status }`.
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+it('retries a transient scene error with backoff and never a client abort', async () => { /* rate-limit.test.ts: 504 then 504 then ok → 3 calls, two sleeps; an aborted signal → rethrow at once */ });
+it('builds the scene after a transient provider error instead of falling back', async () => {
+  // imagine-game.test.ts: generateScene rejects with { status: 504 } twice then returns the scene; injected sleep; expect one buildScene attempt (no "Previous candidate" repair prompt), result.fallback false, event scene_provider_retry logged twice
+});
+```
+
+- [ ] **Step 2: Run to verify they fail** → FAIL (no export; today the 504s consume scene attempts).
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run the builder unit suite, typecheck, lint** → PASS.
+- [ ] **Step 5: Commit** — `git commit -m "fix(builder): a transient provider error at the scene stage is retried, not turned into a sample world"`.
 
 ---
 

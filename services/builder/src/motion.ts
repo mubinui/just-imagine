@@ -22,11 +22,18 @@ export const hasMotionArtwork = (entity: Entity) =>
   !entity.locomotion ||
   (entity.asset?.status === 'ready' &&
     (entity.locomotion.kind === 'roll' || Boolean(entity.asset.animation)));
-export function requireMotionArtwork(doc: SceneDoc) {
-  if (doc.entities.some((entity) => !hasMotionArtwork(entity)))
-    throw new MotionArtworkError(
-      'The character animation could not finish. Please try the creation again.',
-    );
+/**
+ * A moving sprite without its motion artwork keeps still instead of failing the
+ * world: its `locomotion` is removed. Returns the ids of the sprites changed.
+ */
+export function dropMissingMotion(doc: SceneDoc): string[] {
+  const dropped: string[] = [];
+  for (const entity of doc.entities) {
+    if (hasMotionArtwork(entity)) continue;
+    delete entity.locomotion;
+    dropped.push(entity.id);
+  }
+  return dropped;
 }
 /** Speed/stride edits reuse the same owned art; different actions need new poses. */
 export const motionArt = (motion?: Locomotion) =>

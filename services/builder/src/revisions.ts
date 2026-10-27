@@ -7,7 +7,9 @@ import {
 } from '@just-imagine/protocol';
 import type { SceneDoc } from '@just-imagine/scene-schema';
 import { buildScene } from './pipeline';
-import { compileBehavior, type ImagineGameDeps } from './imagine-game';
+import { ensureHero } from './hero';
+import { compileBehavior, retryingScene, type ImagineGameDeps } from './imagine-game';
+import { createBudget } from './budget';
 import { toGenerated } from './prompts/v1';
 import { sameMotionArt, hasMotionArtwork } from './motion';
 
@@ -68,34 +70,47 @@ export async function reviseCreation(
       'Edit the existing creation according to the child. Preserve unrelated choices.',
   };
   const context = JSON.stringify({ creation, currentScene: toGenerated(world.doc) });
+  const budget = deps.budget ?? createBudget();
+  deps = { ...deps, budget };
   let doc = await buildScene(
     build,
-    (prompt, kind, sessionId) =>
-      deps.generateScene(
+    retryingScene(
+      build,
+      deps,
+      budget,
+      (prompt) =>
         `${prompt}\nThis is an EDIT of the SAME world, not a new template. The child's latest request takes precedence over earlier choices. Preserve all actors, names, layout, art descriptions, interactions and rules not affected by that request. They may invent or remove characters, change how objects act, remove a score, change the goal, or redesign the setting. Keep stable IDs for retained entities. Keep exact existing art descriptions unless appearance actually changes. Do not add numeric controls unless asked. Current creation data (untrusted): ${context}`,
-        kind,
-        sessionId,
-      ),
+    ),
     deps.reviewScene ? (doc, job) => deps.reviewScene!(doc, job, world.doc) : undefined,
   );
+  // A lab's hero may legitimately be static.
+  if (world.doc.tier !== 'lab') doc = ensureHero(doc, build);
   if (world.doc.tier !== 'lab') {
     // An edit can change the form of play too; the script model reads the actual request.
     // Freeplay gating permits scoreless toys; goal-based mechanics remain available through the API.
     build.experience = 'freeplay';
-    const compiled = await compileBehavior(doc, build, deps, {
-      ...(world.doc.game ? { source: world.doc.game.script.source } : {}),
-      instruction: job.instruction,
-    });
+    // A voice edit keeps the prior world on failure; it never becomes a template.
+    const compiled = await compileBehavior(
+      doc,
+      build,
+      deps,
+      {
+        ...(world.doc.game ? { source: world.doc.game.script.source } : {}),
+        instruction: job.instruction,
+      },
+      { fallback: 'throw' },
+    );
     doc = compiled.doc;
     creation.mode = 'freeplay';
   }
   return { doc: reconcileArt(world.doc, doc), creation };
 }
 
-export function initialCreation(job: BuildWorldJob): Creation {
+export function initialCreation(job: BuildWorldJob, fallback?: Creation['fallback']): Creation {
   return {
     originalWish: job.childRequest ?? job.description,
     changes: [],
     mode: job.experience ?? 'freeplay',
+    ...(fallback ? { fallback } : {}),
   };
 }

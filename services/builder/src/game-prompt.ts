@@ -4,12 +4,18 @@ import { SAFETY_POLICY } from './prompts/v1';
 import { GAME_API_DECLARATIONS } from './game-examples';
 import { WORLD_DESIGN_RULES } from './prompts/world-design';
 import type { GameplayPlan } from './game-playtest';
+import {
+  DESIGNER_BRIEF,
+  HERO_RULE,
+  SMOKE_EXAM,
+  TARGET_SIZE_RULE,
+  closestExamples,
+} from './designer-brief';
 
-export const GAME_PROMPT_VERSION = 'game-v2';
+export const GAME_PROMPT_VERSION = 'game-v3';
 
 /** Appended to the scene prompt when the wish is a game, so the scene gives the script handles. */
-export const GAME_SCENE_HINT =
-  'This scene will host a generated game or open-ended interactive creation. Give every requested actor/prop a clear lowercase tag. Provide the entities the requested actions need; do not turn unrelated ideas into collection games. Keep requested talking characters with character metadata. Numeric variables are optional, only for explicitly requested adjustable controls; no mandatory slider count.';
+export const GAME_SCENE_HINT = `This scene will host a generated game or open-ended interactive creation. Give every requested actor/prop a clear lowercase tag. Provide the entities the requested actions need; do not turn unrelated ideas into collection games. Keep requested talking characters with character metadata. Numeric variables are optional, only for explicitly requested adjustable controls; no mandatory slider count. ${HERO_RULE} ${TARGET_SIZE_RULE}`;
 
 const LANGUAGE_NAMES = { en: 'English', bn: 'Bangla' } as const;
 
@@ -35,6 +41,8 @@ const round = (n: number) => Math.round(n * 100) / 100;
 
 export function gameScriptPrompt(input: {
   description: string;
+  /** The words the worked examples are chosen by; defaults to the description. */
+  exampleWish?: string;
   doc: SceneDoc;
   language: 'en' | 'bn';
   ageBand: string;
@@ -55,6 +63,9 @@ export function gameScriptPrompt(input: {
     'Entities with character metadata have real Gemini conversations when selected. Do not invent their speech as a list of canned game.say lines. Your script supplies the adventure, visible responses, discoveries and goals around those conversations. Preserve every requested character. Include a playful action besides simply tapping to score.',
     `Every string passed to game.say, game.ask and game.hud is read by a child aged ${input.ageBand}: short, kind, playful, in ${language}.`,
     `Game API declarations (TypeScript, the contract):\n${GAME_API_DECLARATIONS}`,
+    DESIGNER_BRIEF,
+    SMOKE_EXAM,
+    `Complete worked examples (data): ${JSON.stringify(closestExamples(input.exampleWish ?? input.description))}`,
     'For illustrated character motion such as orbiting planets, use game.move(id, {x,y}) on tick with smooth bounded paths. game.impulse does not move static bodies. Keep each path centered on its own starting position, small enough to preserve the composition. Integrate phase with dt times the child-controlled orbit speed, so changing it does not teleport a planet. This is a playful diagram, not a true-scale orbit simulation. Do not invent planet or spaceship mechanics for unrelated requests. Do not create decorative controls.',
     'When talking characters are present, default to an ongoing discovery world. Reaching a collection goal should celebrate once and keep movement, new discoveries and conversations available. Do not end the world with game.win or stop its input handlers unless the child explicitly requests a finite race or challenge.',
     'Movement must express the requested action. Locomotion-marked actors have distance-driven run/walk/swim/fly cycles or no-slip spinning vehicle wheels supplied by the renderer. Your script controls WHERE they go: accelerate and brake, follow meaningful bounded routes, stop when input stops or the goal is reached. Ground actors run along the ground and jump with gravity; they never wander vertically or slide in random directions. Use controlled impulses for dynamic bodies so collisions matter; game.move is for scripted static actors or deliberate teleports, not bypassing walls. Swimmers follow a chosen underwater route and turn toward it, not arbitrary sine motion on both axes. Never rotate the entire car as a substitute for its wheels. No permanent decorative movement loop on a resting character. Tick integration uses dt and must remain stable when input changes. A genuine teleport should be instantaneous and not play a running cycle.',
@@ -80,8 +91,8 @@ export function gameScriptPrompt(input: {
 }
 
 /** Feedback appended for the single retry. */
-export function retryFeedback(reason: string, source: string | undefined): string {
+export function retryFeedback(reason: string, source: string | undefined, lint?: string[]): string {
   return `\nThe previous programme failed the safety check or the ten-second test run: ${reason}\n${
     source ? `Previous programme:\n${source.slice(0, 6000)}\n` : ''
-  }Fix the problem and return the whole programme again.`;
+  }${lint?.length ? `Also fix these feedback gaps:\n${lint.join('\n')}\n` : ''}Fix the problem and return the whole programme again.`;
 }
