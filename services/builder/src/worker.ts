@@ -39,22 +39,33 @@ import { applyPaintedFloor } from './presentation';
 import { layerArtPrompt, processLayerArt } from './layer-art';
 import {
   motionArt,
-  sameMotionArt,
   locomotionImagePrompt,
   dropMissingMotion,
   motionRepairInstruction,
-  hasMotionArtwork,
 } from './motion';
 import {
   applyArt,
+  applyStandIns,
+  editRequestsFor,
+  isMissingArtStandIn,
+  needsStandIn,
+  paintFriends,
+  paintStandIn,
   requestsFor,
   startArt,
   type ArtAsset,
   type ArtOutcome,
   type ArtRequest,
 } from './art-phase';
+import { standInFor } from './standins';
 import { ART_PHASE_MS, createBudget } from './budget';
 import type { PatchOp, AssetRef, SceneDoc } from '@just-imagine/scene-schema';
+
+/** The ids of the sprites that move. */
+const movingIds = (doc: SceneDoc) => doc.entities.filter((e) => e.locomotion).map((e) => e.id);
+/** Which of `moving` no longer move: a stand-in or missing motion art stopped them. */
+const stoppedIds = (doc: SceneDoc, moving: string[]) =>
+  moving.filter((id) => !doc.entities.find((e) => e.id === id)?.locomotion);
 
 export class BuilderWorker {
   private storage = new Storage();
@@ -205,7 +216,7 @@ export class BuilderWorker {
             retired = true;
             art = undefined;
           };
-          requests = requestsFor(scene, job.plan);
+          requests = requestsFor(scene, job.plan, job.companionId);
           art = startArt(
             requests,
             async (request) => {
@@ -322,6 +333,8 @@ export class BuilderWorker {
           updatedAt: Date.now(),
           creation: initialCreation(job, fallback),
         });
+        // The friend's art is always its own frame, never a generated picture.
+        paintFriends(base, job.companionId);
         publishable = true;
         // The first publish already carries any art that finished while the game was written.
         await publishArt();
@@ -347,8 +360,18 @@ export class BuilderWorker {
               outcomes.set(request.id, { status: 'failed' });
         }
         const world = applyArt(base, outcomes);
-        // A sprite whose motion art did not finish stands still; the world is never failed for it.
-        const dropped = dropMissingMotion(world.doc);
+        const moving = movingIds(world.doc);
+        const standIns = applyStandIns(world, outcomes);
+        if (standIns)
+          logEvent('art_standin_used', {
+            jobId: job.jobId,
+            worldId: job.worldId,
+            count: standIns,
+          });
+        // A sprite whose motion art did not finish (or that shows a still stand-in) stands
+        // still; the world is never failed for it.
+        dropMissingMotion(world.doc);
+        const dropped = stoppedIds(world.doc, moving);
         if (dropped.length)
           logEvent(
             'art_locomotion_dropped',
@@ -464,6 +487,8 @@ export class BuilderWorker {
     );
     let next: WorldDoc;
     let patch: PatchOp[] | null = null;
+    /** Sprites that moved before the edit's art was painted, when it is painted here. */
+    let moving: string[] = [];
     if (this.game && world.doc.tier !== 'lab') {
       const revised = await reviseCreation(world, job, child, {
         ...this.game,
@@ -471,6 +496,7 @@ export class BuilderWorker {
         reviewScene: this.models.reviewScene,
       });
       next = { ...world, ...revised };
+      moving = movingIds(next.doc);
       await this.paintEdit(job, next, world);
     } else {
       const patched = await patchScene(
@@ -485,7 +511,7 @@ export class BuilderWorker {
       next = { ...world, doc: patched.doc };
       patch = patched.patch;
     }
-    const dropped = dropMissingMotion(next.doc);
+    const dropped = [...new Set([...dropMissingMotion(next.doc), ...stoppedIds(next.doc, moving)])];
     if (dropped.length)
       logEvent(
         'art_locomotion_dropped',
@@ -519,52 +545,7 @@ export class BuilderWorker {
   }
   private async paintEdit(job: BuilderJob, world: WorldDoc, before: WorldDoc) {
     const doc = world.doc;
-    const requests = [
-      ...(doc.theme.backdropDescription !== before.doc.theme.backdropDescription
-        ? [
-            {
-              id: 'backdrop',
-              description: doc.theme.backdropDescription,
-              kind: 'backdrop',
-              hero: true,
-            },
-          ]
-        : []),
-      ...(doc.theme.midLayerDescription &&
-      doc.theme.midLayerDescription !== before.doc.theme.midLayerDescription
-        ? [
-            {
-              id: 'midLayer',
-              description: doc.theme.midLayerDescription,
-              kind: 'overlay',
-              hero: true,
-            },
-          ]
-        : []),
-      ...doc.entities
-        .filter(
-          (e) =>
-            e.kind === 'sprite' &&
-            !before.doc.entities.some(
-              (old) =>
-                old.id === e.id &&
-                old.kind === e.kind &&
-                old.description === e.description &&
-                old.asset?.status === 'ready' &&
-                hasMotionArtwork(old) &&
-                sameMotionArt(old.locomotion, e.locomotion),
-            ),
-        )
-        .sort((a, b) => Number(Boolean(b.character)) - Number(Boolean(a.character)))
-        .slice(0, PLAN_LIMITS[job.plan].imagesPerWorld)
-        .map((e) => ({
-          id: e.id,
-          description: e.description,
-          kind: 'sprite',
-          hero: Boolean(e.character) || e.id === doc.learning.heroEntityId,
-          ...(e.locomotion ? { locomotion: e.locomotion } : {}),
-        })),
-    ];
+    const requests = editRequestsFor(doc, before.doc, job.plan);
     world.assets = {};
     const existingAssets: [string, AssetRef | undefined][] = [
       ['backdrop', doc.theme.backdrop],
@@ -579,8 +560,11 @@ export class BuilderWorker {
           ...(asset.colliderUrl ? { colliderUrl: asset.colliderUrl } : {}),
         };
     }
+    // The friend is never drawn: it always shows its own frame.
+    paintFriends(world);
     world.thumbnailUrl = doc.theme.backdrop.status === 'ready' ? doc.theme.backdrop.url : null;
     let cursor = 0;
+    let standIns = 0;
     const deadline = Date.now() + 180000;
     const work = async () => {
       while (cursor < requests.length) {
@@ -592,28 +576,45 @@ export class BuilderWorker {
           asset = await this.asset(job, request);
         } catch (error) {
           // A failed animation sheet never rejects the edit: the sprite keeps its old still
-          // picture, if it had one, and `patch` drops its locomotion.
-          if (!request.locomotion || request.locomotion.kind === 'roll') throw error;
-          logEvent(
-            'asset_failed',
-            { jobId: job.jobId, milestone: request.kind, success: false },
-            'WARNING',
+          // picture, if it had one, and `patch` drops its locomotion. A hero or character
+          // that still showed a stand-in gets a fresh one; anything else keeps its stand-in.
+          const entity = doc.entities.find((e) => e.id === request.id);
+          const standable = Boolean(
+            entity && request.kind === 'sprite' && needsStandIn(entity, doc.learning.heroEntityId),
           );
           const old = before.doc.entities.find((e) => e.id === request.id);
-          const entity = doc.entities.find((e) => e.id === request.id);
-          if (
+          const oldStill =
             entity &&
             old?.asset?.status === 'ready' &&
             !old.asset.animation &&
             old.kind === entity.kind &&
             old.description === entity.description
-          ) {
-            entity.asset = structuredClone(old.asset);
+              ? old.asset
+              : undefined;
+          // Asked again only because it still showed a stand-in: it can keep a stand-in.
+          const hadStandIn = Boolean(oldStill && isMissingArtStandIn(oldStill.url));
+          if (
+            (!request.locomotion || request.locomotion.kind === 'roll') &&
+            !standable &&
+            !hadStandIn
+          )
+            throw error;
+          logEvent(
+            'asset_failed',
+            { jobId: job.jobId, milestone: request.kind, success: false },
+            'WARNING',
+          );
+          if (entity && oldStill && !(standable && hadStandIn)) {
+            entity.asset = structuredClone(oldStill);
             world.assets[request.id] = {
               status: 'ready',
-              url: old.asset.url,
-              ...(old.asset.colliderUrl ? { colliderUrl: old.asset.colliderUrl } : {}),
+              url: oldStill.url,
+              ...(oldStill.colliderUrl ? { colliderUrl: oldStill.colliderUrl } : {}),
             };
+          } else if (entity && standable) {
+            // The hero or a character never ends up without a picture.
+            paintStandIn(world, entity, standInFor(entity));
+            standIns++;
           } else world.assets[request.id] = { status: 'failed' };
           continue;
         }
@@ -643,6 +644,8 @@ export class BuilderWorker {
     const results = await Promise.allSettled(
       Array.from({ length: Math.min(4, requests.length) }, work),
     );
+    if (standIns)
+      logEvent('art_standin_used', { jobId: job.jobId, worldId: job.worldId, count: standIns });
     if (results.some((result) => result.status === 'rejected'))
       throw new EditError(
         'The requested artwork could not be finished; the previous creation was kept.',

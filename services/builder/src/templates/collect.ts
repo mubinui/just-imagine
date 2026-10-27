@@ -2,10 +2,14 @@ import type { Entity, SceneDoc } from '@just-imagine/scene-schema';
 
 type Language = 'en' | 'bn';
 
-/** The things a child can catch: every moving sprite that is not the hero. */
+/** The things a child can catch: every moving sprite that is neither the hero nor the child's friend. */
 export function collectTargets(doc: SceneDoc): Entity[] {
   return doc.entities.filter(
-    (e) => e.kind === 'sprite' && !e.body.isStatic && e.id !== doc.learning.heroEntityId,
+    (e) =>
+      e.kind === 'sprite' &&
+      !e.body.isStatic &&
+      e.id !== doc.learning.heroEntityId &&
+      !e.tags.includes('friend'),
   );
 }
 

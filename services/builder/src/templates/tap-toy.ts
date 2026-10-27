@@ -1,4 +1,5 @@
 import type { SceneDoc } from '@just-imagine/scene-schema';
+import { isFriendEntity } from '../standins';
 
 type Language = 'en' | 'bn';
 
@@ -19,8 +20,8 @@ export const TAP_TOY_STRINGS = {
  * Tap toy: a tapped body hops with a boing, a tap on empty stage nudges the
  * nearest movable body toward the finger with a boing and a sparkle, a dragged
  * body follows the finger, hard bumps pop, and the first tap is greeted. In `game` mode the HUD
- * counts every tap on a body other than the hero, and every tenth scores and celebrates; when only the hero can
- * move, taps on the hero count. Whenever nothing in the scene can move (from
+ * counts every tap on a body other than the hero and the friend, and every tenth scores and celebrates; when only the hero can
+ * move, taps on the hero count (the friend too, when it is the hero). The friend is never the copy. Whenever nothing in the scene can move (from
  * the start, or after a scene rule removed every moving body), one movable
  * copy of a sprite is dropped in so there is always something to play with.
  */
@@ -28,7 +29,13 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
   const hero = doc.learning.heroEntityId;
   const sprites = doc.entities.filter((e) => e.kind === 'sprite');
   const moving = sprites.filter((e) => !e.body.isStatic);
-  const othersMove = moving.some((e) => e.id !== hero);
+  // The child's friend (any shape of it) is never copied as the drop-in toy.
+  const friendly = sprites
+    .filter((e) => e.tags.includes('friend') || isFriendEntity(e))
+    .map((e) => e.id);
+  // The friend hops when tapped but never counts toward the ten, unless it is the hero.
+  const friends = friendly.filter((id) => id !== hero);
+  const othersMove = moving.some((e) => e.id !== hero && !friends.includes(e.id));
   const heroMoves = moving.some((e) => e.id === hero);
   // Tags only moving sprites carry: copies a scene rule spawns still count as something to play with.
   const fixedTags = new Set(doc.entities.filter((e) => !moving.includes(e)).flatMap((e) => e.tags));
@@ -39,14 +46,15 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
     ]),
   ];
   const toy =
-    moving.find((e) => e.id !== hero) ??
-    moving[0] ??
-    sprites.find((e) => e.id !== hero) ??
-    sprites[0];
+    moving.find((e) => e.id !== hero && !friendly.includes(e.id)) ??
+    moving.find((e) => !friendly.includes(e.id)) ??
+    sprites.find((e) => e.id !== hero && !friendly.includes(e.id)) ??
+    sprites.find((e) => !friendly.includes(e.id));
   const strings = TAP_TOY_STRINGS[language];
   const lines = [
     '// Template toy: tap anything and see what happens.',
     `const HERO = ${JSON.stringify(hero)};`,
+    `const FRIENDS = ${JSON.stringify(friends)};`,
     `const COUNT_HERO = ${!othersMove && heroMoves};`,
     `const GREETING = ${JSON.stringify(strings.greeting)};`,
     'let greeted = false;',
@@ -120,6 +128,7 @@ export function tapToySource(doc: SceneDoc, language: Language, mode: 'game' | '
   );
   if (mode === 'game') {
     lines.push(
+      '  if (FRIENDS.includes(e.target.id)) return;',
       '  if (e.target.id === HERO && !COUNT_HERO) return;',
       '  taps += 1;',
       '  // Every counted tap shows on the HUD, so progress toward ten is never stuck at 0.',

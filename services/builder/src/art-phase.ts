@@ -1,6 +1,8 @@
 import { PLAN_LIMITS, type PlanTier, type WorldDoc } from '@just-imagine/protocol';
 import type { AssetRef, Locomotion, SceneDoc } from '@just-imagine/scene-schema';
+import { hasMotionArtwork, sameMotionArt } from './motion';
 import { applyPaintedFloor } from './presentation';
+import { FRIEND_STANDINS, isFriendEntity, standInFor, type StandIn } from './standins';
 
 /** One picture the world needs: the backdrop, the mid layer or a sprite. */
 export interface ArtRequest {
@@ -60,7 +62,21 @@ export function startArt(
       try {
         report(request.id, { status: 'ready', asset: await generate(request) });
       } catch {
-        report(request.id, { status: 'failed' });
+        // The hero and the characters get exactly one more try while the art deadline allows.
+        const retry =
+          request.hero &&
+          request.kind === 'sprite' &&
+          now() < options.deadline &&
+          !(await options.stop?.().catch(() => true));
+        if (!retry) {
+          report(request.id, { status: 'failed' });
+          continue;
+        }
+        try {
+          report(request.id, { status: 'ready', asset: await generate(request) });
+        } catch {
+          report(request.id, { status: 'failed' });
+        }
       }
     }
   };
@@ -104,11 +120,18 @@ export function applyArt(world: WorldDoc, outcomes: Map<string, ArtOutcome>): Wo
   return next;
 }
 
+type SceneEntity = SceneDoc['entities'][number];
+
+/** A sprite that gets a generated picture: never the friend, whose art is always its own frame. */
+const wantsPicture = (e: SceneEntity, companionId?: string) =>
+  e.kind === 'sprite' && !isFriendEntity(e, companionId);
+
 /**
  * The art a new world asks for: the backdrop, the mid layer when there is one,
- * then sprites with the hero and characters first, capped by the plan.
+ * then sprites with the hero and characters first, capped by the plan. The friend
+ * is never asked for (see `paintFriends`), so the cap can never drop it.
  */
-export function requestsFor(doc: SceneDoc, plan: PlanTier): ArtRequest[] {
+export function requestsFor(doc: SceneDoc, plan: PlanTier, companionId?: string): ArtRequest[] {
   const hero = doc.learning.heroEntityId;
   const rank = (e: SceneDoc['entities'][number]) =>
     Number(e.id === hero) * 2 + Number(Boolean(e.character));
@@ -125,7 +148,7 @@ export function requestsFor(doc: SceneDoc, plan: PlanTier): ArtRequest[] {
         ]
       : []),
     ...doc.entities
-      .filter((e) => e.kind === 'sprite')
+      .filter((e) => wantsPicture(e, companionId))
       .sort((a, b) => rank(b) - rank(a))
       .slice(0, PLAN_LIMITS[plan].imagesPerWorld)
       .map((e) => ({
@@ -136,4 +159,128 @@ export function requestsFor(doc: SceneDoc, plan: PlanTier): ArtRequest[] {
         ...(e.locomotion ? { locomotion: e.locomotion } : {}),
       })),
   ];
+}
+
+const FRIEND_FRAME_URLS = new Set(Object.values(FRIEND_STANDINS).map((frame) => frame.url));
+
+/** A painted stand-in for art that did not arrive (a friend's frame is that friend's own art). */
+export const isMissingArtStandIn = (url: string) =>
+  url.startsWith('/standins/') && !FRIEND_FRAME_URLS.has(url);
+
+/**
+ * The art a voice edit asks for: a changed backdrop or mid layer, and every sprite (the friend
+ * excepted) that is new, changed, lacks ready art for its motion or still shows a stand-in,
+ * characters first, capped by the plan.
+ */
+export function editRequestsFor(doc: SceneDoc, before: SceneDoc, plan: PlanTier): ArtRequest[] {
+  return [
+    ...(doc.theme.backdropDescription !== before.theme.backdropDescription
+      ? [
+          {
+            id: 'backdrop',
+            description: doc.theme.backdropDescription,
+            kind: 'backdrop',
+            hero: true,
+          },
+        ]
+      : []),
+    ...(doc.theme.midLayerDescription &&
+    doc.theme.midLayerDescription !== before.theme.midLayerDescription
+      ? [
+          {
+            id: 'midLayer',
+            description: doc.theme.midLayerDescription,
+            kind: 'overlay',
+            hero: true,
+          },
+        ]
+      : []),
+    ...doc.entities
+      .filter(
+        (e) =>
+          wantsPicture(e) &&
+          !before.entities.some(
+            (old) =>
+              old.id === e.id &&
+              old.kind === e.kind &&
+              old.description === e.description &&
+              old.asset?.status === 'ready' &&
+              !isMissingArtStandIn(old.asset.url) &&
+              hasMotionArtwork(old) &&
+              sameMotionArt(old.locomotion, e.locomotion),
+          ),
+      )
+      .sort((a, b) => Number(Boolean(b.character)) - Number(Boolean(a.character)))
+      .slice(0, PLAN_LIMITS[plan].imagesPerWorld)
+      .map((e) => ({
+        id: e.id,
+        description: e.description,
+        kind: 'sprite',
+        hero: Boolean(e.character) || e.id === doc.learning.heroEntityId,
+        ...(e.locomotion ? { locomotion: e.locomotion } : {}),
+      })),
+  ];
+}
+
+/**
+ * Gives every friend sprite its own companion's frame (the world is changed in place); a
+ * friend already showing its frame keeps it. A still frame cannot walk or roll, so the
+ * friend's locomotion is removed (see `dropStandInMotion`). Returns how many friends there are.
+ */
+export function paintFriends(world: WorldDoc, companionId?: string): number {
+  let count = 0;
+  for (const entity of world.doc.entities) {
+    const friend = entity.kind === 'sprite' ? isFriendEntity(entity, companionId) : undefined;
+    if (!friend) continue;
+    const frame = FRIEND_STANDINS[friend];
+    if (entity.asset?.status === 'ready' && entity.asset.url === frame.url) {
+      dropStandInMotion(entity, frame);
+      world.assets[entity.id] = { status: 'ready', url: frame.url };
+    } else paintStandIn(world, entity, frame);
+    count++;
+  }
+  return count;
+}
+
+/** The hero, the characters and the child's friend: the sprites a world cannot do without. */
+export const needsStandIn = (entity: SceneEntity, heroId: string | undefined) =>
+  entity.kind === 'sprite' &&
+  (entity.id === heroId || Boolean(entity.character) || entity.tags.includes('friend'));
+
+/**
+ * Paints a stand-in over every failed hero, character or friend sprite (the world is changed
+ * in place). Returns how many were painted. Backdrop, mid layer and props are left alone.
+ */
+export function applyStandIns(world: WorldDoc, outcomes: Map<string, ArtOutcome>): number {
+  // A lab keeps its own art or none: a painted stand-in never enters a simulation.
+  if (world.doc.tier === 'lab') return 0;
+  let count = 0;
+  for (const entity of world.doc.entities) {
+    if (outcomes.get(entity.id)?.status !== 'failed') continue;
+    if (!needsStandIn(entity, world.doc.learning.heroEntityId)) continue;
+    paintStandIn(world, entity, standInFor(entity));
+    count++;
+  }
+  return count;
+}
+
+/**
+ * A stand-in is a still picture, so the entity's locomotion is removed, except a wheel-less
+ * roll on the ball, which simply turns the round picture.
+ */
+function dropStandInMotion(entity: SceneEntity, standIn: StandIn) {
+  const rolls = entity.locomotion?.kind === 'roll' && !entity.locomotion.wheels;
+  if (!(standIn.key === 'ball' && rolls)) delete entity.locomotion;
+}
+
+/** Paints `standIn` on the entity and in the world's asset map (both changed in place). */
+export function paintStandIn(world: WorldDoc, entity: SceneEntity, standIn: StandIn) {
+  entity.asset = {
+    status: 'ready',
+    url: standIn.url,
+    width: standIn.width,
+    height: standIn.height,
+  };
+  world.assets[entity.id] = { status: 'ready', url: standIn.url };
+  dropStandInMotion(entity, standIn);
 }

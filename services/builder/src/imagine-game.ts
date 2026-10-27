@@ -25,7 +25,7 @@ import { providerFailure, type GameFailureDiagnostic } from './game-diagnostics'
 import { isRateLimited, isTransientProviderError, withTransientRetry } from './rate-limit';
 import { createBudget, type BuildBudget } from './budget';
 import { raceCandidates, type Candidate } from './candidates';
-import { ensureHero } from './hero';
+import { ensureFriend, ensureHero } from './hero';
 import { feedbackLint } from './designer-brief';
 import { templateGame } from './templates';
 
@@ -235,7 +235,7 @@ export async function imagineGame(
     retryingScene(job, deps, budget, (prompt) => `${prompt}\n${GAME_SCENE_HINT}`),
     deps.reviewScene,
   );
-  const doc = ensureHero(built, job);
+  const doc = ensureFriend(ensureHero(built, job), job);
   deps.onScene?.(doc);
   return compileBehavior(doc, job, { ...deps, budget }, undefined, { fallback: 'template' });
 }

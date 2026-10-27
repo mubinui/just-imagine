@@ -19,17 +19,25 @@ const config: NextConfig = {
   // stop revalidating every image. Names are mostly versioned (-v1, -v2); a changed file
   // reaches browsers within a day.
   async headers() {
-    return ['characters', 'learn', 'worlds', 'sound', 'music', 'fonts', 'icons', 'patterns'].map(
-      (folder) => ({
-        source: `/${folder}/:path*`,
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800',
-          },
-        ],
-      }),
-    );
+    return [
+      'characters',
+      'learn',
+      'worlds',
+      'sound',
+      'music',
+      'fonts',
+      'icons',
+      'patterns',
+      'standins',
+    ].map((folder) => ({
+      source: `/${folder}/:path*`,
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800',
+        },
+      ],
+    }));
   },
 };
 

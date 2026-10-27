@@ -721,7 +721,10 @@ it('publishes building with art that finished during scripting, then ready, neve
     expect(world.status).toBe('ready');
     const frog = world.doc.entities.find((e) => e.id === 'frog')!;
     expect(frog.locomotion).toBeUndefined();
-    expect(world.assets['frog']).toEqual({ status: 'failed' });
+    // The hero's art never arrives, so a painted stand-in takes its place and it still stands still.
+    expect(frog.asset).toMatchObject({ status: 'ready' });
+    expect(frog.asset?.url).toMatch(/^\/standins\//);
+    expect(world.assets['frog']).toMatchObject({ status: 'ready' });
     expect(world.doc.game?.script.source).toBe(flies.game!.script.source);
     expect(
       (
@@ -733,6 +736,51 @@ it('publishes building with art that finished during scripting, then ready, neve
     expect(events).toContainEqual(
       expect.objectContaining({ event: 'art_locomotion_dropped', ids: ['frog'] }),
     );
+    expect(events).toContainEqual({
+      event: 'art_standin_used',
+      jobId: h.job.jobId,
+      worldId: h.job.worldId,
+      count: 1,
+    });
+  } finally {
+    await h.cleanup();
+  }
+});
+
+it("gives the child's friend its own frame and never asks for a picture of it", async () => {
+  const asked: string[] = [];
+  const h = await artWorld(
+    'friend',
+    async (request) => {
+      asked.push(request.id);
+      return picture(request.id);
+    },
+    async () => ({ kind: 'game', source: flies.game!.script.source }),
+  );
+  h.job.companionId = 'bhombol';
+  try {
+    expect(await h.worker.run(h.job)).toEqual({ status: 'complete' });
+    const world = await h.world();
+    expect(world.status).toBe('ready');
+    const friend = world.doc.entities.find((e) => e.id === 'bhombol')!;
+    expect(friend.tags).toContain('friend');
+    expect(friend.asset).toEqual({
+      status: 'ready',
+      url: '/standins/friend-bhombol.webp',
+      width: 193,
+      height: 219,
+    });
+    expect(world.assets['bhombol']).toEqual({
+      status: 'ready',
+      url: '/standins/friend-bhombol.webp',
+    });
+    expect(asked).toContain('frog');
+    expect(asked).not.toContain('bhombol');
+    // Every publish, the first included, already shows the friend's frame.
+    for (const published of h.published)
+      expect(published.doc.entities.find((e) => e.id === 'bhombol')?.asset?.url).toBe(
+        '/standins/friend-bhombol.webp',
+      );
   } finally {
     await h.cleanup();
   }
@@ -752,7 +800,7 @@ it('publishes ready with partial art when the hard deadline passes during art', 
     const world = await h.world();
     expect(world.status).toBe('ready');
     expect(world.doc.theme.backdrop.status).toBe('ready');
-    expect(world.assets['frog']).toEqual({ status: 'failed' });
+    expect(world.assets['frog']?.url).toMatch(/^\/standins\//);
     expect(world.doc.entities.find((e) => e.id === 'frog')!.locomotion).toBeUndefined();
     expect(events).toContainEqual(
       expect.objectContaining({ event: 'build_deadline_hit', phase: 'art' }),
@@ -762,7 +810,7 @@ it('publishes ready with partial art when the hard deadline passes during art', 
     release(picture('frog'));
     await sleep(50);
     expect(h.published.length).toBe(count);
-    expect((await h.world()).assets['frog']).toEqual({ status: 'failed' });
+    expect((await h.world()).assets['frog']?.url).toMatch(/^\/standins\//);
   } finally {
     await h.cleanup();
   }
@@ -847,6 +895,127 @@ it('commits a voice edit with the sprite kept still when its only animation shee
           .get()
       ).exists,
     ).toBe(true);
+    expect(events).toContainEqual(
+      expect.objectContaining({ event: 'art_locomotion_dropped', ids: ['frog'] }),
+    );
+    await db()
+      .doc('builderJobs/' + job.jobId)
+      .delete();
+  } finally {
+    await h.cleanup();
+  }
+});
+
+/** Writes the current world for an edit, every sprite pictured unless `assets` says otherwise. */
+async function seedEdit(
+  h: Awaited<ReturnType<typeof artWorld>>,
+  suffix: string,
+  urls: Record<string, string>,
+) {
+  const before: SceneDoc = structuredClone(flies);
+  before.worldId = h.job.worldId;
+  before.theme.backdrop = { url: picture('backdrop').url, width: 64, height: 64, status: 'ready' };
+  for (const entity of before.entities)
+    if (entity.kind === 'sprite')
+      entity.asset = {
+        url: urls[entity.id] ?? picture(entity.id).url,
+        width: 64,
+        height: 64,
+        status: 'ready',
+      };
+  await db()
+    .doc(paths.world(h.job.worldId))
+    .set(
+      WorldDocSchema.parse({
+        ownerUid: h.job.uid,
+        childId: h.job.childId,
+        title: before.title,
+        status: 'ready',
+        doc: before,
+        schemaVersion: 1,
+        promptVersion: 'v1',
+        styleVersion: 'v1',
+        assets: {},
+        concepts: before.learning.concepts,
+        thumbnailUrl: null,
+        jobId: 'j_initial_' + suffix,
+        createdAt: 1,
+        updatedAt: 1,
+      }),
+    );
+  const job = {
+    kind: 'patch',
+    jobId: 'j_art_patch_' + suffix,
+    worldId: h.job.worldId,
+    uid: h.job.uid,
+    childId: h.job.childId,
+    sessionId: 's_art',
+    plan: 'free',
+    instruction: 'Make the frog run',
+    promptVersion: 'v1',
+  };
+  await db()
+    .doc('builderJobs/' + job.jobId)
+    .delete();
+  return job;
+}
+
+it('repaints a stand-in on a voice edit once the art arrives', async () => {
+  const asked: string[] = [];
+  const h = await artWorld(
+    'restand',
+    async (request) => {
+      asked.push(request.id);
+      return picture(request.id);
+    },
+    async () => ({
+      kind: 'game',
+      source: "game.on('tap', e => { if(e.target) game.move(e.target.id, {x:8,y:3}); });",
+    }),
+  );
+  try {
+    const job = await seedEdit(h, 'restand', { owl: '/standins/bird.webp' });
+    expect(await h.worker.run(job)).toEqual({ status: 'complete' });
+    const world = await h.world();
+    expect(asked).toContain('owl');
+    expect(world.doc.entities.find((e) => e.id === 'owl')!.asset?.url).toBe(picture('owl').url);
+    expect(world.assets['owl']?.url).toBe(picture('owl').url);
+    await db()
+      .doc('builderJobs/' + job.jobId)
+      .delete();
+  } finally {
+    await h.cleanup();
+  }
+});
+
+it('keeps an edit when a stand-in is asked again and the art still does not arrive', async () => {
+  const h = await artWorld(
+    'stillout',
+    async (request) => {
+      if (request.id === 'owl' || request.id === 'frog') throw new Error('image outage');
+      return picture(request.id);
+    },
+    async () => ({
+      kind: 'game',
+      source: "game.on('tap', e => { if(e.target) game.move(e.target.id, {x:8,y:3}); });",
+    }),
+  );
+  try {
+    const job = await seedEdit(h, 'stillout', {
+      owl: '/standins/bird.webp',
+      frog: '/standins/crate.webp',
+    });
+    expect(await h.worker.run(job)).toEqual({ status: 'complete' });
+    const world = await h.world();
+    expect(world.revisionId).toBe(job.jobId);
+    expect(world.doc.entities.find((e) => e.id === 'owl')!.asset?.url).toBe('/standins/bird.webp');
+    // The hero gets a fresh stand-in, still, and the stand-in is counted.
+    const frog = world.doc.entities.find((e) => e.id === 'frog')!;
+    expect(frog.asset).toMatchObject({ status: 'ready', url: '/standins/crate.webp' });
+    expect(frog.locomotion).toBeUndefined();
+    expect(events).toContainEqual(
+      expect.objectContaining({ event: 'art_standin_used', worldId: h.job.worldId, count: 1 }),
+    );
     expect(events).toContainEqual(
       expect.objectContaining({ event: 'art_locomotion_dropped', ids: ['frog'] }),
     );
