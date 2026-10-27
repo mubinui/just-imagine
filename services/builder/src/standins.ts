@@ -26,9 +26,9 @@ export const STANDINS: readonly StandIn[] = [
   standIn('rocket', 512, 320, ['rocket', 'spaceship', 'ship in space', 'shuttle']),
   standIn('boat', 505, 512, ['boat', 'ship', 'raft', 'canoe', 'submarine']),
   standIn('robot', 405, 512, ['robot', 'droid', 'machine']),
-  standIn('dog', 512, 444, ['dog', 'puppy']),
-  standIn('cat', 512, 469, ['cat', 'kitten']),
-  standIn('bird', 512, 463, ['bird', 'chick', 'duck', 'owl', 'parrot']),
+  standIn('dog', 512, 444, ['dog', 'puppy', 'wolf', 'fox']),
+  standIn('cat', 512, 469, ['cat', 'kitten', 'lion', 'tiger', 'leopard']),
+  standIn('bird', 512, 463, ['bird', 'chick', 'duck', 'owl', 'parrot', 'hen', 'penguin']),
   standIn('fish', 512, 442, ['fish', 'shark', 'whale', 'dolphin']),
   standIn('child', 163, 512, ['child', 'kid', 'boy', 'girl', 'person', 'friend']),
   // The generic default when an entity's words match nothing else.
@@ -67,10 +67,40 @@ export function isFriendEntity(
 
 const words = (text: string) => text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
 
+/** A word as written and without a trailing plural `s` or `es`. */
+const forms = (word: string) => [
+  word,
+  ...(word.length > 2 && word.endsWith('s') ? [word.slice(0, -1)] : []),
+  ...(word.length > 3 && word.endsWith('es') ? [word.slice(0, -2)] : []),
+];
+
+const PHRASES = STANDINS.flatMap((standIn) =>
+  standIn.words.map((phrase) => ({ standIn, words: words(phrase) })),
+);
+
 /**
- * The stand-in for an entity whose art did not arrive. A friend gets its own companion's frame;
- * anything else gets the entry with the most matching whole words in its name, tags and
- * description (ties go to the earlier entry), else the generic crate.
+ * The entry whose phrase matches earliest in `segments` (each a run of words; a phrase never
+ * spans two), the longer phrase winning at the same word, then the earlier entry.
+ */
+function earliestMatch(segments: string[][]): StandIn | undefined {
+  for (const segment of segments) {
+    const variants = segment.map(forms);
+    for (let at = 0; at < segment.length; at++) {
+      let best: (typeof PHRASES)[number] | undefined;
+      for (const phrase of PHRASES) {
+        const fits = phrase.words.every((w, k) => variants[at + k]?.includes(w));
+        if (fits && phrase.words.length > (best?.words.length ?? 0)) best = phrase;
+      }
+      if (best) return best.standIn;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The stand-in for an entity whose art did not arrive. A friend gets its own companion's frame.
+ * Anything else is decided on its name and tags; its description is read only when they match
+ * nothing. The earliest matching word wins (plurals count), else the generic crate.
  */
 export function standInFor(
   entity: { id?: string; name?: string; tags: readonly string[]; description?: string },
@@ -78,21 +108,9 @@ export function standInFor(
 ): StandIn {
   const friend = isFriendEntity(entity, companionId);
   if (friend) return FRIEND_STANDINS[friend];
-  const present = new Set([
-    ...words(entity.name ?? ''),
-    ...entity.tags.flatMap(words),
-    ...words(entity.description ?? ''),
-  ]);
-  let best = STANDINS.find((s) => s.key === 'crate')!;
-  let bestScore = 0;
-  for (const candidate of STANDINS) {
-    const score = candidate.words.filter((phrase) =>
-      words(phrase).every((w) => present.has(w)),
-    ).length;
-    if (score > bestScore) {
-      best = candidate;
-      bestScore = score;
-    }
-  }
-  return best;
+  return (
+    earliestMatch([words(entity.name ?? ''), ...entity.tags.map(words)]) ??
+    earliestMatch([words(entity.description ?? '')]) ??
+    STANDINS.find((s) => s.key === 'crate')!
+  );
 }

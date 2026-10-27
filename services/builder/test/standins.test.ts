@@ -57,12 +57,33 @@ describe('standInFor', () => {
     expect(standInFor(e('Scarf', [], 'a warm scarf')).key).toBe('crate');
   });
 
-  it('prefers the entry with the most matching words, ties to the earlier entry', () => {
-    expect(standInFor(e('x', [], 'a robot dog dog puppy')).key).toBe('dog');
-    expect(standInFor(e('x', [], 'a cat and a dog')).key).toBe('dog');
+  it('takes the earliest matching word in the description, not the manifest order', () => {
+    expect(standInFor(e('x', [], 'a robot dog dog puppy')).key).toBe('robot');
+    expect(standInFor(e('x', [], 'a cat and a dog')).key).toBe('cat');
+    expect(standInFor(e('x', [], 'a fluffy orange kitten chasing a red ball of yarn')).key).toBe(
+      'cat',
+    );
+    expect(standInFor(e('x', [], 'a brown puppy who loves his ball')).key).toBe('dog');
   });
 
-  it('matches multi-word phrases only when every word is present', () => {
+  it('decides on the name and tags first, and reads the description only when they match nothing', () => {
+    expect(standInFor(e('Leo', [], 'a lion')).key).toBe('cat');
+    expect(standInFor(e('Zoom', ['hero', 'car'], 'races past a sleepy dog')).key).toBe('car');
+    expect(standInFor(e('Doggo Racer', [], 'a speedy dog')).key).toBe('car');
+  });
+
+  it('matches plurals and big-cat, wild-dog and bird synonyms', () => {
+    expect(standInFor(e('x', [], 'two racing cars')).key).toBe('car');
+    expect(standInFor(e('x', [], 'a stack of boxes')).key).toBe('crate');
+    expect(standInFor(e('x', [], 'a bus')).key).toBe('truck');
+    for (const word of ['lion', 'tiger', 'leopard'])
+      expect(standInFor(e('x', [], `a ${word}`)).key).toBe('cat');
+    for (const word of ['wolf', 'fox']) expect(standInFor(e('x', [], `a ${word}`)).key).toBe('dog');
+    for (const word of ['hen', 'penguin'])
+      expect(standInFor(e('x', [], `a ${word}`)).key).toBe('bird');
+  });
+
+  it('matches multi-word phrases only when the words come in order', () => {
     expect(standInFor(e('x', [], 'a ship in space')).key).toBe('rocket');
     expect(standInFor(e('x', [], 'a ship at sea')).key).toBe('boat');
   });
