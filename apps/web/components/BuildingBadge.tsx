@@ -7,7 +7,15 @@ import { paths } from '@just-imagine/protocol';
 import { useLanguage } from '../lib/i18n';
 import { firebase } from '../lib/firebase';
 import { env } from '../lib/env';
-import { badgeState, clearBuild, currentBuild, onBuildChange, type Build } from '../lib/building';
+import {
+  badgeState,
+  clearBuild,
+  currentBuild,
+  onBuildChange,
+  shouldGiveUp,
+  type Build,
+} from '../lib/building';
+import { isPermissionDenied } from '../lib/permission-denied';
 import { CharacterArt } from './studio/CharacterArt';
 import { UiIcon } from './UiIcon';
 
@@ -45,9 +53,14 @@ export function BuildingBadge() {
           const value = snap.get('status') as WorldStatus;
           if (active) setStatus(value);
         },
-        () => {
-          // The document does not exist until the first draft; listen again shortly.
+        (error) => {
           stop?.();
+          // The document does not exist until the first draft, which Firestore reports as
+          // permission-denied too: listen again shortly, and give up only on a dead build.
+          if (isPermissionDenied(error) && shouldGiveUp(build, Date.now())) {
+            if (active) clearBuild();
+            return;
+          }
           if (active) retry = setTimeout(listen, 5000);
         },
       );

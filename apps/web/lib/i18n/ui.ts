@@ -2,6 +2,8 @@ import { currentLanguage, formatNumber, withNameSuffix, type Vars } from './inde
 import { en } from './en';
 import { bn } from './bn';
 import { UI_BN } from './ui-bn';
+import { english } from '../strings/en';
+import { isPermissionDenied } from '../permission-denied';
 
 const catalogue = new Map<string, string>();
 function collect(a: object, b: object) {
@@ -45,6 +47,8 @@ export function copy(english: string | null | undefined, vars?: Vars): string {
 
 /** Never expose an untranslated transport/SDK error as Bangla interface copy. */
 export function uiError(error: unknown, fallback = 'Could not finish. Please try again.'): string {
+  // A world the browser may not read is a rules answer, not something a child should see.
+  if (isPermissionDenied(error)) return copy(english.unavailable);
   const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
   if (currentLanguage() === 'en')
     return /[\u0980-\u09ff]/.test(message) ? fallback : message || fallback;
