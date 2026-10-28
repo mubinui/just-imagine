@@ -103,4 +103,6 @@ it('pays each authored challenge once across concurrent sessions and later repla
   await expect(store().awardPoints(record('once_parent', 'c_once'), award)).rejects.toThrow(
     /already/,
   );
-});
+  // Two transactions contend for one document; the emulator's lock wait and retry can take
+  // several seconds, as in the tutor quota test.
+}, 30000);
